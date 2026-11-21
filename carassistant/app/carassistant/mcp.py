@@ -21,7 +21,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from urllib.parse import urlparse
 
-from . import STAGE, __version__, accounts, config, db, entities, events, fuelstats, ha, slugs, summary
+from . import STAGE, __version__, accounts, addons, config, db, entities, events, fuelstats, ha, slugs, summary, units
 
 LEVELS = ("off", "read", "write")
 SETTING = "mcp.level"
@@ -290,6 +290,73 @@ def t_get_logs(conn, args):
     return [dict(r) for r in rows]
 
 
+def t_list_plugins(conn, args):
+    """Plugins and integrations of one vehicle (or all): what is installed, switched on, set up - never tokens or secret settings."""
+    ids = [_vehicle(conn, args["vehicle"])] if args.get("vehicle") not in (None, "") else [r["id"] for r in conn.execute("SELECT id FROM vehicles")]
+    out = []
+    for vid in ids:
+        for a in addons.list_for(conn, vid):
+            m = a["m"]
+            secret = {f["key"] for f in m.get("settings", []) if f.get("type") == "password"}
+            out.append(
+                {
+                    "vehicle_id": vid,
+                    "kind": a["kind"],
+                    "id": a["addon_id"],
+                    "name": m.get("name"),
+                    "version": m.get("version"),
+                    "description": m.get("description"),
+                    "active": bool(a["active"]),
+                    "status": a["status"],
+                    "source": a.get("source_name"),
+                    "update_available": a.get("has_update", False),
+                    "debug": bool(a.get("debug")),
+                    "settings": {k: ("***" if k in secret else v) for k, v in a["vals"].items()},
+                }
+            )
+    return out
+
+
+def t_list_documents(conn, args):
+    """The documents of a vehicle (title, category, file name, size) - the files themselves are not handed out."""
+    vid = _vehicle(conn, args.get("vehicle"))
+    rows = conn.execute(
+        "SELECT id, category, title, filename, mime, size, created_at FROM documents WHERE vehicle_id = ? ORDER BY id DESC LIMIT ?",
+        (vid, _int(args, "limit", 50, 1, MAX_ROWS)),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def t_get_charging(conn, args):
+    """Charging sessions noticed for an electric / plug-in car (newest first)."""
+    vid = _vehicle(conn, args.get("vehicle"))
+    rows = conn.execute(
+        "SELECT started, ended, start_pct, end_pct, max_kw, odometer_km FROM charge_sessions WHERE vehicle_id = ? ORDER BY started DESC LIMIT ?",
+        (vid, _int(args, "limit", 25, 1, MAX_ROWS)),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def t_get_tyres(conn, args):
+    """Recommended tyre pressures per season and the tyre sets of a vehicle."""
+    vid = _vehicle(conn, args.get("vehicle"))
+    pressure = conn.execute("SELECT season, front_bar, rear_bar FROM tire_pressure WHERE vehicle_id = ?", (vid,)).fetchall()
+    sets = conn.execute("SELECT * FROM tires WHERE vehicle_id = ? ORDER BY id DESC", (vid,)).fetchall()
+    return {"pressure_bar": [dict(r) for r in pressure], "sets": [_clean(r) for r in sets]}
+
+
+def t_get_settings(conn, args):
+    """The server-wide choices (language, units, currency) - nothing secret."""
+    return {
+        "language": config.language(),
+        "units": units.default_system(),
+        "currency": units.default_currency(),
+        "vehicles": conn.execute("SELECT COUNT(*) FROM vehicles").fetchone()[0],
+        "plugins": conn.execute("SELECT COUNT(*) FROM vehicle_addons WHERE kind = 'plugin'").fetchone()[0],
+        "integrations": conn.execute("SELECT COUNT(*) FROM vehicle_addons WHERE kind = 'integration'").fetchone()[0],
+    }
+
+
 VEHICLE_FIELDS = ("vin", "plate", "make", "model", "year", "first_reg", "hsn", "tsn", "engine", "color")
 
 
@@ -465,6 +532,41 @@ TOOLS: tuple[tuple[str, str, dict, bool, object], ...] = (
         _schema({"vehicle": _VEHICLE, "limit": {"type": "integer", "description": "examples per list, 1-100, default 20"}}, ("vehicle",)),
         False,
         t_data_gaps,
+    ),
+    (
+        "list_plugins",
+        "Plugins and integrations of one vehicle (or of all): name, version, switched on or off, set up or not, source, settings (secrets hidden).",
+        _schema({"vehicle": _VEHICLE}),
+        False,
+        t_list_plugins,
+    ),
+    (
+        "list_documents",
+        "The documents stored for a vehicle (title, category, file name, size) - not the files themselves.",
+        _schema({"vehicle": _VEHICLE, "limit": {"type": "integer", "description": "1-100, default 50"}}, ("vehicle",)),
+        False,
+        t_list_documents,
+    ),
+    (
+        "get_charging",
+        "Charging sessions of an electric or plug-in car: when, battery level from and to, strongest charging power.",
+        _schema({"vehicle": _VEHICLE, "limit": {"type": "integer", "description": "1-100, default 25"}}, ("vehicle",)),
+        False,
+        t_get_charging,
+    ),
+    (
+        "get_tyres",
+        "The recommended tyre pressures per season and the tyre sets of a vehicle.",
+        _schema({"vehicle": _VEHICLE}, ("vehicle",)),
+        False,
+        t_get_tyres,
+    ),
+    (
+        "get_settings",
+        "The server-wide choices: language, unit system, currency, and how many vehicles, plugins and integrations exist.",
+        _schema({}),
+        False,
+        t_get_settings,
     ),
     (
         "add_entry",

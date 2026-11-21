@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, form_bar with context %}
+{% from "_macros.html" import icon, page_head, form_bar, switch_row with context %}
 {% block content %}
 {{ page_head('bug', _('dbg.title')) }}
 <section class="card">
   <p class="hint">{{ _('dbg.intro', car=v.name) }}</p>
   <form method="post" action="{{ base }}/v/{{ v.slug }}/debug" class="dbg-form">
-    <label class="check"><input type="checkbox" name="on" value="1" {{ 'checked' if debug_on }}> {{ _('dbg.switch') }}</label>
+    {{ switch_row('on', _('dbg.switch'), debug_on) }}
     {{ form_bar() }}
   </form>
   <p class="muted"><small>{{ _('dbg.state_on') if debug_on else _('dbg.state_off') }}</small></p>

@@ -1,4 +1,4 @@
-{% from "_macros.html" import icon with context %}
+{% from "_macros.html" import icon, switch_row with context %}
 {# The settings of a plugin: one block per field, by type. `f` = the field, `val` = its value (a text), `err` = its error text or ''. #}
 {% macro addon_field(f, val, err, vals, a) %}
 {% if f.type == 'section' %}
@@ -7,7 +7,7 @@
   <p class="hint set-info" data-showif-key="{{ f.show_if.key if f.show_if else '' }}" data-showif-eq="{{ f.show_if.equals if f.show_if else '' }}">{{ icon('info', 16) }} {% if f.label %}<b>{{ f.label }}</b> {% endif %}{{ f.help }}</p>
 {% else %}
 <div class="addon-field{{ ' has-err' if err }}" data-showif-key="{{ f.show_if.key if f.show_if else '' }}" data-showif-eq="{{ f.show_if.equals if f.show_if else '' }}">
-  {% if f.type == 'bool' %}<label class="check sw"><input type="checkbox" name="{{ f.key }}" value="1" {{ 'checked' if val == '1' }}> <span>{{ f.label }}</span></label>
+  {% if f.type == 'bool' %}{{ switch_row(f.key, f.label, val == '1') }}
   {% elif f.type == 'select' %}<label>{{ f.label }}<select name="{{ f.key }}">{% for o in f.options %}<option value="{{ o.value }}" {{ 'selected' if val == o.value }}>{{ o.label }}</option>{% endfor %}</select></label>
   {% elif f.type == 'radio' %}<fieldset class="set-group"><legend>{{ f.label }}</legend>{% for o in f.options %}<label class="check"><input type="radio" name="{{ f.key }}" value="{{ o.value }}" {{ 'checked' if val == o.value }}> <span>{{ o.label }}</span></label>{% endfor %}</fieldset>
   {% elif f.type == 'multiselect' %}{% set picked = val.split(',') if val else [] %}<fieldset class="set-group"><legend>{{ f.label }}</legend>{% for o in f.options %}<label class="check"><input type="checkbox" name="{{ f.key }}__{{ o.value }}" value="1" {{ 'checked' if o.value in picked }}> <span>{{ o.label }}</span></label>{% endfor %}</fieldset>

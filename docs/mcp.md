@@ -58,6 +58,11 @@ Request headers cannot be changed later: for a new key remove the connector and 
 | `get_costs` | read | costs per day / week / month and every priced entry |
 | `data_gaps` | read | what is still missing: empty vehicle fields, refuels without odometer / amount / price, service without cost or odometer, tasks never done, trips without places |
 | `get_logs` | read | the newest plugin log lines - useful when something does not work |
+| `list_plugins` | read | plugins and integrations of a vehicle: name, version, on / off, set up, settings (secrets hidden) |
+| `list_documents` | read | the documents of a vehicle (title, category, size - not the files) |
+| `get_charging` | read | charging sessions of an electric car |
+| `get_tyres` | read | recommended tyre pressures and tyre sets |
+| `get_settings` | read | language, units, currency and how many vehicles / plugins / integrations exist |
 | `add_entry` | write | add a record (wrong values are refused with the reason) |
 | `update_entry` | write | change only the given fields of a record |
 | `delete_entry` | write | delete a record (cannot be undone) |

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, form_bar with context %}
+{% from "_macros.html" import icon, page_head, form_bar, switch_row with context %}
 {% block content %}
 {{ page_head('plug', _('integrations.title')) }}
 <p class="hint">{{ _('integrations.intro') }}</p>
@@ -37,7 +37,7 @@
         </div>
       </summary>
       <form method="post" action="{{ base }}/integrations/{{ i.key }}" class="grid">
-        {% if i.toggle %}<label class="check wide"><input type="checkbox" name="enabled" value="1" {{ 'checked' if int_enabled[i.key] }}> {{ _('integrations.enabled') }}</label>{% endif %}
+        {% if i.toggle %}<div class="wide">{{ switch_row('enabled', _('integrations.enabled'), int_enabled[i.key]) }}</div>{% endif %}
         {% for o in i.options %}
           <label class="wide">{{ _(o.label) }}
             {% if o.kind == 'password' %}

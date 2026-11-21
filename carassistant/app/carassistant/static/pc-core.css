@@ -2724,3 +2724,9 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
   .ap-main { order: 3; flex: 1 0 100%; }
   .ap-side { order: 2; margin-left: auto; }
 }
+/* an extra-work card that is too narrow for the labelled Reset button: icon only (the label stays for screen readers), so the row never overflows */
+.za-card { container-type: inline-size; }
+@container (max-width: 270px) {
+  .za-acts .za-reset .ghost-btn > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .za-acts .za-reset .ghost-btn { flex: 0 0 auto; }
+}

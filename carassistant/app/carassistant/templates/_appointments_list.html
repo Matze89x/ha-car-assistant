@@ -1,4 +1,4 @@
-{% from "_macros.html" import badge, field_input, cell, disp, flabel, del_form, icon with context %}
+{% from "_macros.html" import badge, field_input, cell, disp, flabel, del_form, icon, switch_row with context %}
 {% set lead_f = entity.fields|selectattr('name', 'equalto', 'due_date')|first %}
 <div class="rec-grid ap-list">
   {% for head, r in items %}
@@ -19,8 +19,9 @@
           {% if own %}{% set val = own.get(f.name) %}
           {% elif f.kind == 'month_or_date' and r['month_only'] %}{% set val = r[f.name][:7] %}
           {% else %}{% set val = r[f.name] %}{% endif %}
-          <label class="{{ 'check' if f.kind == 'bool' }} {{ 'wide' if f.kind == 'textarea' }}">{{ flabel(f) }}
-            {{ field_input(f, val, true) }}</label>
+          {% if f.kind == 'bool' %}<div class="wide">{{ switch_row(f.name, _(f.label), val) }}</div>
+          {% else %}<label class="{{ 'wide' if f.kind == 'textarea' }}">{{ flabel(f) }}
+            {{ field_input(f, val, true) }}</label>{% endif %}
         {% endfor %}
         <div class="wide"><div class="form-bar"><button type="button" class="ghost-btn small" data-rec-cancel>{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button><button type="submit" form="del-{{ r['id'] }}" class="danger">{{ icon('delete', 18) }}<span>{{ _('btn.delete') }}</span></button><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div></div>
       </form>

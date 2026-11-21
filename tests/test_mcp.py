@@ -108,7 +108,15 @@ def test_the_whole_conversation_of_a_client(ing, program, monkeypatch):
         "add_entry",
         "update_entry",
         "delete_entry",
+        "list_plugins",
+        "list_documents",
+        "get_charging",
+        "get_tyres",
+        "get_settings",
     } <= names
+    for tool in ("list_plugins", "get_settings"):
+        error, data = call(program, key, tool)
+        assert not error and data is not None
     assert rpc(program, key, "nonsense").json()["error"]["code"] == -32601
     error, info = call(program, key, "app_info")
     assert not error and info["app"] == "Car Assistant" and "stage" in info

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import badge, field_input, cell, disp, flabel, confirm_form, form_bar, del_form, icon, page_head with context %}
+{% from "_macros.html" import badge, field_input, cell, disp, flabel, confirm_form, form_bar, del_form, icon, page_head, switch_row with context %}
 {% block content %}
 {% set vurl = base ~ '/v/' ~ v.id ~ '/e/' ~ entity.key %}
 {% set shown = entity.fields|selectattr('show')|list %}
@@ -25,10 +25,11 @@
   <summary><span class="add-ic">{{ icon('plus', 18) }}</span><span>{{ _('btn.add') }}</span></summary>
   <form method="post" action="{{ vurl }}" class="grid">
     {% for f in entity.fields %}
-      <label class="{{ 'check' if f.kind == 'bool' }} {{ 'wide' if f.kind == 'textarea' }}">
+      {% if f.kind == 'bool' %}<div class="wide">{{ switch_row(f.name, _(f.label), (form.get(f.name) if form and not edit_id else f.default)) }}</div>
+      {% else %}<label class="{{ 'wide' if f.kind == 'textarea' }}">
         {{ flabel(f) }}
         {{ field_input(f, form.get(f.name) if not edit_id else none, form and not edit_id) }}
-      </label>
+      </label>{% endif %}
     {% endfor %}
     <div class="wide">{{ form_bar() }}</div>
   </form>
@@ -99,8 +100,9 @@
           {% elif f.kind == 'month_or_date' and r['month_only'] %}{% set val = r[f.name][:7] %}
           {% elif f.dim %}{% set val = disp(f, r[f.name]) %}
           {% else %}{% set val = r[f.name] %}{% endif %}
-          <label class="{{ 'check' if f.kind == 'bool' }} {{ 'wide' if f.kind == 'textarea' }}">{{ flabel(f) }}
-            {{ field_input(f, val, true) }}</label>
+          {% if f.kind == 'bool' %}<div class="wide">{{ switch_row(f.name, _(f.label), val) }}</div>
+          {% else %}<label class="{{ 'wide' if f.kind == 'textarea' }}">{{ flabel(f) }}
+            {{ field_input(f, val, true) }}</label>{% endif %}
         {% endfor %}
         <div class="wide"><div class="form-bar"><button type="button" class="ghost-btn small" data-rec-cancel>{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button><button type="submit" form="del-{{ r['id'] }}" class="danger">{{ icon('delete', 18) }}<span>{{ _('btn.delete') }}</span></button><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div></div>
       </form>

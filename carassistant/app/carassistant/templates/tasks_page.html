@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, badge with context %}
+{% from "_macros.html" import icon, page_head, badge, switch_row with context %}
 {% block content %}
 {% set ku = base ~ '/v/' ~ v.id ~ '/e/tasks' %}
 {% set d = units.dist_unit %}
@@ -12,7 +12,7 @@
       <label>{{ _('f.last_km') }} ({{ d }})<input type="number" inputmode="numeric" min="0" step="1" name="last_km" value="{{ (units.d(r['last_km'])|round|int if r and r['last_km'] is not none else form.get('last_km')) or '' }}"></label></div>
     <label>{{ _('f.keywords') }}<input type="text" name="keywords" maxlength="200" value="{{ (r['keywords'] if r else form.get('keywords')) or '' }}"></label>
     <label>{{ _('f.notes') }}<textarea name="notes" rows="2">{{ (r['notes'] if r else form.get('notes')) or '' }}</textarea></label>
-    <label class="check"><input type="checkbox" name="muted" value="1" {{ 'checked' if r and r['muted'] }}> {{ _('f.muted') }}</label>
+    {{ switch_row('muted', _('f.muted'), r and r['muted']) }}
     <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
       {% if r %}<button class="ghost-btn small warn ib" formaction="{{ ku }}/{{ r['id'] }}/delete" formnovalidate data-confirm="{{ _('confirm.delete') }}">{{ icon('delete-outline', 16) }} <span class="sr">{{ _('btn.delete') }}</span></button>
       <button type="button" class="ghost-btn small ib" data-eqe-cancel>{{ icon('close', 16) }}<span class="sr">{{ _('btn.cancel') }}</span></button>{% endif %}</div>
