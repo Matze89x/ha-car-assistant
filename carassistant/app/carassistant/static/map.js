@@ -22,7 +22,7 @@
   var map = L.map(box).setView([lat, lon], 18);
   L.tileLayer((box.getAttribute('data-tiles') || '/tiles') + '/{z}/{x}/{y}.png', {  /* through this app, see tiles.py */
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
   }).addTo(map);
   L.marker([lat, lon], {
     title: box.getAttribute('data-pin') || '',
