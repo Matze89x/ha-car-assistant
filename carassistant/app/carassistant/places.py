@@ -93,7 +93,7 @@ def lookup(lat: float, lon: float, lang: str) -> str | None:
     """The place of a spot: from the own server when one is set, else from the offline list. None when nothing is known (nothing is stored then,
     the next run tries again)."""
     if not custom_service():
-        return citydb.nearest(lat, lon)
+        return citydb.nearest(lat, lon, lang)
     try:
         r = requests.get(
             source_url(),
@@ -191,7 +191,7 @@ def here_cached(conn, lat: float, lon: float) -> tuple[str, str] | None:
 
 def _here_lookup(lat: float, lon: float, lang: str) -> tuple[str, str] | None:
     if not custom_service():
-        town = citydb.nearest(lat, lon)  # offline: the place only (a street needs a server of an address set under System)
+        town = citydb.nearest(lat, lon, lang)  # offline: the place only (a street needs a server of an address set under System)
         return (town, "") if town else None
     try:
         r = requests.get(

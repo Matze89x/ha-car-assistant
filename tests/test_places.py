@@ -67,6 +67,8 @@ def test_the_nearest_big_city_wins_over_a_district():
     from carassistant import citydb
 
     assert citydb.nearest(52.52, 13.405) == "Berlin" and citydb.nearest(35.68, 139.69) == "Tokyo"
+    assert citydb.nearest(48.14, 11.58) == "Munich" and citydb.nearest(48.14, 11.58, "de") == "München"  # German names for a German app
+    assert citydb.nearest(48.208, 16.373, "de") == "Wien" and citydb.nearest(41.9, 12.5, "de") == "Rom"
     assert citydb.nearest(95.0, 0.0) is None
 
 
