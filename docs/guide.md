@@ -60,7 +60,7 @@ With the **MCP access** of *Settings → System* you can let Claude read - and, 
 
 ## Optional services (off by default)
 Nothing leaves your server unless you switch it on under *Settings*:
-- **Map info** (*System*): shows the location map with OpenStreetMap tiles, fetched through the app, **and** looks up the street and place of the start and the end of each trip (OpenStreetMap / Nominatim), so the log book shows names instead of coordinates. Off by default; the answers are kept.
+- **Map info** (*System*): shows the location map with OpenStreetMap tiles, fetched through the app, **and** looks up the street and place of the start and the end of each trip (OpenStreetMap / Nominatim), so the log book shows names instead of coordinates. Off by default; the answers are kept. The address for these lookups can be changed under *System* (a Nominatim-compatible server of your own or of a provider, https only); empty uses the public one.
 - **Fuel prices** (*System*): needs **your own** free key from tankerkoenig.de. There is no built-in key.
 
 ## Backup

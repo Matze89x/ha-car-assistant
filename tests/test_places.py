@@ -101,3 +101,19 @@ def test_the_spot_of_the_car_gets_place_and_street(conn):
         ("here:" + places._key(50.1, 8.6, "en"), "Beispielstadt\tHauptstraße 12"),
     )
     assert places.here_cached(conn, 50.1, 8.6) == ("Beispielstadt", "Hauptstraße 12")
+
+
+def test_the_address_for_place_names_can_be_changed_and_must_be_https(env):
+    from carassistant import db, places
+
+    assert places.source_url() == places.SOURCE
+    assert places.clean_source("") == "" and places.clean_source(" https://geo.example.com/reverse ") == "https://geo.example.com/reverse"
+    for bad in ("http://geo.example.com/reverse", "https://", "ftp://x.example.com", "https://user:pw@geo.example.com/"):
+        with __import__("pytest").raises(ValueError):
+            places.clean_source(bad)
+    with db.tx() as conn:
+        db.set_setting(conn, "map.geocoder_url", "https://geo.example.com/reverse")
+    from carassistant import config
+
+    config.forget_settings()
+    assert places.source_url() == "https://geo.example.com/reverse"

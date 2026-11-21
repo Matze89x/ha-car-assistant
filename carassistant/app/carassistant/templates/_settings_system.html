@@ -96,6 +96,10 @@
     <label class="check"><input type="checkbox" name="tiles" value="1" {{ 'checked' if map_tiles }}> {{ _('settings.map_tiles') }}</label>
   </form>
   <p class="hint">{{ _('settings.map_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/geocoder" data-live id="geocoder">
+    <label>{{ _('settings.geocoder') }}<input type="url" name="url" value="{{ geocoder_url }}" maxlength="300" placeholder="https://nominatim.openstreetmap.org/reverse"></label>
+  </form>
+  <p class="hint">{{ _('settings.geocoder_hint') }}</p>
   <form method="post" action="{{ base }}/settings/google" data-live id="google">
     <label class="check"><input type="checkbox" name="help" value="1" {{ 'checked' if google_help }}> {{ _('settings.google_help') }}</label>
   </form>

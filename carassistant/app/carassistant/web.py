@@ -2180,6 +2180,7 @@ def _settings_section(request: Request, section: str):
         log_rows=log_rows,
         vehicle_rows=vehicle_rows,
         map_tiles=map_tiles,
+        geocoder_url=config.stored_setting("map.geocoder_url") or "",
         server=server,
         lock_after=auth_web.lock_after(),
         lock_minutes=auth_web.lock_seconds() // 60,
@@ -2451,6 +2452,22 @@ async def settings_map(request: Request):
         from . import places
 
         places.kick()  # trips with coordinates get their place names
+    return go(request, "/settings/system#online", "saved")
+
+
+@app.post("/settings/geocoder")
+async def settings_geocoder(request: Request):
+    """The address used for place names (a Nominatim-compatible server); empty = the public OpenStreetMap service. https only."""
+    from . import places
+
+    form = await form_dict(request)
+    try:
+        value = places.clean_source(form.get("url") or "")
+    except ValueError as exc:
+        return go(request, "/settings/system#online", str(exc))
+    with db.tx() as conn:
+        db.set_setting(conn, "map.geocoder_url", value or None)
+    config.forget_settings()
     return go(request, "/settings/system#online", "saved")
 
 

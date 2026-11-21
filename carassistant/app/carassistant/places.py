@@ -64,11 +64,30 @@ def _tidy_old() -> None:
             conn.execute("UPDATE place_names SET name = ? WHERE key = ?", (new, r["key"]))
 
 
+def source_url() -> str:
+    """The Nominatim-compatible address for a reverse lookup: the one set under System -> Map info (when the public service asks to switch, or an own
+    server is used), else the public one."""
+    return (config.stored_setting("map.geocoder_url") or "").strip() or SOURCE
+
+
+def clean_source(value: str) -> str:
+    """A set address must be https with a host (nothing else is ever asked); '' = back to the public service."""
+    value = (value or "").strip()
+    if not value:
+        return ""
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(value)
+    if parts.scheme != "https" or not parts.hostname or parts.username or parts.password or len(value) > 300:
+        raise ValueError("err.geocoder_url")
+    return value
+
+
 def lookup(lat: float, lon: float, lang: str) -> str | None:
     """One question to OpenStreetMap; None when it cannot answer (nothing is stored then, the next run tries again)."""
     try:
         r = requests.get(
-            SOURCE,
+            source_url(),
             params={"format": "jsonv2", "lat": f"{lat:.6f}", "lon": f"{lon:.6f}", "zoom": 16, "addressdetails": 1, "accept-language": lang},
             headers={"User-Agent": USER_AGENT},
             timeout=TIMEOUT,
