@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.3 Beta
+- Map and data: map attribution reads © OpenStreetMap contributors with a link on every map; NOTICE lists the optional data services (Nominatim, Overpass, Tankerkönig) with their licences; the address used for place names can be changed under System > Map info (https only).
+
 ## 0.5.2 Beta
 - Set-up guide, step 3: only the ZIP downloads (install / remove) with one shared token field; the single connection file is folded away; the texts of a bundle can be translated (l10n).
 

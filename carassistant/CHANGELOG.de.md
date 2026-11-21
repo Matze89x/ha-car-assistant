@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.3 Beta
+- Karte und Daten: der Kartenhinweis lautet überall © OpenStreetMap contributors mit Link; NOTICE nennt die optionalen Datendienste (Nominatim, Overpass, Tankerkönig) mit ihren Lizenzen; die Adresse für Ortsnamen lässt sich unter System > Karteninfos ändern (nur https).
+
 ## 0.5.2 Beta
 - Einrichtungsanleitung, Schritt 3: nur noch die ZIP-Downloads (Installieren / Entfernen) mit einem gemeinsamen Token-Feld; die einzelne Anbindungsdatei ist zugeklappt; die Texte eines Bundles lassen sich übersetzen (l10n).
 
