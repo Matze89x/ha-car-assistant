@@ -104,7 +104,7 @@ Car Assistant ist kostenlos und entsteht in der Freizeit. Wenn es dir hilft, fre
 [![Auf Ko-fi unterstützen](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/matze89x)
 
 ## Danke
-Danke an [Home Assistant](https://www.home-assistant.io/) und seine Community - das Zuhause dieser App - und an alle, die testen, melden und verbessern. Car Assistant steht auf vielen Open-Source-Projekten; die vollständige Liste steht in [NOTICE.md](NOTICE.md). Icons: [Material Design Icons](https://pictogrammers.com/library/mdi/) (Apache License 2.0). Schriften: Space Grotesk und Space Mono (SIL Open Font License 1.1). Details in [NOTICE.md](NOTICE.md).
+Danke an [Home Assistant](https://www.home-assistant.io/) und seine Community - das Zuhause dieser App - und an alle, die testen, melden und verbessern. Car Assistant steht auf vielen Open-Source-Projekten; die vollständige Liste steht in [NOTICE.md](NOTICE.md). Icons: [Material Design Icons](https://pictogrammers.com/library/mdi/) (Apache License 2.0), Schriften Space Grotesk und Space Mono (SIL Open Font License 1.1).
 
 ## Lizenz
 [GNU General Public License v3.0](LICENSE) – © 2026 Matze89x. Du darfst Car Assistant nutzen, untersuchen, ändern und weitergeben; wenn du es weitergibst (geändert oder nicht), muss es unter derselben Lizenz bleiben und der Quelltext verfügbar sein.
