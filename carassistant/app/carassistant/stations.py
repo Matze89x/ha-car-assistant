@@ -18,7 +18,7 @@ from typing import Any
 
 import requests
 
-from . import config
+from . import config, fuelproviders
 
 log = logging.getLogger(__name__)
 
@@ -186,10 +186,83 @@ def fetch_osm(lat: float, lon: float, radius: float) -> list[Station]:
     return _store(cache_key, normalize_overpass(data, (lat, lon)))
 
 
+def fetch_provider(defn: dict, lat: float, lon: float, radius: float, fuel: str) -> list[Station]:
+    """Stations from a provider described as data (fuelproviders.py): one cached request per area, filtering by radius and fuel here."""
+    lat, lon, radius = clean_params(lat, lon, radius)
+    radius = min(radius, defn["max_radius_km"])
+    key = fuelproviders.key_of(defn["id"]) if defn["key"] else ""
+    if defn["key"] and not key:
+        raise StationsError("err.no_key")
+    cache_key = ("fp", defn["id"], round(lat, 2), round(lon, 2), int(radius))
+    items = _cached(cache_key)
+    if items is None:
+        params, headers = fuelproviders.request_parts(
+            defn, lat, lon, defn["max_radius_km"] if "{radius" not in "".join(defn["params"].values()) else radius, key
+        )
+        try:
+            resp = requests.request(defn["method"], defn["url"], params=params if defn["method"] == "GET" else None,
+                                    data=params if defn["method"] == "POST" else None, headers={"User-Agent": USER_AGENT, **headers}, timeout=20)  # fmt: skip
+            resp.raise_for_status()
+            items = fuelproviders.parse(defn, resp.json())
+        except (requests.RequestException, ValueError) as exc:
+            log.warning("Fuel provider %s failed: %s", defn["id"], type(exc).__name__)  # never log the URL (it may hold a key)
+            raise StationsError("err.stations_failed") from None
+        _store(cache_key, items)
+    out = []
+    for s in items:
+        d = haversine_km(lat, lon, s["lat"], s["lon"])
+        if d > radius:
+            continue
+        out.append(
+            Station(
+                name=s["name"] or s["brand"] or s["address"] or "?",
+                brand=s["brand"],
+                address=s["address"],
+                lat=s["lat"],
+                lon=s["lon"],
+                distance_km=d,
+                price=s["prices"].get(fuel),
+                is_open=s["is_open"],
+            )
+        )
+    return out
+
+
+def sources(country: str = "") -> list[dict]:
+    """The places stations can come from, for the pages: ``{"id", "name", "prices", "needs_key", "has_key", "attribution", "countries"}``. The ones
+    for the country of the installation come first."""
+    out = [
+        {"id": "tankerkoenig", "name": "Tankerk\u00f6nig (DE)", "prices": True, "needs_key": True, "has_key": bool(config.tankerkoenig_key()), "attribution": "", "countries": ["DE"]},
+        {"id": "osm", "name": "OpenStreetMap", "prices": False, "needs_key": False, "has_key": True, "attribution": "", "countries": []},
+    ]  # fmt: skip
+    for d in fuelproviders.load().values():
+        out.append(
+            {"id": d["id"], "name": d["name"], "prices": bool(d["prices"]), "needs_key": bool(d["key"]), "has_key": bool(d["key"] and fuelproviders.key_of(d["id"])) or not d["key"],
+             "attribution": d["attribution"], "countries": d["countries"], "key_url": (d["key"] or {}).get("url", ""), "source": d["source"]}
+        )  # fmt: skip
+    return sorted(out, key=lambda s: (bool(country) and country.upper() not in s["countries"], s["id"] == "osm", s["name"]))
+
+
+def default_source(country: str = "") -> str:
+    """The source used when none is chosen: the first one that fits the country and can be used (a key is there), else OpenStreetMap."""
+    for s in sources(country):
+        if (
+            s["id"] != "osm"
+            and s["has_key"]
+            and (country.upper() in s["countries"] or (not country and s["id"] == "tankerkoenig" and s["has_key"]))
+        ):
+            return s["id"]
+    return "osm"
+
+
 def nearby(lat: float, lon: float, radius: float, fuel: str, source: str, sort: str) -> tuple[list[Station], str]:
-    """``source``: ``tankerkoenig`` | ``osm``. Returns (stations, source_used)."""
+    """``source``: ``tankerkoenig`` | ``osm`` | the id of a provider (fuelproviders.py). Returns (stations, source_used)."""
     if fuel not in FUELS:
         fuel = "e5"
     if source == "tankerkoenig":
         return sort_stations(fetch_tankerkoenig(lat, lon, radius, fuel), sort), "tankerkoenig"
+    defn = fuelproviders.load().get(source)
+    if defn is not None:
+        found = fetch_provider(defn, lat, lon, radius, fuel)
+        return sort_stations(found, sort if defn["prices"] else "distance"), source
     return sort_stations(fetch_osm(lat, lon, radius), "distance"), "osm"

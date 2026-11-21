@@ -1,0 +1,21 @@
+{
+  "id": "fr",
+  "name": "France - prix des carburants (data.gouv.fr)",
+  "countries": ["FR"],
+  "license": "Licence Ouverte 2.0",
+  "attribution": "Prices: Ministère de l'Économie / data.economie.gouv.fr (prix des carburants), Licence Ouverte 2.0",
+  "url": "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records",
+  "params": {
+    "where": "within_distance(geom, geom'POINT({lon} {lat})', {radius_km}km)",
+    "limit": "100"
+  },
+  "items": "results",
+  "fields": {
+    "lat": "geom.lat",
+    "lon": "geom.lon",
+    "name": "{adresse}",
+    "address": "{cp} {ville}"
+  },
+  "prices": { "e5": "sp95_prix", "e10": "e10_prix", "diesel": "gazole_prix" },
+  "max_radius_km": 25
+}

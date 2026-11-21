@@ -61,6 +61,7 @@ ADMIN_ONLY = frozenset(
         "/settings/map",
         "/settings/geocoder",
         "/settings/tankerkoenig",
+        "/settings/fuelkey",
         "/settings/logs",
         "/settings/sources-auto",
         "/settings/refresh-live",

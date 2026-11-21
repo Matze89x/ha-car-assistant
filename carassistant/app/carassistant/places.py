@@ -1,10 +1,10 @@
 """Place names for the start and the end of a trip.
 
-A trip made from the positions of a plugin starts out with coordinates ("52.50000, 13.40000"). While **map info** is switched on (Settings ->
-System -> Map info) the app asks OpenStreetMap (Nominatim) once for the street and place of such a spot and writes that into the trip. Only
-the coordinates of the start and the end of a trip are sent, never anything else; OpenStreetMap sees the server's IP address, not the phone or
-the Home Assistant address. Every answer is kept (``place_names``), a spot is never asked for twice. A name you typed yourself is never touched.
-Nothing happens while the map info is off: the coordinates stay.
+A trip made from the positions of a plugin starts out with coordinates ("52.50000, 13.40000"). The app turns them into the place: by default from
+an offline list of the cities of the world (``citydb``, GeoNames, CC BY 4.0) - worldwide, nothing is sent anywhere, no limits. Only when an
+address for place names is set (System -> Map info) and the map info is on, that Nominatim-compatible server is asked instead (coordinates of
+the start and the end of a trip only; it sees the server's IP address, not the phone or the Home Assistant address) and also gives the street of the
+spot where the car stands. Every answer is kept (``place_names``), a spot is never looked up twice. A name you typed yourself is never touched.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from datetime import UTC, datetime
 
 import requests
 
-from . import config, db, status
+from . import citydb, config, db, status
 from .tiles import USER_AGENT
 
 log = logging.getLogger(__name__)
@@ -83,8 +83,17 @@ def clean_source(value: str) -> str:
     return value
 
 
+def custom_service() -> bool:
+    """True when an address for place names was set (System -> Map info): then that server is asked - only while the map info is on. Without
+    one, the names come from the offline list of cities (``citydb``): worldwide, nothing is sent, no limits."""
+    return bool((config.stored_setting("map.geocoder_url") or "").strip())
+
+
 def lookup(lat: float, lon: float, lang: str) -> str | None:
-    """One question to OpenStreetMap; None when it cannot answer (nothing is stored then, the next run tries again)."""
+    """The place of a spot: from the own server when one is set, else from the offline list. None when nothing is known (nothing is stored then,
+    the next run tries again)."""
+    if not custom_service():
+        return citydb.nearest(lat, lon)
     try:
         r = requests.get(
             source_url(),
@@ -109,9 +118,10 @@ def fill_missing() -> int:
         return 0
     done = 0
     try:
-        with db.tx() as conn:
-            if not status.map_tiles_enabled(conn):
-                return 0
+        if custom_service():
+            with db.tx() as conn:
+                if not status.map_tiles_enabled(conn):
+                    return 0
         _tidy_old()
         with db.tx() as conn:
             todo = []
@@ -123,12 +133,12 @@ def fill_missing() -> int:
         lang = config.language()
         asked = 0
         for tid, col, lat, lon in todo:
-            if asked >= PER_RUN:
+            if asked >= (PER_RUN if custom_service() else 100000):
                 break
             with db.tx() as conn:
                 name = _from_cache(conn, lat, lon, lang)
             if name is None:
-                if asked:
+                if asked and custom_service():
                     time.sleep(GAP)
                 asked += 1
                 name = lookup(lat, lon, lang)
@@ -180,9 +190,12 @@ def here_cached(conn, lat: float, lon: float) -> tuple[str, str] | None:
 
 
 def _here_lookup(lat: float, lon: float, lang: str) -> tuple[str, str] | None:
+    if not custom_service():
+        town = citydb.nearest(lat, lon)  # offline: the place only (a street needs a server of an address set under System)
+        return (town, "") if town else None
     try:
         r = requests.get(
-            SOURCE,
+            source_url(),
             params={"format": "jsonv2", "lat": f"{lat:.6f}", "lon": f"{lon:.6f}", "zoom": 18, "addressdetails": 1, "accept-language": lang},
             headers={"User-Agent": USER_AGENT},
             timeout=TIMEOUT,
@@ -205,7 +218,7 @@ def kick_here(lat: float, lon: float) -> None:
         try:
             lang = config.language()
             with db.tx() as conn:
-                if not status.map_tiles_enabled(conn) or here_cached(conn, lat, lon):
+                if (custom_service() and not status.map_tiles_enabled(conn)) or here_cached(conn, lat, lon):
                     return
             found = _here_lookup(lat, lon, lang)
             if found:

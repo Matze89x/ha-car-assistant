@@ -35,8 +35,44 @@ def test_a_short_name_is_only_the_place():
     assert places.short({}) == ""
 
 
-def test_nothing_is_asked_while_the_map_info_is_off(client, monkeypatch):
+def _own_server(url="https://geo.example.com/reverse"):
+    from carassistant import config
+
+    with db.tx() as conn:
+        db.set_setting(conn, "map.geocoder_url", url)
+    config.forget_settings()
+
+
+def test_by_default_the_names_come_from_the_offline_list_and_nobody_is_asked(client, monkeypatch):
     vid = create_vehicle(client)
+
+    def boom(*a, **k):
+        raise AssertionError("the internet must not be asked")
+
+    monkeypatch.setattr(places.requests, "get", boom)
+    tid = _trip(vid, "52.50000, 13.40000", "-33.87000, 151.21000")  # Berlin and Sydney: worldwide, without the map info
+    assert places.fill_missing() == 2
+    assert _places(tid) == ("Berlin", "Sydney")
+    assert places.fill_missing() == 0
+
+
+def test_a_spot_far_from_every_city_keeps_its_coordinates(client):
+    vid = create_vehicle(client)
+    tid = _trip(vid, "0.00000, -30.00000", "52.50000, 13.40000")  # open ocean
+    places.fill_missing()
+    assert _places(tid) == ("0.00000, -30.00000", "Berlin")
+
+
+def test_the_nearest_big_city_wins_over_a_district():
+    from carassistant import citydb
+
+    assert citydb.nearest(52.52, 13.405) == "Berlin" and citydb.nearest(35.68, 139.69) == "Tokyo"
+    assert citydb.nearest(95.0, 0.0) is None
+
+
+def test_with_an_own_server_set_nothing_is_asked_while_the_map_info_is_off(client, monkeypatch):
+    vid = create_vehicle(client)
+    _own_server()
     tid = _trip(vid, "52.50000, 13.40000", "52.51000, 13.41000")
 
     def boom(*a, **k):
@@ -47,8 +83,9 @@ def test_nothing_is_asked_while_the_map_info_is_off(client, monkeypatch):
     assert _places(tid) == ("52.50000, 13.40000", "52.51000, 13.41000")  # the coordinates stay
 
 
-def test_with_the_map_info_on_the_coordinates_become_names_once(client, monkeypatch):
+def test_with_an_own_server_and_the_map_info_on_the_coordinates_become_names_once(client, monkeypatch):
     vid = create_vehicle(client)
+    _own_server()
     with db.tx() as conn:
         db.set_setting(conn, status.MAP_SETTING, "1")
     asked = []
@@ -70,6 +107,7 @@ def test_with_the_map_info_on_the_coordinates_become_names_once(client, monkeypa
 
 def test_an_answer_that_fails_leaves_the_coordinates(client, monkeypatch):
     vid = create_vehicle(client)
+    _own_server()
     with db.tx() as conn:
         db.set_setting(conn, status.MAP_SETTING, "1")
     monkeypatch.setattr(places.requests, "get", lambda *a, **k: _Answer({}, 500))
@@ -81,6 +119,7 @@ def test_an_answer_that_fails_leaves_the_coordinates(client, monkeypatch):
 
 def test_names_kept_earlier_with_a_street_become_the_place(client, monkeypatch):
     vid = create_vehicle(client)
+    _own_server()
     with db.tx() as conn:
         db.set_setting(conn, status.MAP_SETTING, "1")
         conn.execute("INSERT INTO place_names(key, name, created_at) VALUES('en|52.5000,13.4000', 'Main Street, Berlin', 'now')")

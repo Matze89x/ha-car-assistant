@@ -60,7 +60,7 @@ Mit dem **MCP-Zugriff** unter *Einstellungen → System* lässt du Claude von ü
 
 ## Optionale Dienste (standardmäßig aus)
 Nichts verlässt deinen Server, wenn du es nicht unter *Einstellungen* einschaltest:
-- **Karteninfos** (*System*): zeigt die Standort-Karte mit OpenStreetMap-Kacheln, über die App geladen, **und** schlägt Straße und Ort von Start und Ziel jeder Fahrt nach (OpenStreetMap / Nominatim), sodass das Fahrtenbuch Namen statt Koordinaten zeigt. Standardmäßig aus; die Antworten werden behalten. Die Adresse für diese Abfragen lässt sich unter *System* ändern (ein Nominatim-kompatibler Server, eigener oder von einem Anbieter, nur https); leer nutzt den öffentlichen.
+- **Karteninfos** (*System*): zeigt die Standort-Karte mit OpenStreetMap-Kacheln, über die App geladen, **und** benennt Start und Ziel jeder Fahrt (aus einer Offline-Liste der Städte der Welt; mit eingetragener Adresse für Ortsnamen: von diesem Nominatim-kompatiblen Server), sodass das Fahrtenbuch Namen statt Koordinaten zeigt. Die Karte ist standardmäßig aus. Die Ortsnamen brauchen kein Internet; eine Adresse für Ortsnamen (ein Nominatim-kompatibler Server, nur https) ist optional, wird dann nur bei eingeschalteten Karteninfos gefragt und liefert auch die Straße des Autos.
 - **Spritpreise** (*System*): braucht **deinen eigenen** kostenlosen Key von tankerkoenig.de. Es gibt keinen eingebauten Key.
 
 ## Backup

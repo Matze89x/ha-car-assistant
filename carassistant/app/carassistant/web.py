@@ -2006,9 +2006,10 @@ def station_context(request: Request, vehicle: sqlite3.Row) -> dict:
         radius = 5.0
     radius_km = shown_units.from_d(radius)
     country = ha.country() if ha.available() else ""
+    source_list = stations.sources(country)
     source = q.get("source")
-    if source not in ("tankerkoenig", "osm"):
-        source = "tankerkoenig" if config.tankerkoenig_key() and country in ("", "DE") else "osm"
+    if source not in {s["id"] for s in source_list}:
+        source = stations.default_source(country)
     results: list[stations.Station] = []
     if searched and not electric and origin is not None and error is None:
         try:
@@ -2017,7 +2018,8 @@ def station_context(request: Request, vehicle: sqlite3.Row) -> dict:
             error = exc.args[0]
     return {
         "car_pos": car_pos, "origin": origin, "where": where, "results": results, "error": error, "electric": electric, "fuel": fuel,
-        "sort": sort, "radius": radius, "source": source, "searched": searched, "has_key": bool(config.tankerkoenig_key()),
+        "sort": sort, "radius": radius, "source": source, "searched": searched, "has_key": next((s["has_key"] for s in source_list if s["id"] == source), False),
+        "sources": source_list, "info": next((s for s in source_list if s["id"] == source), source_list[0]),
     }  # fmt: skip
 
 
@@ -2173,6 +2175,7 @@ def _settings_section(request: Request, section: str):
         mqtt_connected=publisher.connected,
         ha_available=ha.available(),
         has_key=bool(config.tankerkoenig_key()),
+        fuel_keys=[s for s in stations.sources() if s.get("needs_key") and s["id"] != "tankerkoenig"],
         external_url=config.external_url(),
         has_users=has_users,
         direct_state=_direct_state(has_users),
@@ -2491,6 +2494,26 @@ async def settings_tankerkoenig(request: Request):
         elif form.get("remove"):
             db.set_setting(conn, "int.tankerkoenig.api_key", None)
     return go(request, "/settings/system", "saved")
+
+
+@app.post("/settings/fuelkey")
+async def settings_fuelkey(request: Request):
+    """The own key for a fuel price provider that needs one (empty / remove = delete it)."""
+    from . import fuelproviders
+
+    form = await form_dict(request)
+    pid = (form.get("id") or "")[:24]
+    defn = fuelproviders.load().get(pid)
+    if defn is None or not defn["key"]:
+        return go(request, "/settings/system#fuel-prices", "err.number")
+    key = re.sub(r"[^A-Za-z0-9._~+/=-]", "", (form.get("api_key") or ""))[:200]
+    with db.tx() as conn:
+        if key:
+            db.set_setting(conn, f"int.fuelkey.{pid}", key)
+        elif form.get("remove"):
+            db.set_setting(conn, f"int.fuelkey.{pid}", None)
+    config.forget_settings()
+    return go(request, "/settings/system#fuel-prices", "saved")
 
 
 @app.post("/settings/notifications")
