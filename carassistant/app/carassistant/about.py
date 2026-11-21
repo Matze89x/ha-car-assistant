@@ -36,6 +36,7 @@ CREDITS = (
     ("Space Grotesk · Space Mono", "Florian Karsten · Colophon", "OFL-1.1"),
     ("Leaflet", "Vladimir Agafonkin", "BSD-2-Clause"),
     ("OpenStreetMap", "OpenStreetMap contributors", "ODbL"),
+    ("GeoNames (place names)", "GeoNames contributors", "CC BY 4.0"),
 )
 
 
