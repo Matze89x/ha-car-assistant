@@ -19,11 +19,13 @@
 {% endmacro %}
 
 {% call page_head(module_icon.get('fuel', 'gas-station'), _('fuel.title')) %}
+  <button type="button" class="icon-btn" data-toggle-panel="#fuel-settings" aria-label="{{ _('fs.title') }}" title="{{ _('fs.title') }}">{{ icon('settings', 18) }}</button>
   <button type="button" class="icon-btn" data-toggle-panel="#fuel-export" aria-label="{{ _('fx.export') }}">{{ icon('download', 18) }}</button>
   <button type="button" class="button primary" data-toggle-panel="#fuel-add" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>
 {% endcall %}
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
 
+{% if stn %}{% include "_fuel_settings.html" %}{% endif %}
 {% if stn %}
 <section class="tp-sec" id="stations">
   <details class="eq" {{ 'open' if stn.searched }}>

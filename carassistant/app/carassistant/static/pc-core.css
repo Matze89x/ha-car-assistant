@@ -2649,3 +2649,11 @@ label.nm-row.sw-row { cursor: pointer; text-transform: none; letter-spacing: 0; 
 .nm-row, .card label.nm-row.sw-row, form label.nm-row.sw-row { align-items: center; min-height: 52px; box-sizing: border-box; padding-top: 8px; padding-bottom: 8px; }
 .nm-row:first-child, .nm-panel > .nm-row:first-child, form > .nm-row:first-child, form > label.nm-row:first-child { border-top: 1px solid var(--glass-b); }
 .nm-row .nm-t, .nm-row .nm-state, .nm-row .switch { align-self: center; }
+
+/* Fuel page settings panel */
+.fs-panel { display: grid; gap: 0; }
+.fs-h { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font-size: 18px; }
+.fs-src { padding: 12px 0; border-bottom: 1px solid var(--glass-b); display: grid; gap: 4px; }
+.fs-src:last-child { border-bottom: 0; }
+.fs-name { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.fs-key { margin-top: 8px; display: grid; gap: 4px; }

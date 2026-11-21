@@ -1362,6 +1362,7 @@ def entity_page(request: Request, vid: int, key: str, form: dict | None = None, 
         if key == "fuel":
             if vehicle["fuel_type"] != "electric":
                 extra["stn"] = station_context(request, vehicle)  # the fuel stations are part of this page now
+                extra["fs_pref"] = stations.preferred_source()
             from . import reminders as _rem
 
             extra["reminders"] = _rem.status(conn, vid)
@@ -2004,7 +2005,10 @@ def station_context(request: Request, vehicle: sqlite3.Row) -> dict:
     sort = q.get("sort") if q.get("sort") in ("price", "distance") else "price"
     shown_units = units.of(vehicle)
     try:
-        radius = float(q.get("radius", "5" if not shown_units.imperial else "3"))  # typed in the distance unit shown
+        chosen = stations.default_radius()
+        radius = float(
+            q.get("radius", shown_units.d(chosen) if chosen else ("5" if not shown_units.imperial else "3"))
+        )  # in the distance unit shown
     except ValueError:
         radius = 5.0
     radius_km = shown_units.from_d(radius)
@@ -2175,7 +2179,6 @@ def _settings_section(request: Request, section: str):
         mqtt_connected=publisher.connected,
         ha_available=ha.available(),
         has_key=bool(config.tankerkoenig_key()),
-        fuel_keys=[s for s in stations.sources() if s.get("needs_key") and s["id"] != "tankerkoenig"],
         external_url=config.external_url(),
         has_users=has_users,
         direct_state=_direct_state(has_users),
@@ -2483,37 +2486,53 @@ async def settings_google(request: Request):
     return go(request, "/settings/system#online", "saved")
 
 
-@app.post("/settings/tankerkoenig")
-async def settings_tankerkoenig(request: Request):
-    """The user's own fuel-price key (empty = remove it). Nothing is requested from the service without one."""
-    form = await form_dict(request)
-    key = re.sub(r"[^A-Za-z0-9-]", "", (form.get("api_key") or ""))[:64]
-    with db.tx() as conn:
-        if key:
-            db.set_setting(conn, "int.tankerkoenig.api_key", key)
-        elif form.get("remove"):
-            db.set_setting(conn, "int.tankerkoenig.api_key", None)
-    return go(request, "/settings/system", "saved")
+def _fuel_back(raw: str) -> str:
+    """Where a fuel setting returns to: the fuel page of a car (its settings panel), else the System page."""
+    return raw + "?fs=1#fuel-settings" if re.fullmatch(r"/v/[a-z0-9-]{1,60}/e/fuel", raw or "") else "/settings/system"
 
 
 @app.post("/settings/fuelkey")
 async def settings_fuelkey(request: Request):
-    """The own key for a fuel price provider that needs one (empty / remove = delete it)."""
+    """The own key for a fuel price source that needs one (empty + remove = delete it). Nothing is requested from a service without its key."""
     from . import fuelproviders
 
     form = await form_dict(request)
     pid = (form.get("id") or "")[:24]
-    defn = fuelproviders.load().get(pid)
-    if defn is None or not defn["key"]:
-        return go(request, "/settings/system#fuel-prices", "err.number")
-    key = re.sub(r"[^A-Za-z0-9._~+/=-]", "", (form.get("api_key") or ""))[:200]
+    back = _fuel_back(form.get("back") or "")
+    if pid == "tankerkoenig":
+        name, rule = "int.tankerkoenig.api_key", r"[^A-Za-z0-9-]"
+    else:
+        defn = fuelproviders.load().get(pid)
+        if defn is None or not defn["key"]:
+            return go(request, back, "err.number")
+        name, rule = f"int.fuelkey.{pid}", r"[^A-Za-z0-9._~+/=-]"
+    key = re.sub(rule, "", (form.get("api_key") or ""))[:200]
     with db.tx() as conn:
         if key:
-            db.set_setting(conn, f"int.fuelkey.{pid}", key)
+            db.set_setting(conn, name, key)
         elif form.get("remove"):
-            db.set_setting(conn, f"int.fuelkey.{pid}", None)
+            db.set_setting(conn, name, None)
     config.forget_settings()
-    return go(request, "/settings/system#fuel-prices", "saved")
+    return go(request, back, "saved")
+
+
+@app.post("/settings/fuel-defaults")
+async def settings_fuel_defaults(request: Request):
+    """What the fuel page starts with: the preferred source and the search radius (in the distance unit shown)."""
+    form = await form_dict(request)
+    wanted = (form.get("source") or "")[:24]
+    known = {s["id"] for s in stations.sources()}
+    try:
+        radius = units.of().from_d(float((form.get("radius") or "").replace(",", ".")))
+    except ValueError:
+        radius = None
+    with db.tx() as conn:
+        db.set_setting(conn, "fuel.source", wanted if wanted in known else None)
+        db.set_setting(conn, "fuel.radius", f"{min(max(radius, 1.0), stations.MAX_RADIUS_KM):.1f}" if radius else None)
+    config.forget_settings()
+    if form.get("ajax"):
+        return Response(status_code=204)
+    return go(request, _fuel_back(form.get("back") or ""), "saved")
 
 
 @app.post("/settings/notifications")

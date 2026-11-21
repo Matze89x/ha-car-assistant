@@ -110,19 +110,7 @@
     {{ switch_row('help', _('settings.google_help'), google_help) }}
   </form>
   <p class="hint">{{ _('settings.google_hint') }}</p>
-  <form method="post" action="{{ base }}/settings/tankerkoenig" class="sys-key" id="fuel-prices">
-    <label>{{ icon('fuel', 16) }} {{ _('settings.tk_title') }}<input type="password" name="api_key" autocomplete="off" maxlength="64" placeholder="{{ _('settings.tk_set') if has_key else _('settings.tk_key') }}"></label>
-    <div class="form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button>{% if has_key %}<button type="submit" name="remove" value="1" class="danger">{{ icon('delete', 18) }}<span>{{ _('settings.tk_remove') }}</span></button>{% endif %}</div>
-  </form>
-  <p class="hint">{{ _('settings.tk_hint') }} <a href="https://creativecommons.tankerkoenig.de" target="_blank" rel="noopener">{{ _('settings.tk_link') }}</a></p>
-  {% for fk in fuel_keys %}
-  <form method="post" action="{{ base }}/settings/fuelkey" class="sys-key">
-    <input type="hidden" name="id" value="{{ fk.id }}">
-    <label>{{ icon('fuel', 16) }} {{ fk.name }}<input type="password" name="api_key" autocomplete="off" maxlength="200" placeholder="{{ _('settings.tk_set') if fk.has_key else _('settings.tk_key') }}"></label>
-    <div class="form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button>{% if fk.has_key %}<button type="submit" name="remove" value="1" class="danger">{{ icon('delete', 18) }}<span>{{ _('settings.tk_remove') }}</span></button>{% endif %}</div>
-  </form>
-  {% if fk.key_url %}<p class="hint"><a href="{{ fk.key_url }}" target="_blank" rel="noopener">{{ _('settings.tk_link') }}</a></p>{% endif %}
-  {% endfor %}
+  <p class="hint">{{ icon('gas-station', 14) }} {{ _('settings.fuel_moved') }}</p>
 </section>
 
 <section class="card" id="backup">

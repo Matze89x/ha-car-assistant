@@ -234,19 +234,39 @@ def sources(country: str = "") -> list[dict]:
     """The places stations can come from, for the pages: ``{"id", "name", "prices", "needs_key", "has_key", "attribution", "countries"}``. The ones
     for the country of the installation come first."""
     out = [
-        {"id": "tankerkoenig", "name": "Tankerk\u00f6nig (DE)", "prices": True, "needs_key": True, "has_key": bool(config.tankerkoenig_key()), "attribution": "", "countries": ["DE"]},
-        {"id": "osm", "name": "OpenStreetMap", "prices": False, "needs_key": False, "has_key": True, "attribution": "", "countries": []},
+        {"id": "tankerkoenig", "name": "Tankerk\u00f6nig (DE)", "prices": True, "needs_key": True, "has_key": bool(config.tankerkoenig_key()), "attribution": "", "countries": ["DE"], "key_url": "https://creativecommons.tankerkoenig.de", "license": "CC BY 4.0", "source": "built in"},
+        {"id": "osm", "name": "OpenStreetMap", "prices": False, "needs_key": False, "has_key": True, "attribution": "", "countries": [], "key_url": "", "license": "ODbL", "source": "built in"},
     ]  # fmt: skip
     for d in fuelproviders.load().values():
         out.append(
             {"id": d["id"], "name": d["name"], "prices": bool(d["prices"]), "needs_key": bool(d["key"]), "has_key": bool(d["key"] and fuelproviders.key_of(d["id"])) or not d["key"],
-             "attribution": d["attribution"], "countries": d["countries"], "key_url": (d["key"] or {}).get("url", ""), "source": d["source"]}
+             "attribution": d["attribution"], "countries": d["countries"], "key_url": (d["key"] or {}).get("url", ""), "source": d["source"], "license": d["license"]}
         )  # fmt: skip
     return sorted(out, key=lambda s: (bool(country) and country.upper() not in s["countries"], s["id"] == "osm", s["name"]))
 
 
+def preferred_source() -> str:
+    """The source the person chose to start with on the fuel page ('' = automatic)."""
+    return (config.stored_setting("fuel.source") or "").strip()
+
+
+def default_radius() -> float | None:
+    """The search radius (km) the person chose to start with, or None."""
+    try:
+        v = float(config.stored_setting("fuel.radius") or "")
+    except ValueError:
+        return None
+    return min(max(v, 1.0), MAX_RADIUS_KM)
+
+
 def default_source(country: str = "") -> str:
-    """The source used when none is chosen: the first one that fits the country and can be used (a key is there), else OpenStreetMap."""
+    """The source used when none is chosen: the one the person prefers (if it can be used), else the first that fits the country and has its key,
+    else OpenStreetMap."""
+    wanted = preferred_source()
+    if wanted:
+        for s in sources(country):
+            if s["id"] == wanted and s["has_key"]:
+                return wanted
     for s in sources(country):
         if (
             s["id"] != "osm"

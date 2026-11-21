@@ -108,3 +108,24 @@ def test_a_service_asked_for_one_fuel_at_a_time_gets_the_code_and_the_price_of_t
     got = fuelproviders.parse(d, answer, "diesel")
     assert got[0]["prices"] == {"diesel": 1.979} and got[0]["address"] == "Weg 1, 1010 Wien" and got[0]["is_open"] is True
     assert stations.fetch_provider(d, 48.2, 16.4, 5, "lpg") == []  # a fuel the service does not have
+
+
+def test_fuel_settings_live_on_the_fuel_page_and_keys_work_from_there(client):
+    from tests.test_web import create_vehicle, slug
+
+    from carassistant import config
+
+    vid = create_vehicle(client, "Fuel Car")
+    back = f"/v/{slug(vid)}/e/fuel"
+    page = client.get(back).text
+    assert 'id="fuel-settings"' in page and "settings/fuelkey" in page and "Tankerk" in page  # the cog panel with every source
+    r = client.post("/settings/fuelkey", data={"id": "tankerkoenig", "api_key": "abc-123", "back": back}, follow_redirects=False)
+    loc = r.headers["location"]
+    assert r.status_code == 303 and back in loc and "fs=1" in loc and loc.endswith("#fuel-settings")  # back to the open panel
+    assert config.tankerkoenig_key() == "abc-123"
+    client.post("/settings/fuel-defaults", data={"source": "fr", "radius": "12", "back": back})
+    assert config.stored_setting("fuel.source") == "fr" and config.stored_setting("fuel.radius") == "12.0"
+    client.post("/settings/fuelkey", data={"id": "tankerkoenig", "remove": "1", "back": back})
+    assert config.tankerkoenig_key() == ""
+    system = client.get("/settings/system").text
+    assert "settings/fuelkey" not in system and "settings/tankerkoenig" not in system  # nothing about it any more under System

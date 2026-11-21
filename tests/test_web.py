@@ -304,9 +304,10 @@ def test_second_vehicle_shows_switcher(client, conn, vehicle):
 def test_tankerkoenig_key_and_language_from_ui(client, env):
     from carassistant import config
 
-    client.post("/settings/tankerkoenig", data={"api_key": "abc-123"}, follow_redirects=False)
+    client.post("/settings/fuelkey", data={"id": "tankerkoenig", "api_key": "abc-123"}, follow_redirects=False)
     assert config.tankerkoenig_key() == "abc-123"
     assert "abc-123" not in client.get("/settings/system").text  # secret is never echoed
+    assert "settings/fuelkey" not in client.get("/settings/system").text  # the keys are set on the fuel page now
     client.post("/settings/language", data={"language": "de"}, follow_redirects=False)
     assert config.language() == "de"
 
