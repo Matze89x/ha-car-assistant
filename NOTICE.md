@@ -8,6 +8,8 @@ Car Assistant itself is licensed under the **GNU General Public License v3.0 onl
 - **Material Design Icons** (Pictogrammers) – Apache License 2.0, https://pictogrammers.com/library/mdi/ (`licenses/Apache-2.0-MaterialDesignIcons.txt`). The paths are used unchanged; all icons in the app come from this set.
 - **Leaflet** 1.9.4 – BSD-2-Clause, https://leafletjs.com (`licenses/BSD-2-Clause-Leaflet.txt`). Bundled unchanged under `static/vendor/leaflet/`.
 - **Map data and tiles** © OpenStreetMap contributors – ODbL, https://www.openstreetmap.org/copyright. The tiles are fetched by the app from `tile.openstreetmap.org` (identifying User-Agent, cached for a week, at most two connections) and fall under the [OSM tile usage policy](https://operations.osmfoundation.org/policies/tiles/); they can be switched off in the settings.
+- **Place names** (optional, off by default): when *Map info* is on, the app asks [Nominatim](https://nominatim.openstreetmap.org) (OpenStreetMap data, ODbL) for the place of a trip's start and end - only coordinates, at most one request per second, identifying User-Agent ([usage policy](https://operations.osmfoundation.org/policies/nominatim/)). The answers are kept locally.
+- **Fuel stations** (optional): stations everywhere come from OpenStreetMap through the public [Overpass API](https://overpass-api.de) (ODbL, cached, one request per area every five minutes). In Germany, prices come from **Tankerkönig** / Markttransparenzstelle für Kraftstoffe (MTS-K), licence **CC BY 4.0**, https://creativecommons.tankerkoenig.de - only with **your own** free API key (there is no built-in key); the attribution is shown next to the prices.
 
 ## Python libraries (installed from `carassistant/requirements.txt`, not copied into this repository)
 
