@@ -1,0 +1,122 @@
+{% macro icon(name, size=18) -%}
+  <svg class="ico" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{{ icons.get(name, '') }}"/></svg>
+{%- endmacro %}
+
+{% macro badge(info) -%}
+  {%- if info and info.status != 'unknown' -%}
+    <span class="badge {{ info.status }}">
+      {%- if info.days_left is not none -%}
+        {%- if info.days_left < 0 %}{{ _('due.overdue_days', n=-info.days_left) }}{% else %}{{ _('due.in_days', n=info.days_left) }}{% endif -%}
+      {%- endif -%}
+      {%- if info.days_left is not none and info.km_left is not none %} · {% endif -%}
+      {%- if info.km_left is not none -%}
+        {%- if info.km_left < 0 %}{{ _('due.overdue_km', n=fnum(units.d(-info.km_left)) ~ ' ' ~ units.dist_unit) }}{% else %}{{ _('due.in_km', n=fnum(units.d(info.km_left)) ~ ' ' ~ units.dist_unit) }}{% endif -%}
+      {%- endif -%}
+    </span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro field_input(f, value, has_form) -%}
+  {%- set val = value if has_form else f.default -%}
+  {%- if f.kind == 'textarea' -%}
+    <textarea name="{{ f.name }}" rows="2">{{ val or '' }}</textarea>
+  {%- elif f.kind == 'bool' -%}
+    <input type="checkbox" name="{{ f.name }}" value="1" {{ 'checked' if val }}>
+  {%- elif f.kind == 'choice' -%}
+    <select name="{{ f.name }}">
+      {%- for c in f.choices %}<option value="{{ c }}" {{ 'selected' if (val or f.default) == c }}>{{ _(f.name ~ '.' ~ c) }}</option>{% endfor -%}
+    </select>
+  {%- elif f.kind == 'date' -%}
+    <input type="date" name="{{ f.name }}" value="{{ val or '' }}" {{ 'required' if f.required }}>
+  {%- elif f.kind == 'time' -%}
+    <input type="time" name="{{ f.name }}" value="{{ val or '' }}">
+  {%- elif f.kind == 'month_or_date' -%}
+    <input type="text" name="{{ f.name }}" value="{{ val or '' }}" placeholder="YYYY-MM  /  YYYY-MM-DD" pattern="\d{4}-\d{2}(-\d{2})?" {{ 'required' if f.required }}>
+  {%- elif f.kind == 'int' -%}
+    <input type="number" inputmode="numeric" min="0" step="1" name="{{ f.name }}" value="{{ val if val is not none else '' }}">
+  {%- elif f.kind == 'float' -%}
+    <input type="text" inputmode="decimal" name="{{ f.name }}" value="{{ val if val is not none else '' }}">
+  {%- else -%}
+    <input type="text" name="{{ f.name }}" value="{{ val or '' }}" {{ 'required' if f.required }} maxlength="200">
+  {%- endif -%}
+{%- endmacro %}
+
+{# a stored value (km, litres, price per litre) in the units shown, for forms and lists #}
+{% macro disp(f, v) -%}
+  {%- if v is none or v == '' or not f.dim -%}{{ v }}
+  {%- elif f.dim == 'dist' -%}{{ units.d(v)|round(0)|int }}
+  {%- elif f.dim == 'vol' -%}{{ units.v(v, unit or 'L')|round(3) }}
+  {%- else -%}{{ units.price_vol(v, unit or 'L')|round(4) }}{%- endif -%}
+{%- endmacro %}
+
+{# the label of a field with its unit #}
+{% macro flabel(f) -%}
+  {{ _(f.label) }}{{ ' *' if f.required }}{% if f.dim == 'dist' %} ({{ units.dist_unit }}){% elif f.dim == 'vol' %} ({{ units.vol_unit(unit or 'L') }}){% elif f.dim == 'price_vol' %} ({{ units.cur }}/{{ units.vol_unit(unit or 'L') }}){% endif %}
+{%- endmacro %}
+
+{% macro cell(f, row) -%}
+  {%- set val = row[f.name] -%}
+  {%- if val is none or val == '' -%}
+  {%- elif f.kind == 'date' %}{{ fdate(val) }}
+  {%- elif f.kind == 'month_or_date' -%}
+    {%- if row['month_only'] %}{{ val[5:7] }}.{{ val[0:4] }}{% else %}{{ fdate(val) }}{% endif -%}
+  {%- elif f.kind == 'int' %}{{ fnum(units.d(val) if f.dim == 'dist' else val) }}
+  {%- elif f.kind == 'float' -%}
+    {%- if f.dim == 'vol' %}{{ fnum(units.v(val, unit or 'L'), 2) }}
+    {%- elif f.dim == 'price_vol' %}{{ fnum(units.price_vol(val, unit or 'L'), 3) }}
+    {%- else %}{{ fnum(val, 3 if f.name == 'price_per_unit' else 2) }}{% endif %}
+  {%- elif f.kind == 'choice' %}{{ _(f.name ~ '.' ~ val) }}
+  {%- elif f.kind == 'bool' %}{{ '✓' if val }}
+  {%- else %}{{ val }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro confirm_form(action, label, confirm_key='confirm.delete', css='danger small') -%}
+  <form method="post" action="{{ action }}" data-confirm="{{ _(confirm_key) }}" class="inline">
+    <button class="{{ css }}">{{ label }}</button>
+  </form>
+{%- endmacro %}
+
+{# The one action bar of every form: Save fills the row, Delete (if any) sits next to it, same height. The delete form is separate (a form cannot nest), its button points to it with form="". #}
+{% macro form_bar(del_id=none, label=none, form_id=none, open_key=none) -%}
+<div class="form-bar"><button class="primary"{% if form_id %} form="{{ form_id }}"{% endif %}{% if open_key %} name="open" value="{{ open_key }}"{% endif %}>{{ icon('check', 18) }}<span>{{ label or _('btn.save') }}</span></button>{% if del_id %}<button type="submit" form="{{ del_id }}" class="danger">{{ icon('delete', 18) }}<span>{{ _('btn.delete') }}</span></button>{% endif %}</div>
+{%- endmacro %}
+{% macro del_form(id, action, confirm_key='confirm.delete') -%}
+<form method="post" action="{{ action }}" id="{{ id }}" data-confirm="{{ _(confirm_key) }}" hidden></form>
+{%- endmacro %}
+
+{% macro page_head(ic, title, sub=none, tabs=true) -%}
+<div class="page-head">{% if back_href %}<a class="back-btn{{ ' deep' if back_deep }}" href="{{ base }}{{ back_href }}" aria-label="{{ _('nav.more') }}" title="{{ _('nav.more') }}">{{ icon('chevron-left', 22) }}</a>{% endif %}<div class="ph-t"><h1>{{ icon(ic, 26) }}<span>{{ title }}</span></h1>{% set subline = (v.name if v and not app_car else none) if sub is none else sub %}{% if subline %}<div class="ph-s"{{ ' data-car' if sub is none }}>{{ subline }}{% if sub is none and switch_vehicles %}<button type="button" class="cur-switch" data-open="vsw" aria-label="{{ _('nav.change') }}" title="{{ _('nav.change') }}">{{ icon('swap', 15) }}</button>{% endif %}</div>{% endif %}</div>{% if caller %}<div class="actions">{{ caller() }}</div>{% endif %}</div>
+{% if section_tabs and tabs %}<nav class="seg-tabs" aria-label="{{ v.name }}">{% for st in section_tabs %}<a href="{{ base }}{{ st.href }}" class="{{ 'on' if st.on }}"{% if st.on %} aria-current="page"{% endif %}>{{ st.title }}</a>{% endfor %}</nav>{% endif %}
+{%- endmacro %}
+
+{# Labels of the widget settings (one entry per option and choice; add the next widget's options here) #}
+{% set WD_LABELS = {'design': _('wd.design'), 'design.drums': _('wd.design_drums'), 'design.tile': _('wd.design_tile')} %}
+
+{# The odometer as drums (one cell per digit, the last in the accent colour); needs `odometer`. #}
+{% macro odo_drum() -%}
+{% set od = (units.d(odometer)|round|int)|string %}<b class="odo-drum" data-odo="{{ od }}" role="img" aria-label="{{ fnum(units.d(odometer)) }} {{ units.dist_unit }}">{% for ch in od %}<i aria-hidden="true"{% if loop.last %} class="last"{% endif %}>{{ ch }}</i>{% endfor %}<span class="unit">{{ units.dist_unit }}</span></b>
+{%- endmacro %}
+
+{# The progress line under the drums: the task due first by kilometres. #}
+{% macro odo_progress() -%}
+{% if odo_next %}<div class="odo-next{{ ' over' if odo_next.km_left < 0 }}"><div class="bar"><i class="bar-fill" style="width: {{ odo_next.pct }}%"></i></div><div class="odo-next-t">{% if odo_next.km_left < 0 %}{{ _('odo.next_over', n=fnum(units.d(-odo_next.km_left)), u=units.dist_unit) }}{% else %}{{ _('odo.next', n=fnum(units.d(odo_next.km_left)), u=units.dist_unit) }}{% endif %}</div></div>{% endif %}
+{%- endmacro %}
+
+{# One Home widget: a uniform tile with an icon chip, a title and a body. `href` makes the whole tile a link; size "m" spans the row. #}
+{% macro widget(ic, chip, title, href=none, size='s', tone='', id=none) -%}
+{% if href %}<a class="wd {{ size }} {{ tone }} wc-{{ chip }}"{% if id %} id="{{ id }}"{% endif %} href="{{ base }}/v/{{ v.slug }}{{ href }}">{% else %}<section class="wd {{ size }} {{ tone }} wc-{{ chip }}"{% if id %} id="{{ id }}"{% endif %}>{% endif %}
+  <div class="wd-h"><span class="mi-ic {{ chip }}">{{ icon(ic, 17) }}</span><span class="wd-t">{{ title }}</span>{% if href %}{{ icon('chevron', 16) }}{% endif %}</div>
+  <div class="wd-b">{{ caller() }}</div>
+{% if href %}</a>{% else %}</section>{% endif %}
+{%- endmacro %}
+
+{# Step indicator of the first-start guide: n of total #}
+{# the buttons under a step of the guide: Back on the left (if there is a step before), the one main action on the right, always ONE line #}
+{% macro step_nav(label, back=none, form_id=none, next_icon='chevron') -%}
+<div class="step-nav">{% if back %}<a class="button" href="{{ base }}{{ back }}">{{ icon('chevron-left', 18) }}<span>{{ _('btn.back') }}</span></a>{% endif %}<button class="primary"{% if form_id %} form="{{ form_id }}"{% endif %}><span>{{ label }}</span>{{ icon(next_icon, 18) }}</button></div>
+{%- endmacro %}
+
+{% macro steps(n, total=4) -%}
+<nav class="steps" aria-label="{{ _('setup.step', n=n, total=total) }}">{% for i in range(1, total + 1) %}<i class="{{ 'on' if i == n else ('done' if i < n else '') }}"></i>{% endfor %}<span>{{ _('setup.step', n=n, total=total) }}</span></nav>
+{%- endmacro %}

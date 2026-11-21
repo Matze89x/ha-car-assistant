@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, form_bar, icon, page_head with context %}
+{% block content %}
+{% call page_head('car', _('nav.vehicles')) %}{% if manage and (active or archived) %}<a class="button primary" href="{{ base }}/vehicles/new" title="{{ _('vehicle.add') }}" aria-label="{{ _('vehicle.add') }}">{{ icon('plus', 16) }}<span class="lbl">{{ _('vehicle.add') }}</span></a>{% endif %}{% endcall %}
+
+{% if not active and not archived %}
+  <section class="card empty">
+    <h2>{{ _('welcome.title') }}</h2>
+    <p>{{ _('welcome.text') }}</p>
+    <p><a class="button primary" href="{{ base }}/vehicles/new">{{ icon('plus', 16) }} {{ _('vehicle.add') }}</a></p>
+  </section>
+{% endif %}
+
+
+<div class="cards">
+{% for s in active %}
+  {% set v = s.vehicle %}
+  <div class="vehicle-wrap">
+  <a class="card vehicle-card" href="{{ base }}/v/{{ v.slug }}">
+    {% if v.photo %}<img class="vc-img" src="{{ base }}/v/{{ v.slug }}/photo?v={{ v.photo }}" alt="" loading="lazy">{% else %}<img class="vc-img default" src="{{ base }}/static/car-default.webp?v={{ version }}" alt="" loading="lazy">{% endif %}
+    <h2>{{ v.name }}</h2>
+    <p class="muted">{{ [v.make, v.model, v.year]|select|join(' · ') }}{% if v.plate %} · {{ v.plate }}{% endif %}</p>
+    <p class="big">{% if s.odometer is not none %}{{ fnum(uof(v).d(s.odometer)) }} {{ uof(v).dist_unit }}{% else %}–{% endif %}</p>
+    <dl class="vc-facts">
+      {% if s.inspection %}<div><dt>{{ icon('calendar', 15) }}{{ _('tile.inspection') }}</dt><dd>{{ fdate(s.inspection.due_date) }} {{ badge(s.inspection_info) }}</dd></div>{% endif %}
+      {% if s.overdue or s.soon or s.has_tasks %}<div><dt>{{ icon('wrench', 15) }}{{ _('tab.tasks') }}</dt><dd>
+        {% if s.overdue %}<span class="badge overdue">{{ _('dash.overdue', n=s.overdue) }}</span>{% endif %}
+        {% if s.soon %}<span class="badge soon">{{ _('dash.soon', n=s.soon) }}</span>{% endif %}
+        {% if not s.overdue and not s.soon %}<span class="badge ok">{{ _('dash.all_ok') }}</span>{% endif %}</dd></div>{% endif %}
+    </dl>
+  </a>
+  {% if manage %}<a class="icon-btn vehicle-save" href="{{ base }}/v/{{ v.slug }}/backup.zip" title="{{ _('vb.download') }}" aria-label="{{ _('vb.download') }}">{{ icon('download', 18) }}</a>
+  <form method="post" action="{{ base }}/v/{{ v.slug }}/delete" class="vehicle-del" data-confirm="{{ _('confirm.delete_vehicle') }}" data-confirm-ok="{{ _('btn.delete') }}"><button class="round-del" title="{{ _('vehicle.delete_btn') }}" aria-label="{{ _('vehicle.delete_btn') }}">{{ icon('delete', 18) }}</button></form>{% endif %}
+  </div>
+{% endfor %}
+</div>
+
+{% if manage and archived %}
+<section class="arch-box">
+  <h2 class="arch-h">{{ icon('archive', 18) }} {{ _('vehicle.archived') }} <small>{{ archived|length }}</small></h2>
+  <p class="hint">{{ _('vehicle.archived_hint') }}</p>
+  {% for s in archived %}
+  <div class="arch-row">
+    <a href="{{ base }}/v/{{ s.vehicle.slug }}"><b>{{ s.vehicle.name }}</b>{% if s.vehicle.plate %}<span class="plate-chip">{{ s.vehicle.plate }}</span>{% endif %}</a>
+    <form method="post" action="{{ base }}/v/{{ s.vehicle.slug }}/archive" class="inline"><button class="small">{{ _('vehicle.reactivate') }}</button></form>
+    <form method="post" action="{{ base }}/v/{{ s.vehicle.slug }}/delete" class="inline" data-confirm="{{ _('confirm.delete_vehicle') }}" data-confirm-ok="{{ _('btn.delete') }}"><button class="small danger">{{ _('btn.delete') }}</button></form>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+
+{% if manage and not setup_flow %}
+<details class="card add-card" id="vrestore">
+  <summary><span class="add-ic">{{ icon('download', 18) }}</span><span>{{ _('vb.restore') }}</span></summary>
+  <form method="post" enctype="multipart/form-data" action="{{ base }}/vehicles/restore" class="grid">
+    <label class="wide">{{ _('vb.file') }}<input type="file" name="backup" accept=".zip,application/zip" required></label>
+    <div class="wide">{{ form_bar(label=_('vb.restore_btn')) }}</div>
+  </form>
+  <p class="hint">{{ _('vb.restore_hint') }}</p>
+</details>
+{% endif %}
+{% endblock %}

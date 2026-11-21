@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head, field_input, flabel, disp with context %}
+{% block content %}
+{% set mu = base ~ '/v/' ~ v.id ~ '/e/mods' %}
+{% macro modform(r, url) %}
+  <form class="eq-edit tp-form" method="post" action="{{ url }}" {{ 'hidden' if r else '' }}>
+    <label>{{ _('f.work') }} *<input type="text" name="title" maxlength="200" required value="{{ (r['title'] if r else form.get('title')) or '' }}"></label>
+    <div class="eq-two"><label>{{ _('f.date') }}<input type="date" name="date" required value="{{ (r['date'] if r else (form.get('date') or today)) }}"></label>
+      <label>{{ _('f.odometer') }} ({{ units.dist_unit }})<input type="number" inputmode="numeric" min="0" step="1" name="odometer_km" value="{{ (units.d(r['odometer_km'])|round|int if r and r['odometer_km'] is not none else form.get('odometer_km')) or '' }}"></label></div>
+    <label>{{ _('f.cost') }} ({{ units.cur }})<input type="text" inputmode="decimal" name="cost" value="{{ (r['cost'] if r and r['cost'] is not none else form.get('cost')) or '' }}"></label>
+    <label>{{ _('f.notes') }}<textarea name="notes" rows="2">{{ (r['notes'] if r else form.get('notes')) or '' }}</textarea></label>
+    <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
+      {% if r %}<button type="button" class="ghost-btn small ib" data-eqe-cancel>{{ icon('close', 16) }}<span class="sr">{{ _('btn.cancel') }}</span></button>{% endif %}</div>
+  </form>
+{% endmacro %}
+
+{% call page_head(module_icon.get('mods', 'wrench'), _('mods.title')) %}<button class="button primary" form="md-quick" title="{{ _('btn.add') }}" aria-label="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>{% endcall %}
+{% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
+
+<section class="tp-sec">
+  <div class="vd-group-h eq-head">{{ _('mods.title') }} <span class="eq-total" id="eq-count" data-all="{{ rows_all|length }}">{{ rows_all|length }}</span></div>
+  <form method="post" action="{{ mu }}" class="md-quick" id="md-quick">
+    <input type="hidden" name="date" value="{{ today }}">
+    <input type="text" name="title" maxlength="200" required placeholder="{{ _('mods.quick') }}" aria-label="{{ _('mods.quick') }}">
+  </form>
+  {% if rows_all %}
+  <label class="eq-searchbox"><span class="sb-ic">{{ icon('magnify', 18) }}</span><input type="search" id="eq-search" placeholder="{{ _('mods.search') }}" autocomplete="off" enterkeyhint="search"></label>
+  <details class="eq md-list" open><summary class="md-sum"><span class="mi-ic c3">{{ icon(module_icon.get('mods', 'wrench'), 19) }}</span><span class="eq-t">{{ _('mods.title') }}</span><span class="eq-n">{{ rows_all|length }}</span>{{ icon('chevron-down', 18) }}</summary>
+    <ul class="eq-list">
+      {% for r in rows_all %}
+      <li data-q="{{ ((r['title'] or '') ~ ' ' ~ (r['notes'] or '') ~ ' ' ~ r['date'])|lower }}">
+        <span class="md-dot"></span>
+        <div class="eq-body">
+          <div class="eq-line"><span class="eq-tx">{{ r['title'] }}<small class="tp-sub">{{ fdate(r['date']) }}{% if r['odometer_km'] is not none %} · {{ fnum(units.d(r['odometer_km']), 0) }} {{ units.dist_unit }}{% endif %}{% if r['cost'] %} · {{ fnum(r['cost'], 2) }} {{ units.cur }}{% endif %}</small></span>
+            <button type="button" class="eq-i" data-eqe aria-expanded="false" aria-label="{{ _('btn.edit') }}">{{ icon('pencil', 16) }}</button>
+            <form method="post" action="{{ mu }}/{{ r['id'] }}/delete" class="eq-x" data-confirm="{{ _('confirm.delete') }}"><button class="eq-i" aria-label="{{ _('btn.delete') }}">{{ icon('close', 16) }}</button></form></div>
+          {{ modform(r, mu ~ '/' ~ r['id']) }}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% else %}<p class="hint">{{ _('mods.empty') }}</p>{% endif %}
+</section>
+{% endblock %}

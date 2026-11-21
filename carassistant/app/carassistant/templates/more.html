@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block scripts %}<script src="{{ base }}/static/more.js?v={{ version }}" defer></script>{% endblock %}
+{% block content %}
+<div class="more-head">{{ page_head('more', _('nav.more'), '') }}</div>
+<div class="more-main">{% include "_more_groups.html" %}
+</div>
+{% endblock %}

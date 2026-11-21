@@ -1,0 +1,28 @@
+{% from "_macros.html" import icon with context %}
+<section class="card">
+  <h2>{{ icon('view-dashboard', 20) }} {{ _('addon.functions') }}</h2>
+  <p class="hint">{{ _('addon.functions_hint') }}</p>
+  <div class="fn-list">
+  {% for m, on, system_off in functions %}
+    <div class="fn-row {{ '' if on and not system_off else 'off' }}">
+      <span class="mi-ic {{ chips.get(m.key, 'c5') }}">{{ icon(module_icon.get(m.key, 'car'), 17) }}</span>
+      <span class="fn-t">{{ _('mod.' ~ m.key ~ '.name') }}{% if system_off %}<small>{{ _('addon.system_off') }}</small>{% endif %}</span>
+      <form method="post" action="{{ base }}/v/{{ v.slug }}/modules/{{ m.key }}" data-ajax>
+        <input type="hidden" name="enabled" value="{{ '0' if on else '1' }}">
+        <label class="switch" aria-label="{{ _('mod.' ~ m.key ~ '.name') }}"><input type="checkbox" {{ 'checked' if on and not system_off }} {{ 'disabled' if system_off }}><span></span></label>
+        
+      </form>
+    </div>
+  {% endfor %}
+  {% for a in items %}
+    <div class="fn-row {{ 'off' if not a.active or a.missing }}">
+      <span class="mi-ic {{ chips.get('integrations', 'c4') }}">{{ icon(a.m.icon or 'puzzle', 17) }}</span>
+      <span class="fn-t">{{ a.m.name }}{% if a.missing %}<small>{{ _('addon.needs') }}</small>{% endif %}</span>
+      <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/active" data-ajax>
+        <input type="hidden" name="enabled" value="{{ '0' if a.active else '1' }}">
+        <label class="switch" aria-label="{{ a.m.name }}"><input type="checkbox" {{ 'checked' if a.active and not a.missing }} {{ 'disabled' if a.missing }}><span></span></label>
+      </form>
+    </div>
+  {% endfor %}
+  </div>
+</section>

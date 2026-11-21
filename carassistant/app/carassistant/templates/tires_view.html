@@ -1,0 +1,50 @@
+{% from "_macros.html" import icon with context %}
+{% set season_icon = {'summer': 'white-balance-sunny', 'winter': 'snowflake', 'allseason': 'sync'} %}
+{# The tyre pressure of a set tile: the value the car measured, the recommended one in brackets (only the recommended one without a reading) #}
+{% macro press_block(show_measured) %}
+{% if tp.set.get(tp.season) or (show_measured and tp.actual_when) %}
+{% set live = show_measured and tp.actual_when %}
+<div class="tv-pressure">
+  <p class="tp-l">{{ icon('car-tire-alert', 16) }} {{ _('tp.title') }}{% if live %} · {{ fdate(tp.actual_when[:10]) }}{% endif %}</p>
+  <div class="tp-wheels">
+    {% for w in ['fl', 'fr', 'rl', 'rr'] %}
+    {% set rec = tp.front if w in ['fl', 'fr'] else tp.rear %}
+    {% set got = tp.actual[w] if live else none %}
+    <div class="tg"><i>{{ _('tp.' ~ w) }}</i><b class="mono">{% if got %}{{ got }} <small>{{ tp.unit }}{% if rec %} ({{ rec }}){% endif %}</small>{% elif rec %}<small class="rec-only">({{ rec }} {{ tp.unit }})</small>{% else %}–{% endif %}</b></div>
+    {% endfor %}
+  </div>
+  {% if tp.load_front or tp.load_rear %}
+  <div class="tg tv-load"><i>{{ _('tr.loaded') }}</i><b>{{ _('tp.front') }} {{ (tp.load_front ~ ' ' ~ tp.unit) if tp.load_front else '–' }} · {{ _('tp.rear') }} {{ (tp.load_rear ~ ' ' ~ tp.unit) if tp.load_rear else '–' }}</b></div>
+  {% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{% set cur = tp.season %}
+{% set sets = rows|selectattr('season', 'equalto', cur)|list %}
+{% set any_mounted = rows|selectattr('mounted')|list|length > 0 %}
+<nav class="seg-tabs tv-tabs" aria-label="{{ _('f.season') }}">
+  {% for sn in tp.seasons %}<a href="{{ vurl }}?ps={{ sn }}" class="{{ 'on' if sn == cur }}">{{ _('season.' ~ sn) }}</a>{% endfor %}
+</nav>
+<div class="tire-wrap tv-sets">
+  {% for r in sets %}
+  <article class="card tire-card tv-card s-{{ r['season'] }} {{ 'mounted' if r['mounted'] }}">
+    <div class="tc-head">
+      <span class="tc-ic s-{{ r['season'] }}">{{ icon(season_icon.get(r['season'], 'sync'), 22) }}</span>
+      <h3>{{ r['name'] }}</h3>
+      {% if r['mounted'] %}<span class="mounted-badge">{{ _('tires.mounted') }}{% if r['mounted_date'] %} · {{ fdate(r['mounted_date']) }}{% endif %}</span>{% endif %}
+    </div>
+    {{ press_block(r['mounted'] or not any_mounted) }}
+    <div class="tc-grid">
+      {% if r['size'] or r['rear_size'] %}<div class="tg tv-big"><i>{{ _('tr.front_axle') }}</i><b class="mono">{{ r['size'] or '–' }}</b></div>{% endif %}
+      {% if r['rear_size'] or r['rear_name'] %}<div class="tg tv-big"><i>{{ _('tr.rear_axle') }}</i><b class="mono">{{ r['rear_size'] or r['size'] or '–' }}</b>{% if r['rear_name'] %}<small>{{ r['rear_name'] }}</small>{% endif %}</div>{% endif %}
+      {% if r['dot'] %}<div class="tg"><i>{{ _('f.dot') }}</i><b class="mono">{{ r['dot'] }}</b></div>{% endif %}
+      {% if r['storage'] %}<div class="tg"><i>{{ _('f.storage') }}</i><b>{{ r['storage'] }}</b></div>{% endif %}
+    </div>
+    {% if r['notes'] %}<p class="tc-notes">{{ r['notes'] }}</p>{% endif %}
+  </article>
+  {% else %}
+  {% if tp.set.get(cur) %}<section class="card tp-card tv-press">{{ press_block(cur == tp.mounted_season or not any_mounted) }}</section>
+  {% else %}<div class="card empty-state">{{ icon(module_icon.get('tires', 'car'), 36) }}<p>{{ _('tires.none_season') }}</p></div>{% endif %}
+  {% endfor %}
+</div>

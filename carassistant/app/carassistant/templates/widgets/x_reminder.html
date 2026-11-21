@@ -1,0 +1,8 @@
+{% from "_macros.html" import widget with context %}
+{% set rs = (reminders|selectattr('key', 'equalto', w.ref)|first) if reminders is defined else none %}
+{% if rs %}
+{% call widget(rs.icon, 'c4', w.label, none, w.size, 'st-soon' if rs.due else 'st-ok') %}
+  <div class="wd-v">{{ (rs.text_due or _('rem.due')) if rs.due else (_('rem.left_km', n=fnum(units.d(rs.left)), u=units.dist_unit) if rs.mode == 'km' and rs.left is not none else (_('rem.left_refuels', n=fnum(rs.left)) if rs.mode == 'refuels' else '–')) }}</div>
+  <form method="post" action="{{ base }}/v/{{ v.slug }}/reminders/{{ rs.addon_id }}/{{ rs.id }}/done" class="inline"><input type="hidden" name="back" value="home"><button class="small {{ 'primary' if rs.due }}">{{ icon('check', 16) }} {{ _('rem.done') }}</button></form>
+{% endcall %}
+{% endif %}

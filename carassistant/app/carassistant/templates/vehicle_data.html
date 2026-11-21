@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{# The passport grid: two tiles per row. Each tile knows its column (l / r), a lone tile is paired with an empty filler, so the divider line is always right #}
+{% set vd = namespace(col=0) %}
+{% macro row(ic, label, value, mono=False, src=None, wide=False) %}{% if value not in (None, '') %}
+  {% if wide and vd.col == 1 %}<div class="vd-row fill l" aria-hidden="true"></div>{% set vd.col = 0 %}{% endif %}
+  <div class="vd-row {{ 'wide' if wide else ('l' if vd.col == 0 else 'r') }}"><span class="vd-l">{{ icon(ic, 15) }}{{ label }}</span><span class="vd-v"><span class="{{ 'mono' if mono }}{{ ' pre' if value is string and '\n' in value }}">{{ value }}</span>{% if src %}<span class="src">{{ src }}</span>{% endif %}</span></div>
+  {% set vd.col = 0 if wide else 1 - vd.col %}
+{% endif %}{% endmacro %}
+{% macro rows_end() %}{% if vd.col == 1 %}<div class="vd-row fill l" aria-hidden="true"></div>{% endif %}{% set vd.col = 0 %}{% endmacro %}
+{% set power = ((v.power_kw ~ ' kW (' ~ (v.power_kw * 1.35962)|round|int ~ ' ' ~ _('unit.hp') ~ ')') if v.power_kw else None) %}
+{% set ccm = (fnum(v.displacement_ccm) ~ ' cm³') if v.displacement_ccm else None %}
+{% set engine_line = [v.engine, power, ccm]|select|join(' · ') %}
+{% set year = v.year or vin_year %}
+{% call page_head('car', _('vd.title')) %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/edit?mode=form" title="{{ _('btn.edit') }}" aria-label="{{ _('btn.edit') }}">{{ icon('pencil', 16) }}<span class="lbl">{{ _('btn.edit') }}</span></a>{% endcall %}
+<div class="vd">
+  <div class="card vd-hero">
+    <div class="vd-head">
+      <div class="vd-id">
+        <div class="vd-name">{{ v.name }}</div>
+        <div class="vd-plate">{% if v.plate %}<span class="plate-chip">{{ v.plate }}</span>{% endif %}<span>{{ [v.make, v.model, v.variant]|select|join(' ') }}</span></div>
+      </div>
+    </div>
+    {% set km = (fnum(units.d(odometer)) ~ ' ' ~ units.dist_unit) if odometer else None %}
+    <div class="vd-facts">
+      {% if year %}<span class="vd-fact" title="{{ _('f.year') }}">{{ icon('calendar-today', 15) }}{{ year }}{% if vin_year and not v.year %}<span class="src">{{ _('vd.src_vin') }}</span>{% endif %}</span>{% endif %}
+      {% if v.fuel_type %}<span class="vd-fact" title="{{ _('f.fuel_type') }}">{{ icon('gas-station', 15) }}{{ _('fuel_type.' ~ v.fuel_type) }}</span>{% endif %}
+      {% if power %}<span class="vd-fact" title="{{ _('f.power_kw') }}">{{ icon('engine', 15) }}{{ power }}</span>{% endif %}
+      {% if v.transmission %}<span class="vd-fact" title="{{ _('f.transmission') }}">{{ icon('car-shift-pattern', 15) }}{{ _('transmission.' ~ v.transmission) }}</span>{% endif %}
+      {% if km %}<span class="vd-fact" title="{{ _('f.odometer') }}">{{ icon('speedometer', 15) }}{{ km }}{% if odo_from_car %}<span class="src">{{ _('vd.src_car') }}</span>{% endif %}</span>{% endif %}
+    </div>
+    {% if v.vin %}<div class="vin-plate"><span class="vin-l">{{ icon('identifier', 14) }}{{ _('f.vin') }}{% if v.vin_verified %} <span class="vin-ok" aria-label="{{ _('vin.verified') }}">{{ icon('check', 12) }}<span>{{ _('vin.verified') }}</span></span>{% endif %}</span>
+      <div class="vin-slot"><code id="vin-val" class="vin-engraved" aria-label="{{ v.vin }}">{{ v.vin }}</code>
+      <button type="button" class="icon-btn vin-copy" data-copy="{{ v.vin }}" data-done="{{ _('btn.copied') }}" aria-label="{{ _('btn.copy') }}">{{ icon('content-copy', 16) }}</button></div></div>{% endif %}
+  </div>
+  <div class="vd-groups">
+    <div class="vd-g"><div class="vd-group-h">{{ _('vd.group_vehicle') }}</div><div class="vd-group">
+      {{ row('calendar-today', _('f.build_date'), fdate(v.build_date) if v.build_date else None, True) }}
+      {{ row('calendar-today', _('f.first_reg'), fdate(v.first_reg) if v.first_reg else None, True) }}
+      {% if insp_estimate %}{{ row('calendar', _('f.insp_estimate'), fdate(insp_estimate), False, _('vd.src_calc')) }}{% endif %}
+      {{ row('information-outline', _('f.model_type'), v.model_type, True) }}
+      {{ row('file-document-outline', _('f.hsn_tsn'), ((v.hsn or '–') ~ ' / ' ~ (v.tsn or '–')) if (v.hsn or v.tsn) else None, True) }}
+      {{ rows_end() }}
+    </div></div>
+    <div class="vd-g"><div class="vd-group-h">{{ _('vd.group_tech') }}</div><div class="vd-group">
+      {{ row('engine', _('f.engine'), engine_line, False, None, True) }}
+      {{ row('information-outline', _('f.engine_code'), v.engine_code, True) }}
+      {{ row('information-outline', _('f.gearbox_code'), v.gearbox_code, True) }}
+      {{ row('drivetrain', _('f.drivetrain'), _('drivetrain.' ~ v.drivetrain) if v.drivetrain else None) }}
+      {{ row('car-shift-pattern', _('f.transmission'), _('transmission.' ~ v.transmission) if v.transmission else None) }}
+      {{ row('body-type', _('f.body_type'), _('body_type.' ~ v.body_type) if v.body_type else None) }}
+      {{ row('seat', _('f.seats'), v.seats, True) }}
+      {{ row('weight', _('f.gross_weight_kg').split(' (')[0], (fnum(v.gross_weight_kg, 0) ~ ' kg') if v.gross_weight_kg else None, True) }}
+      {{ row('oil', _('f.oil_spec'), v.oil_spec, True) }}
+      {{ row('oil', _('f.oil_l').split(' (')[0], (fnum(units.v(v.oil_l), 1) ~ ' ' ~ units.vol_unit()) if v.oil_l else None, True) }}
+      {{ rows_end() }}
+    </div></div>
+    <div class="vd-g"><div class="vd-group-h">{{ _('vd.group_energy') }}</div><div class="vd-group">
+      {{ row('gas-station', _('f.fuel_type'), _('fuel_type.' ~ v.fuel_type)) }}
+      {% if v.fuel_type != 'electric' %}{{ row('gas-station', _('f.tank').split(' (')[0], (fnum(units.v(v.tank_l), 0) ~ ' ' ~ units.vol_unit()) if v.tank_l else None, True) }}{% endif %}
+      {% if v.fuel_type in ('electric', 'hybrid') or v.battery_kwh %}{{ row('battery', _('f.battery_kwh').split(' (')[0], (fnum(v.battery_kwh, 1) ~ ' kWh') if v.battery_kwh else None, True) }}{% endif %}
+      {{ row('lightning-bolt', _('f.battery_short'), v.battery) }}
+      {{ rows_end() }}
+    </div></div>
+    <div class="vd-g"><div class="vd-group-h">{{ _('vd.group_papers') }}</div><div class="vd-group">
+      {{ row('card-text-outline', _('f.plate'), v.plate, True) }}
+      {{ row('palette', _('f.color'), v.color) }}
+      {{ row('information-outline', _('f.paint_code'), v.paint_code, True) }}
+      {{ rows_end() }}
+    </div></div>
+  </div>
+  {% if v.notes %}<div class="vd-notes"><div class="vd-group-h">{{ _('f.notes') }}</div><div class="card vd-extra"><div class="vd-extra-t">{{ v.notes }}</div></div></div>{% endif %}
+  {% include "_equipment.html" %}
+  <div class="bk-note">{{ _('vd.note') }}</div>
+</div>
+{% endblock %}

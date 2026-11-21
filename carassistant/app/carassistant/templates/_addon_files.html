@@ -1,0 +1,13 @@
+{% from "_macros.html" import icon with context %}
+{# Files and bundles of a package: a button (while approved), name, size, short checksum, the note, and for a bundle what goes into it. #}
+{% macro file_rows(rows) %}
+{% for f in rows %}
+<div class="ifc-row">
+  <div class="ifc-head"><b>{{ f.label }}</b>{% if f.kind == 'bundle' %}<span class="badge">{{ _('fil.bundle') }}</span>{% endif %}</div>
+  <div class="actions pk-actions">{% if f.href %}<a class="button pk-btn" href="{{ base }}{{ f.href }}" download>{{ icon('download', 18) }}<span>{{ f.name }}</span></a>{% else %}<code class="ifc-path">{{ f.name }}</code>{% endif %}</div>
+  <small class="muted">{% if f.size %}{{ f.size|filesizeformat }} · {% endif %}{% if f.sha256 %}sha256 <code>{{ f.sha256[:12] }}…</code>{% else %}{{ _('fil.on_demand') }}{% endif %}</small>
+  {% if f.note %}<small class="muted">{{ f.note }}</small>{% endif %}
+  {% if f.entries %}<div class="ifc-fields">{% for e in f.entries %}<code>{{ e }}</code> {% endfor %}</div>{% endif %}
+</div>
+{% endfor %}
+{% endmacro %}

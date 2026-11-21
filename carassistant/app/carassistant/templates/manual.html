@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{% set mu = base ~ '/v/' ~ v.slug ~ '/manual' %}
+{% call page_head('book-open-page', _('manual.title')) %}
+  {% if meta %}<a class="button" href="{{ mu }}/export.epub" aria-label="{{ _('manual.export') }}">{{ icon('download', 18) }}<span class="lbl">{{ _('manual.export') }}</span></a>
+  <form method="post" enctype="multipart/form-data" action="{{ mu }}/import" data-autosubmit><label class="button" aria-label="{{ _('manual.replace') }}">{{ icon('upload', 18) }}<span class="lbl">{{ _('manual.replace') }}</span><input type="file" name="file" accept=".pdf,.epub,.zip,application/pdf,application/epub+zip,application/zip" hidden></label></form>
+  <form method="post" action="{{ mu }}/delete" data-confirm="{{ _('manual.confirm_delete') }}"><button class="button danger" aria-label="{{ _('btn.delete') }}">{{ icon('delete-outline', 18) }}<span class="lbl">{{ _('btn.delete') }}</span></button></form>
+  {% else %}<form method="post" enctype="multipart/form-data" action="{{ mu }}/import" data-autosubmit><label class="button primary" aria-label="{{ _('manual.import') }}">{{ icon('upload', 18) }}<span class="lbl">{{ _('manual.import') }}</span><input type="file" name="file" accept=".pdf,.epub,.zip,application/pdf,application/epub+zip,application/zip" hidden></label></form>{% endif %}
+{% endcall %}
+{% if meta %}
+<div class="mn-head"><p class="hint mn-desc">{{ meta['title'] }}{% if meta['source_name'] %} · {{ meta['source_name'] }}{% endif %}</p><span class="eq-total">{{ _('manual.pages_n', n=meta['pages']) }}</span></div>
+<form method="get" action="{{ mu }}" class="eq-searchbox"><span class="sb-ic">{{ icon('magnify', 18) }}</span><input type="search" name="q" value="{{ q }}" placeholder="{{ _('manual.search') }}" autocomplete="off" enterkeyhint="search"></form>
+{% if last and not q %}<a class="mn-resume" href="{{ mu }}/read?page={{ last }}"><b>{{ _('manual.continue') }}</b> · {{ _('manual.page_n', n=pg(last)) }}{% if last_chapter %} · {{ last_chapter }}{% endif %}</a>{% endif %}
+{% if q %}
+  <div class="vd-group-h eq-head">{{ _('manual.hits') }} <span class="eq-total">{{ hits|length }}</span></div>
+  {% if hits %}<div class="card mn-hits">{% for h in hits %}<a href="{{ mu }}/read?page={{ h.page }}&amp;q={{ q|urlencode }}" class="mn-hit"><span class="mn-pg">{{ _('manual.page_short', n=pg(h.page)) }}</span><span class="mn-tx">{{ h.before }}<mark>{{ h.hit }}</mark>{{ h.after }}{% if h.chapter %}<small>{{ h.chapter }}</small>{% endif %}</span></a>{% endfor %}</div>
+  {% else %}<p class="hint">{{ _('manual.no_hits') }}</p>{% endif %}
+{% else %}
+  {% for g in chapter_groups %}
+  {% if g.title %}<div class="vd-group-h">{{ g.title }}</div>{% endif %}
+  <div class="mgroup mn-group">
+    {% for c in g.chapters %}<a class="mi{{ ' mi-sub' if c['depth'] else '' }}" href="{{ mu }}/read?page={{ c['page'] }}"><span class="mi-t">{{ c['title'] }}</span><span class="mi-v">{{ _('manual.page_short', n=pg(c['page'])) }}</span>{{ icon('chevron', 20) }}</a>{% endfor %}
+  </div>
+  {% endfor %}
+{% endif %}
+{% else %}
+<section class="card mn-empty">
+  {{ icon('book-open-page', 36) }}
+  <p>{{ _('manual.empty') }}</p>
+  <p class="hint">{{ _('manual.formats') }}</p>
+</section>
+{% endif %}
+{% endblock %}

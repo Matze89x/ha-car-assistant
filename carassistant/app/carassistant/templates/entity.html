@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, field_input, cell, disp, flabel, confirm_form, form_bar, del_form, icon, page_head with context %}
+{% block content %}
+{% set vurl = base ~ '/v/' ~ v.id ~ '/e/' ~ entity.key %}
+{% set shown = entity.fields|selectattr('show')|list %}
+{% if entity.key == 'tasks' %}{% set shown = shown|rejectattr('name', 'in', ['last_date', 'last_km'])|list %}{% endif %}
+{% set extra_cols = {'appointments': 1, 'tasks': 3, 'tires': 1}.get(entity.key, 0) %}
+{% set ncols = shown|length + entity.list_extra|length + extra_cols + 1 %}
+
+{% call page_head(module_icon.get(entity.key, 'car'), _(entity.title)) %}
+    {% if entity.key == 'appointments' %}<a class="icon-btn" href="{{ base }}/v/{{ v.slug }}/calendar.ics" aria-label="{{ _('appt.export') }}">{{ icon('download', 18) }}</a>{% endif %}
+    {% if entity.key == 'tires' %}
+      {% if tp_edit %}<button class="button primary" form="tf">{{ icon('check', 18) }}<span class="lbl">{{ _('btn.save') }}</span></button>
+      {% else %}<a class="button primary" href="{{ vurl }}?edit=1&ps={{ tp.season }}">{{ icon('pencil', 18) }}<span class="lbl">{{ _('btn.edit') }}</span></a>{% endif %}
+    {% else %}<button type="button" class="button primary" data-add-toggle="addcard" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>{% endif %}
+{% endcall %}
+
+{% if entity.key == 'tasks' %}<p class="hint">{{ _('tasks.hint') }}</p>{% endif %}
+{% if entity.key == 'counters' %}<p class="hint">{{ _('counters.hint') }}</p>{% endif %}
+{% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
+
+{% if stn %}{% include "_stations_card.html" %}{% endif %}
+{% if entity.key == 'tires' %}{% include "tires_edit.html" if tp_edit else "tires_view.html" %}{% else %}
+<details class="card add-card add-card-top" id="addcard" {{ 'open' if form and not edit_id }}>
+  <summary><span class="add-ic">{{ icon('plus', 18) }}</span><span>{{ _('btn.add') }}</span></summary>
+  <form method="post" action="{{ vurl }}" class="grid">
+    {% for f in entity.fields %}
+      <label class="{{ 'check' if f.kind == 'bool' }} {{ 'wide' if f.kind == 'textarea' }}">
+        {{ flabel(f) }}
+        {{ field_input(f, form.get(f.name) if not edit_id else none, form and not edit_id) }}
+      </label>
+    {% endfor %}
+    <div class="wide">{{ form_bar() }}</div>
+  </form>
+</details>
+
+{% if entity.key == 'trips' %}
+<details class="card">
+  <summary>{{ _('trips.export') }} / GPX</summary>
+  <form method="get" class="inline-form" action="{{ base }}/v/{{ v.slug }}/trips-export.pdf">
+    <label>{{ _('exp.from') }}<input type="date" name="start" value="{{ range_from }}"></label>
+    <label>{{ _('exp.to') }}<input type="date" name="end" value="{{ range_to }}"></label>
+    <button formaction="{{ base }}/v/{{ v.slug }}/trips-export.pdf">PDF</button>
+    <button formaction="{{ base }}/v/{{ v.slug }}/trips-export.csv">CSV</button>
+  </form>
+  <form method="post" enctype="multipart/form-data" class="inline-form" action="{{ base }}/v/{{ v.slug }}/trips-import">
+    <label>{{ _('trips.import_gpx') }}<input type="file" name="gpx" accept=".gpx,application/gpx+xml,text/xml" required></label>
+    <label>{{ _('f.category') }}<select name="category">{% for c in ['private', 'business', 'commute'] %}<option value="{{ c }}">{{ _('category.' ~ c) }}</option>{% endfor %}</select></label>
+    <button>{{ _('btn.import') }}</button>
+  </form>
+  <p class="hint">{{ _('exp.disclaimer') }}</p>
+</details>
+{% endif %}
+
+{% if rows %}
+{% set d = ' ' ~ units.dist_unit %}
+{% set sfx = {'odometer_km': d, 'start_km': d, 'end_km': d, 'interval_km': d, 'last_km': d, 'installed_km': d, 'cost': ' ' ~ units.cur, 'price_total': ' ' ~ units.cur, 'price_per_unit': ' ' ~ units.cur ~ '/' ~ units.vol_unit(unit), 'amount': ' ' ~ units.vol_unit(unit)} %}
+{% set lead_f = shown|selectattr('kind', 'in', ['date', 'month_or_date'])|first %}
+{% set title_f = shown|selectattr('name', 'in', ['title', 'name'])|first %}
+<div class="rec-grid">
+  {% for head, r in items %}
+  {% if head %}<h3 class="rec-month"><span>{{ head.title }}</span></h3>{% endif %}
+  {% set ex = extras.get(r['id'], {}) %}
+  {% set is_off = (r['done'] if 'done' in r.keys() else false) or (r['muted'] if 'muted' in r.keys() else false) %}
+  <article class="rec rec-tap {{ 'muted-row' if is_off }}{{ ' editing' if edit_id == r['id'] }}" tabindex="0" data-rec-edit>
+    <header class="rec-top">
+      <div class="rec-main">
+        {% if lead_f and r[lead_f.name] %}<span class="rec-lead">{{ cell(lead_f, r) }}</span>{% elif entity.key == 'appointments' %}<span class="rec-lead">{{ _(r['kind'] and ('kind.' ~ r['kind']) or 'f.kind') if false else '' }}</span>{% endif %}
+        <h3 class="rec-title">{% if entity.key == 'trips' %}{{ r['start_place'] or '–' }} <span class="rec-arrow">→</span> {{ r['end_place'] or '–' }}{% elif entity.key == 'fuel' %}{{ fnum(units.v(r['amount'], unit), 1) ~ ' ' ~ units.vol_unit(unit) if r['amount'] else _('fuel.title') }}{% elif title_f %}{{ r[title_f.name] or '–' }}{% else %}–{% endif %}</h3>
+      </div>
+      <div class="rec-badges">
+        {% if entity.key == 'appointments' %}{{ badge(ex.get('due')) }}{% if r['done'] %}<span class="badge ok">{{ _('f.done') }}</span>{% endif %}{% endif %}
+        {% if entity.key == 'tasks' %}{{ badge(ex.due) }}{% endif %}
+        {% if entity.key == 'tires' and r['mounted'] %}<span class="badge ok">{{ _('tires.mounted') }}{% if r['mounted_date'] %} {{ fdate(r['mounted_date']) }}{% endif %}</span>{% endif %}
+      </div>
+    </header>
+    <dl class="rec-facts">
+      {% for f in shown %}{% if f.name != (lead_f.name if lead_f else '') and f.name != (title_f.name if title_f else '') and f.kind != 'bool' and not (entity.key == 'trips' and f.name in ('start_place', 'end_place')) and not (entity.key == 'fuel' and f.name == 'amount') and r[f.name] not in (none, '') %}
+      <div><dt>{{ _(f.label) }}</dt><dd>{{ cell(f, r) }}{{ sfx.get(f.name, '') }}</dd></div>
+      {% endif %}{% endfor %}
+      {% for f in shown %}{% if f.kind == 'bool' and r[f.name] and f.name != 'done' %}<div><dt>{{ _(f.label) }}</dt><dd>✓</dd></div>{% endif %}{% endfor %}
+      {% for c in entity.list_extra %}{% if ex.get('distance') is not none %}<div><dt>{{ _('f.distance') }}</dt><dd>{{ fnum(units.d(ex.get('distance')), 1) }} {{ units.dist_unit }}</dd></div>{% endif %}{% endfor %}
+      {% if entity.key == 'tasks' %}
+        <div><dt>{{ _('f.last_done') }}</dt><dd>{% if ex.get('last_date') or ex.get('last_km') %}{{ fdate(ex.get('last_date')) }}{% if ex.get('last_km') %} · {{ fnum(units.d(ex['last_km'])) }} {{ units.dist_unit }}{% endif %}{% else %}–{% endif %}</dd></div>
+        <div><dt>{{ _('f.next_due') }}</dt><dd>{% if ex.due.due_date or ex.due.due_km %}{% if ex.due.due_date %}{{ fdate(ex.due.due_date.isoformat()) }}{% endif %}{% if ex.due.due_km %} · {{ fnum(units.d(ex.due.due_km)) }} {{ units.dist_unit }}{% endif %}{% else %}–{% endif %}</dd></div>
+      {% endif %}
+    </dl>
+    <div class="rec-actions">
+      {% if entity.key == 'tasks' %}<form method="post" action="{{ vurl }}/{{ r['id'] }}/done" class="inline"><button class="small">{{ _('tasks.done') }}</button></form>{% endif %}
+      {% if entity.key == 'trips' %}<a class="button small" href="{{ base }}/v/{{ v.slug }}/trips/{{ r['id'] }}">{{ _('btn.view') }}</a>{% endif %}
+      {% if entity.key == 'tires' and not r['mounted'] %}<form method="post" action="{{ vurl }}/{{ r['id'] }}/mount" class="inline"><button class="small">{{ _('tires.mount') }}</button></form>{% endif %}
+    </div>
+    <div class="rec-inline">
+      <form method="post" action="{{ vurl }}/{{ r['id'] }}" class="grid">
+        {% for f in entity.fields %}
+          {% set own = form if edit_id == r['id'] else none %}
+          {% if own %}{% set val = own.get(f.name) %}
+          {% elif f.kind == 'month_or_date' and r['month_only'] %}{% set val = r[f.name][:7] %}
+          {% elif f.dim %}{% set val = disp(f, r[f.name]) %}
+          {% else %}{% set val = r[f.name] %}{% endif %}
+          <label class="{{ 'check' if f.kind == 'bool' }} {{ 'wide' if f.kind == 'textarea' }}">{{ flabel(f) }}
+            {{ field_input(f, val, true) }}</label>
+        {% endfor %}
+        <div class="wide"><div class="form-bar"><button type="button" class="ghost-btn small" data-rec-cancel>{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button><button type="submit" form="del-{{ r['id'] }}" class="danger">{{ icon('delete', 18) }}<span>{{ _('btn.delete') }}</span></button><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div></div>
+      </form>
+      {{ del_form('del-' ~ r['id'], vurl ~ '/' ~ r['id'] ~ '/delete') }}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% with pager_url=vurl, pager_into='.rec-grid' %}{% include "_pager.html" %}{% endwith %}
+{% else %}
+  <div class="card empty-state">{{ icon(module_icon.get(entity.key, 'car'), 36) }}<p>{{ _(entity.empty_hint) }}</p></div>
+{% endif %}
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if entity.key == 'tires' and tp_edit %}<script src="{{ base }}/static/tires.js?v={{ version }}" defer></script>{% endif %}{% if stn %}<script src="{{ base }}/static/stations.js?v={{ version }}" defer></script>{% endif %}{% endblock %}

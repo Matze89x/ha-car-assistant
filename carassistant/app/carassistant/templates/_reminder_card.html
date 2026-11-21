@@ -1,0 +1,11 @@
+{% from "_macros.html" import icon with context %}
+{% for rs in reminders %}
+<section class="card reminder {{ 'due' if rs.due }}">
+  <div class="rem-h"><span class="mi-ic c4">{{ icon(rs.icon, 18) }}</span>
+    <div class="rem-t"><b>{{ rs.title }}</b>
+      <small>{{ (rs.text_due or _('rem.due')) if rs.due else (_('rem.left_km', n=fnum(units.d(rs.left)), u=units.dist_unit) if rs.mode == 'km' and rs.left is not none else (_('rem.left_refuels', n=fnum(rs.left)) if rs.mode == 'refuels' else '–')) }}</small></div>
+    {% if rs.mode == 'plan' %}<a class="ghost-btn small" href="{{ base }}/v/{{ v.slug }}/m/{{ rs.addon_id }}">{{ _('plan.history') }}</a>
+    {% else %}<form method="post" action="{{ base }}/v/{{ v.slug }}/reminders/{{ rs.addon_id }}/{{ rs.id }}/done" class="inline"><input type="hidden" name="back" value="fuel"><button class="{{ 'primary' if rs.due }}">{{ icon('check', 16) }} {{ _('rem.done') }}</button></form>{% endif %}
+  </div>
+</section>
+{% endfor %}

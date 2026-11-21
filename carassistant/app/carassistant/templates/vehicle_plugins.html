@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block scripts %}<script src="{{ base }}/static/media.js?v={{ version }}" defer></script>{% endblock %}
+{% block content %}
+{% call page_head('plug', _('addon.plugins')) %}
+  {% if ptab == 'manage' %}<form method="post" action="{{ base }}/sources/refresh"><input type="hidden" name="kind" value="plugin"><input type="hidden" name="vid" value="{{ v.id }}"><input type="hidden" name="back" value="manage"><button class="button" aria-label="{{ _('pk.check') }}">{{ icon('refresh', 18) }}<span class="lbl">{{ _('pk.check') }}</span></button></form>
+  <a class="button primary" href="{{ base }}/v/{{ v.slug }}/plugins/add" aria-label="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></a>
+  {% elif ptab == 'add' %}<form method="post" action="{{ base }}/sources/refresh"><input type="hidden" name="kind" value="plugin"><input type="hidden" name="vid" value="{{ v.id }}"><input type="hidden" name="back" value="add"><button class="button primary" aria-label="{{ _('pk.list') }}">{{ icon('refresh', 18) }}<span class="lbl">{{ _('pk.list') }}</span></button></form>
+  {% elif ptab == 'sources' %}<button type="button" class="button primary" data-add-toggle="addcard" aria-label="{{ _('src.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('src.add') }}</span></button>{% endif %}
+{% endcall %}
+{% if ptab == 'manage' %}
+<div class="pk-bar"><span class="hint">{{ _('plug.intro', car=v.name) }}</span>
+</div>
+<div class="pk-grid one">{% with rows=items, empty=_('plug.none') %}{% include "_addon_cards.html" %}{% endwith %}</div>
+{% elif ptab == 'add' %}
+{% with kind='plugin' %}{% include "_available_card.html" %}{% endwith %}
+{% else %}
+{% include "_sources_list.html" %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,30 @@
+{% from "_macros.html" import icon with context %}
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0d1016">
+  <title>{{ _('unlock.title') }} – Car Assistant</title>
+  {% if not logo_custom %}<link rel="icon" type="image/svg+xml" href="{{ base }}/static/favicon.svg?v={{ version }}">
+  {% endif %}<link rel="icon" href="{{ base }}/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="{{ icon_base }}/180.png">
+  <style>:root{color-scheme:dark}html,body{background:#0d1016;color:#e8eaf0}</style>
+  <link rel="stylesheet" href="{{ base }}/static/app.css?v={{ version }}">
+</head>
+<body class="login-body">
+  <div class="login-card card">
+    <img class="login-logo" src="{{ icon_base }}/128.png" alt="" width="72" height="72">
+    <h1>{{ _('unlock.title') }}</h1>
+    <p class="login-sub">{{ _('unlock.sub', name=name) }}</p>
+    {% if error %}<div class="flash err">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ base }}/unlock">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label>{{ _('unlock.code') }}<input type="password" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="12" class="mono pin" required autofocus></label>
+      <button class="primary block" type="submit">{{ _('unlock.submit') }}</button>
+    </form>
+    <form method="post" action="{{ base }}/logout"><button type="submit" class="linkb">{{ _('unlock.other') }}</button></form>
+  </div>
+</body>
+</html>

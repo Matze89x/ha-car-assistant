@@ -1,0 +1,21 @@
+{% from "_macros.html" import icon with context %}
+<section class="card" id="region">
+  <h2>{{ icon('globe') }} {{ _('settings.language') }}</h2>
+  <form method="post" action="{{ base }}/settings/language" data-live data-reload>
+    <label class="tf-field"><span class="tf-l">{{ _('settings.language_hint') }}</span>
+      <select name="language">{% for code, meta in languages.items() %}<option value="{{ code }}" {{ 'selected' if lang == code }}>{{ meta.name }}</option>{% endfor %}</select></label>
+  </form>
+</section>
+<section class="card" id="units">
+  <h2>{{ icon('speedometer') }} {{ _('region.units_title') }}</h2>
+  <p class="hint">{{ _('region.units_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/units" data-live>
+    <div class="season-pick">
+      {% for key, name, hint in (('metric', _('region.sys_metric'), 'km · L · °C'), ('us', _('region.sys_us'), 'mi · gal · °F'), ('uk', _('region.sys_uk'), 'mi · gal · °C')) %}
+      <label class="sp"><input type="radio" name="units" value="{{ key }}" {{ 'checked' if key == default_units }}><span><b>{{ name }}</b><small>{{ hint }}</small></span></label>
+      {% endfor %}
+    </div>
+    <label class="tf-field"><span class="tf-l">{{ _('region.currency') }}</span>
+      <select name="currency">{% for code, sym, after in currencies %}<option value="{{ code }}" {{ 'selected' if code == default_currency }}>{{ code }} ({{ sym }})</option>{% endfor %}</select></label>
+  </form>
+</section>

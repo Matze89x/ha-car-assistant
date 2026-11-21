@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, icon, WD_LABELS with context %}
+{% block head %}{% if place and map_tiles %}<link rel="stylesheet" href="{{ base }}/static/vendor/leaflet/leaflet.min.css?v=1.9.4">{% endif %}{% endblock %}
+{% block scripts %}<script src="{{ base }}/static/widgets.js?v={{ version }}" defer></script><script src="{{ base }}/static/media.js?v={{ version }}" defer></script>{% if place and map_tiles %}<script src="{{ base }}/static/vendor/leaflet/leaflet.min.js?v=1.9.4"></script><script src="{{ base }}/static/map.js?v={{ version }}"></script>{% endif %}{% endblock %}
+{% block content %}
+{% set tk = tabs|map(attribute='key')|list %}
+<div class="wgrid" id="wgrid" data-save="{{ base }}/v/{{ v.slug }}/widgets" data-edit="{{ _('wd.edit') }}" data-done="{{ _('wd.done') }}" data-labels="{{ WD_LABELS|tojson|forceescape }}">
+{% set shown = [] %}
+{% for w in widgets %}{% if not w.module or w.module in tk %}
+{% set out %}{% include "widgets/" ~ (w.template or w.key) ~ ".html" %}{% endset %}
+{% if out|trim %}{% set _ = shown.append({'w': w, 'out': out}) %}{% endif %}
+{% endif %}{% endfor %}
+{# a small tile that would sit alone in its row (before a full-width tile or at the end) fills the row instead of leaving a hole #}
+{% set vis = shown|selectattr('w.on')|list %}
+{% set st = namespace(col=0) %}
+{% set fills = [] %}
+{% for it in vis %}
+{% if it.w.size == 'm' %}{% set st.col = 0 %}
+{% elif st.col == 0 %}{% set st.col = 1 %}{% if loop.last or vis[loop.index0 + 1].w.size == 'm' %}{% set _ = fills.append(it.w.key) %}{% set st.col = 0 %}{% endif %}
+{% else %}{% set st.col = 0 %}{% endif %}
+{% endfor %}
+{% for it in shown %}
+<div class="wd-slot {{ it.w.size }}{{ ' locked' if it.w.fixed else '' }}{{ '' if it.w.on else ' off' }}{{ ' fill' if it.w.key in fills else '' }}" data-k="{{ it.w.key }}"{% if it.w.options %} data-opts="{{ it.w.options_json|forceescape }}" data-title="{{ _(it.w.title) }}"{% for key, value in it.w.opts.items() %} data-opt-{{ key }}="{{ value }}"{% endfor %}{% endif %}>{{ it.out }}</div>
+{% endfor %}
+{% if not vis %}
+<section class="wd-start">
+  <h2>{{ _('home.start_title') }}</h2>
+  <p class="hint">{{ _('home.start_text') }}</p>
+  <div class="mgroup">
+    <a class="mi" href="{{ base }}/v/{{ v.slug }}/edit"><span class="mi-ic c3">{{ icon('counter', 19) }}</span><span class="mi-t">{{ _('home.start_odometer') }}</span>{{ icon('chevron', 20) }}</a>
+    <a class="mi" href="{{ base }}/v/{{ v.slug }}/e/fuel"><span class="mi-ic c1">{{ icon('fuel', 19) }}</span><span class="mi-t">{{ _('home.start_fuel') }}</span>{{ icon('chevron', 20) }}</a>
+    <a class="mi" href="{{ base }}/v/{{ v.slug }}/e/service"><span class="mi-ic c4">{{ icon('wrench', 19) }}</span><span class="mi-t">{{ _('home.start_service') }}</span>{{ icon('chevron', 20) }}</a>
+    <a class="mi" href="{{ base }}/v/{{ v.slug }}/plugins"><span class="mi-ic c5">{{ icon('puzzle', 19) }}</span><span class="mi-t">{{ _('home.start_connect') }}</span>{{ icon('chevron', 20) }}</a>
+  </div>
+</section>
+{% endif %}
+<a class="wd wd-addtile" href="{{ base }}/v/{{ v.slug }}/integrations">{{ icon('plus', 22) }}<span>{{ _('wd.add') }}</span><small>{{ _('wd.add_hint') }}</small></a>
+</div>
+<template id="wd-tpl">
+  <div class="wd-ctl">
+    <button type="button" class="wd-edit-btn" aria-label="{{ _('wd.settings') }}" title="{{ _('wd.settings') }}">{{ icon('pencil', 18) }}</button>
+    <button type="button" class="wd-eye" aria-label="{{ _('wd.show') }}">{{ icon('eye', 18) }}</button>
+    <span class="wd-grip" role="button" aria-label="{{ _('wd.move') }}">{{ icon('drag', 18) }}</span>
+  </div>
+  <span class="wd-rs" role="separator" aria-label="{{ _('wd.size') }}"></span>
+</template>
+<p class="wd-edit"><button type="button" class="button" id="wd-toggle">{{ icon('pencil', 16) }} <span class="lbl">{{ _('wd.edit') }}</span></button></p>
+<dialog id="wopt" class="vsw" aria-label="{{ _('wd.settings') }}">
+  <div class="vsw-head"><h2>{{ icon('pencil', 20) }} <span id="wopt-t">{{ _('wd.settings') }}</span></h2><button type="button" class="vsw-x" data-close aria-label="{{ _('btn.close') }}">{{ icon('close', 20) }}</button></div>
+  <div class="pe-body" id="wopt-body"></div>
+</dialog>
+<dialog id="pe" class="vsw pe" aria-label="{{ _('wd.edit') }}">
+  <div class="vsw-head"><h2>{{ icon('camera', 20) }} {{ _('pe.picture') }}</h2><button type="button" class="vsw-x" data-close aria-label="{{ _('btn.close') }}">{{ icon('close', 20) }}</button></div>
+  <div class="pe-body">
+    <p class="hint">{{ _('media.intro', n=media_keep) }}</p>
+    {% with library=media_library, photos=media_photos, videos=media_videos, keep=media_keep, kinds=media_kinds, kind=media_kind, media_back='home' %}{% include "_media_panel.html" %}{% endwith %}
+  </div>
+</dialog>
+{% endblock %}

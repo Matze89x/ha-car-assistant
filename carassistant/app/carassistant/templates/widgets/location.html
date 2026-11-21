@@ -1,0 +1,12 @@
+{% from "_macros.html" import widget with context %}
+{% if place %}
+{% call widget('map-marker-radius', 'c7', _('loc.title'), none, w.size, '', 'location') %}
+  <div class="pos-place">{{ place.title }}</div>
+  {% if place.town %}<div class="pos-town pos-name">{{ place.town }}</div>{% if place.street %}<div class="pos-street">{{ place.street }}</div>{% endif %}
+  {% else %}<div class="pos-town mono">{{ place.coords }}</div>{% endif %}
+  {% if place.chips %}<div class="pos-chips">{% for c in place.chips %}<span class="pos-chip{{ ' pos-moving' if c.tone == 'ok' }}">{{ c.text }}</span>{% endfor %}</div>{% endif %}
+  {% if map_tiles %}<div id="posmap" class="pos-map" data-tiles="{{ base }}/tiles" data-lat="{{ place.lat }}" data-lon="{{ place.lon }}" data-pin="{{ _('loc.pin') }}" data-light="{{ _('map.light') }}" data-dark="{{ _('map.dark') }}"></div>
+  {% else %}<p class="hint">{{ _('loc.map_off') }}</p>{% endif %}
+  <div class="nav-btns" aria-label="{{ _('loc.navigate') }}">{% for l in place.links %}<a class="nav-btn" data-nav="{{ l.key }}" href="{{ l.url }}" target="_blank" rel="noopener noreferrer">{{ icon('map-marker-radius', 16) }}{{ l.name }}</a>{% endfor %}</div>
+{% endcall %}
+{% endif %}

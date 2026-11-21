@@ -1,0 +1,7 @@
+{% from "_macros.html" import icon with context %}{% if pager.pages > 1 %}
+<nav class="pager" aria-label="{{ _('list.pages') }}"{% if pager.page < pager.pages %} data-more="{{ pager_url }}{{ "&" if "?" in pager_url else "?" }}page={{ pager.page + 1 }}" data-into="{{ pager_into }}" data-total="{{ pager.total }}"{% endif %}>
+  {% if pager.page > 1 %}<a class="button small" href="{{ pager_url }}{{ "&" if "?" in pager_url else "?" }}page={{ pager.page - 1 }}">{{ icon('chevron', 16) }}<span class="lbl">{{ _('list.prev') }}</span></a>{% else %}<span></span>{% endif %}
+  <span class="muted pg-count" data-fmt="{{ _('list.shown', n='{n}', total='{total}') }}">{{ _('list.shown', n=[pager.page * pager.size, pager.total]|min, total=pager.total) }}</span>
+  {% if pager.page < pager.pages %}<a class="button small pg-next" href="{{ pager_url }}{{ "&" if "?" in pager_url else "?" }}page={{ pager.page + 1 }}"><span class="lbl">{{ _('list.next') }}</span>{{ icon('chevron', 16) }}</a>{% else %}<span></span>{% endif %}
+</nav>
+{% endif %}

@@ -1,0 +1,49 @@
+{% from "_macros.html" import icon with context %}
+{% from "_addon_files.html" import file_rows with context %}
+<section class="card">
+  <h2>{{ icon('swap-vertical', 20) }} {{ _('ifc.title') }}</h2>
+  <p class="hint">{{ _('ifc.intro') }}</p>
+  {% if data.docs_parts %}<p class="ifc-docs">{% for p in data.docs_parts %}{% if p.file %}{% if p.file.href %}<a href="{{ base }}{{ p.file.href }}" download>{{ p.file.label }}</a>{% else %}{{ p.file.label }}{% endif %}{% else %}{{ p.text }}{% endif %}{% endfor %}</p>{% endif %}
+</section>
+{% if addon.m.downloads %}
+<section class="card">
+  <h2>{{ icon('download', 20) }} {{ _('dl.title') }}</h2>
+  <p class="hint">{{ _('dl.hint') }}</p>
+  <div class="actions pk-actions">{% for d in addon.m.downloads %}<a class="button pk-btn" href="{{ base }}{{ d.path }}" download>{{ icon('download', 18) }}<span>{{ d.label }}</span></a>{% endfor %}</div>
+  {% for d in addon.m.downloads if d.note %}<p class="hint"><b>{{ d.label }}</b> - {{ d.note }}</p>{% endfor %}
+</section>
+{% endif %}
+{% if data.files %}
+<section class="card">
+  <h2>{{ icon('download', 20) }} {{ _('fil.title') }}</h2>
+  <p class="hint">{{ _('fil.hint') }}</p>
+  {% if not data.files_offered %}<p class="flash err">{{ _('fil.not_approved') }}{% if addon.pkgfiles %} <a href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service">{{ _('svc.review') }}</a>{% endif %}</p>{% endif %}
+  {{ file_rows(data.files) }}
+</section>
+{% endif %}
+{% set GROUPS = [('sends', _('ifc.sends'), _('ifc.sends_hint')), ('reads', _('ifc.reads'), _('ifc.reads_hint')), ('offers', _('ifc.offers'), _('ifc.offers_hint'))] %}
+{% set any_rows = data.rows.sends or data.rows.reads or data.rows.offers %}
+{% if not any_rows %}<p class="hint">{{ _('ifc.none') }}</p>{% endif %}
+{% for key, title, hint in GROUPS if data.rows[key] %}
+<section class="card">
+  <h2>{{ title }}</h2><p class="hint">{{ hint }}</p>
+  {% for r in data.rows[key] %}
+  <div class="ifc-row">
+    <div class="ifc-head"><b>{{ r.name }}</b>
+      {% if r.seen %}<span class="badge ok">{{ _('ifc.seen', when=r.seen, n=r.hits) }}</span>{% elif not r.declared %}{% else %}<span class="badge">{{ _('ifc.not_seen') }}</span>{% endif %}
+      {% if not r.declared %}<span class="badge">{{ _('ifc.seen_only') }}</span>{% endif %}</div>
+    {% if r.path %}<code class="ifc-path">{{ r.path }}</code>{% endif %}
+    {% if r.fields %}<div class="ifc-fields">{% for f in r.fields %}<code>{{ f }}</code> {% endfor %}</div>{% endif %}
+    {% if r.extra %}<div class="ifc-fields"><small class="muted">{{ _('ifc.also') }}</small> {% for f in r.extra %}<code>{{ f }}</code> {% endfor %}</div>{% endif %}
+    {% if r.note %}<small class="muted">{{ r.note }}</small>{% endif %}
+  </div>
+  {% else %}<p class="hint">{{ _('ifc.none') }}</p>{% endfor %}
+</section>
+{% endfor %}
+{% if data.settings %}
+<section class="card">
+  <h2>{{ icon('settings', 20) }} {{ _('ifc.settings') }}</h2><p class="hint">{{ _('ifc.settings_hint') }}</p>
+  {% for f in data.settings %}<div class="ifc-row"><div class="ifc-head"><b>{{ f.label }}</b><span class="badge">{{ f.type }}</span></div><code class="ifc-path">{{ f.key }}</code></div>{% endfor %}
+</section>
+{% endif %}
+<p class="hint">{{ _('ifc.more') }} <a href="https://github.com/Matze89x/ha-car-assistant/blob/main/docs/api.md" target="_blank" rel="noopener noreferrer">docs/api.md</a></p>

@@ -1,0 +1,7 @@
+/* The bar runs over the whole width, its content keeps the maximum width of Car Assistant (1280px) like the pages of the app.
+   The head of Car Assistant above a page a package shows as a page of its own: back, name, version. Variables come from the design of the car. */
+@font-face { font-family: "Space Grotesk"; src: url(static/fonts/space-grotesk-variable.woff2) format("woff2"); font-weight: 300 700; font-display: swap; }
+#ca-head { box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 14px max(16px, calc((100% - 1280px) / 2 + 16px)); margin: 0; background: var(--glass); border-bottom: 1px solid var(--glass-b); color: var(--text); font: 600 20px/1.2 "Space Grotesk", system-ui, sans-serif; }
+#ca-head .ca-back { flex: 0 0 auto; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 999px; border: 1px solid var(--btn-edge); background: linear-gradient(180deg, rgba(var(--fg-rgb), .11), rgba(var(--fg-rgb), .05)); box-shadow: 0 1px 0 var(--btn-hi) inset; color: var(--text); text-decoration: none; }
+#ca-head .ca-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#ca-head .ca-ver { flex: 0 0 auto; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--glass-b); background: var(--glass2); color: var(--muted); font-size: 12px; letter-spacing: .04em; }

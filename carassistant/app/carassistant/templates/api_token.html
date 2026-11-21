@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{{ page_head('plug', _('api.token_title')) }}
+<section class="card">
+  <p>{{ _('api.token_for') }} <strong>{{ conn_name }}</strong></p>
+  <p class="hint">{{ _('api.token_once') }}</p>
+  <ul class="codes"><li class="mono token-line">{{ token }}</li></ul>
+  {% if conn_file and addon_pk %}
+  <form method="post" action="{{ base }}/v/{{ vid }}/integrations/{{ addon_pk }}/connection-file" class="inline">
+    <input type="hidden" name="token" value="{{ token }}">
+    <button class="primary">{{ icon('download', 18) }}<span>{{ _('addon.conn_file', name=conn_file.name) }}</span></button>
+  </form>
+  <p class="hint">{{ _('addon.conn_file_hint') }}</p>
+  {% endif %}
+  <pre class="mono curl-box">curl -X POST {{ base_url or 'https://car.example.com' }}/api/v1/vehicles/{{ vid or 1 }}/data \
+  -H "Authorization: Bearer {{ token }}" \
+  -H "Content-Type: application/json" \
+  -d '{"odometer_km": 52340, "fuel_level_pct": 61}'</pre>
+  <p><a class="button primary" href="{{ base }}{{ back or "/integrations" }}">{{ _('btn.back') }}</a></p>
+</section>
+{% endblock %}

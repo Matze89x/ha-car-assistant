@@ -1,0 +1,8 @@
+{% from "_macros.html" import widget with context %}
+{% if last_fuel %}
+{% call widget('fuel', 'c1', _('nav.fuel'), '/e/fuel', w.size) %}
+  <div class="wd-v">{% if last_fuel.amount %}{{ fnum(units.v(last_fuel.amount, unit), 1) }} <small>{{ units.vol_unit(unit) }}</small>{% else %}–{% endif %}</div>
+  <div class="wd-s">{{ fdate(last_fuel.date) }}{% if last_fuel.price_total %} · {{ fnum(last_fuel.price_total, 2) }} {{ units.cur }}{% endif %}</div>
+  {{ spark_price|safe }}
+{% endcall %}
+{% endif %}

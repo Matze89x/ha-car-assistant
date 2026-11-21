@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head, steps, step_nav with context %}
+{% block content %}
+{{ steps(3) }}
+{{ page_head('puzzle', _('setup.fn_title'), vehicle.name) }}
+<div class="card fn-intro">{{ icon('info', 20) }}<p>{{ _('setup.fn_intro') }}</p></div>
+<form method="post" action="{{ base }}/setup/functions" class="setup-form">
+  <div class="fn-list">
+  {% for m, on in rows %}
+    <label class="fn-row">
+      <span class="mi-ic {{ chips.get(m.key, 'c5') }}">{{ icon(module_icon.get(m.key, 'car'), 17) }}</span>
+      <span class="fn-t">{{ _('mod.' ~ m.key ~ '.name') }}<small>{{ _('mod.' ~ m.key ~ '.desc') }}</small></span>
+      <span class="switch"><input type="checkbox" name="on" value="{{ m.key }}" {{ 'checked' if on }}><span></span></span>
+    </label>
+  {% endfor %}
+  </div>
+  {{ step_nav(_('setup.fn_next'), back='/v/' ~ vehicle.slug ~ '/edit') }}
+</form>
+{% endblock %}

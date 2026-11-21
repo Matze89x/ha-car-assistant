@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_head, icon, form_bar, del_form with context %}
+{% macro field_box(f, val, own, rid=0) -%}
+  {% if f.type == 'textarea' %}<textarea name="{{ f.key }}" rows="3" maxlength="20000" {{ 'required' if f.required }}>{{ val }}</textarea>
+  {% elif f.type == 'bool' %}<input type="checkbox" name="{{ f.key }}" value="1" {{ 'checked' if val == '1' }}>
+  {% elif f.type == 'select' %}<select name="{{ f.key }}" {{ 'required' if f.required }}><option value="">–</option>{% for o in f.options %}<option value="{{ o.value }}" {{ 'selected' if val == o.value }}>{{ o.label }}</option>{% endfor %}</select>
+  {% elif f.type == 'number' %}<input type="text" inputmode="decimal" name="{{ f.key }}" value="{{ val }}" {{ 'required' if f.required }}>
+  {% elif f.type == 'url' %}<input type="url" name="{{ f.key }}" value="{{ val }}" maxlength="500" placeholder="https://" {{ 'required' if f.required }}>
+  {% elif f.type == 'date' %}<input type="date" name="{{ f.key }}" value="{{ val }}" {{ 'required' if f.required }}>
+  {% elif f.type == 'secret' %}<input type="password" name="{{ f.key }}" value="" maxlength="200" autocomplete="new-password" spellcheck="false" placeholder="{{ '••••••' if val else '' }}">
+    {% if val %}<span class="check pm-clear"><input type="checkbox" name="{{ f.key }}__clear" value="1" id="clr-{{ f.key }}-{{ rid }}"> <label for="clr-{{ f.key }}-{{ rid }}">{{ _('pm.secret_clear') }}</label></span><small class="muted">{{ _('pm.secret_keep') }}</small>{% endif %}
+  {% elif f.type == 'hex' %}<input type="text" class="mono" name="{{ f.key }}" value="{{ val }}" maxlength="2200" autocapitalize="characters" autocomplete="off" spellcheck="false" {{ 'required' if f.required }}>
+  {% else %}<input type="text" name="{{ f.key }}" value="{{ val }}" maxlength="500" {{ 'required' if f.required }}>{% endif %}
+{%- endmacro %}
+{% block content %}
+{% call page_head(mod.icon, page.title, v.name) %}
+  <button type="button" class="button primary" data-add-toggle="addcard" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>
+{% endcall %}
+{% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 and error[1] %}: {{ error[1] }}{% endif %}</div>{% endif %}
+
+<details class="card add-card add-card-top" id="addcard" {{ 'open' if form and not edit_id }}>
+  <summary><span class="add-ic">{{ icon('plus', 18) }}</span><span>{{ _('btn.add') }}</span></summary>
+  <form method="post" action="{{ base }}{{ base_url }}" class="grid">
+    {% for f in page.fields %}
+      <label class="{{ 'check' if f.type == 'bool' }} {{ 'wide' if f.type in ('textarea', 'hex') }}">{{ f.label }}{{ ' *' if f.required }}
+        {{ field_box(f, (form.get(f.key) if form and not edit_id else '') or '', true) }}
+        {% if f.help %}<small class="muted">{{ f.help }}</small>{% endif %}</label>
+    {% endfor %}
+    <div class="wide">{{ form_bar() }}</div>
+  </form>
+</details>
+
+{% set any_changed = view|map(attribute='changed')|sum %}
+{% set has_compare = page.fields|selectattr('compare', 'defined')|list|length > 0 %}
+{% if view and (page.search or has_compare) %}
+<div class="pm-tools">
+  {% if page.search %}<label class="eq-searchbox"><span class="sb-ic">{{ icon('magnify', 18) }}</span><input type="search" id="pm-q" placeholder="{{ _('pm.search') }}" autocomplete="off" aria-label="{{ _('pm.search') }}"></label>{% endif %}
+  {% if has_compare %}<button type="button" class="ghost-btn small pm-only{{ '' if any_changed else ' off' }}" id="pm-only" aria-pressed="false">{{ _('pm.only_changed', n=view|selectattr('changed')|list|length) }}</button>{% endif %}
+</div>
+{% endif %}
+{% if view %}
+<div class="eq-wrap pm-wrap" id="pm-list">
+  {% for r in view %}
+  <details class="eq pm-unit" data-q="{{ r.q }}" data-changed="{{ 1 if r.changed else 0 }}" {{ 'open' if edit_id == r.id or reveal == r.id }}>
+    <summary>{% if r.badge %}<span class="pm-badge">{{ r.badge }}</span>{% endif %}
+      <span class="eq-t pm-t"><b>{{ r.title }}</b>{% if r.subtitle %}<small>{{ r.subtitle }}</small>{% endif %}</span>
+      {% if r.diffs %}<span class="eq-n pm-cnt{{ ' on' if r.changed }}">{{ r.changed }} B</span>{% endif %}
+      {{ icon('chevron-down', 18) }}</summary>
+    <div class="pm-body">
+      {% set long_facts = r.facts|selectattr('kind', 'equalto', 'textarea')|list %}
+      {% set short_facts = r.facts|rejectattr('kind', 'equalto', 'textarea')|list %}
+      {% if short_facts %}<dl class="pm-facts">{% for f in short_facts %}<div><dt>{{ f.label }}</dt><dd {{ 'class=mono' if f.kind in ('hex', 'secret') }}>{% if f.kind == 'date' %}{{ fdate(f.value) }}{% else %}{{ f.value }}{% endif %}{% if f.kind == 'secret' %} <a class="ghost-btn small" rel="nofollow" href="{{ base }}{{ base_url }}{{ '' if reveal == r.id else '?reveal=' ~ r.id }}">{{ icon('lock' if reveal == r.id else 'eye', 14) }}<span>{{ _('pm.hide') if reveal == r.id else _('pm.show') }}</span></a>{% endif %}</dd></div>{% endfor %}</dl>{% endif %}
+      {% for f in long_facts %}{% if f.key != 'notes' %}<div class="pm-note"><small>{{ f.label }}</small>{{ f.value }}</div>{% endif %}{% endfor %}
+      {% for d in r.diffs %}
+      <div class="pm-code">
+        <div class="pm-code-h">{{ d.label }} · {{ d.diff.len_new }} {{ _('pm.bytes') }}</div>
+        <div class="pm-tag">{{ d.old_label }}</div>
+        <div class="pm-oldline"><code class="mono">{{ d.old_line or '–' }}</code></div>
+        <div class="pm-tag">{{ d.label }}</div>
+        <div class="pm-bytes">
+          {% for c in d.diff.cells %}<div class="pm-byte{{ ' ch' if c.changed }}" data-old="{{ c.old }}" data-new="{{ c.new }}" tabindex="0" role="button" aria-label="{{ _('pm.byte') }} {{ c.i }}"><i>{{ '%02d' | format(c.i) }}</i><b class="n">{{ c.new or '–' }}</b><em class="was"{{ '' if c.changed else ' hidden' }}>{{ _('pm.was') }} {{ c.old or '–' }}</em><u class="dot" hidden></u></div>{% endfor %}
+        </div>
+        <div class="pm-sel" data-field="{{ d.key }}" data-bit="{{ _('pm.bit') }}" data-byte="{{ _('pm.byte') }}" data-t-bits="{{ _('pm.bits_word') }}" data-t-name="{{ _('pm.group_name') }}" data-t-value="{{ _('pm.group_value') }}" data-t-drop="{{ _('pm.group_drop') }}" data-t-need="{{ _('pm.group_need') }}" data-t-range="{{ _('pm.group_range') }}" data-t-grouped="{{ _('pm.in_group') }}" hidden>
+          <label class="pm-selrow"><b class="pm-bn">{{ _('pm.byte') }} 0</b><input class="pm-bi mono" type="text" inputmode="numeric" maxlength="8" autocomplete="off" spellcheck="false" aria-label="{{ d.label }}"></label>
+          <ul class="pm-bitrows"><li class="pm-bh"><span>{{ _('pm.bit') }}</span><span>{{ _('pm.col_old') }}</span><span>{{ _('pm.col_new') }}</span><span>{{ _('pm.bit_note') }}</span></li>{% for n in range(8) %}<li><span class="pm-bl">{{ _('pm.bit') }} {{ n }}</span><span class="pm-bd"><input type="checkbox" disabled class="pm-bk-o" aria-label="{{ d.old_label }}"></span><span class="pm-bd"><input type="checkbox" class="pm-bk-n" data-bit="{{ n }}" aria-label="{{ d.label }}"></span><input type="text" class="pm-bnote" data-bit="{{ n }}" maxlength="200" autocomplete="off" placeholder="{{ _('pm.bit_note_ph') }}" aria-label="{{ _('pm.bit_note') }} {{ n }}"></li>{% endfor %}</ul>
+          <div class="pm-groups">
+            <h4>{{ _('pm.groups') }}</h4>
+            <div class="pm-glist"></div>
+            <div class="pm-gmake"><span class="pm-gpick">{% for n in range(8) %}<button type="button" class="pm-gchip" data-bit="{{ n }}" aria-pressed="false">{{ n }}</button>{% endfor %}</span><button type="button" class="pm-gbtn">{{ _('pm.group_make') }}</button></div>
+            <p class="hint pm-gerr" hidden></p>
+          </div>
+        </div>
+        {% if d.diff.len_differs %}<p class="hint">{{ _('pm.len_differs', a=d.diff.len_old, b=d.diff.len_new) }}</p>{% endif %}
+        {% if d.diff.changed %}<ul class="pm-chg">{% for c in d.diff.changed %}<li><b>{{ _('pm.byte') }} {{ '%02d' | format(c.i) }}</b> <code>{{ c.old or '–' }}</code> → <code>{{ c.new or '–' }}</code></li>{% endfor %}</ul>{% endif %}
+      </div>
+      {% endfor %}
+      <form method="post" action="{{ base }}{{ base_url }}/{{ r.id }}" class="pm-form">
+        {% if r.diffs %}<input type="hidden" name="bitnotes" value="{{ r.bits_json }}"><input type="hidden" name="bitgroups" value="{{ r.groups_json }}">{% endif %}
+        {% for f in page.fields %}
+          {% set own = form if edit_id == r.id else none %}
+          {% set val = (own.get(f.key) if own else r.data.get(f.key, '')) or '' %}
+          {% if f.type in ('hex', 'textarea') and (f.compare or f.key == 'notes') %}
+          <label class="pm-main">{{ f.label }}{{ ' *' if f.required }}{{ field_box(f, val, own, r.id) }}{% if f.help %}<small class="muted">{{ f.help }}</small>{% endif %}</label>
+          {% endif %}
+        {% endfor %}
+        <details class="pm-more" {{ 'open' if edit_id == r.id and error }}><summary>{{ icon('pencil', 14) }}<span>{{ _('pm.edit_data') }}</span></summary>
+          <div class="pm-grid">
+          {% for f in page.fields %}
+            {% set own = form if edit_id == r.id else none %}
+            {% set val = (own.get(f.key) if own else r.data.get(f.key, '')) or '' %}
+            {% if not (f.type in ('hex', 'textarea') and (f.compare or f.key == 'notes')) %}
+            <label class="{{ 'check' if f.type == 'bool' }} {{ 'wide' if f.type in ('textarea', 'hex') }}">{{ f.label }}{{ ' *' if f.required }}
+              {{ field_box(f, val, own, r.id) }}
+              {% if f.help %}<small class="muted">{{ f.help }}</small>{% endif %}</label>
+            {% endif %}
+          {% endfor %}
+          </div>
+          <button class="ghost-btn small warn ib" formaction="{{ base }}{{ base_url }}/{{ r.id }}/delete" formnovalidate data-confirm="{{ _('confirm.delete') }}">{{ icon('delete-outline', 16) }}<span class="sr">{{ _('btn.delete') }}</span></button>
+        </details>
+        <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
+          {% if has_compare %}<button class="ghost-btn small" name="same_as_old" value="1" formnovalidate>{{ icon('swap', 16) }}<span>{{ _('pm.same_as_old') }}</span></button>{% endif %}</div>
+      </form>
+      {% if page.sortable %}<div class="eq-acts pm-sort">
+        <form method="post" action="{{ base }}{{ base_url }}/{{ r.id }}/move"><input type="hidden" name="way" value="up"><button class="ghost-btn small" aria-label="{{ _('nav.up') }}" {{ 'disabled' if loop.first }}>{{ icon('chevron-up', 16) }}</button></form>
+        <form method="post" action="{{ base }}{{ base_url }}/{{ r.id }}/move"><input type="hidden" name="way" value="down"><button class="ghost-btn small" aria-label="{{ _('nav.down') }}" {{ 'disabled' if loop.last }}>{{ icon('chevron-down', 16) }}</button></form></div>{% endif %}
+    </div>
+  </details>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty-state">{{ icon(mod.icon, 36) }}<p>{{ page.empty or _('pm.empty') }}</p></div>
+{% endif %}
+{% endblock %}

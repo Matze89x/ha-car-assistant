@@ -1,0 +1,40 @@
+from pathlib import Path
+
+import yaml
+
+CONFIG = yaml.safe_load((Path(__file__).resolve().parents[1] / "carassistant" / "config.yaml").read_text())
+
+
+def test_defaults_match_schema_types():
+    """Supervisor rejects an option whose default does not fit its schema type (e.g. "" for url?)."""
+    for key, rule in CONFIG["schema"].items():
+        if rule.rstrip("?") in ("url", "email", "port"):
+            assert key not in CONFIG["options"], f"{key}: optional {rule} must have no default"
+        if rule.startswith("list("):
+            assert CONFIG["options"][key] in rule[5:-1].split("|")
+
+
+def test_version_scheme():
+    major, minor, patch = CONFIG["version"].split(".")
+    assert major == "0" and minor.isdigit() and patch.isdigit()
+
+
+def test_run_sh_never_reads_an_unset_variable():
+    """run.sh uses `set -e` and the add-on runs it with `set -u` semantics of bashio: a variable that is exported only conditionally
+    (optional options) must be read with a default (${VAR:-...})."""
+    import re
+
+    text = (Path(__file__).resolve().parents[1] / "carassistant" / "run.sh").read_text()
+    exported_always = {m for m in re.findall(r"^export (\w+)=", text, flags=re.M)}
+    used = re.findall(r"\$\{(\w+)(:-[^}]*)?\}", text)
+    for name, default in used:
+        assert default or name in exported_always, f"{name} may be unset when run.sh reads it - use ${{{name}:-...}}"
+
+
+def test_mqtt_sensors_are_off_until_switched_on(env, monkeypatch):
+    from carassistant import config, db
+
+    assert config.mqtt_discovery_enabled() is False  # nothing is published by default
+    with db.tx() as conn:
+        db.set_setting(conn, "int.mqtt.enabled", "1")
+    assert config.mqtt_discovery_enabled() is True

@@ -1,0 +1,53 @@
+{% from "_macros.html" import icon, odo_drum, odo_progress with context %}
+<div class="vehicle-hero">
+  {% if v.plate %}<span class="plate">{{ v.plate }}</span>{% endif %}
+  <div class="hero-name"><h1>{{ v.name }}</h1>{% if switch_vehicles %}<button type="button" class="cur-switch" data-open="vsw" aria-label="{{ _('nav.change') }}" title="{{ _('nav.change') }}">{{ icon('swap', 20) }}</button>{% endif %}</div>
+  {% set model_line = [v.make, v.model, v.year]|select|join(' · ') %}
+  <div class="hero-fresh hero-meta{{ ' hero-meta-empty' if not (model_line or fresh_ago) }}">{% if model_line %}<span>{{ model_line }}</span>{% endif %}{% if fresh_ago %}<span class="live"><i></i>{{ fresh_ago }}</span>{% endif %}</div>
+  {% if tab == 'overview' and s %}
+{% set tk = tabs|map(attribute='key')|list %}
+  {% set show_insp = s.inspection and ('appointments' in tk) %}
+  {% set show_task = has_tasks and ('tasks' in tk) %}
+  {% set has_chips = show_insp or show_task %}
+  <div class="hero-car-wrap{{ " default-car" if not hero_media }}{{ " has-bottom" if has_chips }}{{ " has-top" if hero_badges and (hero_badges.left or hero_badges.right) }}{{ " glow" if not hero_media or (hero_media.kind == "photo" and hero_media.mime == "image/png") }}{{ " has-video" if hero_media and hero_media.kind == "video" }}">
+    {% set top = (hero_badges.left + hero_badges.right) if hero_badges else [] %}
+    {% if top %}<div class="hero-row hero-row-top">{% for b in top %}<span class="hb-item {{ b.tone }}">{{ icon(b.icon, 15) }}<span class="hb-txt"><small>{{ b.title }}</small><strong>{{ b.value }}</strong></span></span>{% endfor %}</div>{% endif %}
+    <div class="hero-pic">
+      <button type="button" class="hero-edit" data-open="pe">{{ icon('pencil', 15) }} {{ _('pe.edit_media') }}</button>
+      {% if hero_media and hero_media.kind == 'video' %}
+      <div class="hero-media {{ v.media_kind or 'adapt' }}" data-keep title="{{ _('media.replay') }}">
+        {% if v.photo %}<img class="hero-car photo" src="{{ base }}/v/{{ v.slug }}/photo?v={{ v.photo }}" alt="">{% else %}<img class="hero-car" src="{{ base }}/static/car-default.webp?v={{ version }}" alt="">{% endif %}
+        <video class="hero-video" muted playsinline preload="auto" disablepictureinpicture aria-hidden="true" tabindex="-1" data-src="{{ base }}/v/{{ v.slug }}/media/{{ hero_media.id }}/file" data-kind="{{ v.media_kind or 'adapt' }}"></video>
+      </div>
+      {% elif hero_media %}<img class="hero-car photo soft" src="{{ base }}/v/{{ v.slug }}/media/{{ hero_media.id }}/file" alt="">{% else %}<img class="hero-car" src="{{ base }}/static/car-default.webp?v={{ version }}" alt="">{% endif %}
+    </div>
+    {% if has_chips %}<div class="hero-row hero-row-bottom">
+      {% set hi = s.inspection_info %}
+      {% if show_insp %}<div class="schip {{ 'ok' if hi and hi.status == 'ok' else ('soon' if hi and hi.status == 'soon' else ('bad' if hi and hi.status == 'overdue' else '')) }}">
+        {{ icon('calendar', 15) }}<span class="sc-t"><span>{{ _('tile.inspection') }}</span><b>{{ fdate(s.inspection.due_date) }}</b></span>
+      </div>{% endif %}
+      {% if show_task %}<div class="schip {{ 'bad' if s.overdue else ('soon' if s.soon else 'ok') }}">
+        {{ icon('wrench', 15) }}<span class="sc-t"><span>{{ _('tab.tasks') }}</span><b>{% if s.overdue %}{{ _('dash.overdue', n=s.overdue) }}{% elif s.soon %}{{ _('dash.soon', n=s.soon) }}{% else %}{{ _('dash.all_ok') }}{% endif %}</b></span>
+      </div>{% endif %}
+    </div>{% endif %}
+  </div>
+  {% if hero_range %}
+  <div class="range-block st-{{ hero_range.state or 'ok' }}">
+    <div class="range-top"><div class="range-km">{% if hero_range.estimated %}≈ {% endif %}{{ fnum(units.d(hero_range.km)) }}<span class="unit">{{ units.dist_unit }}</span></div>{% if hero_range.pct is not none %}<div class="range-pct">{{ icon('plug' if energy_mode == 'charge' else 'gas-station', 17) }}<span>{{ hero_range.pct }} % {{ _('tile.fuel_level') }}</span></div>{% endif %}</div>
+    {% if hero_range.pct is not none %}<div class="bar"><i class="bar-fill" style="width: {{ hero_range.pct }}%"></i></div>{% endif %}
+    <div class="range-sub">{% if hero_range.liters %}{{ _('hero.liters', l=fnum(units.v(hero_range.liters, hero_range.unit), 1), u=units.vol_unit(hero_range.unit)) }} · {% endif %}{{ _('hero.estimated') if hero_range.estimated else _('hero.range_src') }}</div>
+    {% if hero_range.when %}<div class="range-sub range-last">{{ _('hero.last', when=fshort(hero_range.when)) }}</div>{% endif %}
+  </div>
+  {% elif odometer is not none %}
+  {% set ti = tank_info if tank_info is defined else none %}
+  <div class="odo-card">
+    <div class="odo-t"><small>{{ icon('counter', 16) }}<span>{{ _('f.odometer') }}</span></small>{{ odo_drum() }}</div>
+    {{ odo_progress() }}
+    {% if ti %}<div class="odo-tank{{ ' low' if ti.pct is not none and ti.pct <= 15 }}">{{ icon('plug' if energy_mode == 'charge' else 'gas-station', 17) }}<span>{% if ti.pct is not none %}{{ ti.pct }} %{% endif %}{% if ti.amount %}{{ ' · ' if ti.pct is not none }}{{ fnum(units.v(ti.amount, tank_unit), 1) }} {{ units.vol_unit(tank_unit) }}{% endif %}</span></div>{% endif %}
+    {% if ti and ti.pct is not none %}<div class="bar"><i class="bar-fill" style="width: {{ ti.pct }}%"></i></div>{% endif %}
+  </div>
+  {% endif %}
+  {% elif odometer is not none %}
+  <div class="hero-chips"><div class="schip"><span>{{ _('f.odometer') }}</span><b>{{ fnum(units.d(odometer)) }} {{ units.dist_unit }}</b></div></div>
+  {% endif %}
+</div>

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{{ page_head('download', _('vb.confirm_title')) }}
+<section class="card">
+  <p>{{ _('vb.confirm_text', name=existing.name) }}</p>
+  <p class="muted"><small>{{ _('vb.confirm_backup', name=backup.name, date=backup.created) }}{% if backup.counts %} · {% for k, n in backup.counts.items() %}{{ n }} {{ k }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}</small></p>
+  <form method="post" action="{{ base }}/vehicles/restore/confirm" class="vb-choice">
+    <input type="hidden" name="token" value="{{ token }}">
+    <button name="mode" value="replace" class="danger">{{ icon('refresh', 18) }}<span>{{ _('vb.replace') }}</span></button>
+    <p class="hint">{{ _('vb.replace_hint') }}</p>
+    <button name="mode" value="copy" class="primary">{{ icon('plus', 18) }}<span>{{ _('vb.copy') }}</span></button>
+    <p class="hint">{{ _('vb.copy_hint') }}</p>
+    <button name="mode" value="cancel">{{ _('vb.cancel') }}</button>
+  </form>
+</section>
+{% endblock %}

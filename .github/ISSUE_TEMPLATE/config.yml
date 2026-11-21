@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security problem / Sicherheitsproblem
+    url: https://github.com/Matze89x/ha-car-assistant/security/advisories/new
+    about: Please report it privately. / Bitte privat melden.
+  - name: Documentation / Dokumentation
+    url: https://github.com/Matze89x/ha-car-assistant/blob/main/docs/README.md
+    about: Guides, plugin guide, architecture. / Anleitungen, Plugin-Anleitung, Architektur.
+  - name: Question or idea / Frage oder Idee
+    url: https://github.com/Matze89x/ha-car-assistant/discussions
+    about: Not a bug? Ask or share an idea here. / Kein Fehler? Frag oder teile eine Idee hier.

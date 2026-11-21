@@ -1,0 +1,41 @@
+{% from "_macros.html" import icon with context %}
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0d1016">
+  <title>{{ _('login.title') }} – Car Assistant</title>
+  {% if not logo_custom %}<link rel="icon" type="image/svg+xml" href="{{ base }}/static/favicon.svg?v={{ version }}">
+  {% endif %}<link rel="icon" href="{{ base }}/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="48x48" href="{{ icon_base }}/48.png">
+  <link rel="apple-touch-icon" href="{{ icon_base }}/180.png">
+  <style>:root{color-scheme:dark}html,body{background:#0d1016;color:#e8eaf0}</style>
+  <link rel="stylesheet" href="{{ base }}/static/app.css?v={{ version }}">
+  <script src="{{ base }}/static/auth.js" defer></script>
+</head>
+<body class="login-body">
+  <div class="login-card card" data-base="{{ base }}">
+    {% if logo_custom %}<img class="login-logo" src="{{ icon_base }}/128.png" alt="" width="72" height="72">
+    {% else %}<img class="login-logo big" src="{{ base }}/static/about-logo.svg?v={{ version }}" alt="" width="132" height="132">{% endif %}
+    <h1>Car <span>Assistant</span></h1>
+    <p class="login-slogan">Drive · Log · Go</p>
+    <p class="login-sub">{{ _('login.sub') }}</p>
+    {% if info %}<div class="flash ok">{{ info }}</div>{% endif %}
+    {% if error %}<div class="flash err">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ base }}/login">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label>{{ _('login.username') }}<input type="text" name="username" autocomplete="username" autocapitalize="off" autocorrect="off" required autofocus></label>
+      <label>{{ _('login.password') }}<input type="password" name="password" autocomplete="current-password" required></label>
+      <button class="primary block" type="submit">{{ _('login.submit') }}</button>
+    </form>
+    <div id="pk" hidden data-next="{{ next }}" data-unsupported="{{ _('acct.passkey_unsupported') }}" data-cancelled="{{ _('acct.passkey_cancelled') }}">
+      <div class="or">{{ _('login.or') }}</div>
+      <button class="block" type="button" id="pkBtn">{{ icon('shield', 18) }} {{ _('login.passkey') }}</button>
+      <div class="flash err" id="pkErr" hidden></div>
+    </div>
+    <p class="login-forgot">{{ icon('info', 14) }} {{ _('login.forgot_where') }}</p>
+  </div>
+</body>
+</html>

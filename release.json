@@ -1,0 +1,14 @@
+{
+  "version": "0.5.0",
+  "stage": "Beta",
+  "notes": {
+    "Alpha": {
+      "en": "An early test version. Things can still change, break or be missing.",
+      "de": "Eine frühe Testversion. Dinge können sich noch ändern, kaputtgehen oder fehlen."
+    },
+    "Beta": {
+      "en": "The public test version. Please try it and report what you find.",
+      "de": "Die öffentliche Testversion. Bitte ausprobieren und melden, was dir auffällt."
+    }
+  }
+}

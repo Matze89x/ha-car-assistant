@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block scripts %}{% if section == 'car' %}<script src="{{ base }}/static/media.js?v={{ version }}" defer></script>{% endif %}{% endblock %}
+{% block content %}
+{% set titles = {'user': _('set.user'), 'car': _('set.car'), 'system': _('set.system')} %}
+{% set icons_of = {'user': 'account', 'car': 'car', 'system': 'settings'} %}
+{{ page_head(icons_of[section], titles[section]) }}
+{% set scope = {'user': _('set.scope_user'), 'car': (_('set.scope_car', name=car.name) if car else ''), 'system': _('set.scope_system')} %}
+{% if scope[section] %}<p class="hint set-scope">{{ icon('info', 14) }} {{ scope[section] }}</p>{% endif %}
+{% if section == 'user' %}
+{% include "_settings_user.html" %}
+{% elif section == 'car' %}
+{% include "_settings_car.html" %}
+{% elif section == 'system' %}
+<div class="sys-grid">
+{% include "_settings_system.html" %}
+</div>
+{% endif %}
+{% endblock %}

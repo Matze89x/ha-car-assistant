@@ -1,0 +1,130 @@
+{% from "_macros.html" import icon with context %}
+<section class="card" id="server">
+  <h2>{{ icon('settings') }} {{ _('sys.title') }}</h2>
+  <div class="sys-tiles">
+    <div class="tg"><i>{{ _('sys.version') }}</i><b>{{ server.version }}</b></div>
+    <div class="tg"><i>{{ _('sys.data') }}</i><b>{{ server.db }}</b><small>{{ server.files }}</small></div>
+    <div class="tg"><i>{{ _('nav.vehicles') }}</i><b>{{ server.vehicles }}</b></div>
+    <div class="tg"><i>{{ _('about.entries') }}</i><b>{{ server.entries }}</b></div>
+    <div class="tg"><i>Home Assistant</i><b><span class="badge {{ 'ok' if ha_available else 'overdue' }}">{{ _('settings.connected') if ha_available else _('settings.off') }}</span></b></div>
+    <div class="tg"><i>MQTT</i><b>{% if not mqtt_enabled %}<span class="badge">{{ _('settings.off') }}</span>{% elif not mqtt_available %}<span class="badge soon">{{ _('settings.mqtt_missing') }}</span>{% else %}<span class="badge {{ 'ok' if mqtt_connected else 'soon' }}">{{ _('settings.connected') if mqtt_connected else _('settings.connecting') }}</span>{% endif %}</b></div>
+  </div>
+</section>
+
+{% include "_settings_region.html" %}
+{% include "_settings_design.html" %}
+
+<section class="card" id="mqtt">
+  <h2>{{ icon('mqtt') }} {{ _('mqtt.title') }}</h2>
+  <p class="hint">{{ _('mqtt.intro') }}</p>
+  <form method="post" action="{{ base }}/integrations/mqtt" class="acct-form">
+    <input type="hidden" name="back" value="system">
+    <label class="check"><input type="checkbox" name="enabled" value="1" {{ 'checked' if mqtt_enabled }}> {{ _('mqtt.enable') }}</label>
+    <p class="sys-state">{% if mqtt_host %}{{ icon('pencil', 14) }} {{ _('mqtt.status_own') }}: <code>{{ mqtt_host }}{{ ':' ~ mqtt_port if mqtt_port }}</code>{% elif mqtt_auto %}{{ icon('check', 14) }} {{ _('mqtt.status_auto') }}{% else %}<span class="muted">{{ icon('info', 14) }} {{ _('mqtt.status_none') }}</span>{% endif %}</p>
+    <h3 class="acct-sub">{{ _('mqtt.own_title') }}</h3>
+    <div class="sys-two">
+      <label>{{ _('int.mqtt_host') }}<input type="text" name="host" value="{{ mqtt_host }}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="192.168.1.5"></label>
+      <label>{{ _('int.mqtt_port') }}<input type="text" name="port" value="{{ mqtt_port }}" inputmode="numeric" autocomplete="off" placeholder="1883"></label>
+      <label>{{ _('int.mqtt_user') }}<input type="text" name="username" value="{{ mqtt_user }}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <label>{{ _('int.mqtt_password') }}<input type="password" name="password" autocomplete="new-password" placeholder="{{ '••••••••' if mqtt_pw_set }}"></label>
+    </div>
+    <p class="hint">{{ _('mqtt.own_hint') }}</p>
+    <div class="form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
+    <p class="hint mqtt-what"><b>{{ _('sys.btn_read') }}:</b> {{ _('sys.sync_live_hint') }}</p>
+    <p class="hint mqtt-what"><b>{{ _('sys.btn_send') }}:</b> {{ _('sys.sync_mqtt_hint') }}</p>
+    <div class="mqtt-bar">
+      <button type="submit" formaction="{{ base }}/settings/refresh-live" class="ghost-btn">{{ icon('refresh', 18) }}<span>{{ _('sys.btn_read') }}</span></button>
+      <button type="submit" formaction="{{ base }}/settings/republish" class="ghost-btn" {{ 'disabled' if not mqtt_enabled }}>{{ icon('upload', 18) }}<span>{{ _('sys.btn_send') }}</span></button>
+    </div>
+  </form>
+</section>
+
+{% include "_settings_mcp.html" %}
+
+<section class="card" id="updates">
+  <h2>{{ icon('refresh') }} {{ _('sys.updates_title') }}</h2>
+  <p class="hint">{{ _('sys.updates_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/sources-auto" data-live="1">
+    <label class="check"><input type="checkbox" name="auto" value="1" {{ 'checked' if sources_auto }}> {{ _('sys.updates_auto') }}</label>
+  </form>
+</section>
+
+<section class="card" id="logs">
+  <h2>{{ icon('bug') }} {{ _('sys.logs_title') }}</h2>
+  <p class="hint">{{ _('sys.logs_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/logs" data-live="1">
+    <label>{{ _('sys.logs_days') }}<select name="days">{% for n in log_days_choices %}<option value="{{ n }}" {{ 'selected' if n == log_days }}>{{ _('sys.logs_days_n', n=n) }}</option>{% endfor %}</select></label>
+    <label>{{ _('sys.logs_keep') }}<select name="lines">{% for n in log_choices %}<option value="{{ n }}" {{ 'selected' if n == log_keep }}>{{ n }}</option>{% endfor %}</select></label>
+  </form>
+  <p class="hint">{{ _('sys.logs_total', n=log_total) }}</p>
+  {% if log_total %}<form method="post" action="{{ base }}/settings/logs" class="inline" data-confirm="{{ _('dbg.confirm_clear') }}"><input type="hidden" name="clear" value="1"><button class="danger small">{{ icon('delete', 16) }} {{ _('sys.logs_clear') }}</button></form>{% endif %}
+</section>
+
+<section class="card" id="external">
+  <h2>{{ icon('globe') }} {{ _('sys.ext_title') }}</h2>
+  <p class="hint">{{ _('sys.ext_intro') }}</p>
+  {% if has_users %}
+  <form method="post" action="{{ base }}/settings/external-url" class="sys-ext">
+    <label>{{ _('sys.ext_url') }}<span class="affix"><span class="affix-pre" aria-hidden="true">https://</span><input type="text" name="host" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="190" placeholder="auto.example.com" value="{{ external_url[8:] if has_users and external_url else '' }}"></span></label>
+    <div class="form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
+  </form>
+  {% endif %}
+  {% if not has_users %}<p class="sys-lock">{{ icon('lock', 16) }} <span>{{ _('sys.ext_locked') }}<br><a href="{{ base }}/settings/user#account">{{ _('sys.ext_users_link') }}</a></span></p>{% endif %}
+  <p class="hint">{{ icon('key-variant', 14) }} {{ _('sys.ext_unlocks') }}</p>
+  <dl class="facts">
+    {% set DS = {'off': _('settings.direct_off'), 'accounts': _('settings.direct_accounts'), 'locked': _('settings.direct_locked'), 'unknown': _('settings.direct_unknown')} %}
+    <dt>{{ _('settings.direct') }}</dt><dd class="facts-inline"><span class="badge {{ 'ok' if direct_state in ('accounts', 'password') else '' }}">{{ DS[direct_state] }}</span>{% if published_port %}<span class="port">{{ _('settings.port') }}: <code>{{ published_port }}</code></span>{% endif %}</dd>
+    {% if not has_users %}<dt>{{ _('sys.address') }}</dt><dd>{{ _('sys.ingress_only') }}</dd>{% endif %}
+  </dl>
+  <p class="hint">{{ icon('info', 16) }} {{ _('sys.ext_where') }}</p>
+</section>
+
+<section class="card" id="security">
+  <h2>{{ icon('shield') }} {{ _('sys.security') }}</h2>
+  <p class="hint">{{ _('sys.security_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/security" data-live class="grid">
+    <label>{{ _('sys.lock_after') }}<select name="lock_after">{% for n in (3, 5, 8, 10) %}<option value="{{ n }}" {{ 'selected' if n == lock_after }}>{{ n }}</option>{% endfor %}</select></label>
+    <label>{{ _('sys.lock_minutes') }}<select name="lock_minutes">{% for n in (5, 15, 30, 60, 240) %}<option value="{{ n }}" {{ 'selected' if n == lock_minutes }}>{{ n }}</option>{% endfor %}</select></label>
+  </form>
+  <p class="hint"><a href="{{ base }}/settings/user#blocked">{{ _('sys.blocked_link') }}</a></p>
+</section>
+
+<section class="card" id="online">
+  <h2>{{ icon('map-marker-radius') }} {{ _('sys.online') }}</h2>
+  <p class="hint">{{ _('sys.online_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/map" data-live id="map">
+    <label class="check"><input type="checkbox" name="tiles" value="1" {{ 'checked' if map_tiles }}> {{ _('settings.map_tiles') }}</label>
+  </form>
+  <p class="hint">{{ _('settings.map_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/google" data-live id="google">
+    <label class="check"><input type="checkbox" name="help" value="1" {{ 'checked' if google_help }}> {{ _('settings.google_help') }}</label>
+  </form>
+  <p class="hint">{{ _('settings.google_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/tankerkoenig" class="sys-key" id="fuel-prices">
+    <label>{{ icon('fuel', 16) }} {{ _('settings.tk_title') }}<input type="password" name="api_key" autocomplete="off" maxlength="64" placeholder="{{ _('settings.tk_set') if has_key else _('settings.tk_key') }}"></label>
+    <div class="form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button>{% if has_key %}<button type="submit" name="remove" value="1" class="danger">{{ icon('delete', 18) }}<span>{{ _('settings.tk_remove') }}</span></button>{% endif %}</div>
+  </form>
+  <p class="hint">{{ _('settings.tk_hint') }} <a href="https://creativecommons.tankerkoenig.de" target="_blank" rel="noopener">{{ _('settings.tk_link') }}</a></p>
+</section>
+
+<section class="card" id="backup">
+  <h2>{{ icon('download') }} {{ _('settings.backup') }}</h2>
+  <p class="hint">{{ _('settings.backup_hint') }}</p>
+  <p class="hint">{{ _('settings.backup_codes') }}</p>
+  <p><a class="button" href="{{ base }}/settings/backup.zip">{{ icon('download', 16) }} {{ _('settings.download') }}</a></p>
+  <h3 class="acct-sub">{{ _('settings.restore') }}</h3>
+  <form method="post" enctype="multipart/form-data" action="{{ base }}/settings/restore" class="acct-form" data-confirm="{{ _('confirm.restore') }}">
+    <label><input type="file" name="backup" accept=".zip" required></label>
+    <label class="check"><input type="checkbox" name="confirm" value="1" required> {{ _('settings.restore_confirm') }}</label>
+    <div class="form-bar"><button class="danger">{{ icon('refresh', 16) }}<span>{{ _('btn.restore') }}</span></button></div>
+  </form>
+</section>
+
+<section class="card sys-reset" id="reset">
+  <h2>{{ icon('delete') }} {{ _('settings.reset') }}</h2>
+  <p class="hint">{{ _('settings.reset_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/reset" class="acct-form" data-confirm="{{ _('settings.reset_confirm') }}">
+    <label>{{ _('settings.reset_type') }}<input name="confirm" autocomplete="off" placeholder="RESET" required></label>
+    <div class="form-bar"><button class="danger">{{ icon('refresh', 16) }}<span>{{ _('settings.reset_btn') }}</span></button></div>
+  </form>
+</section>

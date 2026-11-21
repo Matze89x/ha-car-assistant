@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{{ page_head('info', _('about.title')) }}
+<div class="about-wrap"><div class="about-page">
+<div class="ab-col">
+
+<section class="card about-hero">
+  {% if logo_custom %}<i class="brand-mark big custom"><img src="{{ icon_base ~ '/128.png?v=' ~ icon_rev }}" alt="" width="84" height="84"></i>
+  {% endif %}
+  <div class="about-id">{% if not logo_custom %}<img class="about-logo" src="{{ base }}/static/about-logo.svg?v={{ version }}" alt="" width="150" height="150">{% endif %}
+  <h2>Car Assistant</h2></div>
+  <p class="about-slogan">Drive · Log · Go</p>
+  <p class="about-tag">{{ _('about.tagline') }}</p>
+  <div class="about-links">
+    <span class="badge ok">v{{ about.version }}{% if about.stage %} {{ about.stage }}{% endif %}</span>
+    <a class="badge" href="{{ about.project_url }}" target="_blank" rel="noopener noreferrer">{{ _('about.project') }}</a>
+    <a class="badge" href="{{ about.project_url }}/blob/main/docs/guide{{ '.de' if lang == 'de' else '' }}.md" target="_blank" rel="noopener noreferrer">{{ icon('info', 14) }} {{ _('about.help') }}</a>
+    <a class="badge" href="{{ about.author_url }}" target="_blank" rel="noopener noreferrer">{{ about.author }}</a>
+  </div>
+</section>
+
+<section class="card about-glance">
+  <h2>{{ _('about.glance') }}</h2>
+  <div class="about-stats">
+    {% for ic, val, lab in ((('database'), about.db, _('about.db')), ('docs', about.files, _('about.files')), ('garage', about.vehicles|length, _('about.vehicles')), ('list', about.entries, _('about.entries')), ('plug', about.addons, _('about.addons')), ('settings', about.schema, _('about.schema'))) %}
+    <div class="about-stat"><span class="as-ic">{{ icon(ic, 18) }}</span><span class="as-t"><b>{{ val }}</b><small>{{ lab }}</small></span></div>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="mg-head"><h2>{{ _('about.built_with') }}</h2></div>
+<section class="card">
+  <div class="about-chips">
+    <span class="badge">Python {{ about.python }}</span>
+    {% for l in about.libraries %}<span class="badge">{{ l.name }} {{ l.version }}</span>{% endfor %}
+  </div>
+  <ul class="about-credits">
+    {% for name, who, lic in about.credits %}<li><b>{{ name }}</b> <small>{{ who }} · {{ lic }}</small></li>{% endfor %}
+  </ul>
+  <p class="hint">{{ _('about.license') }}</p>
+</section>
+
+<section class="card about-made">
+  <h3>{{ icon('heart', 18) }} {{ _('about.made_by', who=about.author) }}</h3>
+  <p class="about-lead">{{ _('about.made_text') }}</p>
+  {% if about.support_url %}<p class="hint">{{ _('about.coffee_hint') }}</p>{% endif %}
+  {% if about.support_url %}<p><a class="button" href="{{ about.support_url }}" target="_blank" rel="noopener noreferrer">{{ icon('coffee', 16) }} {{ _('about.coffee') }}</a></p>{% endif %}
+</section>
+</div>
+<div class="ab-col">
+<div class="mg-head"><h2>{{ _('about.installed') }}</h2></div>
+{% for av in about.vehicles %}
+<section class="card about-car">
+  <h3>{{ icon('garage', 18) }} <a href="{{ base }}/v/{{ av.slug }}/integrations">{{ av.name }}</a> <small>{{ _('about.car_entries', n=av.entries) }}</small></h3>
+  {% for i in av['items'] %}
+  <div class="about-row">
+    <span class="mi-ic {{ 'c4' if i.kind == 'plugin' else 'c6' }}">{{ icon('plug' if i.kind == 'plugin' else 'parts', 19) }}</span>
+    <span class="about-main"><b>{{ i.name }}</b>
+      <small>{% if i.version %}v{{ i.version }} · {% endif %}{% if i.author %}{{ _('about.by', who=i.author) }}{% else %}{{ _('about.by_unknown') }}{% endif %}{% if i.last_used %} · {{ _('about.last_data', when=i.last_used) }}{% endif %}</small></span>
+    <span class="badge">{{ _('addon.kind_plugin') if i.kind == 'plugin' else _('addon.kind_integration') }}</span>
+    <span class="badge {{ 'ok' if i.configured else '' }}">{{ _('addon.status_configured') if i.configured else _('addon.status_uploaded') }}</span>
+  </div>
+  {% else %}
+  <p class="hint">{{ _('about.none_car') }}</p>
+  {% endfor %}
+</section>
+{% else %}
+<section class="card empty-state"><p class="hint">{{ _('about.none') }}</p></section>
+{% endfor %}
+
+<div class="mg-head"><h2>{{ _('about.services') }}</h2></div>
+<section class="card about-car">
+  {% for g in about.global %}
+  <div class="about-row">
+    <span class="mi-ic c{{ 3 if g.category == 'system' else 1 }}">{{ icon('settings' if g.category == 'system' else 'pin', 19) }}</span>
+    <span class="about-main"><b>{{ _('int.' ~ g.key ~ '.name') }}</b><small>{{ _('about.builtin') }}</small></span>
+    <span class="badge {{ 'ok' if g.on else '' }}">{{ _('about.on') if g.on else _('about.off') }}</span>
+  </div>
+  {% endfor %}
+</section>
+</div>
+</div></div>
+{% endblock %}

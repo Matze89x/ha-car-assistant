@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <mask id="arches"><rect width="512" height="512" fill="#fff"/><circle cx="160" cy="338" r="56" fill="#000"/><circle cx="372" cy="338" r="56" fill="#000"/></mask>
+    <clipPath id="r"><rect width="512" height="512" rx="116"/></clipPath>
+  </defs>
+  <g clip-path="url(#r)">
+    <rect width="512" height="512" fill="#13171f"/>
+    <rect x="0" y="372" width="512" height="140" fill="#0d1016"/>
+    <g mask="url(#arches)">
+      <path d="M64 334V304q0-12 12-14l74-18 86-42 82-2 74 38 48 12q14 4 14 18v40z" fill="#e2001a" stroke="#e2001a" stroke-width="10" stroke-linejoin="round"/>
+      <path d="M206 268l36-28 74-2 46 30z" fill="#f2f3f5"/>
+      <path d="M284 240v32" stroke="#a80015" stroke-width="8"/>
+      <rect x="420" y="294" width="34" height="8" rx="4" fill="#fff"/>
+      <rect x="60" y="298" width="22" height="8" rx="4" fill="#fff"/>
+    </g>
+    <g fill="#f2f3f5"><circle cx="160" cy="338" r="38"/><circle cx="372" cy="338" r="38"/></g>
+    <g fill="#13171f"><circle cx="160" cy="338" r="15"/><circle cx="372" cy="338" r="15"/></g>
+  </g>
+</svg>

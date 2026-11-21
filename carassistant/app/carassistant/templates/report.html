@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon,page_head with context %}
+{% block content %}
+{{ page_head('chart', _('tab.report')) }}
+{% set gnames = {'day': _('report.days'), 'week': _('report.weeks'), 'month': _('report.months')} %}
+{% set per_names = {'day': _('report.per_day'), 'week': _('report.per_week'), 'month': _('report.per_month')} %}
+{% set kn = {'fuel': 1, 'service': 2, 'mods': 3, 'parts': 4} %}
+{% set kname = {'fuel': _('report.c_fuel'), 'service': _('report.c_service'), 'mods': _('report.c_mods'), 'parts': _('report.c_parts')} %}
+{% set rurl = base ~ '/v/' ~ v.slug ~ '/report' %}
+<form method="get" action="{{ rurl }}" class="rp-bar" data-autosubmit>
+  <nav class="seg-tabs" aria-label="{{ _('report.monthly') }}">{% for g in period_groups %}<a href="{{ rurl }}?g={{ g }}{{ '&c=' ~ kind if kind }}" class="{{ 'on' if g == group }}"{% if g == group %} aria-current="page"{% endif %}>{{ gnames[g] }}</a>{% endfor %}</nav>
+  <input type="hidden" name="g" value="{{ group }}">
+  {% if kind %}<input type="hidden" name="c" value="{{ kind }}">{% endif %}
+  <select name="n" aria-label="{{ _('report.shown') }}">{% for c in counts %}<option value="{{ c }}" {{ 'selected' if c == count }}>{{ c }}</option>{% endfor %}</select>
+</form>
+
+<div class="rp-hero">
+  <div class="rp-total"><span class="label">{{ _('report.total') }}</span><span class="value">{{ fnum(spent_all, 2) if spent_all else '–' }} <small>{{ units.cur }}</small></span></div>
+  <div class="rp-mini">
+    <div><span class="label">{{ per_names[group] }}</span><b>{{ fnum(per_period, 2) if per_period else '–' }} <small>{{ units.cur }}</small></b></div>
+    <div><span class="label">{{ _('report.all100', u=units.dist_unit) }}</span><b>{{ fnum(per_km100, 2) if per_km100 else '–' }} <small>{{ units.cur }}</small></b></div>
+    <div><span class="label">{{ _('report.top') }}</span><b>{% if top %}{{ fnum(top.cost, 2) }} <small>{{ units.cur }}</small>{% else %}–{% endif %}</b>{% if top %}<small class="rp-sub">{{ top.title or kname[top.kind] }}</small>{% endif %}</div>
+  </div>
+</div>
+
+<section class="card">
+  <h2>{{ icon('chart') }} {{ _('report.share') }}</h2>
+  {% if shares %}
+  <div class="rp-share" role="img" aria-label="{{ _('report.share') }}">{% for s in shares %}<i class="b{{ kn[s.kind] }}" style="width: {{ s.pct|round(1) }}%"></i>{% endfor %}</div>
+  <div class="rp-cats">{% for s in shares %}
+    <a class="rp-cat" href="{{ rurl }}?g={{ group }}&n={{ count }}&c={{ s.kind }}#rp-list">
+      <span class="xr-ic b{{ kn[s.kind] }}">{{ icon(module_icon.get(s.kind, 'wrench'), 17) }}</span>
+      <span class="xr-t"><b>{{ s.name }}</b><small>{{ fnum(s.pct, 0) }} %</small></span>
+      <span class="xr-c">{{ fnum(s.sum, 2) }} <small>{{ units.cur }}</small></span>
+    </a>{% endfor %}
+  </div>
+  {% else %}<p class="muted">{{ _('report.no_costs') }}</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ icon('gas-station') }} {{ _('report.costs') }}</h2>
+  {% if cost_chart %}{{ cost_chart|safe }}
+  <div class="rp-legend">{% for n in cost_names %}<span><i class="b{{ loop.index }}"></i>{{ n }} <b>{{ fnum(cost_totals[loop.index0], 0) }} {{ units.cur }}</b></span>{% endfor %}</div>
+  {% else %}<p class="muted">{{ _('report.no_costs') }}</p>{% endif %}
+</section>
+
+<section class="card" id="rp-list">
+  <h2>{{ icon('list') }} {{ _('report.list') }} <small class="muted">{{ _('report.n_entries', n=exp_count) }} · {{ fnum(exp_sum, 2) }} {{ units.cur }}</small></h2>
+  <nav class="seg-tabs rp-kinds" aria-label="{{ _('report.list') }}">
+    <a href="{{ rurl }}?g={{ group }}&n={{ count }}#rp-list" class="{{ 'on' if not kind }}">{{ _('report.all') }}</a>
+    {% for k in kinds %}<a href="{{ rurl }}?g={{ group }}&n={{ count }}&c={{ k }}#rp-list" class="{{ 'on' if k == kind }}">{{ kname[k] }}</a>{% endfor %}
+  </nav>
+  {% for m in exp_months %}
+  <div class="xr-month"><span>{{ m.key[5:7] }}.{{ m.key[0:4] }}</span><b>{{ fnum(m.sum, 2) }} {{ units.cur }}</b></div>
+  <div class="xr-list">{% for e in m.rows %}
+    <a class="xrow" href="{{ base }}/v/{{ v.slug }}/e/{{ e.kind }}">
+      <span class="xr-ic b{{ kn[e.kind] }}">{{ icon(module_icon.get(e.kind, 'wrench'), 17) }}</span>
+      <span class="xr-t"><b>{{ e.title or (_('report.fill') if e.kind == 'fuel' else kname[e.kind]) }}</b>
+        <small>{{ fdate(e.date) }}{% if e.kind == 'fuel' and e.qty %} · {{ fnum(units.v(e.qty, unit), 1) }} {{ units.vol_unit(unit) }}{% elif e.qty and e.kind == 'parts' %} · ×{{ fnum(e.qty, 0) }}{% endif %}{% if e.sub %} · {{ e.sub }}{% endif %}{% if e.km %} · {{ fnum(units.d(e.km)) }} {{ units.dist_unit }}{% endif %}</small></span>
+      <span class="xr-c">{{ fnum(e.cost, 2) }} <small>{{ units.cur }}</small></span>
+    </a>{% endfor %}
+  </div>
+  {% else %}<p class="muted">{{ _('report.no_list') }}</p>{% endfor %}
+</section>
+
+<section class="card">
+  <h2>{{ icon('chart') }} {{ _('report.chart') }}</h2>
+  <div class="tiles">
+    <div class="tile"><span class="label">{{ _('report.avg') }}</span><span class="value">{{ fnum(stats.avg_per_100, 1) if stats.avg_per_100 else '–' }} <small>{{ units.consumption_unit(unit) }}</small></span></div>
+    <div class="tile"><span class="label">{{ _('report.last') }}</span><span class="value">{{ fnum(stats.last_per_100, 1) if stats.last_per_100 else '–' }} <small>{{ units.consumption_unit(unit) }}</small></span></div>
+    <div class="tile"><span class="label">{{ _('report.cost100') }}</span><span class="value">{{ fnum(stats.cost_per_100, 2) if stats.cost_per_100 else '–' }} <small>{{ units.cur }}</small></span></div>
+  </div>
+  {% if chart %}{{ chart|safe }}<div class="rp-legend"><span><i class="ln"></i>{{ _('report.interval') }}</span><span><i class="tr"></i>{{ _('report.trend') }}</span></div>{% else %}<p class="muted">{{ _('report.need_data') }}</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ icon('gas-station') }} {{ _('report.price') }}</h2>
+  {% if price_chart %}{{ price_chart|safe }}<div class="rp-legend"><span><i class="ln"></i>{{ _('report.price_unit') }}</span><span><i class="tr"></i>{{ _('report.trend') }}</span></div>{% else %}<p class="muted">{{ _('report.no_price') }}</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ icon('speedometer') }} {{ _('report.km_title') }}{% if km_chart %} <small class="muted">{{ fnum(km_total, 0) }} {{ units.dist_unit }}</small>{% endif %}</h2>
+  {% if km_chart %}{{ km_chart|safe }}{% else %}<p class="muted">{{ _('report.no_km') }}</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ icon('calendar') }} {{ _('report.monthly') }}</h2>
+  {% if months %}
+  {% macro mrow(m) %}
+    <div class="mrow"><b class="mr-m">{% if group == 'day' %}{{ fdate(m.month) }}{% elif group == 'week' %}{{ _('report.week', w=m.month[6:]|int, y=m.month[:4]) }}{% else %}{{ m.month[5:7] }}.{{ m.month[0:4] }}{% endif %}</b>
+      <span class="mr-v"><i>{{ fnum(m.km) }}</i><small>{{ units.dist_unit }}</small></span>
+      <span class="mr-v"><i>{{ fnum(m.per_100, 1) if m.per_100 else '–' }}</i><small>{{ units.consumption_unit(unit) }}</small></span>
+      <span class="mr-v"><i>{{ fnum(m.spent, 2) if m.spent else '–' }}</i><small>{{ units.cur }}</small></span></div>
+  {% endmacro %}
+  <div class="mlist">{% for m in months %}{{ mrow(m) }}{% endfor %}</div>
+  {% else %}<p class="muted">{{ _('report.need_data') }}</p>{% endif %}
+  <p class="hint">{{ _('report.method') }}</p>
+</section>
+{% endblock %}

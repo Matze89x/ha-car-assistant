@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head, steps, step_nav with context %}
+{% block content %}
+{{ steps(4) }}
+{{ page_head('shield', _('setup.title')) }}
+<p class="hint">{{ _('setup.intro') }}</p>
+<form method="post" action="{{ base }}/setup/access" class="setup-form">
+  <input type="hidden" name="next" value="{{ next }}">
+  <label class="choice card"><input type="radio" name="choice" value="local" checked>
+    <span><strong>{{ icon('home', 18) }} {{ _('setup.local_title') }}</strong><small>{{ _('setup.local_text') }}</small></span></label>
+  <label class="choice card"><input type="radio" name="choice" value="external">
+    <span><strong>{{ icon('globe', 18) }} {{ _('setup.external_title') }}</strong><small>{{ _('setup.external_text') }}</small></span></label>
+  <section class="card" id="ext-fields">
+    <h2>{{ icon('plug') }} {{ _('setup.account') }}</h2>
+    <div class="grid">
+      <label>{{ _('login.username') }}<input type="text" name="username" autocomplete="username" autocapitalize="off"></label>
+      <label>{{ _('login.password') }}<input type="password" name="password" autocomplete="new-password" minlength="10" maxlength="128"></label>
+      <label>{{ _('login.new_pw2') }}<input type="password" name="password2" autocomplete="new-password" minlength="10" maxlength="128"></label>
+    </div>
+    <p class="hint">{{ _('setup.account_hint') }}</p>
+  </section>
+  {{ step_nav(_('setup.continue'), back='/setup/functions') }}
+</form>
+{% endblock %}

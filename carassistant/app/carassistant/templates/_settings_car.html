@@ -1,0 +1,86 @@
+{% from "_macros.html" import icon with context %}
+{% if not car %}
+<section class="card"><p class="muted">{{ _('car.none') }}</p><p><a class="button primary" href="{{ base }}/vehicles/new">{{ icon('plus', 18) }}<span>{{ _('vehicle.add') }}</span></a></p></section>
+{% else %}
+<div class="sys-grid car-grid">
+
+<section class="card" id="icons">
+  <h2>{{ icon('edit') }} {{ _('settings.icon') }}</h2>
+  <p class="hint">{{ _('settings.icon_hint') }}</p>
+  <div class="icon-row">
+    <img class="icon-prev" src="{{ base }}/v/{{ car.slug }}/icon/128.png?v={{ icon_rev_of(car.id) }}" alt="" width="56" height="56">
+    <strong class="ir-name">{{ car.name }}</strong>
+    <form method="post" enctype="multipart/form-data" action="{{ base }}/v/{{ car.slug }}/icon" data-autosubmit class="ir-form"><input type="hidden" name="back" value="/settings/car?car={{ car.slug }}#icons">
+      <label class="icon-btn ir-up" title="{{ _('settings.icon_upload') }}"><input type="file" name="icon" accept="image/png,image/jpeg,image/webp" aria-label="{{ _('settings.icon_upload') }}" required>{{ icon('camera', 20) }}</label>
+    </form>
+    {% if has_icon(car.id) %}<form method="post" action="{{ base }}/v/{{ car.slug }}/icon/reset" class="ir-form"><input type="hidden" name="back" value="/settings/car?car={{ car.slug }}#icons"><button class="icon-btn" title="{{ _('settings.icon_reset') }}" aria-label="{{ _('settings.icon_reset') }}">{{ icon('delete-outline', 20) }}</button></form>{% endif %}
+  </div>
+</section>
+
+<section class="card" id="media">
+  <h2>{{ icon('camera') }} {{ _('pe.picture') }}</h2>
+  <p class="hint">{{ _('media.intro', n=media_keep) }}</p>
+  {% with library=media_library, photos=media_photos, videos=media_videos, keep=media_keep, kinds=media_kinds, kind=media_kind, media_back='car' %}{% include "_media_panel.html" %}{% endwith %}
+</section>
+
+{% set dp = {'id': 'theme', 'title': _('vf.group_design'), 'hint': _('vf.design_hint'), 'action': base ~ '/v/' ~ car.slug ~ '/theme', 'accent_save': base ~ '/v/' ~ car.slug ~ '/accent', 'current': car.theme or '', 'accent': car_accent, 'system_option': True} %}
+{% include "_design_picker.html" %}
+
+<section class="card" id="ha">
+  <h2>{{ icon('plug') }} {{ _('bind.title') }}</h2>
+  <p class="hint">{{ _('bind.hint') }}</p>
+  <form method="post" action="{{ base }}/v/{{ car.slug }}/bindings" class="grid">
+    {% for key in ['bind_odometer', 'bind_fuel_level', 'bind_range', 'bind_tracker'] %}
+      <label>{{ _('f.' ~ key) }}<input name="{{ key }}" list="ha-entities" placeholder="sensor.…" value="{{ car[key] or '' }}" autocomplete="off"></label>
+    {% endfor %}
+    <datalist id="ha-entities">{% for e in ha_entities %}<option value="{{ e.id }}">{{ e.name }}</option>{% endfor %}</datalist>
+    <div class="form-bar wide"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
+  </form>
+</section>
+
+{% set EV = {'maint_due': _('notify.ev_maint_due'), 'appointment': _('notify.ev_appointment'), 'reminder': _('notify.ev_reminder'), 'car_message': _('notify.ev_car_message'), 'open_closure': _('notify.ev_open_closure'), 'low_energy': _('notify.ev_low_energy'), 'tyre_pressure': _('notify.ev_tyre_pressure'), 'trip_end': _('notify.ev_trip_end')} %}
+<section class="card" id="notifications">
+  <h2>{{ icon('bell-outline') }} {{ _('notify.car_title') }}</h2>
+  {% if not acct_me %}
+    <p class="hint">{{ _('notify.user_need') }}</p>
+  {% elif not notify_prefs.enabled %}
+    <p class="hint">{{ icon('info', 14) }} {{ _('notify.car_off') }}</p>
+    <p><a class="button small" href="{{ base }}/settings/user#notify-cars">{{ icon('account', 16) }}<span>{{ _('set.user') }}</span></a></p>
+  {% else %}
+  {% if port_on %}
+  <div id="push-box" class="push-box" data-base="{{ base }}" data-car="{{ car.id }}" data-unsupported="{{ _('push.unsupported') }}" data-ios="{{ _('push.ios_home') }}" data-failed="{{ _('push.failed') }}" data-https="{{ _('push.https_only') }}" data-ext="{{ external_url if ext_set else '' }}" data-denied="{{ _('push.denied') }}" data-label-on="{{ _('push.enable_car') }}" data-label-off="{{ _('push.disable_car') }}">
+    <p class="hint">{{ _('push.car_hint', car=car.name) }}</p>
+    {% if car_devices %}<div class="ar-v">{% for d in car_devices %}<span class="chip-pk">{{ icon('bell', 14) }} {{ d.label or _('push.device') }} <small class="muted">{{ d.created_at[:10] }}</small></span>{% endfor %}</div>{% endif %}
+    <div class="actions"><button type="button" id="push-on" class="primary small" {{ 'disabled' if not ext_set }}>{{ icon('bell', 16) }}<span>{{ _('push.enable_car') }}</span></button>
+      <form method="post" action="{{ base }}/settings/notifications/test" class="inline" id="push-test"><input type="hidden" name="vehicle" value="{{ car.id }}"><button class="small" {{ 'disabled' if not car_devices }}>{{ icon('bell-outline', 16) }} {{ _('notify.user_test') }}</button></form></div>
+    {% if not ext_set %}<p class="hint">{{ icon('lock', 16) }} {{ _('ext.needed') }}</p>{% endif %}
+    <p class="acct-msg" id="push-msg" hidden></p>
+  </div>
+  <script src="{{ base }}/static/push.js?v={{ version }}" defer></script>
+  {% endif %}
+  <p class="hint">{{ _('notify.events_car', car=car.name) }}</p>
+  <form method="post" action="{{ base }}/settings/notifications" class="grid" data-live="1">
+    <input type="hidden" name="vehicle" value="{{ car.id }}">
+    <input type="hidden" name="service" value="{{ notify_prefs.service }}">
+    <input type="hidden" name="back" value="/settings/car?car={{ car.slug }}#notifications">
+    {% for key in notify_events %}<label class="check wide"><input type="checkbox" name="ev" value="{{ key }}" {{ 'checked' if key in notify_prefs.events }}> {{ EV[key] }}</label>{% endfor %}
+  </form>
+  {% endif %}
+</section>
+
+<section class="card" id="vbackup">
+  <h2>{{ icon('settings', 20) }} {{ _('vb.manage_title') }}</h2>
+  <ul class="cv-list">
+    <li><span class="mi-ic c1">{{ icon('download', 19) }}</span><div class="vm-t"><b>{{ _('vb.row_backup') }}</b><small>{{ _('vb.row_backup_hint') }}</small></div>
+      <a class="ghost-btn small" href="{{ base }}/v/{{ car.slug }}/backup.zip">{{ icon('download', 16) }}<span>{{ _('vb.download_short') }}</span></a></li>
+    {% if has_codes %}<li><span class="mi-ic c6">{{ icon('lock', 19) }}</span><div class="vm-t"><b>{{ _('vb.row_codes') }}</b><small>{{ _('vb.row_codes_hint') }}</small></div>
+      <a class="ghost-btn small" href="{{ base }}/v/{{ car.slug }}/backup.zip?codes=1">{{ icon('download', 16) }}<span>{{ _('vb.download_short') }}</span></a></li>{% endif %}
+    <li><span class="mi-ic c5">{{ icon('archive', 19) }}</span><div class="vm-t"><b>{{ _('vehicle.archive') }}</b><small>{{ _('vehicle.archive_hint') }}</small></div>
+      <form method="post" action="{{ base }}/v/{{ car.slug }}/archive" class="inline"><button class="ghost-btn small">{{ icon('archive', 16) }}<span>{{ _('vehicle.archive') }}</span></button></form></li>
+    <li><span class="mi-ic c6">{{ icon('delete', 19) }}</span><div class="vm-t"><b>{{ _('vehicle.delete_btn') }}</b><small>{{ _('vehicle.delete_hint') }}</small></div>
+      <form method="post" action="{{ base }}/v/{{ car.slug }}/delete" class="inline" data-confirm="{{ _('confirm.delete_vehicle') }}" data-confirm-ok="{{ _('btn.delete') }}"><button class="ghost-btn small warn">{{ icon('delete-outline', 16) }}<span>{{ _('btn.delete') }}</span></button></form></li>
+  </ul>
+</section>
+
+</div>
+{% endif %}

@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+*.db
+*.db-wal
+*.db-shm
+.env
+data/
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/launch.json
+.claude/*.bak
+CLAUDE.md
+tools/guard/

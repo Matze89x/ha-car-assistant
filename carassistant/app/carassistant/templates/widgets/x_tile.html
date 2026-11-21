@@ -1,0 +1,7 @@
+{% from "_macros.html" import widget with context %}
+{% set tv = tile_values.get(w.ref) if tile_values is defined else none %}
+{% if tv %}
+{% call widget(w.icon, 'c5', w.label, none, w.size, 'st-ok') %}
+  <div class="wd-v">{{ tv.text }}{% if tv.unit %} <small>{{ tv.unit }}</small>{% endif %}</div>
+{% endcall %}
+{% endif %}

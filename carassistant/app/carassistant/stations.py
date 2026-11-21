@@ -1,0 +1,195 @@
+"""Fuel stations nearby.
+
+* Germany: Tankerkönig (prices from the Markttransparenzstelle für Kraftstoffe, licence CC BY 4.0 – attribution is shown
+  in the UI). Needs a free personal API key.
+* Everywhere else (or without a key): OpenStreetMap via Overpass – stations only, no prices (no open price source).
+
+Rate limits: one real request per ~5 minutes per area (cached, location rounded to ~1 km).
+"""
+
+from __future__ import annotations
+
+import logging
+import math
+import threading
+import time
+from dataclasses import dataclass
+from typing import Any
+
+import requests
+
+from . import config
+
+log = logging.getLogger(__name__)
+
+TANKERKOENIG_URL = "https://creativecommons.tankerkoenig.de/json/list.php"
+OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+USER_AGENT = "ha-car-assistant/2.0 (+https://github.com/Matze89x/ha-car-assistant)"
+CACHE_SECONDS = 300
+MAX_RADIUS_KM = 25
+FUELS = ("e5", "e10", "diesel")
+
+
+class StationsError(RuntimeError):
+    """``args[0]`` is an i18n key."""
+
+
+@dataclass
+class Station:
+    name: str
+    brand: str
+    address: str
+    lat: float
+    lon: float
+    distance_km: float
+    price: float | None = None
+    is_open: bool | None = None
+
+
+_cache: dict[tuple, tuple[float, Any]] = {}
+_lock = threading.Lock()
+
+
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lon2 - lon1) / 2) ** 2
+    return 2 * 6371.0088 * math.asin(math.sqrt(a))
+
+
+def clean_params(lat: float, lon: float, radius: float) -> tuple[float, float, float]:
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise StationsError("err.coordinates")
+    return lat, lon, min(max(float(radius), 1.0), MAX_RADIUS_KM)
+
+
+def normalize_tankerkoenig(payload: dict, fuel: str, origin: tuple[float, float]) -> list[Station]:
+    result = []
+    for s in payload.get("stations", []):
+        try:
+            lat, lon = float(s["lat"]), float(s["lng"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        price = s.get(fuel)
+        address = " ".join(str(x) for x in (s.get("street"), s.get("houseNumber")) if x)
+        town = " ".join(str(x) for x in (s.get("postCode"), s.get("place")) if x)
+        result.append(
+            Station(
+                name=str(s.get("name") or s.get("brand") or "?"),
+                brand=str(s.get("brand") or ""),
+                address=", ".join(x for x in (address, town) if x),
+                lat=lat,
+                lon=lon,
+                distance_km=float(s["dist"]) if s.get("dist") is not None else haversine_km(*origin, lat, lon),
+                price=float(price) if isinstance(price, int | float) else None,
+                is_open=s.get("isOpen"),
+            )
+        )
+    return result
+
+
+def normalize_overpass(payload: dict, origin: tuple[float, float]) -> list[Station]:
+    result = []
+    for el in payload.get("elements", []):
+        tags = el.get("tags") or {}
+        lat = el.get("lat", (el.get("center") or {}).get("lat"))
+        lon = el.get("lon", (el.get("center") or {}).get("lon"))
+        if lat is None or lon is None:
+            continue
+        street = " ".join(x for x in (tags.get("addr:street"), tags.get("addr:housenumber")) if x)
+        town = " ".join(x for x in (tags.get("addr:postcode"), tags.get("addr:city")) if x)
+        result.append(
+            Station(
+                name=tags.get("name") or tags.get("brand") or tags.get("operator") or "?",
+                brand=tags.get("brand") or "",
+                address=", ".join(x for x in (street, town) if x),
+                lat=float(lat),
+                lon=float(lon),
+                distance_km=haversine_km(*origin, float(lat), float(lon)),
+            )
+        )
+    return result
+
+
+def sort_stations(stations: list[Station], by: str) -> list[Station]:
+    if by == "price":
+        return sorted(stations, key=lambda s: (s.price is None, s.price if s.price is not None else 0, s.distance_km))
+    return sorted(stations, key=lambda s: s.distance_km)
+
+
+def _cached(key: tuple):
+    with _lock:
+        hit = _cache.get(key)
+        if hit and time.monotonic() - hit[0] < CACHE_SECONDS:
+            return hit[1]
+    return None
+
+
+def _store(key: tuple, value: Any) -> Any:
+    with _lock:
+        _cache[key] = (time.monotonic(), value)
+        if len(_cache) > 50:
+            for old in sorted(_cache, key=lambda k: _cache[k][0])[:25]:
+                _cache.pop(old, None)
+    return value
+
+
+def clear_cache() -> None:
+    with _lock:
+        _cache.clear()
+
+
+def fetch_tankerkoenig(lat: float, lon: float, radius: float, fuel: str) -> list[Station]:
+    key = config.tankerkoenig_key()
+    if not key:
+        raise StationsError("err.no_key")
+    lat, lon, radius = clean_params(lat, lon, radius)
+    # One call returns every fuel type for the full radius (type=all); fuel/radius filtering happens locally.
+    cache_key = ("tk", round(lat, 2), round(lon, 2))
+    payload = _cached(cache_key)
+    if payload is None:
+        try:
+            resp = requests.get(
+                TANKERKOENIG_URL,
+                params={"lat": f"{lat:.5f}", "lng": f"{lon:.5f}", "rad": MAX_RADIUS_KM, "type": "all", "apikey": key},
+                headers={"User-Agent": USER_AGENT},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+        except (requests.RequestException, ValueError) as exc:
+            log.warning("Tankerkönig request failed: %s", type(exc).__name__)  # never log the URL (contains the key)
+            raise StationsError("err.stations_failed") from None
+        if not payload.get("ok"):
+            raise StationsError("err.stations_failed")
+        _store(cache_key, payload)
+    stations = normalize_tankerkoenig(payload, fuel, (lat, lon))
+    return [s for s in stations if s.distance_km <= radius]
+
+
+def fetch_osm(lat: float, lon: float, radius: float) -> list[Station]:
+    lat, lon, radius = clean_params(lat, lon, radius)
+    cache_key = ("osm", round(lat, 2), round(lon, 2), int(radius))
+    hit = _cached(cache_key)
+    if hit is not None:
+        return hit
+    query = (
+        f'[out:json][timeout:20];(node["amenity"="fuel"](around:{int(radius * 1000)},{lat:.5f},{lon:.5f});'
+        f'way["amenity"="fuel"](around:{int(radius * 1000)},{lat:.5f},{lon:.5f}););out center tags 60;'
+    )
+    try:
+        resp = requests.post(OVERPASS_URL, data={"data": query}, headers={"User-Agent": USER_AGENT}, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+    except (requests.RequestException, ValueError) as exc:
+        log.warning("Overpass request failed: %s", type(exc).__name__)
+        raise StationsError("err.stations_failed") from None
+    return _store(cache_key, normalize_overpass(data, (lat, lon)))
+
+
+def nearby(lat: float, lon: float, radius: float, fuel: str, source: str, sort: str) -> tuple[list[Station], str]:
+    """``source``: ``tankerkoenig`` | ``osm``. Returns (stations, source_used)."""
+    if fuel not in FUELS:
+        fuel = "e5"
+    if source == "tankerkoenig":
+        return sort_stations(fetch_tankerkoenig(lat, lon, radius, fuel), sort), "tankerkoenig"
+    return sort_stations(fetch_osm(lat, lon, radius), "distance"), "osm"

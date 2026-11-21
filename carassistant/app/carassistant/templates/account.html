@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{{ page_head('lock', _('account.title')) }}
+{% include "_account.html" %}
+{% endblock %}

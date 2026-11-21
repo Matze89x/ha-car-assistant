@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head, form_bar with context %}
+{% block content %}
+{{ page_head('plug', _('integrations.title')) }}
+<p class="hint">{{ _('integrations.intro') }}</p>
+
+<section class="card">
+  <h2>{{ icon('tasks') }} {{ _('integrations.modules') }}</h2>
+  {% for m in all_modules %}
+    <div class="module">
+      <div>
+        <h3>{{ icon(module_icon[m.key]) }} {{ _('mod.' ~ m.key ~ '.name') }}{% if m.core %} <span class="badge">{{ _('int.core') }}</span>{% endif %}</h3>
+        <p class="hint">{{ _('mod.' ~ m.key ~ '.desc') }}</p>
+      </div>
+      {% if not m.core %}
+      <form method="post" action="{{ base }}/integrations/module/{{ m.key }}" data-autosubmit>
+        <input type="hidden" name="enabled" value="{{ '0' if m.key not in off else '1' }}">
+        <label class="switch" aria-label="{{ _('integrations.enabled') }}: {{ _('mod.' ~ m.key ~ '.name') }}">
+          <input type="checkbox" {{ 'checked' if m.key not in off }}><span></span>
+        </label>
+        <noscript><button class="small">OK</button></noscript>
+      </form>
+      {% endif %}
+    </div>
+  {% endfor %}
+</section>
+
+<section class="card">
+  <h2>{{ icon('plug') }} {{ _('integrations.sources') }}</h2>
+  {% for i in catalog %}
+    <details class="module-details">
+      <summary class="module">
+        <div>
+          <h3>{{ icon(integration_icon[i.key]) }} {{ _('int.' ~ i.key ~ '.name') }}
+            <span class="badge {{ 'ok' if int_enabled[i.key] else '' }}">{{ _('settings.on') if int_enabled[i.key] else _('settings.off') }}</span></h3>
+          <p class="hint">{{ _('int.' ~ i.key ~ '.desc') }}</p>
+        </div>
+      </summary>
+      <form method="post" action="{{ base }}/integrations/{{ i.key }}" class="grid">
+        {% if i.toggle %}<label class="check wide"><input type="checkbox" name="enabled" value="1" {{ 'checked' if int_enabled[i.key] }}> {{ _('integrations.enabled') }}</label>{% endif %}
+        {% for o in i.options %}
+          <label class="wide">{{ _(o.label) }}
+            {% if o.kind == 'password' %}
+              <input type="password" name="{{ o.name }}" autocomplete="off" placeholder="{{ '••••••••' if secret_set[i.key][o.name] }}">
+            {% else %}
+              <input type="text" name="{{ o.name }}" value="{{ plain[i.key][o.name] }}">
+            {% endif %}
+            {% if o.help %}<small>{{ _(o.help) }}</small>{% endif %}
+          </label>
+        {% endfor %}
+        {% if i.link %}<p class="wide hint"><a href="{{ i.link }}" target="_blank" rel="noopener noreferrer">{{ i.link }}</a></p>{% endif %}
+        <div class="wide">{{ form_bar() }}</div>
+      </form>
+    </details>
+  {% endfor %}
+</section>
+
+<section class="card"><h2>{{ icon('plug') }} {{ _('nav.integrations') }}</h2><p class="hint">{{ _('addon.intro_global') }}</p>{% for sv in all_vehicles %}<p><a class="button" href="{{ base }}/v/{{ sv.slug }}/integrations">{{ icon('car', 16) }} {{ sv.name }}</a></p>{% endfor %}</section>
+{% endblock %}

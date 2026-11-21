@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block head %}{% if map_tiles %}<link rel="stylesheet" href="{{ base }}/static/vendor/leaflet/leaflet.min.css?v=1.9.4">{% endif %}{% endblock %}
+{% block scripts %}{% if map_tiles %}<script src="{{ base }}/static/vendor/leaflet/leaflet.min.js?v=1.9.4" defer></script>{% endif %}<script src="{{ base }}/static/trips.js?v={{ version }}" defer></script>{% endblock %}
+{% block content %}
+{% set tu = base ~ '/v/' ~ v.id ~ '/e/trips' %}
+{% set cu = base ~ '/v/' ~ v.id ~ '/e/counters' %}
+{% set d = ' ' ~ units.dist_unit %}
+{% macro tripform(r, url, inline=false) %}
+  <form class="eq-edit tp-form" method="post" action="{{ url }}" {{ 'hidden' if r and not inline else '' }}>
+    {% if not r %}<h3 class="tp-add-h">{{ icon('pencil', 16) }} {{ _('trips.add_manual') }}</h3>{% endif %}
+    {% if r %}<input type="hidden" name="start_time" value="{{ r['start_time'] or '' }}"><input type="hidden" name="end_time" value="{{ r['end_time'] or '' }}">{% endif %}
+    <div class="eq-two"><label>{{ _('f.date') }}<input type="date" name="date" value="{{ (r['date'] if r else form.get('date')) or '' }}" required></label>
+      <label>{{ _('f.category') }}<select name="category">{% for c in trip_categories %}<option value="{{ c }}" {{ 'selected' if ((r['category'] if r else form.get('category')) or 'private') == c }}>{{ _('category.' ~ c) }}</option>{% endfor %}</select></label></div>
+    <div class="eq-two"><label>{{ _('f.start_place') }}<input type="text" name="start_place" maxlength="200" value="{{ (r['start_place'] if r else form.get('start_place')) or '' }}"></label>
+      <label>{{ _('f.end_place') }}<input type="text" name="end_place" maxlength="200" value="{{ (r['end_place'] if r else form.get('end_place')) or '' }}"></label></div>
+    <div class="eq-two"><label>{{ _('f.start_km') }}<input type="number" inputmode="numeric" min="0" step="1" name="start_km" value="{{ (units.d(r['start_km'])|round|int if r and r['start_km'] is not none else form.get('start_km')) or '' }}"></label>
+      <label>{{ _('f.end_km') }}<input type="number" inputmode="numeric" min="0" step="1" name="end_km" value="{{ (units.d(r['end_km'])|round|int if r and r['end_km'] is not none else form.get('end_km')) or '' }}"></label></div>
+    <label>{{ _('f.purpose') }}<input type="text" name="purpose" maxlength="200" value="{{ (r['purpose'] if r else form.get('purpose')) or '' }}"></label>
+    <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
+      {% if r %}<button class="ghost-btn small warn ib" formaction="{{ tu }}/{{ r['id'] }}/delete" formnovalidate data-confirm="{{ _('confirm.delete') }}">{{ icon('delete-outline', 16) }} <span class="sr">{{ _('btn.delete') }}</span></button>
+      {% if not inline %}<button type="button" class="ghost-btn small ib" data-eqe-cancel>{{ icon('close', 16) }}<span class="sr">{{ _('btn.cancel') }}</span></button>{% endif %}{% endif %}</div>
+  </form>
+{% endmacro %}
+{% macro counterform(c, url, inline=false) %}
+  <form class="eq-edit tp-form" method="post" action="{{ url }}" {{ 'hidden' if c and not inline else '' }}>
+    {% if not c %}<h3 class="tp-add-h">{{ icon('plus', 16) }} {{ _('tp.add_counter') }}</h3>{% endif %}
+    {% if c %}<input type="hidden" name="notes" value="{{ c['notes'] or '' }}">{% endif %}
+    <div class="eq-two"><label>{{ _('f.name') }}<input type="text" name="name" maxlength="200" required value="{{ c['name'] if c else '' }}"></label>
+      <label>{{ _('f.kind') }}<select name="kind">{% for k in counter_kinds if k != 'tax' or (c and c['kind'] == 'tax') %}<option value="{{ k }}" {{ 'selected' if (c['kind'] if c else 'private') == k }}>{{ _('kind.' ~ k) }}</option>{% endfor %}</select></label></div>
+    <div class="eq-two"><label>{{ _('f.start_date') }}<input type="date" name="start_date" required value="{{ c['start_date'] if c else '' }}"></label>
+      <label>{{ _('f.start_km') }}<input type="number" inputmode="numeric" min="0" step="1" name="start_km" required value="{{ units.d(c['start_km'])|round|int if c else '' }}"></label></div>
+    <div class="eq-two"><label>{{ _('f.end_date') }}<input type="date" name="end_date" value="{{ (c['end_date'] if c else '') or '' }}"></label>
+      <label>{{ _('f.end_km') }}<input type="number" inputmode="numeric" min="0" step="1" name="end_km" value="{{ units.d(c['end_km'])|round|int if c and c['end_km'] is not none else '' }}"></label></div>
+    <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
+      {% if c %}<button class="ghost-btn small warn ib" formaction="{{ cu }}/{{ c['id'] }}/delete" formnovalidate data-confirm="{{ _('confirm.delete') }}">{{ icon('delete-outline', 16) }} <span class="sr">{{ _('btn.delete') }}</span></button>
+      {% if not inline %}<button type="button" class="ghost-btn small ib" data-eqe-cancel>{{ icon('close', 16) }}<span class="sr">{{ _('btn.cancel') }}</span></button>{% endif %}{% endif %}</div>
+  </form>
+{% endmacro %}
+
+{% macro minutes(a, b) %}{% if a and b and ':' in a and ':' in b %}{% set m = (b.split(':')[0]|int * 60 + b.split(':')[1]|int) - (a.split(':')[0]|int * 60 + a.split(':')[1]|int) %}{% if m > 0 %}{{ m }}{% endif %}{% endif %}{% endmacro %}
+
+{% call page_head('route', _('trips.title')) %}
+  <button type="button" class="icon-btn" data-toggle-panel="#trip-export" aria-label="{{ _('trips.export') }} / GPX">{{ icon('download', 18) }}</button>
+  <button type="button" class="button primary" data-toggle-panel="#trip-add" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>
+{% endcall %}
+{% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
+
+<div class="eq-panel tp-add" id="trip-add" {{ 'hidden' if not (form and not edit_id) }}>{{ tripform(none, tu) }}</div>
+<div class="eq-panel tp-add" id="trip-export" hidden>
+  <form method="get" class="eq-edit tp-form fx-form" action="{{ tu }}-export.pdf">
+    <label>{{ _('fx.range') }}<select name="range">{% for k, label in [('all', _('fx.r_all')), ('7d', _('fx.r_7d')), ('30d', _('fx.r_30d')), ('month', _('fx.r_month')), ('lastmonth', _('fx.r_lastmonth')), ('year', _('fx.r_year')), ('lastyear', _('fx.r_lastyear')), ('custom', _('fx.r_custom'))] %}<option value="{{ k }}" {{ 'selected' if k == 'year' }}>{{ label }}</option>{% endfor %}</select></label>
+    <div class="eq-two fx-custom"><label>{{ _('exp.from') }}<input type="date" name="start" value="{{ range_from }}"></label><label>{{ _('exp.to') }}<input type="date" name="end" value="{{ range_to }}"></label></div>
+    <div class="eq-acts fx-acts"><button class="ghost-btn small" formaction="{{ base }}/v/{{ v.slug }}/trips-export.pdf">{{ icon('download', 16) }} <span>PDF</span></button><button class="ghost-btn small" formaction="{{ base }}/v/{{ v.slug }}/trips-export.csv">{{ icon('download', 16) }} <span>CSV</span></button></div>
+  </form>
+  <form method="post" enctype="multipart/form-data" class="eq-edit tp-form" action="{{ base }}/v/{{ v.slug }}/trips-import">
+    <div class="eq-two"><label>{{ _('trips.import_gpx') }}<input type="file" name="gpx" accept=".gpx,application/gpx+xml,text/xml" required></label>
+      <label>{{ _('f.category') }}<select name="category">{% for c in trip_categories %}<option value="{{ c }}">{{ _('category.' ~ c) }}</option>{% endfor %}</select></label></div>
+    <div class="eq-acts"><button class="ghost-btn small">{{ icon('download', 16) }} <span>{{ _('btn.import') }}</span></button></div>
+  </form>
+  <p class="hint">{{ _('exp.disclaimer') }}</p>
+</div>
+
+{% set pnames = {'30': _('ta.p30'), '90': _('ta.p90'), '365': _('ta.p365'), 'all': _('ta.pall')} %}
+{% set wd = [_('ta.mo'), _('ta.tu'), _('ta.we'), _('ta.th'), _('ta.fr'), _('ta.sa'), _('ta.su')] %}
+{% set blocks = [_('ta.night'), _('ta.morning'), _('ta.afternoon'), _('ta.evening')] %}
+{% set catn = {'commute': _('category.commute'), 'private': _('category.private'), 'business': _('category.business')} %}
+<section class="card ta" id="analysis">
+  <h2>{{ icon('chart') }} {{ _('ta.title') }}</h2>
+  <nav class="seg-tabs ta-tabs" aria-label="{{ _('ta.title') }}">{% for p in ta_periods %}<a href="{{ tu }}?ap={{ p }}#analysis" class="{{ 'on' if p == ta_period }}"{% if p == ta_period %} aria-current="page"{% endif %}>{{ pnames[p] }}</a>{% endfor %}</nav>
+  {% if not ta.n %}<p class="muted">{{ _('ta.none') }}</p>{% else %}
+  <div class="trip-kpis ta-kpis">
+    <div class="tg"><i>{{ _('ta.trips') }}</i><b>{{ ta.n }}</b></div>
+    <div class="tg"><i>{{ _('ta.km') }}</i><b>{{ fnum(units.d(ta.km), 0) }} <small>{{ units.dist_unit }}</small></b></div>
+    <div class="tg"><i>{{ _('ta.avg_trip') }}</i><b>{{ fnum(units.d(ta.avg_km), 1) if ta.avg_km else '–' }} <small>{{ units.dist_unit }}</small></b></div>
+    {% if ta.minutes %}<div class="tg"><i>{{ _('tp.drivetime') }}</i><b>{{ ta.minutes // 60 }}:{{ '%02d'|format(ta.minutes % 60) }} <small>h</small></b></div>{% endif %}
+    {% if ta.avg_kmh %}<div class="tg"><i>{{ _('ta.avg_speed') }}</i><b>{{ fnum(units.d(ta.avg_kmh), 0) }} <small>{{ units.speed_unit }}</small></b></div>{% endif %}
+    {% if ta.longest %}<div class="tg"><i>{{ _('ta.longest') }}</i><b>{{ fnum(units.d(ta.longest.km), 0) }} <small>{{ units.dist_unit }}</small></b><small class="ta-sub">{{ fdate(ta.longest.date) }}{% if ta.longest.to %} · {{ ta.longest.to }}{% endif %}</small></div>{% endif %}
+  </div>
+
+  <h3 class="ta-h">{{ _('ta.cats') }}</h3>
+  <div class="rp-share" role="img" aria-label="{{ _('ta.cats') }}">{% for c in ta.cats %}<i class="b{{ [1, 3, 4][loop.index0] if loop.index0 < 3 else 4 }}" style="width: {{ c.pct|round(1) }}%"></i>{% endfor %}</div>
+  <div class="rp-legend">{% for c in ta.cats %}<span><i class="b{{ [1, 3, 4][loop.index0] if loop.index0 < 3 else 4 }}"></i>{{ catn.get(c.key, c.key) }} <b>{{ fnum(units.d(c.km), 0) }} {{ units.dist_unit }}</b> · {{ c.n }}×</span>{% endfor %}</div>
+
+  <h3 class="ta-h">{{ _('ta.length') }} <small class="muted">{{ units.dist_unit }}</small></h3>
+  {% set top = ta.buckets|max %}
+  <div class="ta-bars">{% for count in ta.buckets %}
+    <div class="ta-bar"><span class="ta-l">{{ ta_labels[loop.index0] }}</span><span class="ta-t"><i style="width: {{ (count / top * 100)|round(1) if top else 0 }}%"></i></span><b>{{ count }}</b></div>{% endfor %}
+  </div>
+
+  <h3 class="ta-h">{{ _('ta.when') }}</h3>
+  <div class="ta-heat" role="img" aria-label="{{ _('ta.when') }}">
+    <span></span>{% for b in blocks %}<span class="ta-hh">{{ b }}</span>{% endfor %}
+    {% for row in ta.heat %}{% set w = loop.index0 %}
+    <span class="ta-wd">{{ wd[w] }}</span>{% for count in row %}<span class="ta-c l{{ ((count / ta.heat_max * 5)|round(0, 'ceil')|int) if count and ta.heat_max else 0 }}" title="{{ wd[w] }} · {{ blocks[loop.index0] }}: {{ count }}">{{ count if count else '' }}</span>{% endfor %}
+    {% endfor %}
+  </div>
+  <p class="hint">{{ _('ta.when_hint') }}{% if ta.untimed %} {{ _('ta.untimed', n=ta.untimed) }}{% endif %}</p>
+
+  <h3 class="ta-h">{{ _('ta.style') }}</h3>
+  {% if ta.style %}
+  <div class="trip-kpis ta-kpis">
+    <div class="tg"><i>{{ _('ta.brakes', u=units.dist_unit) }}</i><b>{{ fnum(ta.style.hard_per_100 * (1.609344 if units.imperial else 1), 1) }}</b></div>
+    {% if ta.style.moving_kmh %}<div class="tg"><i>{{ _('ta.moving') }}</i><b>{{ fnum(units.d(ta.style.moving_kmh), 0) }} <small>{{ units.speed_unit }}</small></b></div>{% endif %}
+    {% if ta.style.idle_pct is not none %}<div class="tg"><i>{{ _('ta.idle') }}</i><b>{{ ta.style.idle_pct }} <small>%</small></b></div>{% endif %}
+    {% if ta.style.top_kmh %}<div class="tg"><i>{{ _('ta.top') }}</i><b>{{ fnum(units.d(ta.style.top_kmh), 0) }} <small>{{ units.speed_unit }}</small></b></div>{% endif %}
+  </div>
+  <p class="hint">{{ _('ta.based', n=ta.style.trips, km=fnum(units.d(ta.style.km), 0), u=units.dist_unit) }}</p>
+  {% else %}<p class="muted">{{ _('ta.no_style') }}</p>{% endif %}
+  {% endif %}
+</section>
+
+<section class="tp-sec" id="counters">
+  <div class="vd-group-h eq-head">{{ _('tp.counters') }} <span class="eq-total">{{ counters|length }}</span>
+    <button type="button" class="icon-btn eq-head-add" data-toggle-panel="#counter-add" aria-label="{{ _('tp.add_counter') }}" title="{{ _('tp.add_counter') }}">{{ icon('plus', 16) }}</button></div>
+  <div class="eq-panel tp-add" id="counter-add" hidden>{{ counterform(none, cu) }}</div>
+  <p class="hint tp-hint">{{ _('counters.hint') }}</p>
+  <div class="rec-grid">
+    {% for c in counters %}
+    <article class="rec">
+      <header class="rec-top">
+        <div class="rec-main"><span class="rec-lead">{{ _('kind.' ~ c['kind']) }}</span><h3 class="rec-title">{{ c['name'] }}</h3></div>
+        <div class="rec-badges"><span class="badge">{% if c['driven'] is not none %}{{ fnum(units.d(c['driven']), 0) }}{{ d }}{% else %}–{% endif %}</span></div>
+      </header>
+      <dl class="rec-facts">
+        <div><dt>{{ _('f.start_date') }}</dt><dd>{{ fdate(c['start_date']) }}</dd></div>
+        <div><dt>{{ _('f.end_date') }}</dt><dd>{% if c['end_date'] %}{{ fdate(c['end_date']) }}{% else %}–{% endif %}</dd></div>
+      </dl>
+      <details class="rec-edit"><summary class="ghost-btn small">{{ icon('pencil', 16) }} <span>{{ _('btn.edit') }}</span></summary>{{ counterform(c, cu ~ '/' ~ c['id'], true) }}</details>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="tp-sec" id="trips">
+  <div class="vd-group-h eq-head">{{ _('trips.title') }} <span class="eq-total" id="eq-count">{{ total_rows }}</span></div>
+  {% if kpis.n %}<div class="trip-kpis"><div class="tg"><i>{{ _('tp.last30') }}</i><b>{{ kpis.n }}</b></div><div class="tg"><i>{{ _('tp.km') }}</i><b>{{ fnum(units.d(kpis.km), 0) }} <small>{{ units.dist_unit }}</small></b></div><div class="tg"><i>{{ _('tp.drivetime') }}</i><b>{{ kpis.minutes // 60 }}:{{ '%02d'|format(kpis.minutes % 60) }} <small>h</small></b></div></div>{% endif %}
+  <form method="get" class="eq-searchbox-form"><label class="eq-searchbox"><span class="sb-ic">{{ icon('magnify', 18) }}</span><input type="search" name="q" value="{{ q }}" placeholder="{{ _('tp.search') }}" autocomplete="off" enterkeyhint="search"></label></form>
+  {% if trip_items %}
+  <div class="rec-grid" id="trip-list">
+    {% for head, r in trip_items %}
+    {% if head %}<h3 class="rec-month"><span>{{ head.title }}</span></h3>{% endif %}
+    {% set dist = extras.get(r['id'], {}).get('distance') %}
+    {% set mins = minutes(r['start_time'], r['end_time'])|trim %}
+    <article class="rec trip-card">
+      <details class="trip" {{ 'open' if edit_id == r['id'] }}>
+        <summary class="trip-sum">
+          <span class="trip-when">{{ fdate(r['date']) }}{% if r['start_time'] %} · {{ r['start_time'] }}{% if r['end_time'] %}–{{ r['end_time'] }}{% endif %}{% endif %}{% if r['id'] in has_points %} {{ icon('map-marker-radius', 13) }}{% endif %}</span>
+          <b class="trip-title">{{ r['start_place'] or '–' }} <span class="rec-arrow">→</span> {{ r['end_place'] or '–' }}</b>
+          <span class="trip-km">{% if dist is not none %}{{ fnum(units.d(dist), 1) }}<small>{{ units.dist_unit }}</small>{% else %}–{% endif %}</span>
+          <span class="trip-chev">{{ icon('chevron-down', 18) }}</span>
+        </summary>
+        <div class="trip-body">
+          <dl class="rec-facts">
+            <div><dt>{{ _('f.category') }}</dt><dd>{{ _('category.' ~ r['category']) }}</dd></div>
+            {% if mins %}<div><dt>{{ _('tp.duration') }}</dt><dd>{{ mins|int // 60 }}:{{ '%02d'|format(mins|int % 60) }} h</dd></div>{% endif %}
+            {% if mins and dist %}<div><dt>{{ _('tp.avg') }}</dt><dd>{{ fnum(units.d(dist) / (mins|int / 60), 0) }} {{ units.speed_unit }}</dd></div>{% endif %}
+            {% if r['start_km'] is not none and r['end_km'] is not none %}<div><dt>{{ _('f.odometer') }}</dt><dd>{{ fnum(units.d(r['start_km']), 0) }} → {{ fnum(units.d(r['end_km']), 0) }}</dd></div>{% endif %}
+            {% if r['purpose'] %}<div><dt>{{ _('f.purpose') }}</dt><dd>{{ r['purpose'] }}</dd></div>{% endif %}
+          </dl>
+          {% if r['id'] in has_points %}
+          <div class="tp-card" hidden data-track="{{ base }}/v/{{ v.slug }}/trips/{{ r['id'] }}/track.json" data-has="1" data-tiles="{{ base }}/tiles" data-maps="{{ 1 if map_tiles else 0 }}" data-unit="{{ units.speed_unit }}" data-factor="{{ 0.621371 if units.imperial else 1 }}" data-km="{{ dist if dist is not none else '' }}" data-note="{{ _('tp.points') }}" data-hard="{{ _('tp.hard') }}" data-peak="{{ _('tp.peak') }}" data-inmotion="{{ _('tp.in_motion') }}" data-legend="{{ _('tp.legend') }}" data-start-word="{{ _('tp.start') }}" data-end-word="{{ _('tp.end') }}">
+            <div class="tp-stats"><span class="tp-st" data-k="min" hidden><b></b><small>{{ _('tp.duration') }}</small></span><span class="tp-st" data-k="avg" hidden><b></b><small>{{ _('tp.avg') }}</small></span><span class="tp-st" data-k="max" hidden><b></b><small>{{ _('tp.top') }}</small></span></div>
+            <div class="tp-chips" hidden><span class="tp-chip" data-k="per100">{{ icon('gas-station', 14) }}<span></span></span><span class="tp-chip" data-k="amount"><span></span></span><span class="tp-chip" data-k="cost"><span></span></span></div>
+            <div class="tp-map" hidden></div>
+            <div class="tp-legend" hidden>
+              <span class="tl-bar" aria-hidden="true"></span>
+              <span class="tl-scale"><small data-k="l0"></small><small data-k="l1"></small><small data-k="l2"></small></span>
+              <span class="tl-pts"><span><i class="dot start"></i><small data-k="start-word"></small></span><span><i class="dot end"></i><small data-k="end-word"></small></span></span>
+              <p class="hint tl-text"></p>
+            </div>
+            <p class="hint tp-note" hidden></p>
+            <div class="tp-subh" data-k="style-h" hidden>{{ _('tp.style') }}</div>
+            <div class="tp-tiles" hidden>
+              <div class="tp-tile"><i>{{ _('tp.acc') }}</i><b data-k="acc"></b><em>{{ _('tp.acc_sub') }}</em></div>
+              <div class="tp-tile"><i>{{ _('tp.brake') }}</i><b data-k="dec"></b><em data-k="hard"></em></div>
+              <div class="tp-tile"><i>{{ _('tp.moving') }}</i><b data-k="moving"></b><em data-k="peak"></em></div>
+              <div class="tp-tile"><i>{{ _('tp.idle') }}</i><b data-k="idle"></b><em data-k="movmin"></em></div>
+            </div>
+            <p class="hint tp-fine" data-k="fine" hidden>{{ _('tp.estimate') }}</p>
+            <div class="eq-acts"><a class="ghost-btn small" href="{{ base }}/v/{{ v.slug }}/trips/{{ r['id'] }}/track.gpx">{{ icon('download', 16) }} <span>{{ _('tp.gpx') }}</span></a></div>
+          </div>
+          {% endif %}
+          <details class="rec-edit" {{ 'open' if edit_id == r['id'] }}><summary class="ghost-btn small">{{ icon('pencil', 16) }} <span>{{ _('btn.edit') }}</span></summary>{{ tripform(r, tu ~ '/' ~ r['id'], true) }}</details>
+        </div>
+      </details>
+    </article>
+    {% endfor %}
+  </div>
+  {% with pager_url=tu ~ ('?q=' ~ q|urlencode if q else ''), pager_into='#trip-list' %}{% include "_pager.html" %}{% endwith %}
+  {% else %}
+  <p class="hint">{{ _('trips.empty') }}</p>
+  {% endif %}
+</section>
+{% endblock %}

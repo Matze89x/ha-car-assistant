@@ -1,0 +1,9 @@
+{% from "_macros.html" import icon with context %}
+<section class="card">
+  <h2>{{ icon('plus', 20) }} {{ _('addon.upload') }}</h2>
+  <form method="post" enctype="multipart/form-data" action="{{ base }}/v/{{ v.slug }}/integrations/upload" class="inline-form">
+    <label>{{ _('addon.file') }}<input type="file" name="package" accept=".zip,.json,application/json,application/zip" required></label>
+    <button class="primary">{{ icon('plus', 16) }} {{ _('addon.upload_btn') }}</button>
+  </form>
+  <p class="hint">{{ _('addon.upload_hint') }} <a href="https://github.com/Matze89x/ha-car-assistant/blob/main/docs/plugins.md" target="_blank" rel="noopener noreferrer">docs/plugins.md</a></p>
+</section>

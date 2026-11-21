@@ -1,0 +1,15 @@
+{# What a package will do, read from its description: shown before it is installed and on the review page. Needs: m (the manifest), service,
+   f_source, f_version, f_sha (optional) #}
+  {% set frames = (m.pages or [])|selectattr('kind', 'equalto', 'frame')|list %}
+  {% if frames %}<p class="flash err">{{ icon('alert', 16) }} {{ _('svc.frame_note') }}<br><small>{% for p in frames %}<code>{{ p.route }}</code> {% endfor %}</small></p>{% endif %}
+  <dl class="facts">
+    <dt>{{ _('svc.source') }}</dt><dd>{{ f_source }}</dd>
+    <dt>{{ _('svc.version') }}</dt><dd>{{ f_version or '–' }}</dd>
+    {% if f_sha %}<dt>{{ _('svc.sha') }}</dt><dd><code>{{ f_sha }}</code></dd>{% endif %}
+    {% if service %}<dt>{{ _('svc.entry') }}</dt><dd><code>{{ service.entry }}</code>{% if service.python %} · Python {{ service.python }}{% endif %}</dd>
+    <dt>{{ _('svc.requirements') }}</dt><dd>{% if service.requirements %}{% for r in service.requirements %}<code>{{ r }}</code> {% endfor %}<br><small>{{ _('svc.internet') }}</small>{% else %}{{ _('svc.none') }}{% endif %}</dd>
+    <dt>{{ _('svc.routes') }}</dt><dd>{% if service.routes %}{% for r in service.routes %}<code>{{ r.prefix }}</code> – {{ _('svc.public') if r.public else _('svc.local') }}<br>{% endfor %}{% else %}{{ _('svc.none') }}{% endif %}</dd>
+    <dt>{{ _('svc.connects') }}</dt><dd>{% if service.connects %}{% for h in service.connects %}<code>{{ h }}</code> {% endfor %}{% else %}{{ _('svc.connects_none') }}{% endif %}<br><small>{{ _('svc.connects_hint') }}</small></dd>
+    <dt>{{ _('svc.env') }}</dt><dd>{% if service.env %}{% for k, val in service.env.items() %}<code>{{ k }}={{ val }}</code> {% endfor %}{% else %}{{ _('svc.none') }}{% endif %}</dd>
+    {% endif %}
+  </dl>

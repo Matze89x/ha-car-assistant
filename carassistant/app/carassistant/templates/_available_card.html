@@ -1,0 +1,23 @@
+{% from "_macros.html" import icon with context %}
+{# The packages of the sources as tiles: tap one to read about it and install it; the last two tiles add your own file or another source. #}
+<div class="pk-bar">
+  <span class="hint">{{ _('pk.last', when=(fdate(last_read) ~ ' ' ~ last_read[11:16])) if last_read else _('pk.never') }}</span>
+</div>
+<div class="pk-grid">
+  {% for p in available %}
+  <{{ 'div' if p.installed else 'a' }} class="card pk-tile{{ ' done' if p.installed }}"{% if not p.installed %} href="{{ base }}/v/{{ v.slug }}/packages/{{ p.source_id }}/{{ kind }}/{{ p.pkg_id }}"{% endif %}>
+    <span class="pk-head"><span class="mi-ic c{{ loop.index0 % 4 + 1 }} pk-ic">{{ icon(p.icon or ('plug' if kind == 'plugin' else 'puzzle'), 26) }}</span>
+      <span class="pk-t"><b>{{ p.name }}</b><small class="pk-src">{{ p.source_name }}{% if p.version %} · v{{ p.version }}{% endif %}</small></span></span>
+    {% if p.description %}<span class="pk-d">{{ p.description }}</span>{% endif %}
+    <span class="pk-foot">{% if p.installed %}<span class="badge ok">{{ icon('check', 12) }} {{ _('pk.installed') }}</span>{% else %}<span class="badge">{{ icon('download', 12) }} {{ _('addon.install') }}</span>{% endif %}</span>
+  </{{ 'div' if p.installed else 'a' }}>
+  {% endfor %}
+</div>
+<div class="actions pk-actions">
+  <form method="post" enctype="multipart/form-data" action="{{ base }}/v/{{ v.slug }}/integrations/upload" class="inline">
+    <label class="button pk-btn">{{ icon('plus', 18) }}<span>{{ _('pk.upload_t') }}</span><input type="file" name="package" accept=".zip,.json,application/json,application/zip" required data-autosubmit class="pk-file"></label>
+  </form>
+  <a class="button pk-btn" href="{{ base }}/v/{{ v.slug }}/{{ kind }}s/sources">{{ icon('download', 18) }}<span>{{ _('pk.source_t') }}</span></a>
+</div>
+{% if not available %}<p class="hint">{{ _('addon.available_unknown') }}</p>{% endif %}
+<p class="hint">{{ _('addon.available_help') }} <a href="https://github.com/Matze89x/ha-car-assistant/blob/main/docs/plugins.md" target="_blank" rel="noopener noreferrer">docs/plugins.md</a></p>

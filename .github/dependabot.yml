@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /carassistant
+    schedule: {interval: weekly}
+    labels: [dependencies]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: monthly}
+    labels: [dependencies]

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{% set cat_icon = {'manual': 'book-open-page', 'invoice': 'file-document-outline', 'insurance': 'shield', 'registration': 'card-text-outline', 'inspection': 'shield-check', 'other': 'docs'} %}
+{% set cat_chip = {'manual': 'c4', 'invoice': 'c3', 'insurance': 'c1', 'registration': 'c2', 'inspection': 'c7', 'other': 'c5'} %}
+{% call page_head('docs', _('tab.docs')) %}<form method="post" enctype="multipart/form-data" action="{{ base }}/v/{{ v.slug }}/docs" class="up-form"><label class="button primary" title="{{ _('docs.upload') }}" aria-label="{{ _('docs.upload') }}">{{ icon('upload', 18) }}<span class="lbl">{{ _('docs.upload') }}</span><input type="file" name="file" required hidden data-send accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.txt,.csv"></label></form>{% endcall %}
+<p class="hint">{{ _('docs.hint') }}</p>
+{% if docs %}
+<section class="card doc-card">
+  <ul class="doc-list" id="doclist">
+  {% for d in docs %}
+    {% set kb = (d.size or 0) / 1024 %}
+    <li class="doc-row">
+      <span class="mi-ic {{ cat_chip.get(d.category, 'c5') }}">{{ icon(cat_icon.get(d.category, 'docs'), 19) }}</span>
+      <a class="doc-t" href="{{ base }}/v/{{ v.slug }}/docs/{{ d.id }}"><b>{{ d.title }}</b><small>{{ _('doccat.' ~ d.category) }} · {{ fdate(d.created_at) }} · {{ (fnum(kb / 1024, 1) ~ ' MB') if kb >= 1024 else (fnum(kb) ~ ' KB') }}</small></a>
+      <form method="post" action="{{ base }}/v/{{ v.id }}/docs/{{ d.id }}/delete" class="eq-x" data-confirm="{{ _('confirm.delete') }}"><button class="eq-i" aria-label="{{ _('btn.delete') }}">{{ icon('delete-outline', 18) }}</button></form>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% with pager_url=base ~ '/v/' ~ v.slug ~ '/docs', pager_into='#doclist' %}{% include "_pager.html" %}{% endwith %}
+{% else %}<div class="card empty-state">{{ icon('docs', 36) }}<p>{{ _('docs.empty') }}</p></div>{% endif %}
+{% endblock %}

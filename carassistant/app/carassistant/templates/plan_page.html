@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{% set pu = base ~ '/v/' ~ v.slug ~ '/reminders/' ~ mod.addon_id ~ '/' ~ page.reminder ~ '/plan' %}
+{{ page_head(mod.icon, page.title) }}
+{% if not rs %}
+<div class="card empty-state">{{ icon(mod.icon, 36) }}<p>{{ _('plan.off') }}</p></div>
+{% else %}
+{% set pl = rs.plan %}
+<section class="card pl-next {{ 'due' if rs.due }}">
+  <div class="pl-top"><i>{{ _('plan.next') }}</i><span class="badge {{ 'ok' if pl.on else '' }}">{{ _('plan.reminder_on') if pl.on else _('plan.reminder_off') }}</span></div>
+  <b class="pl-name">{{ rs.title }}</b>
+  <div class="pl-steps">{% for st in pl.steps %}<div class="pl-step {{ 'on' if loop.index0 == pl.current }} {{ 'dose' if st.dose }}"><b>{{ loop.index }}</b><small>{{ st.label if st.dose else _('plan.clean') }}</small></div>{% endfor %}</div>
+  <p class="hint">{{ _('plan.hint') }}</p>
+  {% if addon %}<a class="ghost-btn small pl-settings" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/settings">{{ icon('settings', 16) }}<span>{{ _('plan.settings') }}</span></a>{% endif %}
+</section>
+
+<section class="card pl-fix">
+  <div class="vd-group-h">{{ _('plan.fix') }}</div>
+  <form method="post" action="{{ pu }}" class="pl-fixrow">
+    <select name="step" aria-label="{{ _('plan.fix') }}">{% for st in pl.steps %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == pl.current }}>{{ _('plan.refuel_n', n=loop.index) }}: {{ st.label if st.dose else _('plan.clean') }}{% if st.amount %} ({{ st.amount }}){% endif %}</option>{% endfor %}</select>
+    <button class="ghost-btn small">{{ _('plan.set') }}</button></form>
+  <form method="post" action="{{ pu }}"><input type="hidden" name="advance" value="1"><button class="ghost-btn small">{{ icon('chevron-right', 16) }}<span>{{ _('plan.advance') }}</span></button></form>
+  <p class="hint">{{ _('plan.fix_hint') }}</p>
+</section>
+
+<div class="vd-group-h eq-head">{{ _('plan.history') }} <span class="eq-total">{{ pl.hist|length }}</span></div>
+{% if pl.hist %}
+<div class="card pl-hist">
+  {% for h in pl.hist %}
+  <div class="pl-h">
+    <div class="pl-d"><b>{{ fdate(h.date) }}</b><small>{{ _('plan.refuel') }}</small></div>
+    <div class="pl-t">{% if h.dose %}{{ h.label }}{% if h.amount %} ({{ h.amount }}){% endif %}{% if h.filled %} · <span class="pl-yes">{{ _('plan.added') }}</span>{% else %} · <span class="pl-no">{{ _('plan.not_added') }}</span>{% endif %}{% else %}{{ _('plan.clean') }}{% endif %}</div>
+    {% if h.dose %}<form method="post" action="{{ pu }}" class="pl-mark"><input type="hidden" name="mark" value="{{ loop.index0 }}"><input type="hidden" name="filled" value="{{ 0 if h.filled else 1 }}"><button class="ghost-btn small">{{ _('plan.mark_not') if h.filled else _('plan.mark_yes') }}</button></form>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}<p class="hint">{{ _('plan.no_history') }}</p>{% endif %}
+{% endif %}
+{% endblock %}

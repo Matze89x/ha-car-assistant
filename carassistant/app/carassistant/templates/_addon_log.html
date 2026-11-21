@@ -1,0 +1,32 @@
+{% from "_macros.html" import icon with context %}
+
+<section class="tp-sec">
+  <div class="vd-group-h eq-head">{{ _('dbg.log') }} <span class="eq-total">{{ lines|length }}</span></div>
+  <div class="card ad-log">
+    <div class="ad-row"><div class="ad-t"><b>{{ _('addon.debug_on') if debug_on else _('addon.debug') }}</b><small>{{ _('dbg.state_on') if debug_on else _('dbg.state_off') }}</small></div>
+      <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/debug"><input type="hidden" name="on" value="{{ 0 if debug_on else 1 }}"><button class="ghost-btn small" aria-pressed="{{ 'true' if debug_on else 'false' }}">{{ icon('bug', 16) }}<span>{{ _('dbg.turn_off') if debug_on else _('dbg.turn_on') }}</span></button></form></div>
+    {% if lines %}
+    <div class="dbg-log">
+      {% for l in lines %}<div class="dbg-line lv-{{ l.level }}"><span class="dbg-ts">{{ l.ts[5:10] }} {{ l.ts[11:19] if l.ts|length > 18 else l.ts }}</span><span class="dbg-lv">{{ l.level }}</span><span class="dbg-msg">{{ l.message }}</span></div>{% endfor %}
+    </div>
+    <p class="hint">{{ _('dbg.keep', n=keep) }}</p>
+    {% else %}<p class="hint">{{ _('dbg.empty') }}</p>{% endif %}
+  </div>
+</section>
+
+<section class="tp-sec">
+  <details class="eq">
+    <summary><span class="mi-ic c4">{{ icon('swap-vertical', 19) }}</span><span class="eq-t">{{ _('dbg.traffic') }}</span><span class="eq-n">{{ traffic|length }}</span>{{ icon('chevron-down', 18) }}</summary>
+    <div class="tp-tools">
+      <p class="hint">{{ _('dbg.traffic_hint') }}</p>
+      {% if traffic %}<div class="dbg-log">
+        {% for t in traffic %}<div class="dbg-line {{ 'lv-error' if t.status >= 400 else '' }}"><span class="dbg-ts">{{ t.ts[11:19] }}</span><span class="dbg-lv">{{ _('dbg.kind_car') if t.kind == 'car' else _('dbg.kind_api') }}</span><span class="dbg-lv">{{ t.status }}</span><span class="dbg-msg">{{ t.method }} {{ t.path }}{% if t.detail %} · {{ t.detail }}{% endif %}</span></div>{% endfor %}
+      </div>{% else %}<p class="hint">{{ _('dbg.traffic_empty') }}</p>{% endif %}
+    </div>
+  </details>
+</section>
+
+{% if lines or traffic %}
+<form method="post" action="{{ base }}/v/{{ v.slug }}/debug/clear" class="ad-clear" data-confirm="{{ _('dbg.confirm_clear') }}"><input type="hidden" name="plugin" value="{{ addon.addon_id }}">
+  <button class="ghost-btn small warn">{{ icon('delete-outline', 16) }}<span>{{ _('dbg.clear') }}</span></button></form>
+{% endif %}

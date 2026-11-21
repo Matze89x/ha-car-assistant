@@ -1,0 +1,28 @@
+/* Car Assistant - kit for pages a package shows inside the app (kind "frame", docs/plugins.md).
+   Served together with the design variables of the car (frame-kit.css?theme=...). Link it in your page and use the classes below -
+   cards, buttons, fields, chips, headings - and your page looks like the rest of the app in every design (classic red, dark / light / day-night with your colour, your own).
+   Only variables of the design are used, no colour of its own. */
+@font-face { font-family: "Space Grotesk"; src: url(static/fonts/space-grotesk-variable.woff2) format("woff2"); font-weight: 300 700; font-display: swap; }
+@font-face { font-family: "Space Mono"; src: url(static/fonts/space-mono-regular.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Space Mono"; src: url(static/fonts/space-mono-bold.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+*, *::before, *::after { box-sizing: border-box; }
+html { color-scheme: inherit; }
+body { margin: 0; padding: 14px; background: transparent; color: var(--text); font: 15px/1.5 "Space Grotesk", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { margin: 0 0 10px; line-height: 1.25; color: var(--strong, var(--text)); } h1 { font-size: 24px; } h2 { font-size: 18px; } h3 { font-size: 15px; }
+p { margin: 0 0 12px; } a { color: var(--accent-hi, var(--accent)); } code, .mono { font-family: "Space Mono", ui-monospace, monospace; font-size: .92em; }
+.muted, small { color: var(--muted); } .hint { color: var(--muted); font-size: 14px; }
+.card { position: relative; background: var(--glass); border: 1px solid var(--glass-b); border-radius: var(--r-l, 16px); padding: 18px; margin: 0 0 14px; }
+.grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); } @media (min-width: 700px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+input, select, textarea { width: 100%; min-height: 48px; padding: 10px 14px; background: rgba(var(--fg-rgb), .06); border: 1px solid var(--glass-b); border-radius: var(--r-s, 8px); color: var(--text); font: inherit; font-size: 16px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button, .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 22px; border-radius: var(--r-m, 12px); border: 1px solid var(--btn-edge, var(--glass-b)); background: linear-gradient(180deg, rgba(var(--fg-rgb), .11), rgba(var(--fg-rgb), .05)); box-shadow: 0 1px 0 var(--btn-hi, transparent) inset; color: var(--text); font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
+button:hover, .button:hover { background: linear-gradient(180deg, rgba(var(--fg-rgb), .16), rgba(var(--fg-rgb), .08)); }
+button.small, .button.small { min-height: 36px; padding: 0 14px; font-size: 13px; border-radius: var(--r-s, 8px); }
+button.primary, .button.primary { color: var(--accent-text, #fff); border-color: rgba(var(--accent-rgb), .85); background: linear-gradient(180deg, rgba(var(--accent-rgb), .92), rgba(var(--accent-rgb), .74)); }
+button.danger, .button.danger { color: var(--overdue); border-color: rgba(var(--overdue-rgb), .5); background: rgba(var(--overdue-rgb), .06); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.actions { display: flex; gap: 8px; flex-wrap: nowrap; justify-content: flex-end; margin-top: 14px; }
+.chip, .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: var(--glass2, rgba(var(--fg-rgb), .06)); border: 1px solid var(--glass-b); font-size: 12px; font-weight: 600; color: var(--muted); }
+.badge.ok { color: var(--ok); border-color: rgba(var(--ok-rgb), .4); } .badge.soon { color: var(--soon); border-color: rgba(var(--soon-rgb), .4); } .badge.overdue { color: var(--overdue); border-color: rgba(var(--overdue-rgb), .4); }
+table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--glass-b); } th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }

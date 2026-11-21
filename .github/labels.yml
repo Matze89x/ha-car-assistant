@@ -1,0 +1,14 @@
+- {name: bug, color: d73a4a, description: Something does not work / Etwas funktioniert nicht}
+- {name: enhancement, color: a2eeef, description: A new idea or an improvement / Eine Idee oder Verbesserung}
+- {name: documentation, color: 0075ca, description: Docs and screenshots / Doku und Screenshots}
+- {name: translation, color: 5319e7, description: A language or a text / Eine Sprache oder ein Text}
+- {name: needs-triage, color: fbca04, description: Not looked at yet / Noch nicht angesehen}
+- {name: needs-info, color: d4c5f9, description: More information needed / Rückfrage offen}
+- {name: needs-decision, color: e99695, description: To be decided together / Gemeinsam zu entscheiden}
+- {name: accepted, color: 0e8a16, description: Will go into a version / Kommt in eine Version}
+- {name: wontfix, color: ffffff, description: Will not be done / Wird nicht gemacht}
+- {name: good first issue, color: 7057ff, description: Good for a first contribution / Gut für den Einstieg}
+- {name: help wanted, color: 008672, description: Help is welcome / Hilfe willkommen}
+- {name: ai-assisted, color: bfdadc, description: Made with an AI assistant / Mit KI-Assistent erstellt}
+- {name: dependencies, color: 0366d6, description: Library updates / Bibliotheks-Updates}
+- {name: skip-changelog, color: eeeeee, description: Left out of the release notes / Nicht in den Release-Notizen}

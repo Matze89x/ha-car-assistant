@@ -1,0 +1,45 @@
+{% from "_macros.html" import icon with context %}
+{% with s = stn %}
+<section class="{{ 'tp-tools stn-card' if inline else 'card stn-card' }}" id="stations{{ '-body' if inline else '' }}">
+  {% if not inline %}<h2>{{ icon('pin', 20) }} {{ _('stn.title') }}</h2>{% endif %}
+  <form method="get" action="{{ vurl }}" class="grid" id="stform" data-no-car="{{ _('stations.no_car_pos') }}" data-denied="{{ _('stations.geo_denied') }}">
+    <input type="hidden" name="go" value="1">
+    <input type="hidden" name="lat" id="st-lat" value="{{ request.query_params.get('lat', '') }}">
+    <input type="hidden" name="lon" id="st-lon" value="{{ request.query_params.get('lon', '') }}">
+    <div class="wide st-origin">
+      <button type="submit" class="{{ 'primary' if s.where == 'car' and s.searched else '' }}" id="st-car" {{ 'disabled' if not s.car_pos }}>{{ icon('car', 16) }} {{ _('stations.around_car', car=v.name) }}</button>
+      <button type="button" class="{{ 'primary' if s.where == 'me' else '' }}" id="st-me">{{ icon('pin', 16) }} {{ _('stations.around_me') }}</button>
+    </div>
+    {% if not s.car_pos %}<p class="hint wide">{{ _('stations.no_car_pos') }}</p>{% endif %}
+    <details class="wide rec-edit stn-opts" {{ 'open' if s.searched }}>
+      <summary>{{ icon('settings', 16) }} {{ _('stn.filter') }}</summary>
+      <div class="grid">
+    <label>{{ _('stations.fuel') }}
+      <select name="fuel">{% for f in ['e5', 'e10', 'diesel'] %}<option value="{{ f }}" {{ 'selected' if s.fuel == f }}>{{ f|upper }}</option>{% endfor %}</select></label>
+    <label>{{ _('stations.radius') }} ({{ units.dist_unit }})<input name="radius" type="number" min="1" max="25" step="1" value="{{ s.radius|int }}"></label>
+    <label>{{ _('stations.sort') }}
+      <select name="sort"><option value="price" {{ 'selected' if s.sort == 'price' }}>{{ _('stations.sort_price') }}</option><option value="distance" {{ 'selected' if s.sort == 'distance' }}>{{ _('stations.sort_distance') }}</option></select></label>
+    <label>{{ _('stations.source') }}
+      <select name="source"><option value="tankerkoenig" {{ 'selected' if s.source == 'tankerkoenig' }}>Tankerkönig (DE)</option><option value="osm" {{ 'selected' if s.source == 'osm' }}>OpenStreetMap</option></select></label>
+      </div>
+    </details>
+  </form>
+  <div class="flash err" id="st-msg" hidden></div>
+  {% if s.error %}<div class="flash err">{{ _(s.error) }}</div>{% endif %}
+  {% if s.searched and not s.error %}
+    {% if s.results %}
+    <div class="stn-list">
+      {% for r in s.results %}
+      <a class="stn" href="https://www.openstreetmap.org/?mlat={{ r.lat }}&amp;mlon={{ r.lon }}#map=17/{{ r.lat }}/{{ r.lon }}" target="_blank" rel="noopener noreferrer">
+        <span class="stn-t"><b>{{ r.name }}</b><small>{{ r.address }}{% if r.address %} · {% endif %}{{ fnum(units.d(r.distance_km), 1) }} {{ units.dist_unit }}</small></span>
+        {% if s.source == 'tankerkoenig' %}<span class="stn-p">{% if r.is_open is not none %}<span class="badge {{ 'ok' if r.is_open else 'overdue' }}">{{ _('stations.open') if r.is_open else _('stations.closed') }}</span>{% endif %}<b>{{ fnum(r.price, 3) if r.price else '–' }}</b><small>{{ units.cur }}</small></span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}<p class="muted">{{ _('stations.none') }}</p>{% endif %}
+    <p class="hint">{{ _('stations.attr_tk') if s.source == 'tankerkoenig' else _('stations.attr_osm') }}</p>
+  {% elif not s.searched %}
+    <p class="hint">{{ _('stations.intro') }}{% if not s.has_key %} {{ _('stations.no_key_hint') }}{% endif %}</p>
+  {% endif %}
+</section>
+{% endwith %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head, steps, form_bar, step_nav with context %}
+{% block scripts %}<script src="{{ base }}/static/media.js?v={{ version }}" defer></script>{% if google_help %}<script src="{{ base }}/static/lookup.js?v={{ version }}" defer></script>{% endif %}{% endblock %}
+{% block content %}
+{% set fuel_icon = {'petrol': 'gas-station', 'diesel': 'oil', 'lpg': 'water-percent', 'cng': 'fuel', 'hybrid': 'sync', 'electric': 'lightning-bolt'} %}
+{% macro fgroup(ic, chip, title, hint='', open=False, key='') %}
+<details class="card fgroup" {{ 'open' if open or (key and open_group == key) }}>
+  <summary><span class="mi-ic {{ chip }}">{{ icon(ic, 17) }}</span><span class="fg-t">{{ title }}{% if hint %}<small>{{ hint }}</small>{% endif %}</span>{{ icon('chevron-down', 20) }}</summary>
+  <div class="grid">{{ caller() }}</div>
+</details>
+{% endmacro %}
+{% if setup_flow %}{{ steps(2) }}{% endif %}
+{% call page_head('edit' if vehicle else 'plus', _('vd.title') if vehicle else _('vehicle.add')) %}{% if vehicle %}<button class="button primary" form="vform" title="{{ _('btn.save') }}" aria-label="{{ _('btn.save') }}">{{ icon('check', 18) }}<span class="lbl">{{ _('btn.save') }}</span></button>{% endif %}{% endcall %}
+{% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
+{% set editing = vehicle is not none %}
+{% set keep_open = error is not none %}  {# groups stay closed; only a failed save opens them so the error is visible #}
+
+{% if not editing %}
+<section class="vf-hero">
+  <img src="{{ base }}/static/car-default.webp?v={{ version }}" alt="">
+  <div><h2>{{ _('vf.hero_title') }}</h2><p>{{ _('vf.hero_text') }}</p></div>
+</section>
+{% if demo_offered %}<form method="post" action="{{ base }}/vehicles/demo" class="card vf-demo">
+  <span class="mi-ic c3">{{ icon('flask', 17) }}</span>
+  <div><b>{{ _('vf.demo_title') }}</b><p class="muted">{{ _('vf.demo_text') }}</p></div>
+  <div class="vf-demo-btns"><button type="submit" name="kind" value="combustion" class="small">{{ icon('gas-station', 15) }} {{ _('vf.demo_btn') }}</button><button type="submit" name="kind" value="electric" class="small">{{ icon('plug', 15) }} {{ _('vf.demo_btn_ev') }}</button></div>
+</form>{% endif %}
+{% if source_vehicles %}
+<section class="card" id="vsource">
+  <h2>{{ icon('download', 20) }} {{ _('vb.from_sources') }}</h2>
+  <div class="pkg-list">
+    {% for p in source_vehicles %}
+    <form method="post" action="{{ base }}/vehicles/from-source/{{ p.source_id }}/{{ p.pkg_id }}" class="pkg-form">
+      <span class="mi-ic c3">{{ icon('car', 18) }}</span>
+      <span class="pkg-t"><b>{{ p.name }}</b>{% if p.description %}<small>{{ p.description }}</small>{% endif %}</span>
+      <button class="small">{{ _('vb.restore_btn') }}</button>
+    </form>
+    {% endfor %}
+  </div>
+  <p class="hint">{{ _('vb.from_sources_hint') }}</p>
+</section>
+{% endif %}
+<details class="card add-card" id="vrestore">
+  <summary><span class="add-ic">{{ icon('download', 18) }}</span><span>{{ _('vb.restore') }}</span></summary>
+  <form method="post" enctype="multipart/form-data" action="{{ base }}/vehicles/restore" class="grid">
+    <label class="wide">{{ _('vb.file') }}<input type="file" name="backup" accept=".zip,application/zip" required></label>
+    <div class="wide">{{ form_bar(label=_('vb.restore_btn')) }}</div>
+  </form>
+  <p class="hint">{{ _('vb.restore_hint') }}</p>
+</details>
+{% endif %}
+
+
+<form method="post" enctype="multipart/form-data" action="{{ base }}{{ '/v/' ~ vehicle.id ~ '/edit' if vehicle else '/vehicles' }}" id="vform">{% if not vehicle %}<input type="hidden" name="recommended" value="1">{% endif %}</form>
+<div class="vform">
+  <section class="card fgroup basics">
+    <div class="fg-head"><span class="mi-ic c1">{{ icon('car-side', 17) }}</span><span class="fg-t">{{ _('vf.basics') }}</span></div>
+    <div class="grid">
+      <label class="wide vf-name">{{ _('f.name') }} *<input form="vform" name="name" required maxlength="80" value="{{ form.get('name') or '' }}" placeholder="{{ _('vf.ph_name') }}" autofocus></label>
+      <label>{{ _('f.plate') }}<input form="vform" name="plate" class="mono" placeholder="AB-CD 123" value="{{ form.get('plate') or '' }}"></label>
+      {% if not setup_flow %}<label>{{ _('f.year') }}<input form="vform" name="year" inputmode="numeric" maxlength="4" placeholder="2020" value="{{ form.get('year') or '' }}"></label>
+      <label>{{ _('f.make') }}<input form="vform" name="make" value="{{ form.get('make') or '' }}"></label>
+      <label>{{ _('f.model') }}<input form="vform" name="model" value="{{ form.get('model') or '' }}"></label>{% endif %}
+    </div>
+    <div class="tf-field vf-fuel"><span class="tf-l">{{ _('f.fuel_type') }}</span>
+      <div class="season-pick fuel-pick">
+        {% set cur_fuel = form.get('fuel_type') or 'petrol' %}
+        {% for ft in fuel_types %}
+        <label class="sp"><input form="vform" type="radio" name="fuel_type" value="{{ ft }}" {{ 'checked' if cur_fuel == ft }}><span>{{ icon(fuel_icon.get(ft, 'gas-station'), 22) }}<b>{{ _('fuel_type.' ~ ft) }}</b></span></label>
+        {% endfor %}
+      </div>
+    </div>
+    {% if not editing %}<div class="grid">
+      <label>{{ _('f.odometer') }} ({{ units.dist_unit }})<input form="vform" name="odometer" inputmode="numeric" class="mono" placeholder="85000" value="{{ form.get('odometer') or '' }}"></label>
+      {% if not setup_flow %}<label class="photo-drop">{{ icon('camera', 22) }}<span>{{ _('f.photo') }}</span><input form="vform" type="file" name="photo" accept="image/jpeg,image/png,image/webp"></label>{% endif %}
+    </div>{% endif %}
+  </section>
+
+  {% if not editing %}<p class="vf-more">{{ _('vf.more') }}</p>{% endif %}
+
+  {% call fgroup('information-outline', 'c5', _('vf.group_ident'), '', keep_open, 'ident') %}
+    <label>{{ _('f.variant') }}<input form="vform" name="variant" value="{{ form.get('variant') or '' }}"></label>
+    <label>{{ _('f.build_date') }}<input form="vform" type="date" name="build_date" value="{{ form.get('build_date') or '' }}"></label>
+    <label class="wide">{{ _('f.first_reg') }}<input form="vform" type="date" name="first_reg" value="{{ form.get('first_reg') or '' }}"><small class="muted">{{ _('f.first_reg_hint') }}</small></label>
+    <label>{{ _('f.model_type') }}<input form="vform" name="model_type" placeholder="1A" maxlength="200" value="{{ form.get('model_type') or '' }}"></label>
+    <label>{{ _('f.hsn') }}<input form="vform" name="hsn" class="mono" placeholder="1234" maxlength="200" value="{{ form.get('hsn') or '' }}"></label>
+    <label>{{ _('f.tsn') }}<input form="vform" name="tsn" class="mono" placeholder="ABC" maxlength="200" value="{{ form.get('tsn') or '' }}"></label>
+    <label>{{ _('f.vin') }}<input form="vform" name="vin" class="mono" maxlength="20" value="{{ form.get('vin') or '' }}"><small class="muted">{{ _('vin.hint') }}</small></label>
+  {% endcall %}
+
+  {% call fgroup('engine', 'c3', _('vd.group_tech'), '', keep_open, 'tech') %}
+    <label class="wide">{{ _('f.engine') }}<input form="vform" name="engine" placeholder="2.0 diesel" maxlength="200" value="{{ form.get('engine') or '' }}"></label>
+    <label>{{ _('f.power_kw') }}<input form="vform" name="power_kw" inputmode="numeric" maxlength="4" value="{{ form.get('power_kw') or '' }}"></label>
+    <label>{{ _('f.displacement') }}<input form="vform" name="displacement_ccm" inputmode="numeric" maxlength="5" value="{{ form.get('displacement_ccm') or '' }}"></label>
+    <label>{{ _('f.engine_code') }}<input form="vform" name="engine_code" class="mono" placeholder="ABC" maxlength="200" value="{{ form.get('engine_code') or '' }}"></label>
+    <label>{{ _('f.gearbox_code') }}<input form="vform" name="gearbox_code" class="mono" placeholder="XYZ" maxlength="200" value="{{ form.get('gearbox_code') or '' }}"></label>
+    <label>{{ _('f.drivetrain') }}<select form="vform" name="drivetrain"><option value="">–</option>{% for o in drivetrains %}<option value="{{ o }}" {{ 'selected' if form.get('drivetrain') == o }}>{{ _('drivetrain.' ~ o) }}</option>{% endfor %}</select></label>
+    <label>{{ _('f.transmission') }}<select form="vform" name="transmission"><option value="">–</option>{% for o in transmissions %}<option value="{{ o }}" {{ 'selected' if form.get('transmission') == o }}>{{ _('transmission.' ~ o) }}</option>{% endfor %}</select></label>
+    <label>{{ _('f.seats') }}<input form="vform" name="seats" inputmode="numeric" maxlength="2" value="{{ form.get('seats') if form.get('seats') is not none else '' }}"></label>
+    <label>{{ _('f.gross_weight_kg') }}<input form="vform" name="gross_weight_kg" inputmode="numeric" maxlength="5" value="{{ form.get('gross_weight_kg') if form.get('gross_weight_kg') is not none else '' }}"></label>
+    <label>{{ _('f.oil_spec') }}<input form="vform" name="oil_spec" placeholder="5W-30 504 00" maxlength="200" value="{{ form.get('oil_spec') or '' }}"></label>
+    <label>{{ _('f.oil_l') }}<input form="vform" name="oil_l" inputmode="decimal" placeholder="4.5" value="{{ form.get('oil_l') if form.get('oil_l') is not none else '' }}"></label>
+    <label class="wide">{{ _('f.body_type') }}<select form="vform" name="body_type"><option value="">–</option>{% for o in body_types %}<option value="{{ o }}" {{ 'selected' if form.get('body_type') == o }}>{{ _('body_type.' ~ o) }}</option>{% endfor %}</select></label>
+  {% endcall %}
+
+  {% call fgroup('gas-station', 'c2', _('vd.group_energy'), '', keep_open, 'energy') %}
+    <label>{{ _('f.tank') }}<input form="vform" name="tank_l" inputmode="decimal" value="{{ form.get('tank_l') if form.get('tank_l') is not none else '' }}"></label>
+    <label>{{ _('f.battery_kwh') }}<input form="vform" name="battery_kwh" inputmode="decimal" value="{{ form.get('battery_kwh') if form.get('battery_kwh') is not none else '' }}"></label>
+    <label class="wide">{{ _('f.battery') }}<input form="vform" name="battery" placeholder="AGM 70 Ah (10/2022)" maxlength="200" value="{{ form.get('battery') or '' }}"></label>
+    <div class="tf-field wide"><span class="tf-l">{{ _('f.energy_mode') }}</span>
+      <div class="season-pick">
+        {% set cur_mode = form.get('energy_mode') or '' %}
+        {% for key, ic in (('', 'sync'), ('fuel', 'gas-station'), ('charge', 'plug')) %}
+        <label class="sp"><input form="vform" type="radio" name="energy_mode" value="{{ key }}" {{ 'checked' if cur_mode == key }}><span>{{ icon(ic, 22) }}<b>{{ _('energy.' ~ (key or 'auto')) }}</b></span></label>
+        {% endfor %}
+      </div>
+      <p class="hint">{{ _('energy.hint') }}</p>
+    </div>
+    <div class="tf-field wide"><span class="tf-l">{{ _('energy.levels') }}</span></div>
+    <label>{{ _('f.warn_pct') }}<input form="vform" name="warn_pct" inputmode="numeric" placeholder="25" value="{{ form.get('warn_pct') if form.get('warn_pct') is not none else '' }}"></label>
+    <label>{{ _('f.crit_pct') }}<input form="vform" name="crit_pct" inputmode="numeric" placeholder="10" value="{{ form.get('crit_pct') if form.get('crit_pct') is not none else '' }}"></label>
+    <label>{{ _('f.warn_range_km') }} ({{ units.dist_unit }})<input form="vform" name="warn_range_km" inputmode="numeric" value="{{ form.get('warn_range_km') if form.get('warn_range_km') is not none else '' }}"></label>
+    <label>{{ _('f.crit_range_km') }} ({{ units.dist_unit }})<input form="vform" name="crit_range_km" inputmode="numeric" value="{{ form.get('crit_range_km') if form.get('crit_range_km') is not none else '' }}"></label>
+    <p class="hint wide">{{ _('energy.levels_hint') }}</p>
+  {% endcall %}
+
+
+  {% call fgroup('card-text-outline', 'c6', _('vd.group_papers'), '', keep_open, 'papers') %}
+    <label>{{ _('f.color') }}<input form="vform" name="color" value="{{ form.get('color') or '' }}"></label>
+    <label>{{ _('f.paint_code') }}<input form="vform" name="paint_code" class="mono" placeholder="A1B2" maxlength="200" value="{{ form.get('paint_code') or '' }}"></label>
+    <label class="wide">{{ _('f.key_numbers') }}<textarea form="vform" name="key_numbers" rows="2" maxlength="2000">{{ form.get('key_numbers') or '' }}</textarea></label>
+    <label class="wide">{{ _('f.notes') }}<textarea form="vform" name="notes" rows="4">{{ form.get('notes') or '' }}</textarea></label>
+  {% endcall %}
+
+  {% if not editing %}{{ step_nav(_('vf.save'), back=('/setup/language' if setup_flow else none), form_id='vform', next_icon=('chevron' if setup_flow else 'check')) }}{% endif %}
+</div>
+
+{% endblock %}

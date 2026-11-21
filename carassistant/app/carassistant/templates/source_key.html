@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{{ page_head('lock', source.name) }}
+<section class="card">
+  <h2>{{ icon('lock', 20) }} {{ _('src.key_change') }}</h2>
+  <form method="post" action="{{ base }}/sources/{{ source.id }}/token" class="grid">
+    <input type="hidden" name="kind" value="{{ kind }}"><input type="hidden" name="vid" value="{{ v.id }}">
+    <label class="wide">{{ _('src.token') }}<input type="password" name="token" maxlength="255" autocomplete="off" placeholder="{{ '••••••' if has_token }}"></label>
+    <div class="wide form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button>{% if has_token %}<button class="danger" name="remove" value="1">{{ icon('delete', 18) }}<span>{{ _('src.key_remove') }}</span></button>{% endif %}</div>
+  </form>
+  <p class="hint">{{ _('src.token_hint') }}</p>
+</section>
+{% endblock %}

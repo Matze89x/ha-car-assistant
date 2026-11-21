@@ -1,0 +1,30 @@
+{% from "_macros.html" import icon with context %}
+{% for g in groups %}
+<section class="mgroup-wrap">
+  <div class="mg-head"><h2>{{ g.title }}</h2>{% if g.add %}<a class="mg-add" href="{{ base }}{{ g.add }}" aria-label="{{ _('btn.add') }}">{{ icon('plus', 16) }}</a>{% endif %}</div>
+  {% if g['items'] or g.current %}
+  <div class="mgroup{{ ' with-cur' if g.current }}">
+    {% if g.current %}
+    <div class="cur-top">
+      <form method="post" enctype="multipart/form-data" action="{{ base }}{{ g.current.icon_up }}" data-autosubmit class="cur-icon-form"><input type="hidden" name="back" value="{{ g.current.back }}">
+        <label class="cur-icon"><img src="{{ base }}{{ g.current.icon_url }}" alt="" width="60" height="60"><input type="file" name="icon" accept="image/png,image/jpeg,image/webp,image/gif" hidden required aria-label="{{ _('settings.icon_upload') }}"></label></form>
+      <a class="cur-txt {{ 'sel' if more_cur and more_cur == g.current.href }}" href="{{ base }}{{ g.current.href }}"><strong class="cur-name">{{ g.current.name }}</strong><span class="cur-pass">{{ g.current.title }}{{ icon('chevron', 16) }}</span></a>
+      {% if g.current.can_switch %}<button type="button" class="cur-switch" data-open="vsw" aria-label="{{ _('nav.change') }}">{{ icon('swap', 20) }}</button>{% endif %}
+    </div>
+    {% endif %}
+    {% for it in g['items'] %}
+    {% if it.open %}
+    <button type="button" class="mi" data-open="{{ it.open }}"><span class="mi-ic {{ it.chip }}">{{ icon(it.icon, 19) }}</span><span class="mi-t">{{ it.title }}</span>{{ icon('chevron', 20) }}</button>
+    {% else %}
+    <a class="mi {{ 'sel' if more_cur and (more_cur in it.get('paths', [it.href.split('#')[0]])) }}" href="{{ base }}{{ it.href }}">
+      <span class="mi-ic {{ it.chip }}">{{ icon(it.icon, 19) }}</span>
+      <span class="mi-t">{{ it.title }}</span>
+      {% if it.hint %}<span class="mi-v">{{ it.hint }}</span>{% endif %}
+      {{ icon('chevron', 20) }}
+    </a>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endfor %}

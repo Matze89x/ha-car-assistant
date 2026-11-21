@@ -1,0 +1,23 @@
+[project]
+name = "ha-car-assistant"
+version = "0.5.0"
+requires-python = ">=3.12"
+license = "GPL-3.0-only"
+
+[tool.ruff]
+line-length = 140
+target-version = "py312"
+src = ["carassistant/app", "tests"]
+extend-exclude = ["tools"]  # one-off image scripts, not part of the app
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S", "BLE", "SIM", "RUF"]
+ignore = ["S101", "S608", "RUF001", "RUF002", "RUF003", "E501", "BLE001"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "B011", "RUF012"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "carassistant/app"]
+filterwarnings = ["ignore::DeprecationWarning"]

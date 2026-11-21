@@ -1,0 +1,12 @@
+{% from "_macros.html" import icon with context %}
+{% set dp = {'id': 'theme', 'title': _('settings.theme'), 'hint': _('settings.theme_hint'), 'action': base ~ '/settings/theme', 'accent_save': base ~ '/settings/accent', 'current': theme, 'accent': accent, 'system_option': False} %}
+{% include "_design_picker.html" %}
+{% if not port_on %}<section class="card" id="haptics">
+  <h2>{{ icon('vibrate') }} {{ _('settings.haptics') }}</h2>
+  <form method="post" action="{{ base }}/settings/haptics" data-live>
+    <label class="check"><input type="checkbox" name="haptics" value="1" {{ 'checked' if haptics }}> {{ _('settings.haptics_on') }}</label>
+  </form>
+  <p class="hint">{{ _('settings.haptics_hint') }}</p>
+  {% if haptics %}<button type="button" class="ghost-btn small" data-haptic-test>{{ icon('vibrate', 16) }} {{ _('settings.haptics_test') }}</button>{% endif %}
+</section>
+{% endif %}

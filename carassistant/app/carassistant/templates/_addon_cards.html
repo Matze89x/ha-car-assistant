@@ -1,0 +1,54 @@
+{% from "_macros.html" import icon, del_form with context %}
+{% for a in rows %}
+{% set plugin = a.kind == 'plugin' %}
+<section class="card addon {{ 'missing' if a.missing else ('run' if a.active else 'idle') }}">
+  <div class="addon-head">
+    <span class="mi-ic c4">{{ icon(a.m.icon or ('plug' if plugin else 'puzzle'), 20) }}</span>
+    <div class="addon-t">
+      <h2>{{ a.m.name }}</h2>
+      <small>{{ _('addon.kind_plugin') if plugin else _('addon.kind_integration') }}{% if a.m.version %} · v{{ a.m.version }}{% endif %}{% if a.has_update %} <span class="badge soon">{{ _('addon.update_to', v=a.latest) }}</span>{% endif %}</small>
+      <small class="addon-src">{% if a.m.author %}{{ _('addon.by', name=a.m.author) }} · {% endif %}{{ _('addon.from_source', name=a.source_name) if a.source_name else (_('addon.from_url') if a.need and a.need.url else _('addon.from_upload')) }}</small>
+    </div>
+    {% if a.missing %}<span class="run-pill need"><i></i>{{ _('addon.needs') }}</span>
+    {% else %}<span class="run-pill {{ 'on' if a.active }}"><i></i>{{ (_('addon.running') if a.active else _('addon.stopped')) if plugin else (_('addon.on_state') if a.active else _('addon.off_state')) }}</span>{% endif %}
+  </div>
+  {% if a.m.description %}<p class="addon-d">{{ a.m.description }}</p>{% endif %}
+  {% if a.pkgfiles and not a.svc %}<p class="hint svc-line">{{ icon('download', 16) }} <b>{{ _('fil.title') }}: {{ a.pkgfiles.n }}</b>{% if a.pkgfiles.approved %} · {{ _('fil.state_ok') }} <a class="small" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/service">{{ _('svc.details') }}</a>{% else %} · {{ _('fil.state_wait') }} <a class="button small primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/service">{{ _('svc.review') }}</a>{% endif %}</p>{% endif %}
+  {% if a.svc %}<p class="hint svc-line">{{ icon('shield', 16) }} {% set SV = {'waiting': _('svc.state_waiting'), 'installing': _('svc.state_installing'), 'running': _('svc.state_running'), 'starting': _('svc.state_starting'), 'restarting': _('svc.state_restarting'), 'stopped': _('svc.state_stopped'), 'error': _('svc.state_error')} %}<b>{{ SV.get(a.svc.state, a.svc.state) }}</b>{% if a.svc.started and a.svc.state == 'running' %} · {{ _('svc.started', t=a.svc.started) }}{% endif %}{% if a.svc.error %} · {{ _(a.svc.error) }}{% endif %}
+    {% if not a.svc.approved %} <a class="button small primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/service">{{ _('svc.review') }}</a>{% else %} <a class="small" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/service">{{ _('svc.details') }}</a>{% endif %}</p>{% endif %}
+
+  {% if a.missing %}
+    <p class="hint">{{ _('addon.needs_text') }}</p>
+    {% if a.need.state == 'update_sources' %}<p class="flash err">{{ _('addon.need_update_sources', url=a.need.url) }}</p>
+    {% elif a.need.state == 'add_source' %}<p class="flash err">{{ _('addon.need_add_source', url=a.need.url) }}</p>
+    {% elif a.need.state == 'upload' %}<p class="flash err">{{ _('addon.need_upload') }}</p>{% endif %}
+    <div class="addon-actions">
+      {% if a.need.state == 'offer' %}
+        <form method="post" action="{{ base }}/v/{{ v.slug }}/packages/{{ a.need.source_id }}/{{ a.kind }}/{{ a.addon_id }}/install" class="inline"><button class="primary">{{ icon('download', 18) }}<span>{{ _('addon.install_from', name=a.need.source) }}</span></button></form>
+      {% elif a.need.state == 'update_sources' %}
+        <form method="post" action="{{ base }}/sources/refresh" class="inline"><input type="hidden" name="kind" value="{{ a.kind }}"><input type="hidden" name="vid" value="{{ v.id }}"><button>{{ icon('refresh', 18) }}<span>{{ _('src.refresh_all') }}</span></button></form>
+      {% elif a.need.state == 'add_source' %}
+        <a class="button" href="{{ base }}/v/{{ v.slug }}/{{ a.kind }}s/sources">{{ icon('plus', 18) }}<span>{{ _('src.add') }}</span></a>
+      {% endif %}
+      <button class="danger icon-lbl" form="adel-{{ a.id }}" aria-label="{{ _('addon.uninstall') }}" title="{{ _('addon.uninstall') }}">{{ icon('delete', 18) }}<span class="lbl2">{{ _('addon.uninstall') }}</span></button>
+    </div>
+  {% else %}
+    {% set in_bar = nav_order is defined and ('x-' ~ a.addon_id) in (nav_order[:4]|map('first')|list) %}
+    {# Three clear buttons with words (start/stop, settings, more); the one main action - open - on the right. Everything else lives under "More", each with a line of explanation. #}
+    <div class="addon-bar">
+      {% if a.active %}<button class="stop" form="aact-{{ a.id }}" name="active" value="0">{{ icon('stop', 18) }}<span>{{ _('addon.stop') if plugin else _('addon.turn_off') }}</span></button>
+      {% else %}<button class="go" form="aact-{{ a.id }}" name="active" value="1">{{ icon('play', 18) }}<span>{{ _('addon.start') if plugin else _('addon.turn_on') }}</span></button>{% endif %}
+      <a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/info">{{ icon('info', 18) }}<span>{{ _('info.title') }}</span></a>
+      {% if a.m.settings or plugin %}<a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/settings">{{ icon('settings', 18) }}<span>{{ _('addon.settings') }}</span></a>{% endif %}
+      {% if a.m.setup and a.status != 'configured' %}<a class="button primary push-right" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ _('addon.setup') }}</span></a>
+      {% elif a.has_update %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/update" class="push-right"><button class="primary">{{ icon('refresh', 18) }}<span>{{ _('addon.update') }}</span></button></form>
+      {% elif a.active and a.m.pages %}<a class="button primary push-right" href="{{ base }}/v/{{ v.slug }}/m/{{ a.addon_id }}">{{ icon('chevron', 18) }}<span>{{ _('addon.open') }}</span></a>{% endif %}
+    </div>
+    <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/active" id="aact-{{ a.id }}" hidden></form>
+
+      {% endif %}
+  {{ del_form('adel-' ~ a.id, base ~ '/v/' ~ v.slug ~ '/integrations/' ~ a.id ~ '/delete', 'addon.confirm_delete') }}
+</section>
+{% else %}
+<section class="card"><p class="hint">{{ empty }}</p></section>
+{% endfor %}

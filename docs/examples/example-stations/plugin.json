@@ -1,0 +1,26 @@
+{
+  "id": "example-stations",
+  "kind": "integration",
+  "name": "Stations",
+  "version": "1",
+  "description": "Example of an integration without code: a page with a list of stations. Car Assistant draws it and stores the entries per car.",
+  "author": "Matze89x",
+  "icon": "play-circle-outline",
+  "nav": true,
+  "l10n": { "de": { "name": "Sender", "description": "Beispiel einer Integration ohne Code: eine Seite mit einer Liste von Sendern." } },
+  "pages": [
+    {
+      "id": "list",
+      "title": "Stations",
+      "item": "Station",
+      "sortable": true,
+      "empty": "Nothing here yet.",
+      "l10n": { "de": { "title": "Sender", "item": "Sender", "empty": "Noch nichts hier." } },
+      "fields": [
+        { "key": "name", "label": "Name", "type": "text", "required": true, "role": "title", "l10n": { "de": { "label": "Name" } } },
+        { "key": "url", "label": "Stream", "type": "url", "required": true, "l10n": { "de": { "label": "Stream" } } },
+        { "key": "on", "label": "On", "type": "bool", "l10n": { "de": { "label": "An" } } }
+      ]
+    }
+  ]
+}

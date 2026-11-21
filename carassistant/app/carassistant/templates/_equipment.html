@@ -1,0 +1,56 @@
+{% from "_macros.html" import icon with context %}
+{% set GT = {'series': _('eq.series'), 'option': _('eq.option'), 'retrofit': _('eq.retrofit'), 'missing': _('eq.missing')} %}
+{% set total = equip|map(attribute='total')|sum %}
+{% macro cat(c, first_cat, last_cat) %}
+        <details class="eq">
+      <summary>
+        <span class="mi-ic {{ c.chip }}">{{ icon(c.icon, 19) }}</span>
+        <span class="eq-t">{{ c.name }}</span><span class="eq-n">{{ _('eq.count', n=c.fitted, total=c.total) }}</span>
+        {{ icon('chevron-down', 18) }}
+      </summary>
+      {% for g in c.groups %}
+      <div class="eq-gh eq-gh-{{ g.key }}"><span>{{ GT[g.key] }}</span><i>{{ g.rows|length }}</i></div>
+      <ul class="eq-list">
+        {% for r in g.rows %}
+        <li class="{{ 'miss' if r.status == 'missing' }}" data-q="{{ (r.title ~ ' ' ~ r.code ~ ' ' ~ c.name)|lower }}">
+          <span class="eq-mk {{ 'retro' if r.status == 'retrofit' else ('no' if r.status == 'missing' else 'ok') }}">{{ icon('close' if r.status == 'missing' else 'check', 18) }}</span>
+          <div class="eq-body">
+            <div class="eq-line"><span class="eq-tx">{{ r.title }}</span>{% if r.code %}<span class="eq-pr-tag">{{ r.code }}</span>{% endif %}
+              <button type="button" class="eq-i" data-eqe aria-expanded="false" aria-label="{{ _('btn.edit') }}: {{ r.title }}">{{ icon('pencil', 16) }}</button></div>
+            <form class="eq-edit" method="post" action="{{ base }}/v/{{ v.slug }}/equipment/item/{{ r.id }}" hidden>
+              <label>{{ _('eq.feature') }}<input name="title" value="{{ r.title }}" maxlength="120" required></label>
+              <div class="eq-two"><label>{{ _('eq.code') }}<input name="code" value="{{ r.code }}" maxlength="24"></label>
+                <label>{{ _('eq.status') }}<select name="status">{% for st in equip_status %}<option value="{{ st }}" {{ 'selected' if r.status == st }}>{{ GT[st] }}</option>{% endfor %}</select></label></div>
+              <label>{{ _('eq.move') }}<select name="category">{% for o in equip %}<option value="{{ o.key }}" {{ 'selected' if o.key == c.key }}>{{ o.name }}</option>{% endfor %}</select></label>
+              <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
+                <button class="ghost-btn small warn ib" name="del" value="1" formnovalidate data-confirm="{{ _('confirm.delete') }}">{{ icon('delete-outline', 16) }} <span class="sr">{{ _('btn.delete') }}</span></button>
+                <button type="button" class="ghost-btn small ib" data-eqe-cancel>{{ icon('close', 16) }}<span class="sr">{{ _('btn.cancel') }}</span></button></div>
+            </form>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endfor %}
+      <div class="eq-actions"><button type="button" class="ghost-btn small" data-eqpanel="feat">{{ icon('plus', 14) }} <span>{{ _('eq.add_feature') }}</span></button>
+        {% for dr, ic in (('up', 'chevron-up'), ('down', 'chevron-down')) %}<form method="post" action="{{ base }}/v/{{ v.slug }}/equipment/move" class="eq-mv"><input type="hidden" name="cat" value="{{ c.key }}"><input type="hidden" name="dir" value="{{ dr }}">
+          <button class="ghost-btn small" aria-label="{{ _('nav.up') if dr == 'up' else _('nav.down') }}" {{ 'disabled' if (dr == 'up' and first_cat) else '' }}>{{ icon(ic, 16) }}</button></form>{% endfor %}</div>
+      <div class="eq-panel" data-panel="feat" hidden>
+        <form method="post" action="{{ base }}/v/{{ v.slug }}/equipment/new" class="eq-form">
+          <input type="hidden" name="category" value="{{ c.key }}">
+          <div class="eq-er new"><input name="title" maxlength="120" required placeholder="{{ _('eq.feature') }}" aria-label="{{ _('eq.feature') }}">
+            <input name="code" maxlength="24" placeholder="{{ _('eq.code') }}" class="eq-codein" aria-label="{{ _('eq.code') }}">
+            <select name="status" aria-label="{{ _('eq.status') }}">{% for st in equip_status %}<option value="{{ st }}">{{ GT[st] }}</option>{% endfor %}</select></div>
+          <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button></div>
+        </form>
+      </div>
+    </details>
+{% endmacro %}
+<section class="eq-sec" id="equipment">
+  <div class="vd-group-h eq-head">{{ _('eq.title') }} <span class="eq-total" id="eq-count" data-all="{{ total }}">{{ total }}</span></div>
+  <label class="eq-searchbox"><span class="sb-ic">{{ icon('magnify', 18) }}</span><input type="search" id="eq-search" placeholder="{{ _('eq.search') }}" autocomplete="off" enterkeyhint="search"></label>
+  <div class="eq-wrap eq-cols">
+    <div class="eq-col">{% for c in equip %}{% if loop.index0 % 2 == 0 %}{{ cat(c, loop.first, loop.last) }}{% endif %}{% endfor %}</div>
+    <div class="eq-col">{% for c in equip %}{% if loop.index0 % 2 == 1 %}{{ cat(c, loop.first, loop.last) }}{% endif %}{% endfor %}</div>
+  </div>
+  <p class="eq-legend"><span class="eq-mk ok">{{ icon('check', 14) }}</span>{{ _('eq.l_fitted') }}<span class="eq-mk retro">{{ icon('check', 14) }}</span>{{ _('eq.retrofit') }}<span class="eq-mk no">{{ icon('close', 14) }}</span>{{ _('eq.missing') }}</p>
+</section>

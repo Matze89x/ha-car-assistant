@@ -1,0 +1,40 @@
+{
+  "id": "echo-service",
+  "kind": "plugin",
+  "name": "Echo service",
+  "version": "1",
+  "description": "Example of a plugin with its own service: answers on /echo/ping.",
+  "author": "Matze89x",
+  "settings": [
+    {
+      "key": "greeting",
+      "label": "Greeting",
+      "type": "text",
+      "default": "hello",
+      "l10n": {
+        "de": {
+          "label": "Begrüßung"
+        }
+      }
+    }
+  ],
+  "service": {
+    "entry": "service/main.py",
+    "python": ">=3.9",
+    "requirements": [],
+    "routes": [
+      {
+        "prefix": "/echo/",
+        "public": true
+      }
+    ],
+    "env": {}
+  },
+  "icon": "swap-vertical",
+  "l10n": {
+    "de": {
+      "name": "Echo-Dienst",
+      "description": "Beispiel für ein Plugin mit eigenem Dienst: antwortet auf /echo/ping."
+    }
+  }
+}

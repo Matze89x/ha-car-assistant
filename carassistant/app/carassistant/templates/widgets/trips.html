@@ -1,0 +1,8 @@
+{% from "_macros.html" import widget with context %}
+{% if last_trip %}
+{% call widget('route', 'c7', _('tile.last_trip'), '/e/trips', w.size) %}
+  <div class="wd-v">{{ fnum(units.d(last_trip.distance_km or ((last_trip.end_km or 0) - (last_trip.start_km or 0))), 1) }} <small>{{ units.dist_unit }}</small></div>
+  <div class="wd-s">{{ fdate(last_trip.date) }}{% if trip_time %} · {{ trip_time }}{% endif %}</div>
+  {% if week_bars %}{{ week_bars|safe }}<div class="wd-s">{{ _('wd.week') }}: <b>{{ fnum(units.d(week_km), 0) }} {{ units.dist_unit }}</b></div>{% endif %}
+{% endcall %}
+{% endif %}

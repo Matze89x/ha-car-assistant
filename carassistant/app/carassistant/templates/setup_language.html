@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, steps, step_nav with context %}
+{% block content %}
+<div class="lang-pick lang-wide">
+  {{ steps(1) }}
+  <img src="{{ icon_base }}/128.png?v={{ icon_rev }}" alt="" width="96" height="96">
+  <h1>Car Assistant</h1>
+  <form method="post" action="{{ base }}/setup/language" class="lang-card" id="lang-form">
+    <label class="tf-l" for="lang-sel">{{ _('lang.pick') }}</label>
+    <div class="lang-select">{{ icon('globe', 22) }}
+      <select id="lang-sel" name="language" data-lang-switch="{{ base }}/setup/language">
+        {% for code, meta in languages.items() %}<option value="{{ code }}" {{ 'selected' if code == lang }}>{{ meta.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="lang-welcome"><h2>{{ _('lang.title') }}</h2><p>{{ _('lang.hint') }}</p></div>
+  </form>
+  {% set dp = {'id': 'theme', 'title': _('settings.theme'), 'hint': _('settings.theme_hint'), 'action': base ~ '/settings/theme', 'accent_save': base ~ '/settings/accent', 'current': theme, 'accent': accent, 'system_option': False} %}
+  <div class="lang-design">{% include "_design_picker.html" %}</div>
+  {{ step_nav(_('lang.continue'), form_id='lang-form') }}
+</div>
+{% endblock %}

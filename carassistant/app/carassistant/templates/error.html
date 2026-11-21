@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+{% if module_off %}
+<section class="card empty">
+  <h2>{{ icon('plug', 28) }}<br>{{ _('err.module_off') }}</h2>
+  <p>{{ _('err.module_off_hint') }}</p>
+  <p><a class="button primary" href="{{ base }}/integrations">{{ icon('plug') }} {{ _('nav.integrations') }}</a></p>
+</section>
+{% else %}
+<section class="nf" aria-labelledby="nf-t">
+  <div class="nf-code" aria-hidden="true">404</div>
+  <div class="nf-road" aria-hidden="true"><span class="nf-car">{{ icon('car-side', 34) }}</span><i></i></div>
+  <h1 id="nf-t">{{ _('err.nf_title') }}</h1>
+  <p class="nf-text">{{ _('err.nf_text') }}</p>
+  {% if nf_path %}<code class="nf-path">{{ nf_path }}</code>{% endif %}
+  <div class="nf-actions">
+    <a class="button primary" href="{{ base }}/">{{ icon('speedometer', 18) }} {{ _('tab.overview') }}</a>
+    <a class="button" href="{{ base }}/vehicles">{{ icon('garage', 18) }} {{ _('nav.vehicles') }}</a>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

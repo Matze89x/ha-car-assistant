@@ -1,0 +1,4 @@
+{% from "_macros.html" import icon with context %}
+<a class="card add-card-link" href="{{ base }}/v/{{ v.slug }}/{{ kind }}s/sources">
+  <span class="add-ic">{{ icon('plus', 18) }}</span><span class="acl-t"><b>{{ _('src.add') }}</b><small>{{ _('src.add_short') }}</small></span>{{ icon('chevron', 18) }}
+</a>

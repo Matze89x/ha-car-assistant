@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head, form_bar with context %}
+{% block content %}
+{{ page_head('bug', _('dbg.title')) }}
+<section class="card">
+  <p class="hint">{{ _('dbg.intro', car=v.name) }}</p>
+  <form method="post" action="{{ base }}/v/{{ v.slug }}/debug" class="dbg-form">
+    <label class="check"><input type="checkbox" name="on" value="1" {{ 'checked' if debug_on }}> {{ _('dbg.switch') }}</label>
+    {{ form_bar() }}
+  </form>
+  <p class="muted"><small>{{ _('dbg.state_on') if debug_on else _('dbg.state_off') }}</small></p>
+</section>
+
+<section class="card">
+  <h2>{{ icon('timer-outline', 20) }} {{ _('dbg.interval') }}</h2>
+  <form method="post" action="{{ base }}/v/{{ v.slug }}/interval" data-live="1">
+    <label>{{ _('dbg.interval_ask') }}<select name="interval">{% for s in intervals %}<option value="{{ s }}" {{ 'selected' if s == interval }}>{{ s }} s</option>{% endfor %}</select></label>
+  </form>
+  <p class="hint">{{ _('dbg.interval_hint') }}</p>
+</section>
+
+<section class="card">
+  <div class="row-between">
+    <h2>{{ icon('list', 20) }} {{ _('dbg.log') }}</h2>
+    {% if lines %}<form method="post" action="{{ base }}/v/{{ v.slug }}/debug/clear" class="inline" data-confirm="{{ _('dbg.confirm_clear') }}"><input type="hidden" name="plugin" value="{{ plugin }}"><button class="danger small">{{ _('dbg.clear') }}</button></form>{% endif %}
+  </div>
+  {% if log_plugins %}<p class="seg-tabs" aria-label="{{ _('dbg.filter') }}"><a href="{{ base }}/v/{{ v.slug }}/debug" class="{{ 'on' if not plugin }}">{{ _('dbg.all_plugins') }}</a>{% for p in log_plugins %}<a href="{{ base }}/v/{{ v.slug }}/debug?plugin={{ p.id }}" class="{{ 'on' if p.id == plugin }}">{{ p.name }}</a>{% endfor %}</p>{% endif %}
+  {% if lines %}
+  <div class="dbg-log">
+    {% for l in lines %}<div class="dbg-line lv-{{ l.level }}"><span class="dbg-ts">{{ l.ts[11:19] if l.ts|length > 18 else l.ts }}</span><span class="dbg-lv">{{ l.level }}</span>{% if not plugin and l.source %}<span class="dbg-lv">{{ l.source }}</span>{% endif %}<span class="dbg-msg">{{ l.message }}</span></div>{% endfor %}
+  </div>
+  <p class="hint">{{ _('dbg.keep', n=keep) }}</p>
+  {% else %}<p class="hint">{{ _('dbg.empty') }}</p>{% endif %}
+</section>
+<section class="card">
+  <h2>{{ icon('swap-vertical', 20) }} {{ _('dbg.traffic') }}</h2>
+  <p class="hint">{{ _('dbg.traffic_hint') }}</p>
+  {% if traffic %}
+  <div class="dbg-log">
+    {% for t in traffic %}<div class="dbg-line {{ 'lv-error' if t.status >= 400 else '' }}"><span class="dbg-ts">{{ t.ts[11:19] }}</span><span class="dbg-lv">{{ _('dbg.kind_car') if t.kind == 'car' else _('dbg.kind_api') }}</span><span class="dbg-lv">{{ t.status }}</span><span class="dbg-msg">{{ t.method }} {{ t.path }} · {{ t.bytes }} B · {{ t.ms }} ms{% if t.detail %} · {{ t.detail }}{% endif %}</span></div>{% endfor %}
+  </div>
+  {% else %}<p class="hint">{{ _('dbg.traffic_empty') }}</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ icon('chart-line', 20) }} {{ _('dbg.signals') }}</h2>
+  {% if signals %}
+  <div class="dbg-log">
+    {% for name, s in signals.items() %}<div class="dbg-line"><span class="dbg-ts">{{ s.updated[11:19] }}</span><span class="dbg-lv">{{ name }}</span><span class="dbg-msg">{{ s.value }}</span></div>{% endfor %}
+  </div>
+  {% else %}<p class="hint">{{ _('dbg.signals_empty') }}</p>{% endif %}
+  <p class="hint">{{ _('dbg.track', n=track_points) }} {{ _('dbg.events', n=event_count) }}</p>
+</section>
+{% endblock %}

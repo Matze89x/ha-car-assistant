@@ -1,0 +1,8 @@
+{% from "_macros.html" import widget with context %}
+{% if stats.avg_per_100 %}
+{% call widget('chart', 'c5', _('tile.avg'), '/e/fuel', w.size) %}
+  <div class="wd-v">{{ fnum(units.c(stats.avg_per_100, unit), 1) }} <small>{{ units.consumption_unit(unit) }}</small></div>
+  {% if cons_delta is not none %}<div class="wd-s"><span class="wd-delta {{ 'up' if cons_delta > 0.05 else ('down' if cons_delta < -0.05 else '') }}">{{ '▲' if cons_delta > 0.05 else ('▼' if cons_delta < -0.05 else '●') }} {{ fnum(units.c(stats.last_per_100, unit), 1) }}</span> {{ _('wd.last_fill') }}</div>{% endif %}
+  {{ spark_cons|safe }}
+{% endcall %}
+{% endif %}

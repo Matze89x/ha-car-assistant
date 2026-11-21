@@ -1,0 +1,15 @@
+name: Idea / Wunsch
+description: Suggest something new / Etwas Neues vorschlagen
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like? / Was wünschst du dir?
+      description: What problem should it solve? / Welches Problem soll es lösen?
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How could it work? (optional) / Wie könnte es gehen? (optional)

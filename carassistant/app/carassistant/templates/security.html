@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, icon, page_head with context %}
+{% block content %}
+{{ page_head('security', _('tab.security')) }}
+{% set hi = s.inspection_info %}
+<div class="tiles">
+  <div class="ov {{ 'st-ok' if not open_total else ('st-warn' if (s.overdue or (view and view.tone == 'warn')) else 'st-soon') }}">
+    <span class="ov-ic">{{ icon('security', 17) }}</span>
+    <span class="label">{{ _('sec.status') }}</span>
+    <span class="value small">{% if open_total %}{{ _('sec.open', n=open_total) }}{% else %}{{ _('sec.all_ok') }}{% endif %}</span>
+  </div>
+  <div class="ov {{ 'st-ok' if hi and hi.status == 'ok' else ('st-soon' if hi and hi.status == 'soon' else ('st-warn' if hi and hi.status == 'overdue' else '')) }}">
+    <span class="ov-ic">{{ icon('calendar', 17) }}</span>
+    <span class="label">{{ _('tile.inspection') }}</span>
+    <span class="value">{% if s.inspection %}{{ fdate(s.inspection.due_date) }}{% else %}–{% endif %}</span>
+    <span class="sub">{{ badge(hi) }}</span>
+  </div>
+</div>
+{% if view %}
+{% if view.lock %}<div class="status-banner st-{{ view.lock.tone }}"><span class="sb-dot"></span><div><div class="sb-title">{{ view.lock.text }}</div><div class="sb-sub">{{ _('sec.central_locking') }}{% if view.lock.ago %} · {{ view.lock.ago }}{% endif %}</div></div></div>{% endif %}
+{% if view.headline %}
+<div class="sec-hero st-{{ view.tone }}"><div class="sec-t">{{ view.headline }}</div><div class="sec-s">{{ view.subline }}</div></div>
+{% for title, rows in ((_('hb.doors'), view.doors), (_('hb.windows'), view.windows)) %}{% if rows %}
+<div class="vd-group-h">{{ title }}</div>
+<div class="closure-grid">{% for r in rows %}<div class="closure"><span>{{ r.label }}</span><span class="pill {{ 'pill-warn' if r.open else 'pill-on' }}">{{ _('zone.open') if r.open else _('zone.closed') }}</span></div>{% endfor %}</div>
+{% endif %}{% endfor %}
+{% endif %}
+{% endif %}
+{% if car_msgs %}
+<section class="card">
+  <h2>{{ icon('alert', 20) }} {{ _('vm.title') }}</h2>
+  <ul class="plain">
+  {% for m in car_msgs %}<li><span class="badge {{ m.severity }}">{{ _('vm.badge') }}</span> <strong>{{ m.text }}</strong></li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+<section class="card">
+  <h2>{{ icon('alert', 20) }} {{ _('overview.attention') }}</h2>
+  {% if s.attention %}
+    <ul class="plain">
+    {% for a in s.attention %}
+      <li><span class="badge {{ a.severity }}">{{ _('sev.' ~ a.severity) }}</span> <strong>{{ a.title }}</strong>
+        {% if a.days_left is not none %}<span class="muted">{% if a.days_left < 0 %}{{ _('due.overdue_days', n=-a.days_left) }}{% else %}{{ _('due.in_days', n=a.days_left) }}{% endif %}</span>{% endif %}
+        {% if a.km_left is not none %}<span class="muted">{% if a.km_left < 0 %}{{ _('due.overdue_km', n=fnum(units.d(-a.km_left)) ~ ' ' ~ units.dist_unit) }}{% else %}{{ _('due.in_km', n=fnum(units.d(a.km_left)) ~ ' ' ~ units.dist_unit) }}{% endif %}</span>{% endif %}
+      </li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">{{ _('overview.nothing_due') }}</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>{{ icon('plug', 20) }} {{ _('sec.live') }}</h2>
+  <p class="hint">{{ _('sec.live_hint') }}</p>
+</section>
+{% endblock %}

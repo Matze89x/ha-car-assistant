@@ -1,0 +1,21 @@
+configuration:
+  log_level:
+    name: Log-Ausführlichkeit
+    description: "Wie viel die App in ihr Protokoll schreibt. error = nur Probleme (Standard). info oder debug nur, um ein Problem zu finden."
+  mqtt_sensors:
+    name: Sensoren in Home Assistant (MQTT)
+    description: "Legt jedes Auto als Gerät mit Sensoren in Home Assistant an (Kilometerstand, Termine, Türen, Reifen, GPS-Position ...). Braucht einen MQTT-Broker, zum Beispiel die Mosquitto-App - sie wird automatisch gefunden. Lässt sich auch in der App schalten (Einstellungen > System); was du dort einstellst, gilt."
+  mqtt_host:
+    name: Eigener MQTT-Broker - Adresse
+    description: "Nur wenn du die Mosquitto-App nicht nutzt: Adresse deines eigenen Brokers. Leer lassen = Broker von Home Assistant."
+  mqtt_port:
+    name: Eigener MQTT-Broker - Port
+    description: "Meist 1883."
+  mqtt_user:
+    name: Eigener MQTT-Broker - Benutzername
+    description: "Optional."
+  mqtt_password:
+    name: Eigener MQTT-Broker - Passwort
+    description: "Optional."
+network:
+  8099/tcp: "Webseite extern erreichbar: Trage hier einen freien Port deiner Wahl ein, um die App direkt im Browser oder über einen Reverse-Proxy zu öffnen. Das geht nur, wenn du in der App einen Benutzer mit Name und Passwort angelegt hast (Einstellungen > Benutzer); bis dahin bleibt die Seite gesperrt. Leer lassen = die App ist nur innerhalb von Home Assistant erreichbar."

@@ -1,0 +1,30 @@
+{# The designs and, below them, the colour wheel (only while a design "with your own colour" is chosen). Used for the whole system (Settings > System)
+   and for one car (Settings > Car). Context: dp (id, title, hint, action, accent_save, current, accent, system_option), theme_list, theme_meta,
+   theme_attr_of, theme_file_of, custom_themes, accent_presets, system_theme (web._design_context). #}
+<section class="card" id="{{ dp.id }}">
+  <h2>{{ icon('palette') }} {{ dp.title }}</h2>
+  <form method="post" action="{{ dp.action }}" data-theme-live>
+    <div class="season-pick theme-pick">
+      {% if dp.system_option %}
+      <label class="sp"><input type="radio" name="theme" value="" data-name="{{ system_theme }}" data-scheme="{{ theme_meta[system_theme][0] }}" data-bg="{{ theme_meta[system_theme][1] }}" data-attr="{{ theme_attr_of[system_theme] or '' }}" data-file="{{ theme_file_of[system_theme] or '' }}" {{ 'checked' if not dp.current }}><span><i class="theme-sw sw-{{ system_theme }}"><u></u><s></s></i><b>{{ _('vf.design_system') }}</b></span></label>
+      {% endif %}
+      {% for tn in theme_list %}
+      <label class="sp"><input type="radio" name="theme" value="{{ tn }}" data-scheme="{{ theme_meta[tn][0] }}" data-bg="{{ theme_meta[tn][1] }}" data-attr="{{ theme_attr_of[tn] or '' }}" data-file="{{ theme_file_of[tn] or '' }}" {{ 'checked' if tn == dp.current }}><span><i class="theme-sw sw-{{ tn }}"><u></u><s></s></i><b>{{ _('theme.' ~ tn) }}</b></span></label>
+      {% endfor %}
+    </div>
+  </form>
+  <p class="hint">{{ dp.hint }}</p>
+  <div class="accent-card" id="accent-pick" data-preview="{{ base }}/settings/accent-preview" data-save="{{ dp.accent_save }}" {{ '' if dp.current in custom_themes else 'hidden' }}>
+  <h3 class="ac-h">{{ _('accent.title') }}</h3>
+  <p class="hint">{{ _('accent.hint') }}</p>
+  <div class="ac-body">
+    <div class="ac-wheel-box"><canvas class="ac-wheel" width="440" height="440" aria-label="{{ _('accent.wheel') }}"></canvas><i class="ac-dot"></i></div>
+    <div class="ac-side">
+      <label class="tf-field"><span class="tf-l">{{ _('accent.hex') }}</span><input class="ac-hex" type="text" value="{{ dp.accent }}" maxlength="7" spellcheck="false" autocomplete="off" aria-label="{{ _('accent.hex') }}"></label>
+      <div class="ac-presets" role="group" aria-label="{{ _('accent.presets') }}">
+        {% for c in accent_presets %}<button type="button" class="ac-sw" data-hex="{{ c }}" aria-label="{{ c }}"></button>{% endfor %}
+      </div>
+    </div>
+  </div>
+  </div>
+</section>

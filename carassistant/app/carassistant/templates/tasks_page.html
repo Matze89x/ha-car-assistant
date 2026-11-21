@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head, badge with context %}
+{% block content %}
+{% set ku = base ~ '/v/' ~ v.id ~ '/e/tasks' %}
+{% set d = units.dist_unit %}
+{% macro taskform(r, url) %}
+  <form class="eq-edit tp-form" method="post" action="{{ url }}" {{ 'hidden' if r else '' }}>
+    <label>{{ _('f.title') }} *<input type="text" name="title" maxlength="200" required value="{{ (r['title'] if r else form.get('title')) or '' }}"></label>
+    <div class="eq-two"><label>{{ _('f.interval_km') }} ({{ d }})<input type="number" inputmode="numeric" min="0" step="1" name="interval_km" value="{{ (units.d(r['interval_km'])|round|int if r and r['interval_km'] else form.get('interval_km')) or '' }}"></label>
+      <label>{{ _('f.interval_months') }}<input type="number" inputmode="numeric" min="0" step="1" name="interval_months" value="{{ (r['interval_months'] if r and r['interval_months'] else form.get('interval_months')) or '' }}"></label></div>
+    <div class="eq-two"><label>{{ _('f.last_date') }}<input type="date" name="last_date" value="{{ (r['last_date'] if r else form.get('last_date')) or '' }}"></label>
+      <label>{{ _('f.last_km') }} ({{ d }})<input type="number" inputmode="numeric" min="0" step="1" name="last_km" value="{{ (units.d(r['last_km'])|round|int if r and r['last_km'] is not none else form.get('last_km')) or '' }}"></label></div>
+    <label>{{ _('f.keywords') }}<input type="text" name="keywords" maxlength="200" value="{{ (r['keywords'] if r else form.get('keywords')) or '' }}"></label>
+    <label>{{ _('f.notes') }}<textarea name="notes" rows="2">{{ (r['notes'] if r else form.get('notes')) or '' }}</textarea></label>
+    <label class="check"><input type="checkbox" name="muted" value="1" {{ 'checked' if r and r['muted'] }}> {{ _('f.muted') }}</label>
+    <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
+      {% if r %}<button class="ghost-btn small warn ib" formaction="{{ ku }}/{{ r['id'] }}/delete" formnovalidate data-confirm="{{ _('confirm.delete') }}">{{ icon('delete-outline', 16) }} <span class="sr">{{ _('btn.delete') }}</span></button>
+      <button type="button" class="ghost-btn small ib" data-eqe-cancel>{{ icon('close', 16) }}<span class="sr">{{ _('btn.cancel') }}</span></button>{% endif %}</div>
+  </form>
+{% endmacro %}
+
+{% call page_head(module_icon.get('tasks', 'tasks'), _('tasks.title')) %}
+  <button type="button" class="button primary" data-toggle-panel="#task-add" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>
+{% endcall %}
+{% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
+
+<section class="card za-hero">
+  <i>{{ _('za.odometer') }}</i>
+  <div class="za-km"><b>{% if odometer is not none %}{{ fnum(units.d(odometer), 0) }}{% else %}–{% endif %}</b> <span>{{ d }}</span></div>
+  {% if odo_row %}<small>{{ _('za.' ~ ('from_car' if odo_row['source'] != 'manual' else 'entered')) }} · {{ fdate(odo_row['date']) }}</small>{% endif %}
+  {% if cards %}<span class="badge {{ 'ok' if not n_open else 'overdue' }}">{% if n_open %}{{ _('za.open', n=n_open) }}{% else %}{{ _('za.all_ok', n=n_ok) }}{% endif %}</span>{% endif %}
+</section>
+
+<div class="eq-panel tp-add" id="task-add" {{ 'hidden' if not (form and not edit_id) }}>{{ taskform(none, ku) }}</div>
+
+<div class="vd-group-h eq-head">{{ _('za.heading') }} <span class="eq-total">{{ cards|length }}</span></div>
+{% if templates_left %}
+<form method="post" action="{{ base }}/v/{{ v.slug }}/tasks/templates" class="za-tpl"><button class="ghost-btn small">{{ icon('plus', 16) }}<span>{{ _('za.templates', n=templates_left|length) }}</span></button><small>{{ _('za.templates_hint') }}</small></form>
+{% endif %}
+
+<div class="za-grid">
+{% for c in cards %}
+  {% set r = c.row %}{% set due = c.due %}
+  <article class="card za-card {{ 'muted-row' if r['muted'] }}">
+    <header class="za-top"><span class="mi-ic c3">{{ icon('wrench', 19) }}</span>
+      <div class="za-title"><b>{{ r['title'] }}</b>{% if r['notes'] %}<small>{{ r['notes'].splitlines()[0] }}</small>{% endif %}</div>
+      {{ badge(due) }}</header>
+    <div class="za-int">{% if r['interval_km'] and r['interval_months'] %}{{ _('za.every_both', km=fnum(units.d(r['interval_km']), 0) ~ ' ' ~ d, months=r['interval_months']) }}{% elif r['interval_km'] %}{{ _('za.every_km', km=fnum(units.d(r['interval_km']), 0) ~ ' ' ~ d) }}{% elif r['interval_months'] %}{{ _('za.every_months', months=r['interval_months']) }}{% endif %}</div>
+    {% if c.pct is not none %}<div class="za-bar {{ due.status }}"><i style="width: {{ c.pct }}%"></i></div>{% endif %}
+    <div class="za-facts">
+      <span>{% if c.last_km is not none or c.last_date %}{{ _('za.last') }} {% if c.last_km is not none %}{{ fnum(units.d(c.last_km), 0) }} {{ d }}{% endif %}{% if c.last_date %} · {{ fdate(c.last_date) }}{% endif %}{% else %}{{ _('za.none_yet') }}{% endif %}</span>
+      <b>{% if due.due_km is not none %}{{ _('za.next_km', km=fnum(units.d(due.due_km), 0) ~ ' ' ~ d) }}{% if due.km_left is not none %} · {{ _('za.in_km', km=fnum(units.d(due.km_left|abs), 0) ~ ' ' ~ d) if due.km_left >= 0 else _('za.over_km', km=fnum(units.d(due.km_left|abs), 0) ~ ' ' ~ d) }}{% endif %}{% elif due.due_date %}{{ _('za.next_date', date=fdate(due.due_date.isoformat())) }}{% if due.days_left is not none %} · {{ _('za.in_days', n=due.days_left) if due.days_left >= 0 else _('za.over_days', n=due.days_left|abs) }}{% endif %}{% endif %}</b>
+    </div>
+    <div class="za-acts">
+      <form method="post" action="{{ ku }}/{{ r['id'] }}/done" class="za-reset">
+        <input type="number" name="km" inputmode="numeric" min="0" step="1" value="{{ units.d(odometer)|round|int if odometer is not none else '' }}" aria-label="{{ _('f.last_km') }}"><span>{{ d }}</span>
+        <button class="ghost-btn small">{{ icon('check', 16) }}<span>{{ _('za.reset') }}</span></button></form>
+      <button type="button" class="ghost-btn small ib za-editlink" data-za-edit aria-label="{{ _('btn.edit') }}" title="{{ _('btn.edit') }}">{{ icon('pencil', 16) }}<span class="sr">{{ _('btn.edit') }}</span></button>
+    </div>
+    <div class="za-edit" hidden>{{ taskform(r, ku ~ '/' ~ r['id']) }}</div>
+  </article>
+{% else %}
+  <div class="card empty-state">{{ icon('wrench', 36) }}<p>{{ _('tasks.empty') }}</p></div>
+{% endfor %}
+</div>
+<p class="hint za-foot">{{ _('za.foot') }}</p>
+{% endblock %}

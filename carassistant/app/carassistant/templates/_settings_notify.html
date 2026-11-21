@@ -1,0 +1,26 @@
+{% from "_macros.html" import icon, form_bar with context %}
+<section class="card" id="notifications">
+  <h2>{{ icon('bell-outline') }} {{ _('notify.user_title') }}</h2>
+  {% if not acct_me %}
+    <p class="hint">{{ _('notify.user_need') }}</p>
+  {% else %}
+  {% if port_on %}
+  <p class="hint">{{ _('push.user_hint') }}</p>
+  {% if push_devices %}<div class="ar-v">{% for d in push_devices %}<span class="chip-pk">{{ icon('bell', 14) }} {{ d.label or _('push.device') }} · {{ d.car or _('push.all_cars') }} <small class="muted">{{ d.created_at[:10] }}</small>
+    <form method="post" action="{{ base }}/settings/push/{{ d.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% endfor %}</div>
+  {% else %}<p class="muted">{{ _('push.no_devices') }}</p>{% endif %}
+  {% endif %}
+  {% if not port_on %}<form method="post" action="{{ base }}/settings/notifications" class="grid" data-live="1">
+    <label class="wide">{{ _('notify.user_service') }}<input type="text" name="service" value="{{ notify_prefs.service }}" maxlength="90" placeholder="mobile_app_my_phone" autocapitalize="off" autocomplete="off" spellcheck="false"><small class="muted">{{ _('notify.user_service_help') }}</small></label>
+  </form>{% endif %}
+  <h3 class="acct-sub" id="notify-cars">{{ _('notify.cars_title') }}</h3>
+  <p class="hint">{{ _('notify.cars_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/notifications/cars" class="grid" data-live="1">
+    {% for c in notify_cars %}<label class="check wide"><input type="checkbox" name="car" value="{{ c.id }}" {{ 'checked' if c.on }}> {{ c.name }}</label>{% endfor %}
+  </form>
+  <p class="hint">{{ icon('info', 14) }} {{ _('notify.split_hint') }}</p>
+  {% if notify_cars %}<p><a class="button small" href="{{ base }}/settings/car#notifications">{{ icon('car', 16) }}<span>{{ _('notify.to_car') }}</span></a></p>{% endif %}
+  {% if not port_on %}<form method="post" action="{{ base }}/settings/notifications/test" class="inline"><button class="small" {{ 'disabled' if not notify_prefs.service }}>{{ icon('bell-outline', 16) }} {{ _('notify.user_test') }}</button></form>
+  <p class="hint">{{ icon('info', 14) }} {{ _('push.ha_only') }}</p>{% endif %}
+  {% endif %}
+</section>

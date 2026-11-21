@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{{ page_head('flask', _('demo.consent_title')) }}
+<section class="card">
+  <p>{{ _('demo.consent_text') }}</p>
+  <ul class="plain">
+    <li>{{ icon('download', 16) }} {{ _('demo.consent_1') }}</li>
+    <li>{{ icon('plug', 16) }} {{ _('demo.consent_2') }}</li>
+    <li>{{ icon('refresh', 16) }} {{ _('demo.consent_3') }}</li>
+  </ul>
+  <form method="post" action="{{ base }}/vehicles/demo/load" class="form-bar">
+    <input type="hidden" name="kind" value="{{ kind }}">
+    <button class="primary">{{ icon('check', 18) }}<span>{{ _('demo.consent_ok') }}</span></button>
+    <a class="button" href="{{ base }}/vehicles/new">{{ _('vb.cancel') }}</a>
+  </form>
+  <p class="hint">{{ _('demo.consent_hint') }}</p>
+</section>
+{% endblock %}

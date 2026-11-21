@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon,page_head with context %}
+{% block content %}
+{% set trip_title = fdate(trip.date) ~ ' ' ~ (trip.start_time or '') ~ ((' – ' ~ trip.end_time) if trip.end_time else '') %}
+{% call page_head('route', trip_title) %}
+    {% if point_count %}<a class="button" href="{{ base }}/v/{{ v.slug }}/trips/{{ trip.id }}/track.gpx">GPX</a>{% endif %}
+    <a class="button" href="{{ base }}/v/{{ v.slug }}/e/trips">{{ _('btn.back') }}</a>
+{% endcall %}
+<section class="card">
+  <dl class="facts">
+    <dt>{{ _('f.start_place') }}</dt><dd>{{ trip.start_place or '–' }}</dd>
+    <dt>{{ _('f.end_place') }}</dt><dd>{{ trip.end_place or '–' }}</dd>
+    <dt>{{ _('f.distance') }}</dt><dd>{{ fnum(units.d(distance), 1) if distance is not none else '–' }} {{ units.dist_unit }}</dd>
+    <dt>{{ _('f.category') }}</dt><dd>{{ _('category.' ~ trip.category) }}</dd>
+    {% if trip.purpose %}<dt>{{ _('f.purpose') }}</dt><dd>{{ trip.purpose }}</dd>{% endif %}
+    <dt>{{ _('trips.source') }}</dt><dd>{{ trip.source }}</dd>
+  </dl>
+</section>
+{% if route %}<section class="card">{{ route|safe }}<p class="hint">{{ _('trips.route_hint', n=point_count) }}</p></section>{% endif %}
+{% endblock %}

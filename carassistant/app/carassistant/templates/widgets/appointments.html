@@ -1,0 +1,9 @@
+{% from "_macros.html" import widget, badge with context %}
+{% if upcoming %}{% call widget('calendar', 'c6', _('tab.appointments'), '/e/appointments', w.size) %}
+  {% if upcoming %}
+    {% set di = upcoming_info[upcoming[0].id] %}
+    <div class="wd-count {{ di.status }}"><b>{{ di.days_left|abs }}</b><span>{{ _('wd.days_over') if di.days_left < 0 else _('wd.days_left') }}</span></div>
+    <div class="wd-v">{{ upcoming[0].title }}</div>
+    <div class="wd-s">{{ fdate(upcoming[0].due_date) }} {{ badge(upcoming_info[upcoming[0].id]) }}{% if upcoming|length > 1 %} · {{ _('wd.more', n=upcoming|length - 1) }}{% endif %}</div>
+  {% endif %}
+{% endcall %}{% endif %}

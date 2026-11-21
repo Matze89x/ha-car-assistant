@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% from "_addon_files.html" import file_rows with context %}
+{% from "_addon_fields.html" import addon_field with context %}
+{% block content %}
+{{ page_head(addon.m.icon or 'plug', _('guide.title') ~ ' · ' ~ addon.m.name) }}
+{% set base_url = base ~ '/v/' ~ v.slug ~ '/integrations/' ~ addon.id %}
+<ol class="guide-bar">
+  <li class="{{ 'cur' if step == 1 }}{{ ' done' if step > 1 }}"><span class="gnum">1</span><b>{{ _('guide.s1') }}</b></li>
+  <li class="{{ 'cur' if step == 2 }}{{ ' done' if step > 2 }}"><span class="gnum">2</span><b>{{ _('guide.s2') }}</b></li>
+  <li class="{{ 'cur' if step == 3 }}"><span class="gnum">3</span><b>{{ _('guide.s3') }}</b></li>
+</ol>
+{% if errors.get('__token') %}<p class="flash err">{{ errors['__token'] }}</p>{% endif %}
+
+{% if step == 1 %}
+<section class="card guide-step">
+  <h2>{{ _('guide.check') }}</h2>
+  {% if texts.check %}<div class="guide-text">{{ texts.check|safe }}</div>{% endif %}
+  <ul class="guide-checks">
+    {% for c in checks %}
+    <li class="{{ 'ok' if c.ok else 'miss' }}">{{ icon('check' if c.ok else 'lock', 18) }}
+      <span><b>{{ c.label }}</b>{% if c.ok %}<code>{{ c.value }}</code>{% else %}<small>{{ c.missing }} <a href="{{ base }}{{ c.link }}">{{ _('guide.go_there') }}</a></small>{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% if not ready %}<p class="flash err">{{ _('guide.not_ready') }}</p>{% endif %}
+  <div class="guide-nav"><a class="button" href="{{ base }}{{ back_to }}">{{ _('btn.back') }}</a>
+    {% if ready %}<a class="button primary" href="{{ base_url }}/guide?step=2">{{ _('guide.next') }}</a>{% else %}<button class="primary" disabled>{{ _('guide.next') }}</button>{% endif %}</div>
+</section>
+
+{% elif step == 2 %}
+<div class="guide-stack">
+<section class="card guide-step">
+  <h2>{{ icon('lock', 20) }} {{ _('guide.token_title') }}</h2>
+  {% if texts.token %}<div class="guide-text">{{ texts.token|safe }}</div>{% endif %}
+  {% if token and fresh %}
+    <p class="hint">{{ _('api.token_once') }}</p>
+    <ul class="codes"><li class="mono token-line">{{ token }}</li></ul>
+    <p class="hint">{{ _('guide.token_fresh_hint') }}</p>
+  {% else %}
+  {% if has_token %}<p class="guide-fp"><b>{{ _('guide.token_have') }}</b> <code>•••• {{ fingerprint }}</code></p>{% endif %}
+  <div class="guide-opts">
+    <div class="guide-opt">
+      <h3>{{ _('guide.token_reuse') if has_token else _('guide.adopt_title') }}</h3>
+      <p class="hint">{{ _('guide.token_reuse_hint') if has_token else _('guide.adopt_hint') }}</p>
+      <input type="password" name="{{ 'have_token' if has_token else 'adopt_token' }}" form="gform" maxlength="200" autocomplete="off" placeholder="ca_..." aria-label="{{ _('addon.token_have_field') }}">
+    </div>
+    <div class="guide-opt">
+      <h3>{{ _('guide.token_new') }}</h3>
+      <p class="hint">{{ _('guide.token_new_hint') if has_token else _('guide.token_none_hint') }}</p>
+      <form method="post" action="{{ base_url }}/guide/token" {% if has_token %}data-confirm="{{ _('addon.confirm_token') }}"{% endif %}><button>{{ icon('refresh' if has_token else 'plus', 18) }}<span>{{ _('guide.token_new') }}</span></button></form>
+    </div>
+  </div>
+  {% endif %}
+</section>
+<form method="post" action="{{ base_url }}/guide/next" class="addon-fields set-form guide-stack" id="gform">
+  <input type="hidden" name="token" value="{{ token }}">
+  <section class="card guide-step">
+    <h2>{{ icon('settings', 20) }} {{ _('addon.settings') }}</h2>
+    {% for f in main_fields %}{{ addon_field(f, shown.get(f.key, ''), errors.get(f.key, ''), shown, addon) }}
+    {% else %}<p class="hint">{{ _('addon.no_settings') }}</p>{% endfor %}
+    {% if adv_fields %}
+    <details class="guide-adv"{{ ' open' if adv_fields|selectattr('key', 'in', errors)|list }}><summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('guide.advanced') }}</span></summary>
+      {% for f in adv_fields %}{{ addon_field(f, shown.get(f.key, ''), errors.get(f.key, ''), shown, addon) }}{% endfor %}
+    </details>
+    {% endif %}
+  </section>
+  <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step=1">{{ _('btn.back') }}</a><button class="primary">{{ _('guide.next') }}</button></div>
+</form>
+</div>
+
+{% else %}
+<section class="card guide-step">
+  <h2>{{ _('guide.files_title') }}</h2>
+  {% if has_file %}
+  <div class="guide-fileline">
+    <span class="mi-ic c4">{{ icon('download', 19) }}</span>
+    <span class="gf-t"><b>{{ file_name }}</b><small>{{ _('guide.file_hint') }}</small></span>
+    {% if token %}<form method="post" action="{{ base_url }}/guide/file" class="inline"><input type="hidden" name="token" value="{{ token }}"><button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>{% endif %}
+  </div>
+  {% if token %}{% if fresh %}<p class="hint">{{ _('guide.file_new_hint') }}</p>{% endif %}
+  {% else %}
+  <form method="post" action="{{ base_url }}/guide/file" class="guide-again">
+    <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
+    <button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button>
+  </form>
+  <p class="hint">{{ _('guide.file_again_hint') }}</p>
+  {% endif %}
+  {% endif %}
+  {% if bundle_rows %}
+    {% if not pkg_offered %}<p class="flash err">{{ _('fil.not_approved') }} <a href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service">{{ _('svc.review') }}</a></p>{% endif %}
+    {{ file_rows(bundle_rows) }}
+  {% endif %}
+  {% if texts.files %}<h3 class="guide-h3">{{ _('guide.howto') }}</h3><div class="guide-text">{{ texts.files|safe }}</div>{% endif %}
+  <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step=2">{{ _('btn.back') }}</a><a class="button primary" href="{{ base }}{{ back_to }}">{{ _('guide.finish') }}</a></div>
+</section>
+{% endif %}
+{% endblock %}

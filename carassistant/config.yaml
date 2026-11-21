@@ -1,0 +1,38 @@
+---
+# https://developers.home-assistant.io/docs/apps/configuration
+name: Car Assistant
+version: "0.5.0"
+slug: carassistant
+description: Beta · Drive · Log · Go – vehicle logbook for Home Assistant – fuel, service, parts, documents, appointments, trips, km counters. One or many cars.
+url: https://github.com/Matze89x/ha-car-assistant
+arch:
+  - aarch64
+  - amd64
+init: false
+watchdog: http://[HOST]:[PORT:8099]/healthz
+startup: application
+boot: auto
+backup: cold
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:car-wrench
+panel_title: Car Assistant
+panel_admin: false
+homeassistant_api: true
+hassio_api: true
+services:
+  - mqtt:want
+ports:
+  8099/tcp: null
+map:
+  - type: share
+options:
+  log_level: error
+  mqtt_sensors: false
+schema:
+  log_level: list(debug|info|warning|error)
+  mqtt_sensors: bool
+  mqtt_host: str?
+  mqtt_port: port?
+  mqtt_user: str?
+  mqtt_password: password?

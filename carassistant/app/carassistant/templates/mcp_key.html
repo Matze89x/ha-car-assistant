@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{{ page_head('shield', _('mcp.new_title')) }}
+{% macro field(label, value) %}
+<div class="mk-field"><span class="mk-fl">{{ label }}</span>
+  <div class="cp-row"><input readonly data-select value="{{ value }}" aria-label="{{ label }}">
+    <button type="button" class="ghost-btn small" data-copy="{{ value }}" data-done="{{ _('mcp.copied') }}">{{ icon('content-copy', 16) }}<span>{{ _('mcp.copy') }}</span></button></div></div>
+{% endmacro %}
+<section class="card">
+  <p class="hint">{{ icon('info', 14) }} {{ _('mcp.new_once') }}</p>
+  {{ field(_('mcp.f_key'), token) }}
+</section>
+{% if path_key %}
+<section class="card">
+  <h2>{{ icon('plug') }} {{ _('mcp.way_claude') }}</h2>
+  <ol class="mk-steps">
+    <li>{{ _('mcp.step1') }}</li>
+    <li>{{ _('mcp.step2') }}</li>
+    <li>{{ _('mcp.step3') }}</li>
+    <li>{{ _('mcp.step4') }}</li>
+  </ol>
+  {{ field(_('mcp.f_name'), 'Car Assistant') }}
+  {{ field(_('mcp.f_url'), url ~ '/' ~ token) }}
+  <p class="hint">{{ _('mcp.step5') }}</p>
+</section>
+{% endif %}
+<section class="card">
+  <h2>{{ icon('key-variant') }} {{ _('mcp.way_alt') if path_key else _('mcp.way_header') }}</h2>
+  <p class="hint">{{ _('mcp.alt_text') if path_key else _('mcp.header_text') }}</p>
+  {{ field(_('mcp.f_url'), url) }}
+  {{ field(_('mcp.f_hname'), 'Authorization') }}
+  {{ field(_('mcp.f_hvalue'), 'Bearer ' ~ token) }}
+</section>
+<section class="card">
+  <h2>{{ icon('settings') }} {{ _('mcp.way_cli') }}</h2>
+  <p class="hint">{{ _('mcp.new_cmd') }}</p>
+  <pre class="mono curl-box">claude mcp add --transport http car-assistant {{ url }} \
+  --header "Authorization: Bearer {{ token }}"</pre>
+</section>
+<p><a class="button primary" href="{{ base }}/settings/system#mcp">{{ _('btn.back') }}</a></p>
+{% endblock %}

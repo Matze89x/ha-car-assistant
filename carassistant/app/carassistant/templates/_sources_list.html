@@ -1,0 +1,48 @@
+{% from "_macros.html" import form_bar, icon with context %}
+<p class="hint">{{ _('src.intro') }}</p>
+<div class="pk-grid">
+{% for r in rows %}
+<section class="card pk-tile srcbox">
+  <div class="pk-head"><span class="mi-ic c{{ loop.index0 % 4 + 1 }} pk-ic">{{ icon('download', 26) }}</span>
+    <span class="pk-t"><b>{{ r.name }}{% if r.is_default %} <span class="badge">{{ _('src.default') }}</span>{% endif %}</b><small class="pk-src">{{ r.url }}</small></span></div>
+  <p class="src-state">
+    {% if r.error %}<span class="badge overdue">{{ _(r.error) }}</span>
+    {% elif r.checked_at %}<span class="badge ok">{{ (_('src.packages_plugin', n=r.n_packages) if kind == 'plugin' else _('src.packages_integration', n=r.n_packages)) }}</span> <small class="muted">{{ _('src.checked', when=fdate(r.checked_at) ~ ' ' ~ r.checked_at[11:16]) }}</small>
+    {% else %}<span class="badge">{{ _('src.never') }}</span>{% endif %}
+    {% if r.has_token %}<span class="badge">{{ icon('lock', 12) }} {{ _('src.key_set') }}</span>{% endif %}
+    {% if r.n_installed %}<span class="badge">{{ _('src.installed_n', n=r.n_installed) }}</span>{% endif %}
+  </p>
+  {% for n in r.notes %}<p class="hint">{{ icon('alert', 14) }} {% set kn = _('src.kind_integration') if n.kind == 'integration' else (_('src.kind_plugin') if n.kind == 'plugin' else _('src.kind_vehicle')) %}{{ _('src.note_id', id=n.id, kind=kn) if n.why == 'id' else (_('src.note_none', kind=kn) if n.why == 'none' else _('src.note_shape', kind=kn)) }}</p>{% endfor %}
+  <div class="actions pk-foot">
+    {% if vid %}<a class="button small" href="{{ base }}/v/{{ vid }}/{{ kind }}s/sources/{{ r.id }}/key">{{ icon('lock', 16) }} {{ _('src.key_change') }}</a>
+    {% else %}<button type="button" class="small" data-open="skey-dlg-{{ r.id }}">{{ icon('lock', 16) }} {{ _('src.key_change') }}</button>{% endif %}
+    {% if r.n_installed %}<span class="hint">{{ _('src.keep_hint') }}</span>
+    {% else %}<form method="post" action="{{ base }}/sources/{{ r.id }}/delete" class="inline" data-confirm="{{ _('src.confirm_delete') }}"><input type="hidden" name="kind" value="{{ kind }}">{% if vid %}<input type="hidden" name="vid" value="{{ vid }}">{% endif %}<button class="danger small">{{ icon('delete', 16) }} {{ _('btn.delete') }}</button></form>{% endif %}
+  </div>
+  {% if not vid %}<dialog id="skey-dlg-{{ r.id }}" class="vsw addon-dlg" aria-label="{{ _('src.key_change') }}">
+    <div class="vsw-head"><h2>{{ icon('lock', 20) }} {{ r.name }}</h2><button type="button" class="vsw-x" data-close aria-label="{{ _('btn.close') }}">{{ icon('close', 20) }}</button></div>
+    <div class="addon-dlg-body">
+      <form method="post" action="{{ base }}/sources/{{ r.id }}/token" class="grid">
+        <input type="hidden" name="kind" value="{{ kind }}">{% if vid %}<input type="hidden" name="vid" value="{{ vid }}">{% endif %}
+        <label class="wide">{{ _('src.token') }}<input type="password" name="token" maxlength="255" autocomplete="off" placeholder="{{ '••••••' if r.has_token }}"></label>
+        <div class="wide form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button>{% if r.has_token %}<button class="danger" name="remove" value="1">{{ icon('delete', 18) }}<span>{{ _('src.key_remove') }}</span></button>{% endif %}</div>
+      </form>
+      <p class="hint">{{ _('src.token_hint') }}</p>
+    </div>
+  </dialog>{% endif %}
+</section>
+{% endfor %}
+</div>
+<details class="card pk-tile pk-add" id="addcard" {{ 'open' if not rows }}>
+  <summary class="pk-head"><span class="mi-ic c2 pk-ic">{{ icon('plus', 26) }}</span><span class="pk-t"><b>{{ _('src.add') }}</b><small>{{ _('src.add_short') }}</small></span></summary>
+  <form method="post" action="{{ base }}/sources" class="grid">
+    <input type="hidden" name="kind" value="{{ kind }}">{% if vid %}<input type="hidden" name="vid" value="{{ vid }}">{% endif %}
+    <label class="wide">{{ _('src.url') }} *<input type="url" name="url" required maxlength="300" placeholder="https://github.com/owner/repository" inputmode="url" autocomplete="off"></label>
+    <label class="wide">{{ _('src.name') }}<input name="name" maxlength="60" placeholder="{{ _('src.name_ph') }}"></label>
+    <label class="wide">{{ _('src.token') }}<input type="password" name="token" maxlength="255" autocomplete="off"></label>
+    <div class="wide">{{ form_bar(label=_('src.add')) }}</div>
+  </form>
+  <p class="hint">{{ _('src.add_hint') }}</p>
+</details>
+{% if not rows %}<div class="card empty-state">{{ icon('download', 36) }}<p>{{ _('src.empty') }}</p></div>{% endif %}
+{% if not has_default %}<form method="post" action="{{ base }}/sources/restore-default" class="actions"><input type="hidden" name="kind" value="{{ kind }}">{% if vid %}<input type="hidden" name="vid" value="{{ vid }}">{% endif %}<button class="small">{{ _('src.restore') }}</button></form>{% endif %}
