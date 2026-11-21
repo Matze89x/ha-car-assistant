@@ -794,7 +794,7 @@ def test_every_car_is_a_web_app_of_its_own(client):
     assert system["scope"] == "/" and system["name"] == "Car Assistant"
     js = client.get("/static/softnav.js").text
     assert (
-        "scopeOf" in js and "is-app" in js and "syncHead" in js
+        "syncHead" in js and "scopeOf" not in js
     )  # in an installed web app another car is a page of its own; in a browser tab the swap takes over icon, manifest and title
 
 

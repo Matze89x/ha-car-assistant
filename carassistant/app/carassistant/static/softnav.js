@@ -8,18 +8,11 @@
   var NO = /^\/(login|logout|setup|auth|passkey|static|icon|api|backup|export)(\/|$)|\/(export|backup|download|files|photo|video|media|ics|csv|json)(\/|$|\.)|\.[a-z0-9]{2,5}$/i;
   var token = 0, pending = null, scrolls = {}, shown = location.href.split("#")[0];
 
-  // the system and every car are apps of their own: "/v/<car>" is one scope, everything else (settings, cars list, about ...) the system
-  function scopeOf(path) {
-    var m = /(?:^|\/)(?:v|app)\/([^/]+)(?:\/|$)/.exec(path.replace(/^\/api\/hassio_ingress\/[^/]+/, ""));  // /app/<car> is the start address of a car's web app
-    return m ? "v/" + m[1] : "system";
-  }
-
   function sameApp(a) {
     if (a.origin !== location.origin || a.target && a.target !== "_self" || a.hasAttribute("download") || a.hasAttribute("data-hard")) { return false; }
     if (a.pathname === location.pathname && a.search === location.search) { return false; }  // a jump inside the page
-    // inside an installed web app (home-screen app) the system and every car are apps of their own: their own design, icon and manifest, so another scope is a
-    // real page load. In an ordinary browser tab they are pages of one site: the swap below takes over design, icon and title (syncHead) - no flash, no second animation
-    if (document.documentElement.classList.contains("is-app") && scopeOf(a.pathname) !== scopeOf(location.pathname)) { return false; }
+    // the system and every car differ in design, icon, manifest and title: syncHead / swap below take them over, so a change between them is as instant as any
+    // other (a real page load flashed, made the bar glide twice and faded the page in a second time - most visible in the installed web app)
     return !NO.test(a.pathname.replace(/^\/api\/hassio_ingress\/[^/]+/, ""));  // behind Home Assistant the address starts with its ingress path
   }
 
