@@ -1408,6 +1408,7 @@ def fuel_list_context(conn: sqlite3.Connection, vid: int, request: Request) -> d
 
     return {
         "charge_sessions": charge_detect.sessions(conn, vid),
+        "charge_stats": charge_detect.stats(conn, vid),
         "fuel_items": got["items"],
         "total_rows": got["total"],
         "q": got["q"],

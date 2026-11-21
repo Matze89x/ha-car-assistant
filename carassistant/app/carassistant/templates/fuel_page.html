@@ -32,14 +32,28 @@
   <a class="button primary small" href="{{ fu }}?edit={{ it.id }}#fuel">{{ icon('pencil', 16) }}<span>{{ _('fuel.todo_btn') }}</span></a>
 </section>
 {% endfor %}
+{% if charge_stats %}
+{% set cs = charge_stats %}
+<section class="tp-sec" id="charge-stats">
+  <div class="vd-group-h eq-head">{{ _('cs.title', n=cs.days) }}</div>
+  <div class="trip-kpis">
+    <div class="tg"><i>{{ _('cs.sessions') }}</i><b>{{ cs.n }}</b><small>{{ _('cs.split', fast=cs.fast, slow=cs.slow) }}</small></div>
+    <div class="tg"><i>{{ _('cs.energy') }}</i><b>{{ '~' if cs.kwh_estimated }}{{ fnum(cs.kwh, 0) }} kWh</b>{% if cs.kwh_estimated %}<small>{{ _('cs.est_hint') }}</small>{% endif %}</div>
+    <div class="tg"><i>{{ _('cs.cost') }}</i><b>{{ (fnum(cs.cost, 2) ~ ' ' ~ units.cur) if cs.cost is not none else '–' }}</b>{% if cs.per_kwh %}<small>{{ fnum(cs.per_kwh, 3) }} {{ units.cur }}/kWh</small>{% endif %}</div>
+    <div class="tg"><i>{{ _('cs.power') }}</i><b>{{ (fnum(cs.avg_kw, 0) ~ ' kW') if cs.avg_kw else '–' }}</b></div>
+    <div class="tg"><i>{{ _('cs.loss') }}</i><b>{{ (fnum(cs.loss_pct, 0) ~ ' %') if cs.loss_pct is not none else '–' }}</b><small>{{ _('cs.loss_hint') }}</small></div>
+    <div class="tg"><i>{{ _('cs.time') }}</i><b>{{ (cs.minutes // 60) }} h {{ '%02d'|format(cs.minutes % 60) }}</b></div>
+  </div>
+</section>
+{% endif %}
 {% if charge_sessions %}
 <section class="tp-sec" id="charge-sessions">
   <details class="eq">
-    <summary><span class="mi-ic c6">{{ icon('battery-charging', 19) }}</span><span class="eq-t">{{ _('fuel.sessions') }}</span>{{ icon('chevron-down', 18) }}</summary>
+    <summary><span class="mi-ic c6">{{ icon('plug', 19) }}</span><span class="eq-t">{{ _('fuel.sessions') }}</span>{{ icon('chevron-down', 18) }}</summary>
     <ul class="plain cs-list">
-      {% for s in charge_sessions %}<li><span class="cs-when"><b>{{ fdate(s.date) }}</b><small class="muted">{{ _('fuel.sess_line', frm=s.from, to=s.to, min=s.minutes) }}</small></span>
+      {% for s in charge_sessions %}<li><span class="cs-when"><b>{{ fdate(s.date) }}{% if s.fast %} <span class="badge">{{ _('cs.fast') }}</span>{% endif %}</b><small class="muted">{{ _('fuel.sess_line', frm=s.from, to=s.to, min=s.minutes) }}</small></span>
         <span class="cs-pct mono">{{ s.start_pct if s.start_pct is not none else '–' }} → {{ s.end_pct if s.end_pct is not none else '–' }} %</span>
-        <span class="cs-meta">{% if s.kwh %}~{{ s.kwh }} kWh{% endif %}{% if s.max_kw %}{{ ' · ' if s.kwh }}{{ s.max_kw }} kW{% endif %}</span></li>{% endfor %}
+        <span class="cs-meta">{% if s.kwh %}{{ '' if s.kwh_billed else '~' }}{{ s.kwh }} kWh{% endif %}{% if s.cost %} · {{ fnum(s.cost, 2) }} {{ units.cur }}{% endif %}{% if s.max_kw %}{{ ' · ' if (s.kwh or s.cost) }}{{ s.max_kw }} kW{% endif %}</span></li>{% endfor %}
     </ul>
   </details>
 </section>

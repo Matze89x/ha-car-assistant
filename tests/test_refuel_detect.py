@@ -92,3 +92,36 @@ def test_a_plug_contact_is_not_a_session(client):
         connectors._store(conn, vid, "charging", "no")  # a few seconds, no change
         assert conn.execute("SELECT COUNT(*) FROM charge_sessions WHERE vehicle_id = ?", (vid,)).fetchone()[0] == 0
         assert conn.execute("SELECT COUNT(*) FROM fuel WHERE vehicle_id = ?", (vid,)).fetchone()[0] == 0
+
+
+def test_completed_sessions_give_cost_price_loss_and_a_summary(client):
+    from datetime import timedelta
+
+    from carassistant import charge_detect
+
+    vid = create_vehicle(client, "Stats Car")
+    with db.tx() as conn:
+        conn.execute("UPDATE vehicles SET fuel_type = 'electric', battery_kwh = 60 WHERE id = ?", (vid,))
+        for start, end, kw in ((20, 80, 11), (40, 90, 120)):
+            connectors._store(conn, vid, "battery_pct", str(start))
+            connectors._store(conn, vid, "charging", "yes")
+            connectors._store(conn, vid, "charge_power_kw", str(kw))
+            connectors._store(conn, vid, "battery_pct", str(end))
+            conn.execute(
+                "UPDATE charge_sessions SET started = ? WHERE ended IS NULL",
+                ((datetime.now(UTC) - timedelta(minutes=40)).isoformat(timespec="seconds"),),
+            )
+            connectors._store(conn, vid, "charging", "no")
+            conn.execute("UPDATE fuel SET date = date WHERE 0")
+        assert charge_detect.stats(conn, vid)["kwh_estimated"] is True  # nothing billed yet: estimates only
+        first = conn.execute("SELECT id FROM fuel WHERE vehicle_id = ? ORDER BY id LIMIT 1", (vid,)).fetchone()["id"]
+        conn.execute(
+            "UPDATE fuel SET amount = 40, price_total = 12 WHERE id = ?", (first,)
+        )  # the person completed the first one from the bill
+        s = charge_detect.sessions(conn, vid)[-1]
+        assert s["kwh_billed"] and s["kwh"] == 40 and s["cost"] == 12 and round(s["per_kwh"], 2) == 0.3
+        assert s["gained_kwh"] == 36 and round(s["loss_pct"]) == 10  # 60 kWh x 60 % reached the battery, 40 kWh were billed
+        total = charge_detect.stats(conn, vid)
+        assert total["n"] == 2 and total["fast"] == 1 and total["slow"] == 1 and total["cost"] == 12 and total["avg_kw"] == 65.5
+    page = client.get(f"/v/{vid}/e/fuel").text
+    assert "Charging loss" in page or "Ladeverlust" in page
