@@ -1,7 +1,7 @@
 {% from "_macros.html" import icon with context %}
 {% set season_icon = {'summer': 'white-balance-sunny', 'winter': 'snowflake', 'allseason': 'sync'} %}
 {# The tyre pressure of a set tile: the value the car measured, the recommended one in brackets (only the recommended one without a reading) #}
-{% macro press_block(show_measured, size='') %}
+{% macro press_block(show_measured, size_f='', size_r='') %}
 {% if tp.set.get(tp.season) or (show_measured and tp.actual_when) %}
 {% set live = show_measured and tp.actual_when %}
 <div class="tv-pressure">
@@ -15,10 +15,10 @@
   </div>
   {% if tp.front or tp.rear or tp.load_front or tp.load_rear %}
   <div class="tp-label" role="table" aria-label="{{ _('tp.title') }}">
-    <div class="tpl-head" role="row"><span class="tpl-size mono">{{ size or '' }}</span><span class="tpl-car">{{ icon('car-side', 38) }}<b>{{ tp.unit }}</b></span></div>
+    <div class="tpl-head" role="row"><span class="tpl-size mono">{% if size_f %}<span>{{ size_f }}</span>{% endif %}{% if size_r and size_r != size_f %}<span>{{ size_r }}</span>{% endif %}</span><span class="tpl-car">{{ icon('car-side', 38) }}<b>{{ tp.unit }}</b></span></div>
     <div class="tpl-cols" role="row"><span></span><i>{{ _('tp.axle_front') }}</i><i>{{ _('tp.axle_rear') }}</i></div>
-    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 22) }}{{ icon('briefcase', 16) }}<em>{{ _('tp.normal') }}</em></span><b class="mono">{{ (tp.front|float|round(1)) if tp.front else '–' }}</b><b class="mono">{{ (tp.rear|float|round(1)) if tp.rear else '–' }}</b></div>
-    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 22) }}{{ icon('account-group', 22) }}{{ icon('bag-suitcase', 16) }}<em>{{ _('tp.full') }}</em></span><b class="mono">{{ (tp.load_front|float|round(1)) if tp.load_front else '–' }}</b><b class="mono">{{ (tp.load_rear|float|round(1)) if tp.load_rear else '–' }}</b></div>
+    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 20) }}{{ icon('briefcase', 16) }}<em>{{ _('tp.normal') }}</em></span><b class="mono">{{ (tp.front|float|round(1)) if tp.front else '–' }}</b><b class="mono">{{ (tp.rear|float|round(1)) if tp.rear else '–' }}</b></div>
+    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 20) }}{{ icon('account-multiple', 20) }}{{ icon('briefcase', 16) }}{{ icon('briefcase', 16) }}<em>{{ _('tp.full') }}</em></span><b class="mono">{{ (tp.load_front|float|round(1)) if tp.load_front else '–' }}</b><b class="mono">{{ (tp.load_rear|float|round(1)) if tp.load_rear else '–' }}</b></div>
   </div>
   {% endif %}
 </div>
@@ -39,13 +39,13 @@
       <h3>{{ r['name'] }}</h3>
       {% if r['mounted'] %}<span class="mounted-badge">{{ _('tires.mounted') }}{% if r['mounted_date'] %} · {{ fdate(r['mounted_date']) }}{% endif %}</span>{% endif %}
     </div>
-    {{ press_block(r['mounted'] or not any_mounted, r['size'] ~ ((' / ' ~ r['rear_size']) if r['rear_size'] and r['rear_size'] != r['size'] else '')) }}
-    <div class="tc-grid">
-      {% if r['size'] or r['rear_size'] %}<div class="tg tv-big"><i>{{ _('tr.front_axle') }}</i><b class="mono">{{ r['size'] or '–' }}</b></div>{% endif %}
-      {% if r['rear_size'] or r['rear_name'] %}<div class="tg tv-big"><i>{{ _('tr.rear_axle') }}</i><b class="mono">{{ r['rear_size'] or r['size'] or '–' }}</b>{% if r['rear_name'] %}<small>{{ r['rear_name'] }}</small>{% endif %}</div>{% endif %}
+    {{ press_block(r['mounted'] or not any_mounted, r['size'], r['rear_size'] or r['size']) }}
+    {% if not (tp.set.get(tp.season) and (tp.front or tp.rear or tp.load_front or tp.load_rear)) and (r['size'] or r['rear_size']) %}<div class="tp-label"><div class="tpl-head"><span class="tpl-size mono">{% if r['size'] %}<span>{{ r['size'] }}</span>{% endif %}{% if r['rear_size'] and r['rear_size'] != r['size'] %}<span>{{ r['rear_size'] }}</span>{% endif %}</span></div></div>{% endif %}
+    {% if r['dot'] or r['storage'] %}<div class="tc-grid tv-meta">
       {% if r['dot'] %}<div class="tg"><i>{{ _('f.dot') }}</i><b class="mono">{{ r['dot'] }}</b></div>{% endif %}
       {% if r['storage'] %}<div class="tg"><i>{{ _('f.storage') }}</i><b>{{ r['storage'] }}</b></div>{% endif %}
-    </div>
+    </div>{% endif %}
+    {% if r['rear_name'] %}<p class="tc-notes">{{ _('tr.rear_axle') }}: {{ r['rear_name'] }}</p>{% endif %}
     {% if r['notes'] %}<p class="tc-notes">{{ r['notes'] }}</p>{% endif %}
   </article>
   {% else %}

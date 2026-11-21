@@ -2746,7 +2746,7 @@ DE: dict[str, str] = {
     "f.rear_name": "Name Hinterachse",
     "f.rear_size": "Größe Hinterachse",
     "tp.title": "Reifendruck",
-    "tp.normal": "Normale Belastung",
+    "tp.normal": "Normale Beladung",
     "tp.full": "Voll beladenes Fahrzeug",
     "tp.axle_front": "Vorne",
     "tp.axle_rear": "Hinten",

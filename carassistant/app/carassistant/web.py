@@ -237,9 +237,9 @@ async def security_headers(request: Request, call_next):
 
 def _place_with_names(conn, place: dict | None) -> dict | None:
     """The position card with the place and street of the spot, when the map info is on and they are known (else asked in the background)."""
-    if place and status.map_tiles_enabled(conn):
-        from . import places
+    from . import places
 
+    if place and (status.map_tiles_enabled(conn) or not places.custom_service()):  # the offline list needs no map info
         lat, lon = float(place["lat"]), float(place["lon"])
         known = places.here_cached(conn, lat, lon)
         if known:

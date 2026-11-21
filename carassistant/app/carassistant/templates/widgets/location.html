@@ -2,7 +2,7 @@
 {% if place %}
 {% call widget('map-marker-radius', 'c7', _('loc.title'), none, w.size, '', 'location') %}
   <div class="pos-place">{{ place.title }}</div>
-  {% if place.town %}<div class="pos-town pos-name">{{ place.town }}</div>{% if place.street %}<div class="pos-street">{{ place.street }}</div>{% endif %}
+  {% if place.town %}<div class="pos-town pos-name">{{ place.town }}</div>
   {% else %}<div class="pos-town mono">{{ place.coords }}</div>{% endif %}
   {% if place.chips %}<div class="pos-chips">{% for c in place.chips %}<span class="pos-chip{{ ' pos-moving' if c.tone == 'ok' }}">{{ c.text }}</span>{% endfor %}</div>{% endif %}
   {% if map_tiles %}<div id="posmap" class="pos-map" data-tiles="{{ base }}/tiles" data-lat="{{ place.lat }}" data-lon="{{ place.lon }}" data-pin="{{ _('loc.pin') }}" data-light="{{ _('map.light') }}" data-dark="{{ _('map.dark') }}"></div>

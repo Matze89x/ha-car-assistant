@@ -221,6 +221,8 @@ def discovery_payload(vehicle: sqlite3.Row, sensor: SensorDef) -> dict:
     unit = sensor.unit
     if sensor.key == "avg_consumption":
         unit = consumption_unit(vehicle["fuel_type"])
+    if unit == "d" and config.language() == "de":
+        unit = "Tage"  # Home Assistant would show its own English "days" for "d"
     if unit:
         payload["unit_of_measurement"] = unit
     for key, value in (
