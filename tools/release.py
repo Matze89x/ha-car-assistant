@@ -90,7 +90,7 @@ def expected(data: dict) -> dict[Path, str]:
     for name, (lang, style) in PAGES.items():
         p = ROOT / name
         text = p.read_text(encoding="utf-8")
-        new = f"{START}{block(data, lang, style)}{END}"
+        new = f"{START}\n{block(data, lang, style)}\n{END}"  # on their own lines: GitHub shows the content between them as normal text
         if START in text:
             text = re.sub(re.escape(START) + r".*?" + re.escape(END), lambda _m: new, text, count=1, flags=re.S)
         else:  # first time: below the language line (or the first heading)

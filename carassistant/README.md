@@ -1,6 +1,8 @@
 # Car Assistant
 
-<!-- release:start -->**0.5.0 Beta** - The public test version. Please try it and report what you find.<!-- release:end -->
+<!-- release:start -->
+**0.5.0 Beta** - The public test version. Please try it and report what you find.
+<!-- release:end -->
 
 **Drive · Log · Go**
 
