@@ -2621,3 +2621,7 @@ html.is-app .page-head:not(:has(.ph-s:not([data-car]))) { min-height: var(--head
 .nm-actions form { margin: 0; }
 .nm-actions button { white-space: nowrap; }
 .nm-block .ar-v { margin-top: 10px; }
+
+/* The toggle switches follow the corners of the design (the same radius as buttons and fields), not full circles */
+.switch span { border-radius: var(--r-s); }
+.switch span::after { border-radius: calc(var(--r-s) - 3px); }
