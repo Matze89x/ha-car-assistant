@@ -1,4 +1,4 @@
-{% from "_macros.html" import icon with context %}
+{% from "_macros.html" import icon, switch_row with context %}
 <section class="card" id="server">
   <h2>{{ icon('settings') }} {{ _('sys.title') }}</h2>
   <div class="sys-tiles">
@@ -17,25 +17,31 @@
 <section class="card" id="mqtt">
   <h2>{{ icon('mqtt') }} {{ _('mqtt.title') }}</h2>
   <p class="hint">{{ _('mqtt.intro') }}</p>
-  <form method="post" action="{{ base }}/integrations/mqtt" class="acct-form">
-    <input type="hidden" name="back" value="system">
-    <label class="check"><input type="checkbox" name="enabled" value="1" {{ 'checked' if mqtt_enabled }}> {{ _('mqtt.enable') }}</label>
-    <p class="sys-state">{% if mqtt_host %}{{ icon('pencil', 14) }} {{ _('mqtt.status_own') }}: <code>{{ mqtt_host }}{{ ':' ~ mqtt_port if mqtt_port }}</code>{% elif mqtt_auto %}{{ icon('check', 14) }} {{ _('mqtt.status_auto') }}{% else %}<span class="muted">{{ icon('info', 14) }} {{ _('mqtt.status_none') }}</span>{% endif %}</p>
-    <h3 class="acct-sub">{{ _('mqtt.own_title') }}</h3>
-    <div class="sys-two">
-      <label>{{ _('int.mqtt_host') }}<input type="text" name="host" value="{{ mqtt_host }}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="192.168.1.5"></label>
-      <label>{{ _('int.mqtt_port') }}<input type="text" name="port" value="{{ mqtt_port }}" inputmode="numeric" autocomplete="off" placeholder="1883"></label>
-      <label>{{ _('int.mqtt_user') }}<input type="text" name="username" value="{{ mqtt_user }}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
-      <label>{{ _('int.mqtt_password') }}<input type="password" name="password" autocomplete="new-password" placeholder="{{ '••••••••' if mqtt_pw_set }}"></label>
-    </div>
-    <p class="hint">{{ _('mqtt.own_hint') }}</p>
-    <div class="form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
-    <p class="hint mqtt-what"><b>{{ _('sys.btn_read') }}:</b> {{ _('sys.sync_live_hint') }}</p>
-    <p class="hint mqtt-what"><b>{{ _('sys.btn_send') }}:</b> {{ _('sys.sync_mqtt_hint') }}</p>
-    <div class="mqtt-bar">
-      <button type="submit" formaction="{{ base }}/settings/refresh-live" class="ghost-btn">{{ icon('refresh', 18) }}<span>{{ _('sys.btn_read') }}</span></button>
-      <button type="submit" formaction="{{ base }}/settings/republish" class="ghost-btn" {{ 'disabled' if not mqtt_enabled }}>{{ icon('upload', 18) }}<span>{{ _('sys.btn_send') }}</span></button>
-    </div>
+  <form method="post" action="{{ base }}/integrations/mqtt" data-live id="mqtt-toggle">
+    <input type="hidden" name="back" value="system"><input type="hidden" name="toggle_only" value="1">
+    {{ switch_row('enabled', _('mqtt.enable'), mqtt_enabled) }}
+  </form>
+  <p class="sys-state">{% if mqtt_host %}{{ icon('pencil', 14) }} {{ _('mqtt.status_own') }}: <code>{{ mqtt_host }}{{ ':' ~ mqtt_port if mqtt_port }}</code>{% elif mqtt_auto %}{{ icon('check', 14) }} {{ _('mqtt.status_auto') }}{% else %}<span class="muted">{{ icon('info', 14) }} {{ _('mqtt.status_none') }}</span>{% endif %}</p>
+  <details class="sys-spoiler"{{ ' open' if mqtt_host }}>
+    <summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('mqtt.own_title') }}</span></summary>
+    <form method="post" action="{{ base }}/integrations/mqtt" class="acct-form">
+      <input type="hidden" name="back" value="system">
+      <input type="hidden" name="enabled" value="{{ '1' if mqtt_enabled }}">
+      <div class="sys-two">
+        <label>{{ _('int.mqtt_host') }}<input type="text" name="host" value="{{ mqtt_host }}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="192.168.1.5"></label>
+        <label>{{ _('int.mqtt_port') }}<input type="text" name="port" value="{{ mqtt_port }}" inputmode="numeric" autocomplete="off" placeholder="1883"></label>
+        <label>{{ _('int.mqtt_user') }}<input type="text" name="username" value="{{ mqtt_user }}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+        <label>{{ _('int.mqtt_password') }}<input type="password" name="password" autocomplete="new-password" placeholder="{{ '••••••••' if mqtt_pw_set }}"></label>
+      </div>
+      <p class="hint">{{ _('mqtt.own_hint') }}</p>
+      <div class="nm-actions"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
+    </form>
+  </details>
+  <p class="hint mqtt-what"><b>{{ _('sys.btn_read') }}:</b> {{ _('sys.sync_live_hint') }}</p>
+  <p class="hint mqtt-what"><b>{{ _('sys.btn_send') }}:</b> {{ _('sys.sync_mqtt_hint') }}</p>
+  <form method="post" class="mqtt-bar">
+    <button type="submit" formaction="{{ base }}/settings/refresh-live" class="ghost-btn">{{ icon('refresh', 18) }}<span>{{ _('sys.btn_read') }}</span></button>
+    <button type="submit" formaction="{{ base }}/settings/republish" class="ghost-btn" {{ 'disabled' if not mqtt_enabled }}>{{ icon('upload', 18) }}<span>{{ _('sys.btn_send') }}</span></button>
   </form>
 </section>
 
@@ -45,7 +51,7 @@
   <h2>{{ icon('refresh') }} {{ _('sys.updates_title') }}</h2>
   <p class="hint">{{ _('sys.updates_hint') }}</p>
   <form method="post" action="{{ base }}/settings/sources-auto" data-live="1">
-    <label class="check"><input type="checkbox" name="auto" value="1" {{ 'checked' if sources_auto }}> {{ _('sys.updates_auto') }}</label>
+    {{ switch_row('auto', _('sys.updates_auto'), sources_auto) }}
   </form>
 </section>
 
@@ -93,7 +99,7 @@
   <h2>{{ icon('map-marker-radius') }} {{ _('sys.online') }}</h2>
   <p class="hint">{{ _('sys.online_hint') }}</p>
   <form method="post" action="{{ base }}/settings/map" data-live id="map">
-    <label class="check"><input type="checkbox" name="tiles" value="1" {{ 'checked' if map_tiles }}> {{ _('settings.map_tiles') }}</label>
+    {{ switch_row('tiles', _('settings.map_tiles'), map_tiles) }}
   </form>
   <p class="hint">{{ _('settings.map_hint') }}</p>
   <form method="post" action="{{ base }}/settings/geocoder" data-live id="geocoder">
@@ -101,7 +107,7 @@
   </form>
   <p class="hint">{{ _('settings.geocoder_hint') }}</p>
   <form method="post" action="{{ base }}/settings/google" data-live id="google">
-    <label class="check"><input type="checkbox" name="help" value="1" {{ 'checked' if google_help }}> {{ _('settings.google_help') }}</label>
+    {{ switch_row('help', _('settings.google_help'), google_help) }}
   </form>
   <p class="hint">{{ _('settings.google_hint') }}</p>
   <form method="post" action="{{ base }}/settings/tankerkoenig" class="sys-key" id="fuel-prices">

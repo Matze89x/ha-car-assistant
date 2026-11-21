@@ -1,4 +1,4 @@
-{% from "_macros.html" import icon with context %}
+{% from "_macros.html" import icon, switch_row with context %}
 {% set m = mcp_state %}
 {% set lv = {'off': _('mcp.lv_off'), 'read': _('mcp.lv_read'), 'write': _('mcp.lv_write')} %}
 {% if m %}
@@ -13,7 +13,7 @@
     <label>{{ _('mcp.level') }}<select name="level" {{ 'disabled' if m.missing and m.level == 'off' }}>
       {% for code, label in lv.items() %}<option value="{{ code }}" {{ 'selected' if m.level == code }}>{{ label }}</option>{% endfor %}
     </select></label>
-    <label class="check"><input type="checkbox" name="path_key" value="1" {{ 'checked' if m.path_key }}> {{ _('mcp.pathkey') }}</label>
+    {{ switch_row('path_key', _('mcp.pathkey'), m.path_key) }}
     <p class="hint">{{ _('mcp.pathkey_hint') }}</p>
     <div class="form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
   </form>

@@ -1,4 +1,4 @@
-{% from "_macros.html" import icon, form_bar with context %}
+{% from "_macros.html" import icon, form_bar, switch_row with context %}
 {% if not (acct_external and acct_has_users) %}
 <section class="card user-intro">
   <p>{{ _('user.intro_short', n=lock_after, m=lock_minutes) }}</p>
@@ -18,7 +18,7 @@
       <option value="">{{ _('prefs.like_system') }}</option>
       {% for tn in theme_list %}<option value="{{ tn }}" {{ 'selected' if my_design == tn }}>{{ _('theme.' ~ tn) }}</option>{% endfor %}
     </select></label>
-    <label class="check wide"><input type="checkbox" name="haptics" value="1" {{ 'checked' if haptics }}> {{ _('settings.haptics_on') }}</label>
+    {{ switch_row('haptics', _('settings.haptics_on'), haptics) }}
     {% endif %}
   </form>
   {% if not port_on %}<p class="hint">{{ icon('info', 14) }} {{ _('prefs.no_port') }}</p>{% endif %}

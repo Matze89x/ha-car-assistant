@@ -2625,3 +2625,22 @@ html.is-app .page-head:not(:has(.ph-s:not([data-car]))) { min-height: var(--head
 /* The toggle switches follow the corners of the design (the same radius as buttons and fields), not full circles */
 .switch span { border-radius: var(--r-s); }
 .switch span::after { border-radius: calc(var(--r-s) - 3px); }
+
+/* Yes / No next to a switch without any script: the text follows the state of the box */
+.nm-state i { font-style: normal; }
+.nm-state .y { display: none; color: var(--accent); }
+.nm-row:has(input:checked) .nm-state .y { display: inline; }
+.nm-row:has(input:checked) .nm-state .n { display: none; }
+label.nm-row.sw-row { cursor: pointer; text-transform: none; letter-spacing: 0; font-size: inherit; display: flex; }
+.nm-t small { display: block; margin-top: 2px; font-weight: 400; font-size: 12px; }
+
+/* Optional parts of a card fold away in a spoiler (the same one the guide uses for advanced settings) */
+.sys-spoiler { margin: 10px 0; }
+.sys-spoiler > summary { cursor: pointer; }
+.sys-spoiler > form { margin-top: 12px; }
+.sys-spoiler > summary { list-style: none; display: inline-flex; }
+.sys-spoiler > summary::-webkit-details-marker { display: none; }
+.card label.nm-row.sw-row, form label.nm-row.sw-row { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; text-align: left; padding: 12px 0; border-bottom: 1px solid var(--glass-b); }
+.card label.nm-row.sw-row .nm-t { flex: 1 1 auto; text-align: left; }
+.card label.nm-row.sw-row .nm-state { margin-left: auto; }
+.card label.nm-row.sw-row .switch { margin: 0; flex: none; }

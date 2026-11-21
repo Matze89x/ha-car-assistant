@@ -120,3 +120,8 @@
 {% macro steps(n, total=4) -%}
 <nav class="steps" aria-label="{{ _('setup.step', n=n, total=total) }}">{% for i in range(1, total + 1) %}<i class="{{ 'on' if i == n else ('done' if i < n else '') }}"></i>{% endfor %}<span>{{ _('setup.step', n=n, total=total) }}</span></nav>
 {%- endmacro %}
+
+{# A setting as a switch row: text left, Yes / No, the round-cornered switch right. ONE place for every on/off setting (the look is in pc-core.css, .sw-row). #}
+{% macro switch_row(name, label, on, value='1', hint='', required=False) %}
+<label class="nm-row sw-row"><span class="nm-t">{{ label }}{% if hint %}<small class="muted">{{ hint }}</small>{% endif %}</span><span class="nm-state"><i class="y">{{ _('notify.yes') }}</i><i class="n">{{ _('notify.no') }}</i></span><span class="switch"><input type="checkbox" name="{{ name }}" value="{{ value }}" {{ 'checked' if on }}{{ ' required' if required }}><span></span></span></label>
+{% endmacro %}

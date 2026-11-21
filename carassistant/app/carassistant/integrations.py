@@ -58,6 +58,8 @@ def save(conn: sqlite3.Connection, key: str, form: dict[str, str]) -> None:
     integration = BY_KEY[key]
     if integration.toggle:
         db.set_setting(conn, f"int.{key}.enabled", "1" if form.get("enabled") else "0")
+    if form.get("toggle_only"):
+        return  # only the switch was moved: the other settings stay as they are
     for opt in integration.options:
         raw = (form.get(opt.name) or "").strip()[:200]
         if opt.kind == "password" and not raw and not form.get(f"{opt.name}__clear"):

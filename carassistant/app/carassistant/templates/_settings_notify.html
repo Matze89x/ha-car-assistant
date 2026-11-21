@@ -1,4 +1,4 @@
-{% from "_macros.html" import icon, form_bar with context %}
+{% from "_macros.html" import icon, form_bar, switch_row with context %}
 {% set EV = {'maint_due': _('notify.ev_maint_due'), 'appointment': _('notify.ev_appointment'), 'reminder': _('notify.ev_reminder'), 'car_message': _('notify.ev_car_message'), 'open_closure': _('notify.ev_open_closure'), 'low_energy': _('notify.ev_low_energy'), 'tyre_pressure': _('notify.ev_tyre_pressure'), 'trip_end': _('notify.ev_trip_end')} %}
 {% set GEN = {'addon_update': _('notify.ev_addon_update')} %}
 <section class="card" id="notifications">
@@ -47,16 +47,16 @@
     <div id="nm-panels">
       {% for c in notify_matrix.cars %}
       <div class="nm-panel" data-panel="p{{ c.id }}">
-        {% for key in notify_events %}<div class="nm-row"><span class="nm-t">{{ EV[key] }}</span><span class="nm-state"></span><label class="switch"><input type="checkbox" name="ev_{{ c.id }}" value="{{ key }}" {{ 'checked' if key in c.events }}><span></span></label></div>{% endfor %}
+        {% for key in notify_events %}{{ switch_row('ev_' ~ c.id, EV[key], key in c.events, key) }}{% endfor %}
       </div>
       {% endfor %}
       <div class="nm-panel" data-panel="pnew" hidden>
-        {% for key in notify_events %}<div class="nm-row"><span class="nm-t">{{ EV[key] }}</span><span class="nm-state"></span><label class="switch"><input type="checkbox" name="ev_new" value="{{ key }}" {{ 'checked' if key in notify_matrix.default }}><span></span></label></div>{% endfor %}
+        {% for key in notify_events %}{{ switch_row('ev_new', EV[key], key in notify_matrix.default, key) }}{% endfor %}
       </div>
     </div>
     {% if not notify_matrix.cars %}<p class="muted">{{ _('notify.no_cars') }}</p>{% endif %}
     <h3 class="acct-sub">{{ _('notify.general_title') }}</h3>
-    {% for key in notify_general %}<div class="nm-row"><span class="nm-t">{{ GEN[key] }}</span><span class="nm-state"></span><label class="switch"><input type="checkbox" name="gen" value="{{ key }}" {{ 'checked' if key in notify_matrix.general }}><span></span></label></div>{% endfor %}
+    {% for key in notify_general %}{{ switch_row('gen', GEN[key], key in notify_matrix.general, key) }}{% endfor %}
   </form>
   <script src="{{ base }}/static/notify_matrix.js?v={{ version }}" defer></script>
   </div>

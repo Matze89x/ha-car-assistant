@@ -156,3 +156,14 @@ def test_a_function_that_is_switched_off_raises_nothing(conn, vehicle):
     assert summary.vehicle_summary(conn, row)["inspection"] is None
     keys = {s.key for s in mqtt_ha.wanted_sensors(row, off=modules.disabled(conn, vehicle))}
     assert "inspection_days" not in keys and "inspection_date" not in keys and "odometer" in keys
+
+
+def test_the_mqtt_switch_alone_keeps_the_own_broker(client):
+    from carassistant import config, db
+
+    client.post("/integrations/mqtt", data={"host": "192.168.1.5", "port": "1883", "username": "u", "enabled": "1", "back": "system"})
+    client.post("/integrations/mqtt", data={"toggle_only": "1", "back": "system"})  # the switch moved to "no": nothing else is touched
+    config.forget_settings()
+    with db.tx() as conn:
+        assert db.get_setting(conn, "int.mqtt.enabled") == "0" and db.get_setting(conn, "int.mqtt.host") == "192.168.1.5"
+        assert db.get_setting(conn, "int.mqtt.username") == "u"
