@@ -30,21 +30,27 @@
   {% if notify_matrix %}
   <h3 class="acct-sub" id="notify-matrix">{{ _('notify.matrix_title') }}</h3>
   <p class="hint">{{ _('notify.matrix_hint') }}</p>
-  <form method="post" action="{{ base }}/settings/notifications/matrix" data-live="1" class="nm-form">
-    <div class="nm-list">
-      {% for key in notify_events %}
-      <div class="nm-ev"><b>{{ EV[key] }}</b>
-        <div class="nm-chips">
-          <label class="nm-chip nm-new" title="{{ _('notify.col_new_hint') }}"><input type="checkbox" name="ev_new" value="{{ key }}" {{ 'checked' if key in notify_matrix.default }}><span>{{ _('notify.col_new') }}</span></label>
-          {% for c in notify_matrix.cars %}<label class="nm-chip"><input type="checkbox" name="ev_{{ c.id }}" value="{{ key }}" {{ 'checked' if key in c.events }}><span>{{ c.name }}</span></label>{% endfor %}
-        </div>
+  <form method="post" action="{{ base }}/settings/notifications/matrix" data-live="1" class="nm-form" id="nm-form" data-yes="{{ _('notify.yes') }}" data-no="{{ _('notify.no') }}">
+    <label class="nm-pick">{{ _('notify.pick_car') }}
+      <select id="nm-select" aria-controls="nm-panels">
+        {% for c in notify_matrix.cars %}<option value="p{{ c.id }}">{{ c.name }}</option>{% endfor %}
+        <option value="pnew">{{ _('notify.col_new') }} – {{ _('notify.col_new_hint') }}</option>
+      </select></label>
+    <div id="nm-panels">
+      {% for c in notify_matrix.cars %}
+      <div class="nm-panel" data-panel="p{{ c.id }}">
+        {% for key in notify_events %}<div class="nm-row"><span class="nm-t">{{ EV[key] }}</span><span class="nm-state"></span><label class="switch"><input type="checkbox" name="ev_{{ c.id }}" value="{{ key }}" {{ 'checked' if key in c.events }}><span></span></label></div>{% endfor %}
       </div>
       {% endfor %}
+      <div class="nm-panel" data-panel="pnew" hidden>
+        {% for key in notify_events %}<div class="nm-row"><span class="nm-t">{{ EV[key] }}</span><span class="nm-state"></span><label class="switch"><input type="checkbox" name="ev_new" value="{{ key }}" {{ 'checked' if key in notify_matrix.default }}><span></span></label></div>{% endfor %}
+      </div>
     </div>
     {% if not notify_matrix.cars %}<p class="muted">{{ _('notify.no_cars') }}</p>{% endif %}
     <h3 class="acct-sub">{{ _('notify.general_title') }}</h3>
-    {% for key in notify_general %}<label class="check wide"><input type="checkbox" name="gen" value="{{ key }}" {{ 'checked' if key in notify_matrix.general }}> {{ GEN[key] }}</label>{% endfor %}
+    {% for key in notify_general %}<div class="nm-row"><span class="nm-t">{{ GEN[key] }}</span><span class="nm-state"></span><label class="switch"><input type="checkbox" name="gen" value="{{ key }}" {{ 'checked' if key in notify_matrix.general }}><span></span></label></div>{% endfor %}
   </form>
+  <script src="{{ base }}/static/notify_matrix.js?v={{ version }}" defer></script>
   {% endif %}
   {% endif %}
 </section>
