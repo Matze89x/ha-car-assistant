@@ -4,6 +4,11 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.7 Beta
+- Tyres: the edit page looks exactly like the view (name, sizes front / rear, the four pressures, stored at, notes) with Save at the bottom right of each set; DOT / age and the rear axle name are gone as fields (what was typed there moved into the notes).
+- The pressures the car reported are shown below the label as "received from the vehicle on <date>" and are not shown when the car reports none.
+- Buttons at the bottom of a block share one size and one line.
+
 ## 0.5.6 Beta
 - Fixed: the page change between Settings and a car no longer flashes, wobbles or plays its animation twice (instant, also in the installed web app); on screens 760-1000 px wide More shows its list instead of opening the vehicle passport with no way back.
 - The vehicle passport columns run on by themselves (no gap under a short group).

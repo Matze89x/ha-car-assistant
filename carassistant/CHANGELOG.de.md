@@ -4,6 +4,11 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.7 Beta
+- Reifen: die Bearbeiten-Seite sieht genau wie die Ansicht aus (Name, Größen vorne / hinten, die vier Drücke, eingelagert bei, Notizen) mit Speichern unten rechts bei jedem Satz; DOT / Alter und der Name der Hinterachse sind als Felder weg (was dort stand, steht jetzt in den Notizen).
+- Die vom Auto gemeldeten Drücke stehen unter dem Etikett als "vom Fahrzeug erhalten am <Datum>" und fehlen ganz, wenn das Auto keine meldet.
+- Knöpfe unten in einem Block haben eine Größe und stehen auf einer Zeile.
+
 ## 0.5.6 Beta
 - Behoben: der Seitenwechsel zwischen Einstellungen und einem Auto blitzt, wackelt und spielt seine Animation nicht mehr doppelt (sofort, auch in der installierten Web-App); auf Bildschirmen von 760 bis 1000 px zeigt Weiteres seine Liste, statt den Fahrzeugpass ohne Weg zurück zu öffnen.
 - Die Spalten des Fahrzeugpasses laufen jeweils für sich weiter (keine Lücke unter einer kurzen Gruppe).
