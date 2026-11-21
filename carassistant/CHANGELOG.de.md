@@ -4,6 +4,15 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.5 Beta
+- Benachrichtigungen sind jetzt ein System pro Person unter Einstellungen > Benutzer: Auto wählen, jede Art von Meldung ein- oder ausschalten (Ja / Nein), die Vorgabe für neue Autos, allgemeine Meldungen (neue Plugin-Versionen), alle Geräte an einer Stelle; unter Auto und System gibt es dazu nichts mehr, und dieselbe Meldung geht nur einmal raus.
+- Tanken wird am Tankstand und Laden an der Batterie erkannt (Zeit, Stände, Leistung, Kosten, Preis je kWh, Ladeverlust, 90-Tage-Zusammenfassung); ein unfertiger Eintrag mit Ergänzen-Knopf wartet auf die Rechnung.
+- Tanken-Seite: ein Zahnrad öffnet alle Einstellungen zu Tankstellen und Preisen (Quellen, Schlüssel, Startwerte); Österreich ist als Preisquelle dabei.
+- Reifendruck: jeder Satz zeigt ein Etikett wie im Auto, kompakter; das Standort-Widget hat keine leere Straßenzeile mehr und einen größeren Ort.
+- Ortsnamen: eine größere Offline-Liste (172.000 Orte) mit deutschen Namen.
+- Runde Ja/Nein-Schalter in den Einstellungen (ein gemeinsamer Baustein); Sensoren in Home Assistant: der eigene Broker (optional) klappt weg, und der Schalter speichert von selbst.
+- Deutsche Einheit Tage bei den Home-Assistant-Sensoren; aktualisierte Abhängigkeiten (FastAPI, pypdf und mehr).
+
 ## 0.5.4 Beta
 - Ortsnamen kommen aus einer Offline-Liste der Städte der Welt (GeoNames, CC BY 4.0): weltweit, nichts wird gesendet; Nominatim nur bei eingetragener Adresse. Spritpreise: eine offene Anbieter-Schnittstelle (eine JSON-Datei pro Land, docs/fuel-providers.md), Frankreich ist dabei; Tankerkönig und OpenStreetMap bleiben. Abhängigkeiten und CI-Actions aktualisiert.
 

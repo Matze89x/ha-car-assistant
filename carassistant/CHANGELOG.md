@@ -4,6 +4,15 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.5 Beta
+- Notifications are now one system per person under Settings > User: choose a car, switch each kind of message on or off (Yes / No), the choice for new cars, general messages (new plugin versions), all devices in one place; nothing about notifications under Car or System any more, and the same message goes out only once.
+- Refuels are noticed from the tank level and charging sessions from the battery (time, levels, power, cost, price per kWh, charging loss, 90-day summary); an unfinished entry with a Complete button waits for the bill.
+- Fuel page: a cog opens all settings for stations and prices (sources, keys, start values); Austria added as a price source.
+- Tyre pressure: every set shows a label like the one in the car, more compact; the location widget has no empty street line and a bigger place.
+- Place names: a bigger offline list (172,000 places) with German names.
+- Round-cornered Yes / No switches in the Settings (one shared component); sensors in Home Assistant: the own broker (optional) folds away and the switch saves by itself.
+- German unit Tage for Home Assistant sensors; updated dependencies (FastAPI, pypdf and more).
+
 ## 0.5.4 Beta
 - Place names come from an offline list of the world's cities (GeoNames, CC BY 4.0): worldwide, nothing is sent; Nominatim only when an address is set. Fuel prices: an open provider interface (one JSON file per country, docs/fuel-providers.md), France added; Tankerkönig and OpenStreetMap stay. Updated dependencies and CI actions.
 
