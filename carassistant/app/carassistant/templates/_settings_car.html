@@ -38,36 +38,6 @@
   </form>
 </section>
 
-{% set EV = {'maint_due': _('notify.ev_maint_due'), 'appointment': _('notify.ev_appointment'), 'reminder': _('notify.ev_reminder'), 'car_message': _('notify.ev_car_message'), 'open_closure': _('notify.ev_open_closure'), 'low_energy': _('notify.ev_low_energy'), 'tyre_pressure': _('notify.ev_tyre_pressure'), 'trip_end': _('notify.ev_trip_end')} %}
-<section class="card" id="notifications">
-  <h2>{{ icon('bell-outline') }} {{ _('notify.car_title') }}</h2>
-  {% if not acct_me %}
-    <p class="hint">{{ _('notify.user_need') }}</p>
-  {% elif not notify_prefs.enabled %}
-    <p class="hint">{{ icon('info', 14) }} {{ _('notify.car_off') }}</p>
-    <p><a class="button small" href="{{ base }}/settings/user#notify-cars">{{ icon('account', 16) }}<span>{{ _('set.user') }}</span></a></p>
-  {% else %}
-  {% if port_on %}
-  <div id="push-box" class="push-box" data-base="{{ base }}" data-car="{{ car.id }}" data-unsupported="{{ _('push.unsupported') }}" data-ios="{{ _('push.ios_home') }}" data-failed="{{ _('push.failed') }}" data-https="{{ _('push.https_only') }}" data-ext="{{ external_url if ext_set else '' }}" data-denied="{{ _('push.denied') }}" data-label-on="{{ _('push.enable_car') }}" data-label-off="{{ _('push.disable_car') }}">
-    <p class="hint">{{ _('push.car_hint', car=car.name) }}</p>
-    {% if car_devices %}<div class="ar-v">{% for d in car_devices %}<span class="chip-pk">{{ icon('bell', 14) }} {{ d.label or _('push.device') }} <small class="muted">{{ d.created_at[:10] }}</small></span>{% endfor %}</div>{% endif %}
-    <div class="actions"><button type="button" id="push-on" class="primary small" {{ 'disabled' if not ext_set }}>{{ icon('bell', 16) }}<span>{{ _('push.enable_car') }}</span></button>
-      <form method="post" action="{{ base }}/settings/notifications/test" class="inline" id="push-test"><input type="hidden" name="vehicle" value="{{ car.id }}"><button class="small" {{ 'disabled' if not car_devices }}>{{ icon('bell-outline', 16) }} {{ _('notify.user_test') }}</button></form></div>
-    {% if not ext_set %}<p class="hint">{{ icon('lock', 16) }} {{ _('ext.needed') }}</p>{% endif %}
-    <p class="acct-msg" id="push-msg" hidden></p>
-  </div>
-  <script src="{{ base }}/static/push.js?v={{ version }}" defer></script>
-  {% endif %}
-  <p class="hint">{{ _('notify.events_car', car=car.name) }}</p>
-  <form method="post" action="{{ base }}/settings/notifications" class="grid" data-live="1">
-    <input type="hidden" name="vehicle" value="{{ car.id }}">
-    <input type="hidden" name="service" value="{{ notify_prefs.service }}">
-    <input type="hidden" name="back" value="/settings/car?car={{ car.slug }}#notifications">
-    {% for key in notify_events %}<label class="check wide"><input type="checkbox" name="ev" value="{{ key }}" {{ 'checked' if key in notify_prefs.events }}> {{ EV[key] }}</label>{% endfor %}
-  </form>
-  {% endif %}
-</section>
-
 <section class="card" id="vbackup">
   <h2>{{ icon('settings', 20) }} {{ _('vb.manage_title') }}</h2>
   <ul class="cv-list">

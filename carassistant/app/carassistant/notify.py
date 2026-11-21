@@ -8,6 +8,7 @@ import logging
 import re
 import sqlite3
 import threading
+import time
 from datetime import UTC, datetime, timedelta
 
 from . import config, energy, events, ha, i18n, push, status, summary, units
@@ -49,7 +50,8 @@ EVENTS = (
     "low_energy",
     "tyre_pressure",
     "trip_end",
-)  # what a user can ask to be told about
+)  # what a user can ask to be told about, for every car on its own
+GENERAL = ("addon_update",)  # ... and what is not about one car
 
 
 def push_mode() -> bool:
@@ -77,21 +79,51 @@ def _events_of(raw: str | None) -> list[str]:
         return []
 
 
+def _general_of(raw: str | None) -> list[str]:
+    try:
+        return [e for e in json.loads(raw or "[]") if e in GENERAL]
+    except ValueError:
+        return []
+
+
 def prefs(conn: sqlite3.Connection, user_id: int, vehicle_id: int | None = None) -> dict:
-    """The user's service and the events wanted - for one car when given (its own choice, else the user's general one)."""
+    """The person's service and the events wanted - for one car when given (its own row, else the choice for new cars)."""
     row = conn.execute("SELECT service, events FROM user_notify WHERE user_id = ?", (user_id,)).fetchone()
     if not row:
         return {"service": "", "events": [], "enabled": True}
     events = _events_of(row["events"])
-    enabled = True
     if vehicle_id is not None:
-        own = conn.execute(
-            "SELECT events, enabled FROM user_notify_vehicle WHERE user_id = ? AND vehicle_id = ?", (user_id, vehicle_id)
-        ).fetchone()
+        own = conn.execute("SELECT events FROM user_notify_vehicle WHERE user_id = ? AND vehicle_id = ?", (user_id, vehicle_id)).fetchone()
         if own:
             events = _events_of(own["events"])
-            enabled = bool(own["enabled"])
-    return {"service": row["service"], "events": events if enabled else [], "enabled": enabled}
+    return {"service": row["service"], "events": events, "enabled": True}
+
+
+def matrix(conn: sqlite3.Connection, user_id: int) -> dict:
+    """What the person gets, for the settings page: the choice for ``default`` (new cars), every car of the installation with its events, and the
+    general events. Cars come and go by themselves: a new car starts with the choice for new cars, a removed one disappears."""
+    row = conn.execute("SELECT events, general FROM user_notify WHERE user_id = ?", (user_id,)).fetchone()
+    default = set(_events_of(row["events"])) if row else set()
+    cars = []
+    for v in conn.execute("SELECT id, name FROM vehicles WHERE archived = 0 ORDER BY name COLLATE NOCASE").fetchall():
+        own = conn.execute("SELECT events FROM user_notify_vehicle WHERE user_id = ? AND vehicle_id = ?", (user_id, v["id"])).fetchone()
+        cars.append({"id": v["id"], "name": v["name"], "events": set(_events_of(own["events"])) if own else set(default)})
+    return {"default": default, "cars": cars, "general": set(_general_of(row["general"])) if row else set()}
+
+
+def save_matrix(conn: sqlite3.Connection, user_id: int, form) -> None:
+    """The whole matrix from one form: ``ev_new`` (the choice for new cars), ``ev_<car id>`` per car, ``gen`` (general events)."""
+    conn.execute("INSERT OR IGNORE INTO user_notify(user_id, service, events) VALUES(?, '', '[]')", (user_id,))
+    default = [e for e in EVENTS if e in form.getlist("ev_new")]
+    general = [e for e in GENERAL if e in form.getlist("gen")]
+    conn.execute("UPDATE user_notify SET events = ?, general = ? WHERE user_id = ?", (json.dumps(default), json.dumps(general), user_id))
+    for v in conn.execute("SELECT id FROM vehicles WHERE archived = 0").fetchall():
+        chosen = [e for e in EVENTS if e in form.getlist(f"ev_{v['id']}")]
+        conn.execute(
+            "INSERT INTO user_notify_vehicle(user_id, vehicle_id, events, enabled) VALUES(?,?,?,1) "
+            "ON CONFLICT(user_id, vehicle_id) DO UPDATE SET events = excluded.events, enabled = 1",
+            (user_id, v["id"], json.dumps(chosen)),
+        )
 
 
 def save_service(conn: sqlite3.Connection, user_id: int, service: str) -> None:
@@ -99,42 +131,6 @@ def save_service(conn: sqlite3.Connection, user_id: int, service: str) -> None:
     conn.execute(
         "INSERT INTO user_notify(user_id, service, events) VALUES(?,?,'[]') ON CONFLICT(user_id) DO UPDATE SET service = excluded.service",
         (user_id, clean_service(service)),
-    )
-
-
-def car_enabled(conn: sqlite3.Connection, user_id: int, vehicle_id: int) -> bool:
-    """Does this person get notifications about this car at all? (Settings -> User; the events themselves are chosen under Settings -> Car.)"""
-    row = conn.execute("SELECT enabled FROM user_notify_vehicle WHERE user_id = ? AND vehicle_id = ?", (user_id, vehicle_id)).fetchone()
-    return bool(row["enabled"]) if row else True
-
-
-def set_car_enabled(conn: sqlite3.Connection, user_id: int, vehicle_id: int, enabled: bool) -> None:
-    """Switch the notifications of one car on or off for a person without touching the events chosen for it."""
-    conn.execute("INSERT OR IGNORE INTO user_notify(user_id, service, events) VALUES(?, '', '[]')", (user_id,))
-    general = conn.execute("SELECT events FROM user_notify WHERE user_id = ?", (user_id,)).fetchone()["events"]
-    conn.execute(
-        "INSERT INTO user_notify_vehicle(user_id, vehicle_id, events, enabled) VALUES(?,?,?,?) "
-        "ON CONFLICT(user_id, vehicle_id) DO UPDATE SET enabled = excluded.enabled",
-        (user_id, vehicle_id, general, int(enabled)),
-    )
-
-
-def save_prefs(conn: sqlite3.Connection, user_id: int, service: str, events: list[str], vehicle_id: int | None = None) -> None:
-    clean = [e for e in EVENTS if e in events]
-    if vehicle_id is None:
-        conn.execute(
-            "INSERT INTO user_notify(user_id, service, events) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET service = excluded.service, events = excluded.events",
-            (user_id, clean_service(service), json.dumps(clean)),
-        )
-        return
-    conn.execute(
-        "INSERT INTO user_notify(user_id, service, events) VALUES(?,?,'[]') ON CONFLICT(user_id) DO UPDATE SET service = excluded.service",
-        (user_id, clean_service(service)),
-    )
-    conn.execute(
-        "INSERT INTO user_notify_vehicle(user_id, vehicle_id, events) VALUES(?,?,?) "
-        "ON CONFLICT(user_id, vehicle_id) DO UPDATE SET events = excluded.events",
-        (user_id, vehicle_id, json.dumps(clean)),
     )
 
 
@@ -239,10 +235,22 @@ def _lines_for(
     return lines, keys, pages
 
 
+_recent: dict[tuple[int, str, str], float] = {}
+_run_lock = threading.Lock()  # one check at a time: a trip that ends while the regular check runs must not be announced twice
+SAME_MESSAGE_SECONDS = 180
+
+
 def _deliver(
     conn: sqlite3.Connection, user_id: int, service: str, title: str, message: str, url: str = "", vehicle_id: int | None = None
 ) -> tuple[bool, str]:
-    """One message to one person: web push with a port, the Home Assistant service without. ``url`` is the page a tap opens."""
+    """One message to one person: web push with a port, the Home Assistant service without. ``url`` is the page a tap opens. The same words to
+    the same person within three minutes go out once."""
+    now = time.monotonic()
+    for k in [k for k, at in _recent.items() if now - at > SAME_MESSAGE_SECONDS]:
+        _recent.pop(k, None)
+    if (user_id, title, message) in _recent and not title.startswith("Car Assistant"):
+        return True, ""
+    _recent[(user_id, title, message)] = now
     if push_mode():
         sent = push.send(conn, user_id, title, message, url, vehicle_id)
         conn.execute(
@@ -268,13 +276,38 @@ def take_trip_flag() -> bool:
     return was
 
 
+def _addon_updates(conn: sqlite3.Connection) -> list[tuple[str, str, str]]:
+    """Installed plugins / integrations whose source offers a newer version: (key, name, version)."""
+    from . import addons
+    from .sources import is_newer
+
+    rows = conn.execute("SELECT * FROM vehicle_addons WHERE status != 'missing'").fetchall()
+    latest = addons._newer_versions(conn, rows)
+    out = []
+    for r in rows:
+        try:
+            manifest = json.loads(r["manifest"])
+        except (ValueError, TypeError):
+            continue
+        offered = latest.get(r["id"], "")
+        if offered and is_newer(offered, manifest.get("version", "")):
+            out.append((f"upd:{r['addon_id']}:{offered}", manifest.get("name") or r["addon_id"], offered))
+    return out
+
+
 def check_users(conn: sqlite3.Connection, now: datetime | None = None, only: set[str] | None = None) -> int:
-    """Everyone who set up a way to be told and chose events gets their own reminders (per car). Returns the number of notifications sent."""
+    """Everyone who set up a way to be told gets what they chose in the matrix (per car) and the general events. Returns the number sent."""
+    with _run_lock:
+        return _check_users(conn, now, only)
+
+
+def _check_users(conn: sqlite3.Connection, now: datetime | None, only: set[str] | None) -> int:
     now = now or datetime.now(UTC)
     t = i18n.translator(config.language())
     sent = 0
     by_push = push_mode()
-    for row in conn.execute("SELECT user_id, service, events FROM user_notify").fetchall():
+    updates = _addon_updates(conn) if only is None else []
+    for row in conn.execute("SELECT user_id, service, events, general FROM user_notify").fetchall():
         if (not by_push and not row["service"]) or (by_push and not push.devices(conn, row["user_id"])):
             continue
         for vehicle in conn.execute("SELECT * FROM vehicles WHERE archived = 0").fetchall():
@@ -291,14 +324,33 @@ def check_users(conn: sqlite3.Connection, now: datetime | None = None, only: set
             )
             if ok:
                 sent += 1
-                for key in keys:
-                    conn.execute(
-                        "INSERT INTO notify_state(key, last_sent) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET last_sent = excluded.last_sent",
-                        (key, now.isoformat()),
-                    )
+                _remember(conn, keys, now)
             else:
                 log.warning("Notification for user %s failed: %s", row["user_id"], error)
+        if "addon_update" in _general_of(row["general"]) and updates:
+            user_key = f"u{row['user_id']}"
+            fresh = [(f"{user_key}:{k}", n, v) for k, n, v in updates if not _recently_sent(conn, f"{user_key}:{k}", now)]
+            if fresh:
+                ok, error = _deliver(
+                    conn,
+                    row["user_id"],
+                    row["service"],
+                    "Car Assistant",
+                    "\n".join(t("notify.addon_update", name=n, version=v) for _k, n, v in fresh),
+                    config.external_url() or "",
+                )
+                if ok:
+                    sent += 1
+                    _remember(conn, [k for k, _n, _v in fresh], now)
     return sent
+
+
+def _remember(conn: sqlite3.Connection, keys: list[str], now: datetime) -> None:
+    for key in keys:
+        conn.execute(
+            "INSERT INTO notify_state(key, last_sent) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET last_sent = excluded.last_sent",
+            (key, now.isoformat()),
+        )
 
 
 def check_all(conn: sqlite3.Connection, now: datetime | None = None) -> int:

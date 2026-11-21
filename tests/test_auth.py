@@ -410,23 +410,15 @@ def test_a_device_can_be_registered_for_web_push_over_the_port(ing, ext, monkeyp
     }
     from tests.test_web import create_vehicle, slug
 
-    one, two = create_vehicle(ing, "Push One"), create_vehicle(ing, "Push Two")
-    r = ext.post("/push/subscribe", json={"sub": sub, "label": "Pocket", "vehicle": one})  # switched on for ONE car, on its Car tab
+    create_vehicle(ing, "Push One")
+    r = ext.post("/push/subscribe", json={"sub": sub, "label": "Pocket"})  # a device belongs to the PERSON (Settings > User), not to a car
     assert r.status_code == 200 and r.json()["ok"], r.text
     user = ext.get("/settings/user").text
-    assert "Pocket" in user and "Push One" in user and 'id="push-on"' not in user  # the person's overview; switching on happens per car
-    car_tab = ext.get(f"/settings/car?car={slug(one)}").text
-    assert 'id="push-on"' in car_tab and f'data-car="{one}"' in car_tab and "Pocket" in car_tab
     assert (
-        "Pocket" not in ext.get(f"/settings/car?car={slug(two)}").text.split('id="push-box"')[1].split("</div>")[0]
-    )  # not for the other car
-    ask = {"endpoint": sub["endpoint"], "vehicle": one}
+        "Pocket" in user and 'id="push-on"' in user and "Push One" in user
+    )  # the card shows the device, the button and the car in the matrix
+    assert 'id="push-on"' not in ext.get(f"/settings/car?car={slug(1)}").text  # nothing about notifications under Car
+    ask = {"endpoint": sub["endpoint"]}
     assert ext.post("/push/status", json=ask).json()["on"] is True
-    assert ext.post("/push/status", json={**ask, "vehicle": two}).json()["on"] is False
-    assert ext.post("/push/subscribe", json={"sub": sub, "label": "Pocket", "vehicle": two}).json()[
-        "ok"
-    ]  # the same device for a second car
-    assert ext.post("/push/status", json={**ask, "vehicle": two}).json()["on"] is True
-    assert ext.post("/push/unsubscribe", json={**ask}).json()["remaining"] == 1  # off for one car: still serves the other
-    assert ext.post("/push/unsubscribe", json={**ask, "vehicle": two}).json()["remaining"] == 0  # no car left: the device is gone
+    assert ext.post("/push/unsubscribe", json=ask).json()["remaining"] == 0  # off: the device is gone
     assert "Pocket" not in ext.get("/settings/user").text

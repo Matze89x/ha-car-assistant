@@ -7,6 +7,7 @@ browser maker as an envelope. The server key (VAPID) is made on the first use an
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import logging
 import re
@@ -41,9 +42,8 @@ def public_key(conn: sqlite3.Connection) -> str:
     return _vapid(conn)[1]
 
 
-def add_device(conn: sqlite3.Connection, user_id: int, sub: dict, label: str = "", vehicle_id: int | None = None) -> int:
-    """Remember a device of this person, switched on for one car (``vehicle_id``; more cars can be added later - none = every car).
-    ValueError for anything that is not a real subscription."""
+def add_device(conn: sqlite3.Connection, user_id: int, sub: dict, label: str = "") -> int:
+    """Remember a device of this person (it gets what the person chose in the notification matrix). ValueError for anything that is not a real subscription."""
     endpoint = str((sub or {}).get("endpoint") or "")
     keys = (sub or {}).get("keys") or {}
     p256dh, auth = str(keys.get("p256dh") or ""), str(keys.get("auth") or "")
@@ -61,37 +61,7 @@ def add_device(conn: sqlite3.Connection, user_id: int, sub: dict, label: str = "
         "ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth, label = excluded.label, fails = 0",
         (user_id, endpoint, p256dh, auth, (label or "").strip()[:40], datetime.now(UTC).isoformat(timespec="seconds")),
     )
-    did = conn.execute("SELECT id FROM push_devices WHERE endpoint = ?", (endpoint,)).fetchone()["id"]
-    if vehicle_id:
-        conn.execute("INSERT OR IGNORE INTO push_device_cars(device_id, vehicle_id) VALUES(?,?)", (did, vehicle_id))
-    return did
-
-
-def covers(conn: sqlite3.Connection, user_id: int, endpoint: str, vehicle_id: int) -> bool:
-    """Does the device with this subscription get the messages of this car? (A device without a list of cars gets every car.)"""
-    row = conn.execute("SELECT id FROM push_devices WHERE user_id = ? AND endpoint = ?", (user_id, endpoint)).fetchone()
-    if row is None:
-        return False
-    cars = conn.execute("SELECT vehicle_id FROM push_device_cars WHERE device_id = ?", (row["id"],)).fetchall()
-    return not cars or any(c["vehicle_id"] == vehicle_id for c in cars)
-
-
-def drop_car(conn: sqlite3.Connection, user_id: int, endpoint: str, vehicle_id: int) -> int:
-    """Switch the device off for one car; returns how many cars it still serves (0: the device is removed)."""
-    row = conn.execute("SELECT id FROM push_devices WHERE user_id = ? AND endpoint = ?", (user_id, endpoint)).fetchone()
-    if row is None:
-        return 0
-    did = row["id"]
-    if not conn.execute("SELECT 1 FROM push_device_cars WHERE device_id = ? LIMIT 1", (did,)).fetchone():  # "every car": list them first
-        conn.executemany(
-            "INSERT OR IGNORE INTO push_device_cars(device_id, vehicle_id) VALUES(?,?)",
-            [(did, r["id"]) for r in conn.execute("SELECT id FROM vehicles WHERE archived = 0")],
-        )
-    conn.execute("DELETE FROM push_device_cars WHERE device_id = ? AND vehicle_id = ?", (did, vehicle_id))
-    left = conn.execute("SELECT COUNT(*) FROM push_device_cars WHERE device_id = ?", (did,)).fetchone()[0]
-    if left == 0:
-        conn.execute("DELETE FROM push_devices WHERE id = ?", (did,))
-    return left
+    return conn.execute("SELECT id FROM push_devices WHERE endpoint = ?", (endpoint,)).fetchone()["id"]
 
 
 def remove_device(conn: sqlite3.Connection, user_id: int, device_id: int | None = None, endpoint: str = "") -> None:
@@ -102,32 +72,23 @@ def remove_device(conn: sqlite3.Connection, user_id: int, device_id: int | None 
 
 
 def devices(conn: sqlite3.Connection, user_id: int) -> list[dict]:
-    """The devices of a person; ``cars`` = the names of the cars it is switched on for (empty = every car), ``car_ids`` the same as ids."""
-    out = []
-    for d in conn.execute("SELECT id, endpoint, label, created_at FROM push_devices WHERE user_id = ? ORDER BY id", (user_id,)).fetchall():
-        cars = conn.execute(
-            "SELECT v.id, v.name FROM push_device_cars c JOIN vehicles v ON v.id = c.vehicle_id WHERE c.device_id = ? ORDER BY v.name",
-            (d["id"],),
-        ).fetchall()
-        out.append({**dict(d), "car": ", ".join(c["name"] for c in cars), "car_ids": [c["id"] for c in cars]})
-    return out
+    """The devices of a person: ``id``, ``endpoint``, ``label``, ``created_at``."""
+    return [
+        dict(d) for d in conn.execute("SELECT id, endpoint, label, created_at FROM push_devices WHERE user_id = ? ORDER BY id", (user_id,))
+    ]
 
 
 def send(conn: sqlite3.Connection, user_id: int, title: str, body: str, url: str = "", vehicle_id: int | None = None) -> int:
-    """Send to the devices of the person - a device switched on for certain cars only gets those cars' messages (``vehicle_id``), one without a list gets all.
+    """Send to every device of the person (what is sent was chosen in the notification matrix; ``vehicle_id`` is only kept for the callers).
     Returns how many accepted it. A device the push service no longer knows is forgotten."""
     from pywebpush import WebPushException, webpush
 
-    rows = conn.execute(
-        "SELECT id, endpoint, p256dh, auth FROM push_devices d WHERE d.user_id = ? AND (? IS NULL "
-        "OR NOT EXISTS (SELECT 1 FROM push_device_cars c WHERE c.device_id = d.id) "
-        "OR EXISTS (SELECT 1 FROM push_device_cars c WHERE c.device_id = d.id AND c.vehicle_id = ?))",
-        (user_id, vehicle_id, vehicle_id),
-    ).fetchall()
+    rows = conn.execute("SELECT id, endpoint, p256dh, auth FROM push_devices WHERE user_id = ?", (user_id,)).fetchall()
     if not rows:
         return 0
     key = _vapid(conn)[0]
-    payload = json.dumps({"title": title[:120], "body": body[:600], "url": url or config.external_url() or "/"})
+    tag = hashlib.sha256(f"{title}|{body}".encode()).hexdigest()[:16]  # the same words replace each other on a device instead of piling up
+    payload = json.dumps({"title": title[:120], "body": body[:600], "url": url or config.external_url() or "/", "tag": tag})
     sent = 0
     for row in rows:
         try:

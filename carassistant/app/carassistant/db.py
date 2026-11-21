@@ -68,6 +68,7 @@ MIGRATIONS: list[str] = [
     (SCHEMA_DIR / "migrations_49.sql").read_text(encoding="utf-8"),  # MCP access: keys and log
     (SCHEMA_DIR / "migrations_50.sql").read_text(encoding="utf-8"),  # own accent colour per car, notifications of a car on / off per person
     (SCHEMA_DIR / "migrations_51.sql").read_text(encoding="utf-8"),  # push devices per car (several cars per device)
+    (SCHEMA_DIR / "migrations_52.sql").read_text(encoding="utf-8"),  # notifications: one system per person (matrix of cars and events)
 ]
 
 

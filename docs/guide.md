@@ -6,8 +6,8 @@ Car Assistant is a logbook and dashboard for your cars. Everything is explained 
 
 ## The three levels
 Every setting lives on exactly one level, so you always know where to look. *Settings* has three tabs, like a pyramid - you on top, the car in the middle, the whole app at the bottom:
-- **User** – you: your login (name, password, passcode, passkeys), your devices and the cars you want to be notified about, the start car, and the start links for a [web app per car](#a-web-app-per-car).
-- **Car** – only the car shown under the title (switch it with the sign next to its name): its photo, video, design and icon, Home Assistant entities, notifications for this car, backup, archive and delete.
+- **User** – you: your login (name, password, passcode, passkeys), your devices and all your notifications (one list for every car), the start car, and the start links for a [web app per car](#a-web-app-per-car).
+- **Car** – only the car shown under the title (switch it with the sign next to its name): its photo, video, design and icon, Home Assistant entities, backup, archive and delete.
 - **System** – the whole app, for every car and every person: language, units and currency, design, map and fuel prices, sensors in Home Assistant, [MCP access](mcp.md), sources and updates, logs, the address of the app, backup of everything.
 
 ## First start
@@ -25,7 +25,6 @@ A short guide asks for a language, then your first car (or a demo car), then whi
 - **Photo and video** – up to **10 files per car**, photos and videos together; the oldest drops out when you add an eleventh. Two choices, saved at once: *For the Dashboard* (a photo or a video) and *As the car's photo* (for the car choice and every list). A video needs a photo first.
 - **Design** – the car's own design with its own colour wheel; *Like the system* follows the design of System.
 - **Home Assistant entities** – optional entities that deliver odometer, fuel level, range and position (this one has a **Save**).
-- **Notifications for this car** – turn them on for the device you are using, send a test, and choose which events you are told about.
 - **Backup and manage** – back up this car, archive it or delete it.
 
 ## Pages of a car
@@ -47,7 +46,7 @@ A short guide asks for a language, then your first car (or a demo car), then whi
 *More → Integrations → Manage navigation*: the first four pages sit in the bar, the rest in *More*, in the same order. Integrations and Plugins are always last. Switching a fixed integration off removes its page from the navigation; the lists stay in sync.
 
 ## Notifications
-Notifications go to the devices you switch on, **per car**: open *Settings → Car* of a car and turn them on there on the iPhone, iPad or computer you are using (the web app of a car does the same). *Settings → User* shows your devices with the cars they serve and lets you decide for which cars you want to be notified at all.
+Notifications are **one system per person**, under *Settings → User* – nothing about them is set under *Car* or *System*. There you switch them on for the iPhone, iPad or computer you are using (or give the name of your Home Assistant notify service when no port is set) and see your devices. Below, one list shows **every car and every kind of message**: tap a car's name under a message to switch it on or off; the first choice *New cars* is what a car you add later starts with. A car you add appears in the list by itself, a removed one disappears. *General* holds messages that are not about one car (for example a new version of an installed plugin). The same words go to a person only once, and identical messages replace each other on a device.
 
 ## A web app per car
 *Settings → User → Web app for one car* lists a start link per car. Open the link of a car in Safari, tap *Share* and *Add to Home Screen*: the app opens straight on that car and shows only that car - no car switch, no list of the others. It needs your own https address (*Settings → System*).

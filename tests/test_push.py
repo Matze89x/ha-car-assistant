@@ -49,30 +49,23 @@ def test_a_notification_leaves_the_server_with_a_valid_sender_claim(env):
     assert seen["authorization"].lower().startswith("vapid") and seen["content-encoding"] == "aes128gcm" and seen["ttl"] == "86400"
 
 
-def test_a_device_of_one_cars_web_app_only_gets_that_cars_messages(conn, monkeypatch):
+def test_every_device_of_the_person_gets_the_message(conn, monkeypatch):
     import pywebpush
 
     from carassistant import accounts, push
 
     uid = accounts.create_user(conn, "owner", "A-very-Long-Passw0rd!x", admin=True)
-    one = conn.execute("INSERT INTO vehicles(name, slug) VALUES('One', 'one')").lastrowid
-    two = conn.execute("INSERT INTO vehicles(name, slug) VALUES('Two', 'two')").lastrowid
-    for name, car in (("everything", None), ("app-one", one), ("app-two", two)):
-        did = conn.execute(
+    for name in ("phone", "tablet"):
+        conn.execute(
             "INSERT INTO push_devices(user_id, endpoint, p256dh, auth, label, created_at) VALUES(?,?,?,?,?,?)",
             (uid, f"https://push.example.com/{name}-0001", "x" * 20, "y" * 10, name, "now"),
-        ).lastrowid
-        if car:
-            conn.execute("INSERT INTO push_device_cars(device_id, vehicle_id) VALUES(?,?)", (did, car))
-    both = conn.execute("SELECT id FROM push_devices WHERE label = 'app-two'").fetchone()["id"]
-    conn.execute("INSERT INTO push_device_cars(device_id, vehicle_id) VALUES(?,?)", (both, one))  # one device can serve several cars
+        )
     reached = []
-    monkeypatch.setattr(pywebpush, "webpush", lambda subscription_info, **kw: reached.append(subscription_info["endpoint"].split("/")[-1]))
-    push.send(conn, uid, "T", "B", "", one)
-    assert sorted(reached) == ["app-one-0001", "app-two-0001", "everything-0001"]  # app-two serves both cars; nobody else is left out
-    reached.clear()
-    push.send(conn, uid, "T", "B", "", two)
-    assert sorted(reached) == ["app-two-0001", "everything-0001"]  # car one's own device is left alone
-    reached.clear()
-    push.send(conn, uid, "T", "B")  # no car (the test message): every device
-    assert len(reached) == 3
+    monkeypatch.setattr(
+        pywebpush, "webpush", lambda subscription_info, **kw: reached.append((subscription_info["endpoint"].split("/")[-1], kw["data"]))
+    )
+    assert push.send(conn, uid, "T", "B") == 2
+    assert sorted(r[0] for r in reached) == ["phone-0001", "tablet-0001"]
+    assert (
+        len({r[1] for r in reached}) == 1 and '"tag"' in reached[0][1]
+    )  # the same words carry the same tag: they replace each other on a device

@@ -24,7 +24,8 @@ def test_notify_sends_once_per_repeat_window(conn, vehicle, monkeypatch):
     from carassistant import accounts, ha
 
     uid = accounts.create_user(conn, "owner", "correct horse battery staple", admin=True)
-    notify.save_prefs(conn, uid, "mobile_app_x", ["appointment"])
+    notify.save_service(conn, uid, "mobile_app_x")
+    conn.execute("UPDATE user_notify SET events = ? WHERE user_id = ?", ('["appointment"]', uid))
     conn.commit()
     calls = []
     monkeypatch.setattr(ha, "network_port", lambda: (True, None))  # no port: Home Assistant service
@@ -41,7 +42,8 @@ def test_a_notification_opens_the_page_of_its_topic_in_that_car(conn, vehicle, m
     from carassistant import accounts, config, ha
 
     uid = accounts.create_user(conn, "owner", "correct horse battery staple", admin=True)
-    notify.save_prefs(conn, uid, "mobile_app_x", ["appointment", "tyre_pressure"])
+    notify.save_service(conn, uid, "mobile_app_x")
+    conn.execute("UPDATE user_notify SET events = ? WHERE user_id = ?", ('["appointment", "tyre_pressure"]', uid))
     conn.commit()
     calls = []
     monkeypatch.setattr(ha, "network_port", lambda: (True, None))

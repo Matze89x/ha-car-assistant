@@ -160,7 +160,7 @@ def test_settings_are_three_tabs_the_pyramid_user_car_system(client):
     for old in ("design", "region"):
         assert client.get(f"/settings/{old}").status_code == 200  # the old addresses keep working
     car = client.get("/settings/car").text
-    assert 'id="media"' in car and 'id="theme"' in car and 'id="ha"' in car and 'id="notifications"' in car and 'id="vbackup"' in car
+    assert 'id="media"' in car and 'id="theme"' in car and 'id="ha"' in car and 'id="notifications"' not in car and 'id="vbackup"' in car
     assert 'name="language"' not in car and 'id="mqtt"' not in car  # nothing of the system on the Car tab
     assert car.index('id="icons"') < car.index('id="media"')  # the car's icon comes before photo and video
     assert 'id="icons"' not in system and 'id="sync"' not in system  # the app icon is fixed; "read sensors again" sits in the sensors card

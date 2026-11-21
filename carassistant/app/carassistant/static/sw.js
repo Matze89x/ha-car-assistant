@@ -9,6 +9,7 @@ self.addEventListener("push", function (event) {
     body: data.body || "",
     icon: new URL("icon/192.png", base).href,
     badge: new URL("icon/96.png", base).href,
+    tag: data.tag || undefined,
     data: { url: data.url || base },
   }));
 });

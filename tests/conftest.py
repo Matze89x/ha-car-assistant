@@ -21,6 +21,9 @@ def env(tmp_path, monkeypatch):
     from carassistant import addons_web, db
 
     addons_web._token_tries.clear()  # the memory of wrong token guesses belongs to one test
+    from carassistant import notify
+
+    notify._recent.clear()  # so does the memory of messages just sent
     db.migrate()
     with db.tx() as conn:
         db.set_setting(conn, "setup.language", "1")  # tests start after the first-start language choice

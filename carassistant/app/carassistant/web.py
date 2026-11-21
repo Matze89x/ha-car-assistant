@@ -1022,6 +1022,9 @@ def vehicle_delete(request: Request, vid: int):
     with db.tx() as conn:
         vehicle_or_404(conn, vid)
         conn.execute("DELETE FROM vehicles WHERE id = ?", (vid,))
+        conn.execute(
+            "DELETE FROM user_notify_vehicle WHERE vehicle_id = ?", (vid,)
+        )  # the car disappears from everybody's notification matrix
     import shutil
 
     shutil.rmtree(config.files_dir() / str(vid), ignore_errors=True)
@@ -2142,12 +2145,9 @@ def _settings_section(request: Request, section: str):
         me = account.get("acct_me")
         cars = conn.execute("SELECT * FROM vehicles WHERE archived = 0 ORDER BY name COLLATE NOCASE").fetchall()
         car = _current_car(request, cars)
-        notify_cars = [{"id": c["id"], "name": c["name"], "on": notify.car_enabled(conn, me["id"], c["id"]) if me else True} for c in cars]
-        notify_prefs = notify.prefs(conn, me["id"], car["id"] if car else None) if me else {"service": "", "events": [], "enabled": True}
+        notify_prefs = notify.prefs(conn, me["id"]) if me else {"service": "", "events": [], "enabled": True}
+        notify_matrix = notify.matrix(conn, me["id"]) if me and section == "user" else None
         car_ctx = _car_context(conn, car) if section == "car" and car is not None else {}
-        car_devices = (
-            [d for d in push.devices(conn, me["id"]) if not d["car_ids"] or car["id"] in d["car_ids"]] if me and car is not None else []
-        )
         system_theme = themes.current(conn)
         start_car = userprefs.get(conn, me["id"], "start_car") if me else None
         my_design = userprefs.get(conn, me["id"], "design") if me else None
@@ -2198,13 +2198,12 @@ def _settings_section(request: Request, section: str):
         system_design=section != "car",  # only the Car tab shows the design of the car; the others show the system's own
         switch_to="/settings/car?car=" if section == "car" else "",
         car=car,
-        car_devices=car_devices,
         system_theme=system_theme,
         **car_ctx,
         **account,
         notify_prefs=notify_prefs,
         mcp_state=mcp_state,
-        notify_cars=notify_cars,
+        notify_matrix=notify_matrix,
         start_car=start_car,
         sources_auto=sources_auto,
         log_keep=log_keep,
@@ -2213,6 +2212,7 @@ def _settings_section(request: Request, section: str):
         log_choices=connectors.LOG_KEEP_CHOICES,
         log_total=log_total,
         notify_events=notify.EVENTS,
+        notify_general=notify.GENERAL,
         push_devices=push_dev,
     )
 
@@ -2518,60 +2518,45 @@ async def settings_fuelkey(request: Request):
 
 @app.post("/settings/notifications")
 async def settings_notifications(request: Request):
-    """The signed-in user's own notify service and events."""
+    """The signed-in person's way to be told (the Home Assistant notify service)."""
     form = await request.form()
     with db.tx() as conn:
         me = auth_web._acting_user(request, conn)
         if me is None:
             return go(request, "/settings/user", "acct.need_admin")
-        car = str(form.get("vehicle") or "")
-        known = conn.execute("SELECT id FROM vehicles WHERE id = ?", (int(car),)).fetchone() if car.isdigit() else None
-        if known is None:  # the Settings > User form: only the way to be told (the events are chosen per car under Settings > Car)
-            notify.save_service(conn, me["id"], str(form.get("service") or ""))
-        else:
-            notify.save_prefs(conn, me["id"], str(form.get("service") or ""), [str(e) for e in form.getlist("ev")], known["id"])
+        notify.save_service(conn, me["id"], str(form.get("service") or ""))
     if form.get("ajax"):
         return Response(status_code=204)
-    back = str(form.get("back") or "")
-    back = back if re.fullmatch(r"/settings/car\?car=[a-z0-9-]{1,60}#notifications", back) else "/settings/user#notifications"
-    return go(request, back, "saved")
+    return go(request, "/settings/user#notifications", "saved")
 
 
-@app.post("/settings/notifications/cars")
-async def settings_notifications_cars(request: Request):
-    """Settings > User: the cars this person wants to be notified about at all (what exactly is chosen per car under Settings > Car)."""
+@app.post("/settings/notifications/matrix")
+async def settings_notifications_matrix(request: Request):
+    """The whole notification matrix of the signed-in person: events per car, the choice for new cars, the general events."""
     form = await request.form()
-    chosen = {str(c) for c in form.getlist("car")}
     with db.tx() as conn:
         me = auth_web._acting_user(request, conn)
         if me is None:
             return go(request, "/settings/user", "acct.need_admin")
-        for row in conn.execute("SELECT id FROM vehicles WHERE archived = 0").fetchall():
-            notify.set_car_enabled(conn, me["id"], row["id"], str(row["id"]) in chosen)
+        notify.save_matrix(conn, me["id"], form)
     if form.get("ajax"):
         return Response(status_code=204)
-    return go(request, "/settings/user#notify-cars", "saved")
+    return go(request, "/settings/user#notify-matrix", "saved")
 
 
 @app.post("/settings/notifications/test")
 async def settings_notifications_test(request: Request):
-    """A test message to the person's own devices - to those of one car when sent from its Car tab."""
-    form = await form_dict(request)
+    """A test message to the person's own devices."""
     t = i18n.translator(config.language())
+    back = "/settings/user#notifications"
     with db.tx() as conn:
-        car = (
-            conn.execute("SELECT id, slug FROM vehicles WHERE id = ?", (int(form["vehicle"]),)).fetchone()
-            if form.get("vehicle", "").isdigit()
-            else None
-        )
-        back = f"/settings/car?car={car['slug']}#notifications" if car and car["slug"] else "/settings/user#notifications"
         me = auth_web._acting_user(request, conn)
         if me is None:
             return go(request, back, "err.required")
         service = notify.prefs(conn, me["id"])["service"]
         if (not notify.push_mode() and not service) or (notify.push_mode() and not push.devices(conn, me["id"])):
             return go(request, back, "err.required")
-        ok, _error = notify._deliver(conn, me["id"], service, "Car Assistant", t("notify.test"), "", car["id"] if car else None)
+        ok, _error = notify._deliver(conn, me["id"], service, "Car Assistant", t("notify.test"), "")
     return go(request, back, "notify_ok" if ok else "notify_fail")
 
 

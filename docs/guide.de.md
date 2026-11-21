@@ -6,8 +6,8 @@ Car Assistant ist ein Fahrtenbuch und Dashboard für deine Autos. Das meiste erk
 
 ## Die drei Ebenen
 Jede Einstellung liegt auf genau einer Ebene, du weißt also immer, wo du suchen musst. *Einstellungen* hat drei Reiter, wie eine Pyramide - du oben, das Auto in der Mitte, die ganze App unten:
-- **Benutzer** – du: dein Login (Name, Passwort, Passcode, Passkeys), deine Geräte und die Autos, zu denen du benachrichtigt werden willst, das Start-Auto und die Startlinks für eine [Web-App je Auto](#eine-web-app-je-auto).
-- **Auto** – nur das Auto, das unter dem Titel steht (wechsle es mit dem Zeichen neben seinem Namen): Foto, Video, Design und Icon, Home-Assistant-Entitäten, Benachrichtigungen für dieses Auto, Sicherung, Archivieren und Löschen.
+- **Benutzer** – du: dein Login (Name, Passwort, Passcode, Passkeys), deine Geräte und alle deine Benachrichtigungen (eine Liste für jedes Auto), das Start-Auto und die Startlinks für eine [Web-App je Auto](#eine-web-app-je-auto).
+- **Auto** – nur das Auto, das unter dem Titel steht (wechsle es mit dem Zeichen neben seinem Namen): Foto, Video, Design und Icon, Home-Assistant-Entitäten, Sicherung, Archivieren und Löschen.
 - **System** – die ganze App, für jedes Auto und jede Person: Sprache, Einheiten und Währung, Design, Karte und Spritpreise, Sensoren in Home Assistant, [MCP-Zugriff](mcp.de.md), Quellen und Updates, Protokolle, die Adresse der App, Sicherung von allem.
 
 ## Erster Start
@@ -25,7 +25,6 @@ Eine kurze Einführung fragt nach der Sprache, dann nach deinem ersten Auto (ode
 - **Foto und Video** – bis zu **10 Dateien pro Auto**, Fotos und Videos zusammen; beim elften Hinzufügen fällt die älteste heraus. Zwei Auswahlen, sofort gespeichert: *Für die Startseite* (ein Foto oder ein Video) und *Als Foto des Autos* (für die Autoauswahl und alle Listen). Ein Video braucht zuerst ein Foto.
 - **Design** – das eigene Design des Autos mit eigenem Farbrad; *Wie das System* folgt dem Design von System.
 - **Home-Assistant-Entitäten** – optionale Entitäten, die Kilometerstand, Tankstand, Reichweite und Position liefern (hier gibt es ein **Speichern**).
-- **Benachrichtigungen für dieses Auto** – für das Gerät einschalten, das du gerade benutzt, eine Testnachricht senden und wählen, über welche Ereignisse du informiert wirst.
 - **Sichern & verwalten** – dieses Auto sichern, archivieren oder löschen.
 
 ## Seiten eines Autos
@@ -47,7 +46,7 @@ Eine kurze Einführung fragt nach der Sprache, dann nach deinem ersten Auto (ode
 *Weiteres → Integrationen → Navigation verwalten*: Die ersten vier Seiten stehen in der Leiste, der Rest unter *Weiteres*, in derselben Reihenfolge. Integrationen und Plugins stehen immer am Ende. Schaltest du eine feste Integration aus, verschwindet ihre Seite aus der Navigation; die Listen bleiben synchron.
 
 ## Benachrichtigungen
-Benachrichtigungen gehen an die Geräte, die du einschaltest, **je Auto**: Öffne *Einstellungen → Auto* eines Autos und schalte sie dort auf dem iPhone, iPad oder Computer ein, den du gerade benutzt (die Web-App eines Autos macht dasselbe). *Einstellungen → Benutzer* zeigt deine Geräte mit den Autos, die sie bedienen, und lässt dich entscheiden, zu welchen Autos du überhaupt benachrichtigt werden willst.
+Benachrichtigungen sind **ein System pro Person** unter *Einstellungen → Benutzer* – unter *Auto* oder *System* wird dazu nichts eingestellt. Dort schaltest du sie auf dem iPhone, iPad oder Computer ein, den du gerade benutzt (oder trägst den Namen deines Home-Assistant-Benachrichtigungsdienstes ein, wenn kein Port gesetzt ist) und siehst deine Geräte. Darunter zeigt eine Liste **jedes Auto und jede Art von Meldung**: Tippe unter einer Meldung auf den Namen eines Autos, um sie ein- oder auszuschalten; die erste Auswahl *Neue Autos* ist das, womit ein später hinzugefügtes Auto startet. Ein neues Auto erscheint von selbst in der Liste, ein entferntes verschwindet. *Allgemein* enthält Meldungen, die nicht zu einem Auto gehören (zum Beispiel eine neue Version eines installierten Plugins). Dieselben Worte gehen an eine Person nur einmal, und gleiche Meldungen ersetzen sich auf einem Gerät.
 
 ## Eine Web-App je Auto
 *Einstellungen → Benutzer → Web-App für ein Auto* listet je Auto einen Startlink. Öffne den Link eines Autos in Safari, tippe auf *Teilen* und *Zum Home-Bildschirm*: Die App öffnet direkt dieses Auto und zeigt nur dieses - ohne Fahrzeugwechsel und ohne Liste der anderen. Sie braucht deine eigene https-Adresse (*Einstellungen → System*).

@@ -1,26 +1,50 @@
 {% from "_macros.html" import icon, form_bar with context %}
+{% set EV = {'maint_due': _('notify.ev_maint_due'), 'appointment': _('notify.ev_appointment'), 'reminder': _('notify.ev_reminder'), 'car_message': _('notify.ev_car_message'), 'open_closure': _('notify.ev_open_closure'), 'low_energy': _('notify.ev_low_energy'), 'tyre_pressure': _('notify.ev_tyre_pressure'), 'trip_end': _('notify.ev_trip_end')} %}
+{% set GEN = {'addon_update': _('notify.ev_addon_update')} %}
 <section class="card" id="notifications">
   <h2>{{ icon('bell-outline') }} {{ _('notify.user_title') }}</h2>
   {% if not acct_me %}
     <p class="hint">{{ _('notify.user_need') }}</p>
   {% else %}
+  <h3 class="acct-sub">{{ _('notify.how_title') }}</h3>
   {% if port_on %}
-  <p class="hint">{{ _('push.user_hint') }}</p>
-  {% if push_devices %}<div class="ar-v">{% for d in push_devices %}<span class="chip-pk">{{ icon('bell', 14) }} {{ d.label or _('push.device') }} · {{ d.car or _('push.all_cars') }} <small class="muted">{{ d.created_at[:10] }}</small>
-    <form method="post" action="{{ base }}/settings/push/{{ d.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% endfor %}</div>
-  {% else %}<p class="muted">{{ _('push.no_devices') }}</p>{% endif %}
-  {% endif %}
-  {% if not port_on %}<form method="post" action="{{ base }}/settings/notifications" class="grid" data-live="1">
+  <div id="push-box" class="push-box" data-base="{{ base }}" data-unsupported="{{ _('push.unsupported') }}" data-ios="{{ _('push.ios_home') }}" data-failed="{{ _('push.failed') }}" data-https="{{ _('push.https_only') }}" data-ext="{{ external_url if ext_set else '' }}" data-denied="{{ _('push.denied') }}" data-label-on="{{ _('push.enable') }}" data-label-off="{{ _('push.disable') }}">
+    <p class="hint">{{ _('push.user_hint') }}</p>
+    {% if push_devices %}<div class="ar-v">{% for d in push_devices %}<span class="chip-pk">{{ icon('bell', 14) }} {{ d.label or _('push.device') }} <small class="muted">{{ d.created_at[:10] }}</small>
+      <form method="post" action="{{ base }}/settings/push/{{ d.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% endfor %}</div>
+    {% else %}<p class="muted">{{ _('push.no_devices') }}</p>{% endif %}
+    <div class="actions"><button type="button" id="push-on" class="primary small" {{ 'disabled' if not ext_set }}>{{ icon('bell', 16) }}<span>{{ _('push.enable') }}</span></button>
+      <form method="post" action="{{ base }}/settings/notifications/test" class="inline" id="push-test"><button class="small" {{ 'disabled' if not push_devices }}>{{ icon('bell-outline', 16) }} {{ _('notify.user_test') }}</button></form></div>
+    {% if not ext_set %}<p class="hint">{{ icon('lock', 16) }} {{ _('ext.needed') }}</p>{% endif %}
+    <p class="acct-msg" id="push-msg" hidden></p>
+  </div>
+  <script src="{{ base }}/static/push.js?v={{ version }}" defer></script>
+  {% else %}
+  <form method="post" action="{{ base }}/settings/notifications" class="grid" data-live="1">
     <label class="wide">{{ _('notify.user_service') }}<input type="text" name="service" value="{{ notify_prefs.service }}" maxlength="90" placeholder="mobile_app_my_phone" autocapitalize="off" autocomplete="off" spellcheck="false"><small class="muted">{{ _('notify.user_service_help') }}</small></label>
-  </form>{% endif %}
-  <h3 class="acct-sub" id="notify-cars">{{ _('notify.cars_title') }}</h3>
-  <p class="hint">{{ _('notify.cars_hint') }}</p>
-  <form method="post" action="{{ base }}/settings/notifications/cars" class="grid" data-live="1">
-    {% for c in notify_cars %}<label class="check wide"><input type="checkbox" name="car" value="{{ c.id }}" {{ 'checked' if c.on }}> {{ c.name }}</label>{% endfor %}
   </form>
-  <p class="hint">{{ icon('info', 14) }} {{ _('notify.split_hint') }}</p>
-  {% if notify_cars %}<p><a class="button small" href="{{ base }}/settings/car#notifications">{{ icon('car', 16) }}<span>{{ _('notify.to_car') }}</span></a></p>{% endif %}
-  {% if not port_on %}<form method="post" action="{{ base }}/settings/notifications/test" class="inline"><button class="small" {{ 'disabled' if not notify_prefs.service }}>{{ icon('bell-outline', 16) }} {{ _('notify.user_test') }}</button></form>
-  <p class="hint">{{ icon('info', 14) }} {{ _('push.ha_only') }}</p>{% endif %}
+  <form method="post" action="{{ base }}/settings/notifications/test" class="inline"><button class="small" {{ 'disabled' if not notify_prefs.service }}>{{ icon('bell-outline', 16) }} {{ _('notify.user_test') }}</button></form>
+  <p class="hint">{{ icon('info', 14) }} {{ _('push.ha_only') }}</p>
+  {% endif %}
+
+  {% if notify_matrix %}
+  <h3 class="acct-sub" id="notify-matrix">{{ _('notify.matrix_title') }}</h3>
+  <p class="hint">{{ _('notify.matrix_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/notifications/matrix" data-live="1" class="nm-form">
+    <div class="nm-list">
+      {% for key in notify_events %}
+      <div class="nm-ev"><b>{{ EV[key] }}</b>
+        <div class="nm-chips">
+          <label class="nm-chip nm-new" title="{{ _('notify.col_new_hint') }}"><input type="checkbox" name="ev_new" value="{{ key }}" {{ 'checked' if key in notify_matrix.default }}><span>{{ _('notify.col_new') }}</span></label>
+          {% for c in notify_matrix.cars %}<label class="nm-chip"><input type="checkbox" name="ev_{{ c.id }}" value="{{ key }}" {{ 'checked' if key in c.events }}><span>{{ c.name }}</span></label>{% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if not notify_matrix.cars %}<p class="muted">{{ _('notify.no_cars') }}</p>{% endif %}
+    <h3 class="acct-sub">{{ _('notify.general_title') }}</h3>
+    {% for key in notify_general %}<label class="check wide"><input type="checkbox" name="gen" value="{{ key }}" {{ 'checked' if key in notify_matrix.general }}> {{ GEN[key] }}</label>{% endfor %}
+  </form>
+  {% endif %}
   {% endif %}
 </section>
