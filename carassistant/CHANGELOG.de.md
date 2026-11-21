@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.2 Beta
+- Einrichtungsanleitung, Schritt 3: nur noch die ZIP-Downloads (Installieren / Entfernen) mit einem gemeinsamen Token-Feld; die einzelne Anbindungsdatei ist zugeklappt; die Texte eines Bundles lassen sich übersetzen (l10n).
+
 ## 0.5.1 Beta
 - Plugins: ein Bundle kann in Schritt 3 der Einrichtungsanleitung die Anbindungsdatei (mit dem Token) enthalten - ein ZIP zum Installieren, eines zum Entfernen, nichts mehr von Hand kopieren (nie gespeichert, nur Administratoren). Die Demo-Seite ist aufgeräumter.
 

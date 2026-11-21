@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.2 Beta
+- Set-up guide, step 3: only the ZIP downloads (install / remove) with one shared token field; the single connection file is folded away; the texts of a bundle can be translated (l10n).
+
 ## 0.5.1 Beta
 - Plugins: a bundle can carry the connection file (with the token) in step 3 of the set-up guide - one ZIP to install, one to remove, nothing to copy by hand (never stored, administrators only). The demo page is tidier.
 
