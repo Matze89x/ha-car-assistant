@@ -9,5 +9,5 @@ pillow==13.0.0
 webauthn==3.0.1
 cryptography>=50.0.2
 pywebpush==2.5.0
-pypdf>=7.1.0
+pypdf>=7.1.1
 defusedxml>=0.7.1
