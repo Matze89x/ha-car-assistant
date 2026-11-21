@@ -246,7 +246,13 @@ def _lines_for(
             key = f"{user_key}:refuel:{vid}:{item['id']}"
             if not _recently_sent(conn, key, now):
                 keys.append(key)
-                lines.append(t("notify.refuel", pct=item["rise"] or "", litres=f" (~{item['litres']} L)" if item["litres"] else ""))
+                lines.append(
+                    t(
+                        "notify.charge" if item["charge"] else "notify.refuel",
+                        pct=item["rise"] or "",
+                        litres=f" (~{item['litres']} {item['unit']})" if item["litres"] else "",
+                    )
+                )
                 pages.add(PAGE_OF["refuel"])
     return lines, keys, pages
 

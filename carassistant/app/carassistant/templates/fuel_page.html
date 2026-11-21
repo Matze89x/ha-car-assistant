@@ -28,10 +28,22 @@
 {% for it in refuel_todo %}
 <section class="card fs-todo">
   <span class="mi-ic c6">{{ icon('gas-station', 19) }}</span>
-  <div class="fs-todo-t"><b>{{ _('fuel.todo_title') }} · {{ fdate(it.date) }}</b><small class="muted">{{ _('fuel.todo_text', pct=it.rise or '', litres=(' (~' ~ it.litres ~ ' L)') if it.litres else '') }}</small></div>
+  <div class="fs-todo-t"><b>{{ _('fuel.todo_charge_title' if it.charge else 'fuel.todo_title') }} · {{ fdate(it.date) }}</b><small class="muted">{{ _('fuel.todo_charge_text' if it.charge else 'fuel.todo_text', pct=it.rise or '', litres=(' (~' ~ it.litres ~ ' ' ~ it.unit ~ ')') if it.litres else '') }}</small></div>
   <a class="button primary small" href="{{ fu }}?edit={{ it.id }}#fuel">{{ icon('pencil', 16) }}<span>{{ _('fuel.todo_btn') }}</span></a>
 </section>
 {% endfor %}
+{% if charge_sessions %}
+<section class="tp-sec" id="charge-sessions">
+  <details class="eq">
+    <summary><span class="mi-ic c6">{{ icon('battery-charging', 19) }}</span><span class="eq-t">{{ _('fuel.sessions') }}</span>{{ icon('chevron-down', 18) }}</summary>
+    <ul class="plain cs-list">
+      {% for s in charge_sessions %}<li><span class="cs-when"><b>{{ fdate(s.date) }}</b><small class="muted">{{ _('fuel.sess_line', frm=s.from, to=s.to, min=s.minutes) }}</small></span>
+        <span class="cs-pct mono">{{ s.start_pct if s.start_pct is not none else '–' }} → {{ s.end_pct if s.end_pct is not none else '–' }} %</span>
+        <span class="cs-meta">{% if s.kwh %}~{{ s.kwh }} kWh{% endif %}{% if s.max_kw %}{{ ' · ' if s.kwh }}{{ s.max_kw }} kW{% endif %}</span></li>{% endfor %}
+    </ul>
+  </details>
+</section>
+{% endif %}
 {% if stn %}{% include "_fuel_settings.html" %}{% endif %}
 {% if stn %}
 <section class="tp-sec" id="stations">

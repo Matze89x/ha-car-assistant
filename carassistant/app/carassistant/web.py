@@ -1404,9 +1404,10 @@ def paged_list(conn: sqlite3.Connection, vid: int, request: Request, table: str,
 
 def fuel_list_context(conn: sqlite3.Connection, vid: int, request: Request) -> dict:
     got = paged_list(conn, vid, request, "fuel", ("station", "notes", "date"), "date DESC, COALESCE(odometer_km, 0) DESC, id DESC")
-    from . import refuel_detect
+    from . import charge_detect, refuel_detect
 
     return {
+        "charge_sessions": charge_detect.sessions(conn, vid),
         "fuel_items": got["items"],
         "total_rows": got["total"],
         "q": got["q"],

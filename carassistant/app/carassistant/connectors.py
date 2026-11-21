@@ -123,29 +123,37 @@ def _num(data: dict, key: str, low: float, high: float) -> float | None:
     return float(value)
 
 
+WATCHED = ("fuel_level", "charging", "battery_pct", "charge_power_kw")  # readings whose change can mean a refuel or a charging session
+
+
 def _store(conn: sqlite3.Connection, vehicle_id: int, key: str, value: str) -> None:
     before = None
-    if key == "fuel_level":
-        row = conn.execute("SELECT value FROM live WHERE vehicle_id = ? AND key = 'fuel_level'", (vehicle_id,)).fetchone()
+    if key in WATCHED:
+        row = conn.execute("SELECT value FROM live WHERE vehicle_id = ? AND key = ?", (vehicle_id, key)).fetchone()
         before = row["value"] if row else None
     conn.execute(
         "INSERT INTO live(vehicle_id, key, value, updated) VALUES(?,?,?,?) "
         "ON CONFLICT(vehicle_id, key) DO UPDATE SET value = excluded.value, updated = excluded.updated",
         (vehicle_id, key, value, _now()),
     )
-    if key == "fuel_level" and before is not None:
-        _refuel_seen(conn, vehicle_id, before, value)
+    if key in WATCHED:
+        _watch(conn, vehicle_id, key, before, value)
 
 
-def _refuel_seen(conn: sqlite3.Connection, vehicle_id: int, before, after) -> None:
-    """The tank level rose a lot: an unfinished fuel entry is added and the person is told (see refuel_detect)."""
-    from . import notify, refuel_detect
+def _watch(conn: sqlite3.Connection, vehicle_id: int, key: str, before, after) -> None:
+    """A watched reading was stored: a tank that jumped is a refuel, a battery that starts / stops charging is a charging session. The person is
+    told at once when something was noticed. Noticing must never break storing the reading."""
+    from . import charge_detect, notify, refuel_detect
 
     try:
-        if refuel_detect.level_changed(conn, vehicle_id, before, after):
+        if key == "fuel_level":
+            noticed = before is not None and refuel_detect.level_changed(conn, vehicle_id, before, after)
+        else:
+            noticed = charge_detect.seen(conn, vehicle_id, key, before, after)
+        if noticed:
             notify.event_now()
-    except Exception:  # noticing a refuel must never break storing the reading
-        log.exception("Refuel detection failed")
+    except Exception:
+        log.exception("Refuel / charging detection failed")
 
 
 # plain numbers: api key -> (live key, low, high)

@@ -65,7 +65,7 @@ def _stamp(notes: str | None) -> datetime | None:
 def rise_of(notes: str | None) -> int | None:
     """The tank rise (percentage points) a detected entry carries, else None."""
     parts = (notes or "").split(":")
-    if len(parts) >= 3 and parts[0] == "auto" and parts[1] == "tank" and parts[2].startswith("+") and parts[2].endswith("%"):
+    if len(parts) >= 3 and parts[0] == "auto" and parts[1] in ("tank", "charge") and parts[2].startswith("+") and parts[2].endswith("%"):
         try:
             return int(parts[2][1:-1])
         except ValueError:
@@ -74,23 +74,27 @@ def rise_of(notes: str | None) -> int | None:
 
 
 def todo(conn: sqlite3.Connection, vehicle_id: int, limit: int = 3) -> list[dict]:
-    """Detected refuels that still lack amount or price: ``{"id", "date", "odometer_km", "rise", "litres"}`` (litres = a rough estimate from the tank size)."""
-    tank = conn.execute("SELECT tank_l FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
-    tank_l = tank["tank_l"] if tank and tank["tank_l"] else None
+    """Detected refuels / charges that still lack amount or price: ``{"id", "date", "odometer_km", "rise", "litres", "unit", "charge"}``
+    (``litres`` = a rough estimate from the tank / battery size, in ``unit``)."""
+    v = conn.execute("SELECT tank_l, battery_kwh FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
     out = []
     for r in conn.execute(
-        "SELECT id, date, odometer_km, notes FROM fuel WHERE vehicle_id = ? AND notes LIKE ? AND (amount IS NULL OR price_total IS NULL) "
+        "SELECT id, date, odometer_km, notes FROM fuel WHERE vehicle_id = ? AND notes LIKE 'auto:%' AND (amount IS NULL OR price_total IS NULL) "
         "ORDER BY date DESC, id DESC LIMIT ?",
-        (vehicle_id, MARK + "%", limit),
+        (vehicle_id, limit),
     ):
         rise = rise_of(r["notes"])
+        charge = (r["notes"] or "").startswith("auto:charge")
+        size = (v["battery_kwh"] if charge else v["tank_l"]) if v else None
         out.append(
             {
                 "id": r["id"],
                 "date": r["date"],
                 "odometer_km": r["odometer_km"],
                 "rise": rise,
-                "litres": round(tank_l * rise / 100) if tank_l and rise else None,
+                "litres": round(size * rise / 100) if size and rise else None,
+                "unit": "kWh" if charge else "L",
+                "charge": charge,
             }
         )
     return out
