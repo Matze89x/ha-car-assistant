@@ -1,18 +1,37 @@
 {% from "_macros.html" import icon with context %}
 {% set season_icon = {'summer': 'white-balance-sunny', 'winter': 'snowflake', 'allseason': 'sync'} %}
-{# One page, one form, one Save (top right): the three seasons are tabs, each holds its pressure, its sets and a blank set #}
-{% macro set_fields(pre, d) %}
-  <label class="tf-field"><span class="tf-l">{{ _('f.name') }}</span><input name="{{ pre }}name" maxlength="80" value="{{ d.get('name') or '' }}" placeholder="{{ _('tires.ph_name') }}"></label>
-  <div class="tf-two">
-    <label class="tf-field"><span class="tf-l">{{ _('f.size') }}</span><input name="{{ pre }}size" value="{{ d.get('size') or '' }}" placeholder="205/55 R16 91V" class="mono"></label>
-    <label class="tf-field"><span class="tf-l">{{ _('f.dot') }}</span><input name="{{ pre }}dot" value="{{ d.get('dot') or '' }}" placeholder="1523" class="mono"></label>
+{# The same page as the view, to type into: per season one card per set - the name on top, the label (sizes front / rear, the four pressures), where it is stored, notes.
+   One form, one Save (top right); the three seasons are tabs. The pressures belong to the season: they sit in the first set of it. #}
+{% macro set_card(sn, pre, r, pv) %}
+<article class="card tire-card tire-form tv-card s-{{ sn }} {{ 'mounted' if r and r['mounted'] }}">
+  {% if not r %}<p class="tp-l">{{ _('tires.add') }}</p>{% endif %}
+  <div class="tc-head">
+    <span class="tc-ic s-{{ sn }}">{{ icon(season_icon[sn] if r else 'plus', 22) }}</span>
+    <input class="tf-title" name="{{ pre }}name" maxlength="80" value="{{ (r['name'] if r else '') or '' }}" placeholder="{{ _('tires.ph_name') }}" aria-label="{{ _('f.name') }}">
   </div>
-  <div class="tf-two">
-    <label class="tf-field"><span class="tf-l">{{ _('tr.rear_axle') }} · {{ _('f.size') }}</span><input name="{{ pre }}rear_size" value="{{ d.get('rear_size') or '' }}" placeholder="{{ _('tr.same') }}" class="mono"></label>
-    <label class="tf-field"><span class="tf-l">{{ _('tr.rear_axle') }} · {{ _('f.name') }}</span><input name="{{ pre }}rear_name" value="{{ d.get('rear_name') or '' }}" placeholder="{{ _('tr.same') }}"></label>
+  <div class="tp-label tpl-edit" role="table" aria-label="{{ _('tp.title') }}">
+    <div class="tpl-head"><span class="tpl-size tpl-size-in">
+      <input name="{{ pre }}size" value="{{ (r['size'] if r else '') or '' }}" placeholder="{{ _('te.size_front') }}" class="mono" aria-label="{{ _('te.size_front') }}">
+      <input name="{{ pre }}rear_size" value="{{ (r['rear_size'] if r else '') or '' }}" placeholder="{{ _('te.size_rear') }}" class="mono" aria-label="{{ _('te.size_rear') }}">
+    </span><span class="tpl-car">{{ icon('car-side', 38) }}<b>{{ tp.unit }}</b></span></div>
+    {% if pv is not none %}
+    <div class="tpl-cols" role="row"><span></span><i>{{ _('tp.axle_front') }}</i><i>{{ _('tp.axle_rear') }}</i></div>
+    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 20) }}{{ icon('briefcase', 16) }}<em>{{ _('tp.normal') }}</em></span>
+      <input name="p_{{ sn }}_front" inputmode="decimal" value="{{ pv.front or '' }}" placeholder="2.4" class="mono" aria-label="{{ _('tp.normal') }} {{ _('tp.axle_front') }}">
+      <input name="p_{{ sn }}_rear" inputmode="decimal" value="{{ pv.rear or '' }}" placeholder="2.4" class="mono" aria-label="{{ _('tp.normal') }} {{ _('tp.axle_rear') }}"></div>
+    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 20) }}{{ icon('account-multiple', 20) }}{{ icon('briefcase', 16) }}{{ icon('briefcase', 16) }}<em>{{ _('tp.full') }}</em></span>
+      <input name="p_{{ sn }}_load_front" inputmode="decimal" value="{{ pv.load_front or '' }}" placeholder="2.8" class="mono" aria-label="{{ _('tp.full') }} {{ _('tp.axle_front') }}">
+      <input name="p_{{ sn }}_load_rear" inputmode="decimal" value="{{ pv.load_rear or '' }}" placeholder="3.0" class="mono" aria-label="{{ _('tp.full') }} {{ _('tp.axle_rear') }}"></div>
+    {% endif %}
   </div>
-  <label class="tf-field"><span class="tf-l">{{ _('f.storage') }}</span><input name="{{ pre }}storage" value="{{ d.get('storage') or '' }}" placeholder="{{ _('tires.ph_storage') }}"></label>
-  <label class="tf-field"><span class="tf-l">{{ _('f.notes') }}</span><textarea name="{{ pre }}notes" rows="2" placeholder="{{ _('tires.ph_notes') }}">{{ d.get('notes') or '' }}</textarea></label>
+  <label class="tg tv-store tv-in"><i>{{ _('f.storage') }}</i><input name="{{ pre }}storage" value="{{ (r['storage'] if r else '') or '' }}" placeholder="{{ _('tires.ph_storage') }}"></label>
+  <label class="tg tv-note tv-in"><i>{{ _('f.notes') }}</i><textarea name="{{ pre }}notes" rows="2" placeholder="{{ _('tires.ph_notes') }}">{{ (r['notes'] if r else '') or '' }}</textarea></label>
+  <div class="nm-actions">
+    {% if r %}<label class="te-check del"><input type="checkbox" name="t{{ r['id'] }}_del" value="1"><span>{{ icon('delete', 16) }}{{ _('btn.delete') }}</span></label>
+    <label class="te-check"><input type="radio" name="mounted" value="{{ r['id'] }}" {{ 'checked' if r['mounted'] }}><span>{{ icon('check', 16) }}{{ _('tires.mounted') }}</span></label>{% endif %}
+    <button class="primary small">{{ icon("check", 16) }}<span>{{ _("btn.save") }}</span></button>
+  </div>
+</article>
 {% endmacro %}
 
 <form method="post" action="{{ vurl }}/save" id="tf" class="tire-edit" data-tabs>
@@ -22,32 +41,12 @@
   </nav>
   {% for sn in tp.seasons %}
   {% set pv = tp.every[sn] %}
-  <section class="te-panel" data-panel="{{ sn }}" {{ 'hidden' if sn != tp.season }}>
-    <div class="card tp-card">
-      <h3>{{ icon('car-tire-alert', 20) }} {{ _('tp.title') }}</h3>
-      <div class="tp-form">
-        <p class="tp-l tp-wide">{{ _('tr.normal') }}</p>
-        <label class="tf-field"><span class="tf-l">{{ _('tp.front') }} ({{ tp.unit }})</span><input name="p_{{ sn }}_front" inputmode="decimal" value="{{ pv.front or '' }}" placeholder="2.4" class="mono"></label>
-        <label class="tf-field"><span class="tf-l">{{ _('tp.rear') }} ({{ tp.unit }})</span><input name="p_{{ sn }}_rear" inputmode="decimal" value="{{ pv.rear or '' }}" placeholder="2.4" class="mono"></label>
-        <p class="tp-l tp-wide">{{ _('tr.loaded') }}</p>
-        <label class="tf-field"><span class="tf-l">{{ _('tp.front') }} ({{ tp.unit }})</span><input name="p_{{ sn }}_load_front" inputmode="decimal" value="{{ pv.load_front or '' }}" placeholder="2.8" class="mono"></label>
-        <label class="tf-field"><span class="tf-l">{{ _('tp.rear') }} ({{ tp.unit }})</span><input name="p_{{ sn }}_load_rear" inputmode="decimal" value="{{ pv.load_rear or '' }}" placeholder="3.0" class="mono"></label>
-      </div>
-    </div>
-    {% for r in rows if r['season'] == sn %}
-    <article class="card tire-card tire-form s-{{ sn }} {{ 'mounted' if r['mounted'] }}">
-      <div class="tc-head"><span class="tc-ic s-{{ sn }}">{{ icon(season_icon[sn], 22) }}</span><h3>{{ r['name'] }}</h3></div>
-      {{ set_fields('t' ~ r['id'] ~ '_', dict(r)) }}
-      <div class="te-flags">
-        <label class="te-check"><input type="radio" name="mounted" value="{{ r['id'] }}" {{ 'checked' if r['mounted'] }}><span>{{ icon('check', 16) }}{{ _('tires.mounted') }}</span></label>
-        <label class="te-check del"><input type="checkbox" name="t{{ r['id'] }}_del" value="1"><span>{{ icon('delete', 16) }}{{ _('btn.delete') }}</span></label>
-      </div>
-    </article>
-    {% endfor %}
-    <article class="card tire-card tire-form s-{{ sn }} te-new">
-      <div class="tc-head"><span class="tc-ic s-{{ sn }}">{{ icon('plus', 22) }}</span><h3>{{ _('tires.add') }}</h3></div>
-      {{ set_fields('n_' ~ sn ~ '_', {}) }}
-    </article>
+  {% set season_rows = rows|selectattr('season', 'equalto', sn)|list %}
+  <section class="te-panel tire-wrap tv-sets" data-panel="{{ sn }}" {{ 'hidden' if sn != tp.season }}>
+    {% for r in season_rows %}{{ set_card(sn, 't' ~ r['id'] ~ '_', r, pv if loop.first else none) }}{% endfor %}
+    {% if season_rows %}
+    <details class="card add-card te-more"><summary><span class="add-ic">{{ icon('plus', 18) }}</span><span>{{ _('tires.add') }}</span></summary>{{ set_card(sn, 'n_' ~ sn ~ '_', none, none) }}</details>
+    {% else %}{{ set_card(sn, 'n_' ~ sn ~ '_', none, pv) }}{% endif %}
   </section>
   {% endfor %}
 </form>

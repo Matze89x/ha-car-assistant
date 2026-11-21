@@ -43,12 +43,8 @@
     </div>
     {{ press_block(r['mounted'] or not any_mounted, r['size'], r['rear_size'] or r['size']) }}
     {% if not (tp.set.get(tp.season) and (tp.front or tp.rear or tp.load_front or tp.load_rear)) and (r['size'] or r['rear_size']) %}<div class="tp-label"><div class="tpl-head"><span class="tpl-size mono">{% if r['size'] %}<span>{{ r['size'] }}</span>{% endif %}{% if r['rear_size'] and r['rear_size'] != r['size'] %}<span>{{ r['rear_size'] }}</span>{% endif %}</span></div></div>{% endif %}
-    {% if r['dot'] or r['storage'] %}<div class="tc-grid tv-meta">
-      {% if r['dot'] %}<div class="tg"><i>{{ _('f.dot') }}</i><b class="mono">{{ r['dot'] }}</b></div>{% endif %}
-      {% if r['storage'] %}<div class="tg"><i>{{ _('f.storage') }}</i><b>{{ r['storage'] }}</b></div>{% endif %}
-    </div>{% endif %}
-    {% if r['rear_name'] %}<p class="tc-notes">{{ r['rear_name'] }}</p>{% endif %}
-    {% if r['notes'] %}<p class="tc-notes">{{ r['notes'] }}</p>{% endif %}
+    {% if r['storage'] %}<div class="tg tv-store"><i>{{ _('f.storage') }}</i><b>{{ r['storage'] }}</b></div>{% endif %}
+    {% if r['notes'] %}<div class="tg tv-note"><i>{{ _('f.notes') }}</i><p>{{ r['notes'] }}</p></div>{% endif %}
   </article>
   {% else %}
   {% if tp.set.get(cur) %}<section class="card tp-card tv-press">{{ press_block(cur == tp.mounted_season or not any_mounted) }}</section>

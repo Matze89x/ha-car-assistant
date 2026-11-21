@@ -534,7 +534,7 @@ def test_tyre_sets_view_opens_on_summer_and_edit_is_one_form(client):
     edit = client.get(f"{base}?edit=1").text
     assert 'id="tf"' in edit and "/e/tires/save" in edit and 'data-panel="winter"' in edit and "tp-dot" not in edit
     assert "data-rec-cancel" not in edit and "Add tyre set" in edit  # a blank set per season, no extra buttons
-    client.post(base, data={"name": "Winter set", "season": "winter", "size": "205/55 R16", "dot": "1523"})
+    client.post(base, data={"name": "Winter set", "season": "winter", "size": "205/55 R16"})
     page = client.get(f"{base}?ps=winter").text
     assert 'class="card tire-card' in page and "205/55 R16" in page and "Winter set" in page
     assert "Winter set" not in client.get(base).text  # the summer tab does not show it
@@ -684,14 +684,10 @@ def test_direct_access_row_tells_the_truth(client, monkeypatch):
 def test_tyres_target_pressures_per_season_and_actual_values(client):
     vid = create_vehicle(client)
     base = f"/v/{slug(vid)}/e/tires"
-    client.post(
-        base, data={"name": "Winter set", "season": "winter", "size": "225/55 R17", "rear_size": "245/45 R18", "rear_name": "Rear brand"}
-    )
+    client.post(base, data={"name": "Winter set", "season": "winter", "size": "225/55 R17", "rear_size": "245/45 R18"})
     page = client.get(f"{base}?ps=winter&edit=1").text
-    assert "Tyre pressure" in page and "Normal use" in page and "Fully loaded" in page
-    assert (
-        "245/45 R18" in client.get(f"{base}?ps=winter").text and "Rear brand" in client.get(f"{base}?ps=winter").text
-    )  # the rear axle of its own
+    assert "Tyre pressure" in page and "Normal load" in page and "Fully loaded" in page
+    assert "245/45 R18" in client.get(f"{base}?ps=winter").text  # the rear axle of its own
     r = client.post(
         f"{base}/pressure",
         data={"season": "winter", "front": "2,6", "rear": "2.8", "load_front": "3", "load_rear": "3.2"},

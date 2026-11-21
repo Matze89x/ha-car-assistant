@@ -2679,3 +2679,29 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 
 /* the pressures the car reported sit below the label of the set */
 .tp-recv { margin-top: 14px; }
+
+/* Tyre pages: the same cards in the view and in the edit form; one rhythm of space between the blocks of a card */
+.tire-card.tv-card { display: grid; gap: 12px; }
+.tire-card.tv-card > * { margin: 0; }
+.tire-card .tp-label, .tire-card .tv-pressure { margin: 0; }
+.tv-pressure { display: grid; gap: 12px; }
+.tv-store, .tv-note { display: grid; gap: 4px; }
+.tv-store b { font-size: 16px; }
+.tv-note p { margin: 0; white-space: pre-line; font-size: 14px; color: var(--text); }
+/* edit: inputs sit in the label like the numbers do in the view */
+.tire-card .tc-head input.tf-title, .tire-form .tc-head input.tf-title { flex: 1 1 0; width: auto; min-width: 0; font-size: 18px; font-weight: 700; min-height: 44px; }
+.tc-head { flex-wrap: nowrap; }
+.tpl-size-in { display: grid; gap: 6px; flex: 1 1 auto; min-width: 0; margin-right: 12px; }
+.tpl-size-in input { width: 100%; min-height: 40px; font-size: 14px; font-weight: 700; }
+.tpl-edit .tpl-row input { width: 100%; min-width: 0; min-height: 44px; font-size: 18px; font-weight: 700; text-align: center; }
+.tv-in input, .tv-in textarea { width: 100%; min-height: 44px; font-size: 15px; background: transparent; border: 0; padding: 4px 0 0; box-shadow: none; }
+.tv-in textarea { resize: vertical; }
+.te-more { padding: 0; }
+.te-more > summary { cursor: pointer; }
+.te-more > .tire-card { border: 0; margin: 10px; }
+
+/* Buttons at the bottom right of a block: all in one size, one type style, one shape - the main action filled, every other one light (Delete and Mounted are choices drawn as buttons) */
+.nm-actions .te-check span { box-sizing: border-box; min-height: 36px; padding: 0 14px;  /* the size of every small button (app.css) */ gap: 8px; font-size: 13px; font-weight: 600; letter-spacing: .01em; text-transform: none; line-height: 1; border-radius: var(--r-s); display: inline-flex; align-items: center; }
+.nm-actions .te-check span { color: var(--text); background: linear-gradient(180deg, rgba(var(--fg-rgb), .09) 0%, rgba(var(--fg-rgb), .04) 100%); border: 1px solid var(--btn-edge); box-shadow: 0 1px 0 var(--btn-hi) inset; }
+.nm-actions .te-check input:checked + span { color: var(--ok); background: rgba(var(--ok-rgb), .16); border-color: rgba(var(--ok-rgb), .4); }
+.nm-actions .te-check.del input:checked + span { color: var(--overdue); background: rgba(var(--overdue-rgb), .14); border-color: rgba(var(--overdue-rgb), .4); }

@@ -1518,7 +1518,7 @@ async def tire_pressure_save(request: Request, vid: int):
     return go(request, f"/v/{vid}/e/tires?ps={season}", "saved")
 
 
-_TIRE_FIELDS = ("name", "size", "dot", "rear_size", "rear_name", "storage", "notes")
+_TIRE_FIELDS = ("name", "size", "rear_size", "storage", "notes")
 
 
 @app.post("/v/{vid}/e/tires/save")
