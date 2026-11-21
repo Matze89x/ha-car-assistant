@@ -4,6 +4,11 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.6 Beta
+- Behoben: der Seitenwechsel zwischen Einstellungen und einem Auto blitzt, wackelt und spielt seine Animation nicht mehr doppelt (sofort, auch in der installierten Web-App); auf Bildschirmen von 760 bis 1000 px zeigt Weiteres seine Liste, statt den Fahrzeugpass ohne Weg zurück zu öffnen.
+- Die Spalten des Fahrzeugpasses laufen jeweils für sich weiter (keine Lücke unter einer kurzen Gruppe).
+- Einstellungs-Reiter: Auto, Benutzer, System (Auto ist die Startseite); Listen können 4 Einträge auf einmal laden.
+
 ## 0.5.5 Beta
 - Benachrichtigungen sind jetzt ein System pro Person unter Einstellungen > Benutzer: Auto wählen, jede Art von Meldung ein- oder ausschalten (Ja / Nein), die Vorgabe für neue Autos, allgemeine Meldungen (neue Plugin-Versionen), alle Geräte an einer Stelle; unter Auto und System gibt es dazu nichts mehr, und dieselbe Meldung geht nur einmal raus.
 - Tanken wird am Tankstand und Laden an der Batterie erkannt (Zeit, Stände, Leistung, Kosten, Preis je kWh, Ladeverlust, 90-Tage-Zusammenfassung); ein unfertiger Eintrag mit Ergänzen-Knopf wartet auf die Rechnung.

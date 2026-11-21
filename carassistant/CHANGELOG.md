@@ -4,6 +4,11 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.6 Beta
+- Fixed: the page change between Settings and a car no longer flashes, wobbles or plays its animation twice (instant, also in the installed web app); on screens 760-1000 px wide More shows its list instead of opening the vehicle passport with no way back.
+- The vehicle passport columns run on by themselves (no gap under a short group).
+- Settings tabs: Car, User, System (Car is the start page); lists can load 4 entries at a time.
+
 ## 0.5.5 Beta
 - Notifications are now one system per person under Settings > User: choose a car, switch each kind of message on or off (Yes / No), the choice for new cars, general messages (new plugin versions), all devices in one place; nothing about notifications under Car or System any more, and the same message goes out only once.
 - Refuels are noticed from the tank level and charging sessions from the battery (time, levels, power, cost, price per kWh, charging loss, 90-day summary); an unfinished entry with a Complete button waits for the bill.
