@@ -140,11 +140,11 @@ def test_home_editor_window_and_return_to_home(client):
     assert r.headers["location"].split("?")[0].endswith("/media")  # without "back" the library page stays the target
 
 
-def test_settings_are_three_tabs_the_pyramid_user_car_system(client):
+def test_settings_are_three_tabs_car_user_system(client):
     create = client.post("/vehicles", data={"name": "A", "fuel_type": "petrol"})
     assert create.status_code in (200, 303)
-    assert client.get("/settings").headers["location"].endswith("/settings/user")  # the first tab is the start page
-    for section in ("user", "car", "system"):
+    assert client.get("/settings").headers["location"].endswith("/settings/car")  # the first tab is the start page
+    for section in ("car", "user", "system"):
         page = client.get(f"/settings/{section}")
         assert page.status_code == 200
         assert f'href="/settings/{section}"' in page.text and 'class="seg-tabs"' in page.text, section

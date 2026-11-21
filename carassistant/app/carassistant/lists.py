@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 from . import db, userprefs
 
-SIZES = (10, 25, 50)
+SIZES = (4, 10, 25, 50)
 DEFAULT = 10
 SETTING = "ui.page_size"
 _size: ContextVar[int] = ContextVar("list_page_size", default=DEFAULT)

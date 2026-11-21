@@ -2120,13 +2120,13 @@ async def integrations_save(request: Request, key: str):
 # ------------------------------------------------------------------ settings, backup
 
 
-SETTINGS_SECTIONS = ("user", "car", "system")  # the pyramid: the person on top, the car in the middle, the whole app at the bottom
+SETTINGS_SECTIONS = ("car", "user", "system")  # the tabs, in this order: the car, the person, the whole app
 OLD_SECTIONS = ("design", "region")  # the former tabs now live on the System tab; their addresses still work
 
 
 @app.get("/settings")
 def settings_page(request: Request):
-    return RedirectResponse(f"{request.state.base}/settings/user", status_code=303)
+    return RedirectResponse(f"{request.state.base}/settings/car", status_code=303)
 
 
 def _settings_tabs(current: str) -> list[dict]:

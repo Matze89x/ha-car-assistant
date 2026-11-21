@@ -78,7 +78,7 @@ Everything about the car in groups, the VIN with a copy button and the equipment
 
 ## Settings: User, Car, System
 
-The settings are a pyramid of three tabs. **User** is about you (login, your devices, the cars you want to be notified about, a start link per car for a web app); **Car** is about the car shown under the title (icon, photo and video, design, Home Assistant entities, notifications, backup); **System** is about the whole app (language, units, design, sensors, MCP access, sources, address, backup).
+The settings have three tabs. **Car** is about the car shown under the title (icon, photo and video, design, Home Assistant entities, backup); **User** is about you (login, your devices and notifications, a start link per car for a web app); **System** is about the whole app (language, units, design, sensors, MCP access, sources, address, backup).
 
 ![Settings: User](screenshots/en/settings-user.png)
 

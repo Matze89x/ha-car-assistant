@@ -78,7 +78,7 @@ Alles zum Auto in Gruppen, die FIN mit Kopierknopf und die Ausstattung.
 
 ## Einstellungen: Benutzer, Auto, System
 
-Die Einstellungen sind eine Pyramide aus drei Reitern. **Benutzer** betrifft dich (Login, deine Geräte, die Autos, zu denen du benachrichtigt werden willst, ein Startlink je Auto für eine Web-App); **Auto** betrifft das Auto unter dem Titel (Icon, Foto und Video, Design, Home-Assistant-Entitäten, Benachrichtigungen, Sicherung); **System** betrifft die ganze App (Sprache, Einheiten, Design, Sensoren, MCP-Zugriff, Quellen, Adresse, Sicherung).
+Die Einstellungen haben drei Reiter. **Auto** betrifft das Auto unter dem Titel (Icon, Foto und Video, Design, Home-Assistant-Entitäten, Sicherung); **Benutzer** betrifft dich (Login, deine Geräte und Benachrichtigungen, ein Startlink je Auto für eine Web-App); **System** betrifft die ganze App (Sprache, Einheiten, Design, Sensoren, MCP-Zugang, Quellen, Adresse, Sicherung).
 
 ![Einstellungen: Benutzer](screenshots/de/settings-user.png)
 
