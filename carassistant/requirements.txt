@@ -10,4 +10,4 @@ webauthn==3.0.1
 cryptography>=42
 pywebpush==2.5.0
 pypdf>=5
-defusedxml>=0.7
+defusedxml>=0.7.1
