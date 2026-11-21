@@ -2578,3 +2578,8 @@ html.is-app { --app-gap: 30px; --sp-top: var(--app-gap); }
 html.is-app main { padding-top: calc(var(--app-gap) + var(--safe-top)); }
 html.is-app .page-head { margin-top: 0; }
 html.is-app .page-head:not(:has(.ph-s:not([data-car]))) { min-height: var(--head-h); }
+
+/* "Just have a look" page: icon + text left-aligned, the usual button bar at the bottom right (Cancel left of the main button) */
+.demo-steps li { justify-content: flex-start; align-items: flex-start; padding: 10px 0; }
+.demo-steps li .ico { flex-shrink: 0; margin-top: 2px; }
+.demo-bar { justify-content: flex-end; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--glass-b); }
