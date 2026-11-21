@@ -60,9 +60,13 @@ a.ov:hover { background:var(--glass); text-decoration:none; }
 .vd-plate { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 9px; font-size: 13px; color: var(--muted); }
 .plate-chip { font: 700 13px 'Space Mono', ui-monospace, monospace; letter-spacing: .06em; padding: 4px 10px; border-radius: var(--r-s); background: rgba(var(--fg-rgb),.08); color: var(--text); border: 1px solid var(--glass-b); }
 .vd-groups { display: grid; grid-template-columns: minmax(0,1fr); gap: 0; align-items: start; }
+.vd-col { display: contents; }  /* narrow: one column, the groups in their order */
+.vd-g.g1 { order: 1; } .vd-g.g2 { order: 2; } .vd-g.g3 { order: 3; } .vd-g.g4 { order: 4; }
 @container (min-width: 690px) {
-  .vd-groups { grid-template-columns: repeat(2, minmax(0,1fr)); grid-template-rows: auto auto; column-gap: 14px; }
-  .vd-g:nth-child(1) { grid-column: 1; grid-row: 1; } .vd-g:nth-child(2) { grid-column: 2; grid-row: 1; } .vd-g:nth-child(3) { grid-column: 1; grid-row: 2; } .vd-g:nth-child(4) { grid-column: 2; grid-row: 2; }
+  /* wide: two columns that each run on by themselves (vehicle + energy | technology + papers): no gap under a short group because the other one is tall */
+  .vd-groups { grid-template-columns: repeat(2, minmax(0,1fr)); column-gap: 14px; }
+  .vd-col { display: block; min-width: 0; }
+  .vd-g { order: 0; }
 }
 .vd-group-h { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 600; margin: 16px 6px 8px; }
 .vd-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--glass); border: 1px solid var(--glass-b); border-radius: var(--r-l); overflow: hidden; }

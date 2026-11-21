@@ -25,7 +25,12 @@ def test_page_has_hero_four_groups_and_footnote(client):
     vid = create_vehicle(client)
     html = client.get(f"/v/{slug(vid)}/edit").text
     assert "vd-hero" in html and "plate-chip" in html and "B-XY 1" in html
-    assert html.count('class="vd-group-h"') >= 3 and html.count('class="vd-g"') == 4 and "Energy" in html
+    assert (
+        html.count('class="vd-group-h"') >= 3
+        and html.count('class="vd-g g') == 4
+        and html.count('class="vd-col"') == 2
+        and "Energy" in html
+    )
     assert "Papers &amp; look" in html or "Papers & look" in html
     assert 'class="bk-note"' in html
 
