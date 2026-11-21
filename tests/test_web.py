@@ -562,7 +562,8 @@ def test_tyre_edit_saves_everything_at_once(client):
         assert set(rows) == {"Summer set", "Winter"} and rows["Winter"]["season"] == "winter" and rows["Winter"]["size"] == "205/55 R16"
         sid, wid = rows["Summer set"]["id"], rows["Winter"]["id"]
     page = client.get(f"{base}?ps=winter").text
-    assert "(2.5 bar)" in page and "(2.7 bar)" in page
+    assert '<b class="mono">2.5</b>' in page and '<b class="mono">2.7</b>' in page  # the label of the set shows the recommended pressures
+    assert "received from the vehicle" not in page  # no readings from the car: that block is not there at all
     client.post(f"{base}/save", data={"mounted": str(wid), f"t{wid}_name": "Winter set", f"t{sid}_name": "Summer set", f"t{sid}_del": "1"})
     with db.tx() as conn:
         left = [(x["name"], x["mounted"]) for x in conn.execute("SELECT name, mounted FROM tires WHERE vehicle_id = ?", (vid,))]
@@ -699,7 +700,7 @@ def test_tyres_target_pressures_per_season_and_actual_values(client):
     assert r.status_code == 303 and "ps=winter" in r.headers["location"]
     winter = client.get(f"{base}?ps=winter&edit=1").text
     assert 'value="2.6"' in winter and 'value="2.8"' in winter and 'value="3.2"' in winter
-    assert "2.6 bar" in client.get(f"{base}?ps=winter").text  # the read-only view shows them as text
+    assert '<b class="mono">2.6</b>' in client.get(f"{base}?ps=winter").text  # the read-only view shows them in the label
     assert 'name="p_summer_front" inputmode="decimal" value=""' in winter  # every season has its own values
     assert client.post(f"{base}/pressure", data={"season": "bogus"}).status_code == 400
     client.post(f"{base}/pressure", data={"season": "winter", "front": "", "rear": "", "load_front": "", "load_rear": ""})

@@ -2676,3 +2676,6 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 .fs-todo-t { display: grid; gap: 2px; min-width: 0; }
 .fs-todo .button { grid-column: 1 / -1; justify-self: end; margin: 0; }
 @media (min-width: 640px) { .fs-todo { grid-template-columns: auto minmax(0, 1fr) auto; } .fs-todo .button { grid-column: auto; } }
+
+/* the pressures the car reported sit below the label of the set */
+.tp-recv { margin-top: 14px; }
