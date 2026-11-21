@@ -793,7 +793,9 @@ def test_every_car_is_a_web_app_of_its_own(client):
     system = client.get("/manifest.webmanifest").json()
     assert system["scope"] == "/" and system["name"] == "Car Assistant"
     js = client.get("/static/softnav.js").text
-    assert "scopeOf" in js  # instant page changes stay inside one car (or the system); another car is a page of its own
+    assert (
+        "scopeOf" in js and "is-app" in js and "syncHead" in js
+    )  # in an installed web app another car is a page of its own; in a browser tab the swap takes over icon, manifest and title
 
 
 def test_the_built_in_icon_address_changes_with_the_app_version(client, monkeypatch):

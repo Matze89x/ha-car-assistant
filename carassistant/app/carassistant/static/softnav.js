@@ -17,7 +17,9 @@
   function sameApp(a) {
     if (a.origin !== location.origin || a.target && a.target !== "_self" || a.hasAttribute("download") || a.hasAttribute("data-hard")) { return false; }
     if (a.pathname === location.pathname && a.search === location.search) { return false; }  // a jump inside the page
-    if (scopeOf(a.pathname) !== scopeOf(location.pathname)) { return false; }  // another car or the system: a page of its own (its own design, icon and web app)
+    // inside an installed web app (home-screen app) the system and every car are apps of their own: their own design, icon and manifest, so another scope is a
+    // real page load. In an ordinary browser tab they are pages of one site: the swap below takes over design, icon and title (syncHead) - no flash, no second animation
+    if (document.documentElement.classList.contains("is-app") && scopeOf(a.pathname) !== scopeOf(location.pathname)) { return false; }
     return !NO.test(a.pathname.replace(/^\/api\/hassio_ingress\/[^/]+/, ""));  // behind Home Assistant the address starts with its ingress path
   }
 
@@ -72,6 +74,17 @@
     return true;
   }
 
+  // what the head of a page of another car (or of the system) says about itself: the picture of the page, the manifest, the title of the app, the colour behind
+  // the page - copied over so the tab, the bookmark and the first paint belong to the page that is shown
+  function syncHead(doc) {
+    [['link[rel="icon"][sizes="48x48"]', "href"], ['link[rel="icon"][type="image/svg+xml"]', "href"], ['link[rel="apple-touch-icon"]', "href"], ['link[rel="manifest"]', "href"], ['meta[name="apple-mobile-web-app-title"]', "content"]].forEach(function (p) {
+      var n = doc.head.querySelector(p[0]), o = document.head.querySelector(p[0]);
+      if (n && o && n.getAttribute(p[1]) !== o.getAttribute(p[1])) { o.setAttribute(p[1], n.getAttribute(p[1])); }
+    });
+    var ns = doc.head.querySelector("style:not([id])"), os = document.head.querySelector("style:not([id])");
+    if (ns && os && ns.textContent !== os.textContent) { os.textContent = ns.textContent; }
+  }
+
   function swap(doc, url, push) {
     try { document.dispatchEvent(new Event("ca:leave")); } catch (e) { /* the old page may keep a still of its video (media.js) */ }
     ca.reset();
@@ -80,6 +93,7 @@
     var accentNew = doc.getElementById("accent-custom"), accentOld = document.getElementById("accent-custom");
     if (accentNew && accentOld) { accentOld.textContent = accentNew.textContent; }
     document.title = doc.title;
+    syncHead(doc);
     Array.prototype.forEach.call(doc.head.querySelectorAll('meta[name="color-scheme"],meta[name="theme-color"]'), function (m) {
       var old = document.head.querySelector('meta[name="' + m.getAttribute("name") + '"]' + (m.getAttribute("media") ? '[media="' + m.getAttribute("media") + '"]' : ""));
       if (old) { old.setAttribute("content", m.getAttribute("content")); }
