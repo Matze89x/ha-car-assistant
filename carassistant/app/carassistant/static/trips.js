@@ -37,7 +37,7 @@
     if (typeof L !== "undefined" && card.getAttribute("data-maps") === "1") {
       box.classList.add("pos-map");  /* the same dark / light look as the location map */
       var map = L.map(box, { zoomControl: true, attributionControl: true });
-      L.tileLayer(card.getAttribute("data-tiles") + "/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+      L.tileLayer(card.getAttribute("data-tiles") + "/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors' }).addTo(map);
       var bounds = [];
       for (var i = 1; i < pts.length; i++) {
         L.polyline([[pts[i - 1][0], pts[i - 1][1]], [pts[i][0], pts[i][1]]], { color: colour(pts[i][2]), weight: 5, opacity: .95 }).addTo(map);
