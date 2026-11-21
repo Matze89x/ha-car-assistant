@@ -2658,13 +2658,17 @@ label.nm-row.sw-row { cursor: pointer; text-transform: none; letter-spacing: 0; 
 .fs-name { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .fs-key { margin-top: 8px; display: grid; gap: 4px; }
 
-/* "Refuel noticed" card on the fuel page: what is missing, and one button to complete it */
-.fs-todo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.fs-todo-t { flex: 1 1 200px; min-width: 0; display: grid; gap: 2px; }
-.fs-todo .button { margin-left: auto; }
 
-/* Charging sessions on the fuel page */
-.cs-list li { display: grid; grid-template-columns: minmax(0, 1.2fr) auto; align-items: center; gap: 4px 10px; padding: 10px 14px; }
-.cs-when { display: grid; gap: 2px; }
-.cs-pct { font-size: 15px; font-weight: 700; }
+/* Charging sessions on the fuel page: one calm row per session - date and time left, levels right, energy / cost / power underneath */
+ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 4px 12px; padding: 12px 14px; }
+.cs-when { display: grid; gap: 2px; min-width: 0; }
+.cs-when b { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 15px; }
+.cs-when small { display: block; font-size: 12px; }
+.cs-pct { font-size: 15px; font-weight: 700; white-space: nowrap; text-align: right; }
 .cs-meta { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
+.trip-kpis .tg { align-content: start; }
+/* the card "refuel / charging noticed": icon and text on top, the button bottom right */
+.fs-todo { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px 12px; }
+.fs-todo-t { display: grid; gap: 2px; min-width: 0; }
+.fs-todo .button { grid-column: 1 / -1; justify-self: end; margin: 0; }
+@media (min-width: 640px) { .fs-todo { grid-template-columns: auto minmax(0, 1fr) auto; } .fs-todo .button { grid-column: auto; } }

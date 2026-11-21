@@ -12,6 +12,7 @@ from . import refuel_detect, summary
 
 log = logging.getLogger(__name__)
 MIN_MINUTES = 3  # shorter than this is a plug contact, not a session
+MAX_MINUTES = 36 * 60  # longer than this: the "stopped" message never came - not a real session, nothing is kept
 MIN_PCT = 2.0  # less than this is not worth an entry
 
 
@@ -85,7 +86,7 @@ def _close(conn: sqlite3.Connection, vehicle_id: int, session, battery_kwh) -> b
     conn.execute(
         "UPDATE charge_sessions SET ended = ?, end_pct = ? WHERE id = ?", (ended.isoformat(timespec="seconds"), end_pct, session["id"])
     )
-    if minutes < MIN_MINUTES or rise is None or rise < MIN_PCT:
+    if minutes < MIN_MINUTES or minutes > MAX_MINUTES or rise is None or rise < MIN_PCT:
         conn.execute("DELETE FROM charge_sessions WHERE id = ?", (session["id"],))  # a plug contact: not worth keeping
         return False
     day = ended.astimezone().date().isoformat()
