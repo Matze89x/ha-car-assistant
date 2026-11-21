@@ -263,6 +263,7 @@ def test_a_bundle_with_the_connection_file_is_made_only_in_the_guide_with_the_to
     manifest = _manifest(connection_file={"name": "my.cfg", "template": "token={token}\n"})
     for b in manifest["bundles"]:
         b["connection_file_to"] = "mod/carassistant/my.cfg"
+        b["l10n"] = {"de": {"label": "Installieren / Update"}}
     manifest["bundles"].append(
         {
             "name": "remove.zip",
@@ -275,6 +276,10 @@ def test_a_bundle_with_the_connection_file_is_made_only_in_the_guide_with_the_to
     vid, item = _install(client, monkeypatch, manifest)
     assert item is not None
     client.post(f"/v/{vid}/integrations/{item['id']}/service/approve")
+    page = client.get(f"/v/{vid}/integrations/{item['id']}/guide?step=3").text
+    assert "Installieren / Update" in page or "SD card package" in page  # the bundle row; its entries are not listed here
+    assert "scripts/custom.sh -&gt;" not in page and "scripts/custom.sh ->" not in page
+    assert page.count('name="token"') <= 2  # one shared token field (plus the one inside the folded single file)
     assert client.get("/plugins/files-pkg/files/install.zip").status_code == 404  # never a plain download: it would be without the token
     assert client.get("/plugins/files-pkg/files/remove.zip").status_code == 404
     wrong = client.post(f"/v/{vid}/integrations/{item['id']}/guide/bundle", data={"name": "install.zip", "token": "ca_nope"})

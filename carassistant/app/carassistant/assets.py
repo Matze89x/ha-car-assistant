@@ -14,7 +14,7 @@ import sqlite3
 import zipfile
 from pathlib import Path
 
-from . import addons, pluginsvc
+from . import addons, config, pluginsvc
 
 _bundle_cache: dict[tuple[str, str, str], dict] = {}
 PLACEHOLDER = re.compile(r"\{file:([A-Za-z0-9][A-Za-z0-9._-]{0,79})\}")
@@ -118,7 +118,10 @@ def listing(addon: dict, offered: bool) -> list[dict]:
                 "href": f"/plugins/{addon['addon_id']}/files/{f['name']}" if offered else "",
             }
         )
+    lang = config.language()
     for b in addon["m"].get("bundles", []):
+        own = (b.get("l10n") or {}).get(lang) or {}
+        b = {**b, "label": own.get("label") or b["label"], "note": own.get("note") or b["note"]}
         with_token = bool(b.get("connection_file_to"))
         info = bundle_info(addon, b) if offered and not with_token else {}
         rows.append(

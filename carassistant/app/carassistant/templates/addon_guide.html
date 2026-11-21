@@ -69,15 +69,17 @@
 </div>
 
 {% else %}
+{% set tb = bundle_rows|selectattr('with_token')|list %}
 <section class="card guide-step">
   <h2>{{ _('guide.files_title') }}</h2>
   {% if has_file %}
+  {% if tb %}<details class="guide-adv"><summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('guide.file_single') }}</span></summary>{% endif %}
   <div class="guide-fileline">
     <span class="mi-ic c4">{{ icon('download', 19) }}</span>
     <span class="gf-t"><b>{{ file_name }}</b><small>{{ _('guide.file_hint') }}</small></span>
     {% if token %}<form method="post" action="{{ base_url }}/guide/file" class="inline"><input type="hidden" name="token" value="{{ token }}"><button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>{% endif %}
   </div>
-  {% if token %}{% if fresh %}<p class="hint">{{ _('guide.file_new_hint') }}</p>{% endif %}
+  {% if token %}{% if fresh and not tb %}<p class="hint">{{ _('guide.file_new_hint') }}</p>{% endif %}
   {% else %}
   <form method="post" action="{{ base_url }}/guide/file" class="guide-again">
     <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
@@ -85,26 +87,28 @@
   </form>
   <p class="hint">{{ _('guide.file_again_hint') }}</p>
   {% endif %}
+  {% if tb %}</details>{% endif %}
   {% endif %}
   {% if bundle_rows %}
     {% if not pkg_offered %}<p class="flash err">{{ _('fil.not_approved') }} <a href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service">{{ _('svc.review') }}</a></p>{% endif %}
+    {% if tb and not token and pkg_offered %}
+    <form method="post" action="{{ base_url }}/guide/bundle" class="guide-again">
+      <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
+      {% for row in tb %}<div class="guide-fileline"><span class="mi-ic c4">{{ icon('download', 19) }}</span><span class="gf-t"><b>{{ row.label }}</b>{% if row.note %}<small>{{ row.note }}</small>{% endif %}</span><button name="name" value="{{ row.name }}">{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></div>{% endfor %}
+    </form>
+    {% endif %}
     {% for row in bundle_rows %}
     {% if row.with_token %}
+    {% if token and pkg_offered %}
     <div class="guide-fileline">
       <span class="mi-ic c4">{{ icon('download', 19) }}</span>
-      <span class="gf-t"><b>{{ row.label }}</b><small>{{ row.note or row.name }}</small></span>
-      {% if token and pkg_offered %}<form method="post" action="{{ base_url }}/guide/bundle" class="inline"><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="name" value="{{ row.name }}"><button>{{ icon('download', 18) }}<span>{{ row.name }}</span></button></form>{% endif %}
+      <span class="gf-t"><b>{{ row.label }}</b>{% if row.note %}<small>{{ row.note }}</small>{% endif %}</span>
+      <form method="post" action="{{ base_url }}/guide/bundle" class="inline"><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="name" value="{{ row.name }}"><button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>
     </div>
-    {% if not token and pkg_offered %}
-    <form method="post" action="{{ base_url }}/guide/bundle" class="guide-again">
-      <input type="hidden" name="name" value="{{ row.name }}">
-      <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
-      <button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button>
-    </form>
     {% endif %}
     {% else %}{{ file_rows([row]) }}{% endif %}
     {% endfor %}
-    {% if bundle_rows|selectattr('with_token')|list %}<p class="hint">{{ icon('alert', 14) }} {{ _('guide.bundle_token_hint') }}</p>{% endif %}
+    {% if tb %}<p class="hint">{{ icon('alert', 14) }} {{ _('guide.bundle_token_hint') }}</p>{% endif %}
   {% endif %}
   {% if texts.files %}<h3 class="guide-h3">{{ _('guide.howto') }}</h3><div class="guide-text">{{ texts.files|safe }}</div>{% endif %}
   <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step=2">{{ _('btn.back') }}</a><a class="button primary" href="{{ base }}{{ back_to }}">{{ _('guide.finish') }}</a></div>

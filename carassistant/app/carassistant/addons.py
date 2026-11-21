@@ -241,6 +241,8 @@ def clean_bundles(raw, files: list[dict]) -> list[dict]:
             if to is None or any(x["to"] == to for x in entries):
                 raise AddonError("addon.err_files")
             extra["connection_file_to"] = to
+        if _l10n(item.get("l10n"), {"label": 80, "note": 300}):  # the texts in other languages, like the settings have
+            extra["l10n"] = _l10n(item.get("l10n"), {"label": 80, "note": 300})
         out.append({"name": name, "label": _text(item, "label", 80) or name, "note": _text(item, "note", 300), "entries": entries, **extra})
     return out
 

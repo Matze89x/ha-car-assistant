@@ -427,7 +427,9 @@ def _guide_page(
     offered = pluginsvc.approved(addon)
     rows = {r["name"]: r for r in assets.listing(addon, offered)}
     files_step = by_id.get("files") or {}
-    bundle_rows = [rows[n] for n in files_step.get("bundles", []) if n in rows]
+    bundle_rows = [
+        {**rows[n], "entries": []} for n in files_step.get("bundles", []) if n in rows
+    ]  # the technical list of entries belongs on the info page
     fields = addon["m"].get("settings", [])
     values = shown if shown is not None else addon["vals"]
     return render(

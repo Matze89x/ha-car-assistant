@@ -11,7 +11,13 @@ git worktree add -q --detach "$tmp" origin/main
 rm -rf "$tmp/carassistant-dev"
 cp -R carassistant-dev "$tmp/carassistant-dev"
 cd "$tmp"
-git add -A carassistant-dev
+python3 - "$OLDPWD/release.json" release.json <<'PY'  # main's release.json keeps its release, only the "dev" counter follows (the tests compare them)
+import json, sys
+src, dst = (json.load(open(f)) for f in sys.argv[1:3])
+dst["dev"] = src["dev"]
+open(sys.argv[2], "w").write(json.dumps(dst, indent=2, ensure_ascii=False) + "\n")
+PY
+git add -A carassistant-dev release.json
 if git diff --cached --quiet; then echo "main already has Developer add-on $version"; exit 0; fi
 git commit -q -m "Developer add-on $version
 
