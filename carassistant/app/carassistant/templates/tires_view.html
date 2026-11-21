@@ -45,7 +45,7 @@
       {% if r['dot'] %}<div class="tg"><i>{{ _('f.dot') }}</i><b class="mono">{{ r['dot'] }}</b></div>{% endif %}
       {% if r['storage'] %}<div class="tg"><i>{{ _('f.storage') }}</i><b>{{ r['storage'] }}</b></div>{% endif %}
     </div>{% endif %}
-    {% if r['rear_name'] %}<p class="tc-notes">{{ _('tr.rear_axle') }}: {{ r['rear_name'] }}</p>{% endif %}
+    {% if r['rear_name'] %}<p class="tc-notes">{{ r['rear_name'] }}</p>{% endif %}
     {% if r['notes'] %}<p class="tc-notes">{{ r['notes'] }}</p>{% endif %}
   </article>
   {% else %}

@@ -10,7 +10,8 @@ for stations.
 "items": "results", "fields": {"lat": "geom.lat", "lon": "geom.lon", "name": "{adresse}", "address": "{adresse}, {cp} {ville}"},
 "prices": {"e5": "sp95_prix", "e10": "e10_prix", "diesel": "gazole_prix"}}``
 
-``params`` and ``headers`` values may use ``{lat} {lon} {radius_km} {radius_m} {key}``. With ``"key": {"param": "apikey", "url": "https://..."}``
+``params`` and ``headers`` values may use ``{lat} {lon} {radius_km} {radius_m} {key} {fuel}``. For a service that is asked for one fuel at a time give
+``"fuel_codes": {"e5": "SUP", "diesel": "DIE"}`` (the value of ``{fuel}``) and ``"price"`` (the field of the price in the answer). With ``"key": {"param": "apikey", "url": "https://..."}``
 (or ``"header"``) the person needs a key of their own (System -> Fuel prices); without a key nothing is asked.
 """
 
@@ -84,6 +85,10 @@ def clean(raw) -> dict | None:
         "items": _text(raw.get("items"), 80),
         "fields": {k: _text(fields.get(k), 200) for k in ("lat", "lon", "name", "brand", "address", "open") if fields.get(k)},
         "prices": {k: _text(prices[k], 80) for k in FUEL_KEYS if isinstance(prices.get(k), str) and prices[k]},
+        "fuel_codes": {k: _text(raw["fuel_codes"].get(k), 20) for k in FUEL_KEYS if _text(raw["fuel_codes"].get(k), 20)}
+        if isinstance(raw.get("fuel_codes"), dict)
+        else {},
+        "price": _text(raw.get("price"), 80),
         "max_radius_km": min(max(float(raw.get("max_radius_km") or 25), 1.0), 100.0)
         if isinstance(raw.get("max_radius_km", 25), int | float)
         else 25.0,
@@ -152,9 +157,16 @@ def number(value) -> float | None:
     return None
 
 
-def request_parts(defn: dict, lat: float, lon: float, radius_km: float, key: str) -> tuple[dict, dict]:
+def request_parts(defn: dict, lat: float, lon: float, radius_km: float, key: str, fuel: str = "") -> tuple[dict, dict]:
     """(query parameters, headers) of the question: placeholders filled, the key put where the definition wants it."""
-    known = {"lat": f"{lat:.5f}", "lon": f"{lon:.5f}", "radius_km": f"{radius_km:g}", "radius_m": str(int(radius_km * 1000)), "key": key}
+    known = {
+        "lat": f"{lat:.5f}",
+        "lon": f"{lon:.5f}",
+        "radius_km": f"{radius_km:g}",
+        "radius_m": str(int(radius_km * 1000)),
+        "key": key,
+        "fuel": defn["fuel_codes"].get(fuel, ""),
+    }
     sub = lambda s: PLACEHOLDER.sub(lambda m: known.get(m.group(1), ""), s)  # noqa: E731
     params = {k: sub(v) for k, v in defn["params"].items()}
     headers = {k: sub(v) for k, v in defn["headers"].items()}
@@ -166,7 +178,7 @@ def request_parts(defn: dict, lat: float, lon: float, radius_km: float, key: str
     return params, headers
 
 
-def parse(defn: dict, payload) -> list[dict]:
+def parse(defn: dict, payload, fuel: str = "") -> list[dict]:
     """The stations of an answer, as plain dicts: name, brand, address, lat, lon, prices {fuel: number}, is_open."""
     items = get_path(payload, defn["items"]) if defn["items"] else payload
     out = []
@@ -177,6 +189,10 @@ def parse(defn: dict, payload) -> list[dict]:
         if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
             continue
         prices = {f: p * defn["price_scale"] for f, path in defn["prices"].items() if (p := number(get_path(it, path))) and p > 0}
+        if (
+            defn["price"] and fuel and (p := number(get_path(it, defn["price"]))) and p > 0
+        ):  # one price per answer: the fuel that was asked for
+            prices[fuel] = p * defn["price_scale"]
         opened = get_path(it, defn["fields"]["open"]) if defn["fields"].get("open") else None
         out.append(
             {

@@ -1,0 +1,14 @@
+{
+  "id": "at",
+  "name": "Österreich - E-Control Spritpreisrechner",
+  "countries": ["AT"],
+  "license": "E-Control / Open Government Data",
+  "attribution": "Preise: E-Control Spritpreisrechner (spritpreisrechner.at), Daten der Preistransparenzdatenbank",
+  "url": "https://api.e-control.at/sprit/1.0/search/gas-stations/by-address",
+  "params": { "latitude": "{lat}", "longitude": "{lon}", "fuelType": "{fuel}", "includeClosed": "false" },
+  "fuel_codes": { "e5": "SUP", "e10": "SUP", "diesel": "DIE" },
+  "items": "",
+  "fields": { "lat": "location.latitude", "lon": "location.longitude", "name": "name", "address": "{location.address}, {location.postalCode} {location.city}", "open": "open" },
+  "price": "prices.0.amount",
+  "max_radius_km": 25
+}

@@ -4,7 +4,7 @@
 
 Fuel prices differ from country to country, so Car Assistant has no built-in price service for "the world". Instead there is an **open interface**: a provider is **one JSON file** that tells the app where an open HTTP/JSON service is, how to ask it for the stations around a point, and which field of the answer is what. A file is only read, never run; only `https` addresses are used; nothing is requested unless somebody searches for stations.
 
-Built in: **Tankerkönig** (Germany, needs your own free key under *System*), **OpenStreetMap** (stations everywhere, no prices) and the shipped files in `carassistant/app/carassistant/fuelproviders/` (France today). **Your own files** go into the folder `fuelproviders/` of the add-on's data folder (`/data/fuelproviders/` in Home Assistant, reachable through the `share`/File editor add-ons of your choice); they win over a shipped file with the same `id`. The provider of the country of your Home Assistant is chosen first.
+Built in: **Tankerkönig** (Germany, needs your own free key under *System*), **OpenStreetMap** (stations everywhere, no prices) and the shipped files in `carassistant/app/carassistant/fuelproviders/` (France and Austria today). **Your own files** go into the folder `fuelproviders/` of the add-on's data folder (`/data/fuelproviders/` in Home Assistant, reachable through the `share`/File editor add-ons of your choice); they win over a shipped file with the same `id`. The provider of the country of your Home Assistant is chosen first.
 
 ## The file
 
@@ -28,6 +28,7 @@ Built in: **Tankerkönig** (Germany, needs your own free key under *System*), **
 - `url` (https), `method` (`GET` default, or `POST`), `params`, `headers`: values may contain `{lat}`, `{lon}`, `{radius_km}`, `{radius_m}` and `{key}`.
 - `key`: `{"param": "apikey", "url": "https://where-to-get-one"}` or `{"header": "X-Key", ...}`. The person enters a key of their own under *System* (there is no built-in key); without it nothing is asked.
 - `items`: where the list of stations is in the answer (dotted path, empty = the answer itself). `fields`: dotted paths (`geom.lat`) or templates with fields in braces (`{street} {number}`) for `lat`, `lon`, `name`, `brand`, `address`, `open` (true/false).
+- `fuel_codes` and `price`, for a service that is asked for one fuel at a time (Austria): `fuel_codes` gives the value of `{fuel}` per fuel, `price` the field of the price in the answer.
 - `prices`: which field holds the price of `e5`, `e10`, `diesel`. `price_scale` multiplies prices (1 by default). `max_radius_km` (1-100).
 
 The answer of a provider is kept for five minutes per area. Please respect the terms of the service you point a file at.

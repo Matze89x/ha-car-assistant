@@ -193,17 +193,19 @@ def fetch_provider(defn: dict, lat: float, lon: float, radius: float, fuel: str)
     key = fuelproviders.key_of(defn["id"]) if defn["key"] else ""
     if defn["key"] and not key:
         raise StationsError("err.no_key")
-    cache_key = ("fp", defn["id"], round(lat, 2), round(lon, 2), int(radius))
+    cache_key = ("fp", defn["id"], round(lat, 2), round(lon, 2), int(radius), fuel if defn["fuel_codes"] else "")
+    if defn["fuel_codes"] and fuel not in defn["fuel_codes"]:
+        return []  # this service has no such fuel
     items = _cached(cache_key)
     if items is None:
         params, headers = fuelproviders.request_parts(
-            defn, lat, lon, defn["max_radius_km"] if "{radius" not in "".join(defn["params"].values()) else radius, key
+            defn, lat, lon, defn["max_radius_km"] if "{radius" not in "".join(defn["params"].values()) else radius, key, fuel
         )
         try:
             resp = requests.request(defn["method"], defn["url"], params=params if defn["method"] == "GET" else None,
                                     data=params if defn["method"] == "POST" else None, headers={"User-Agent": USER_AGENT, **headers}, timeout=20)  # fmt: skip
             resp.raise_for_status()
-            items = fuelproviders.parse(defn, resp.json())
+            items = fuelproviders.parse(defn, resp.json(), fuel)
         except (requests.RequestException, ValueError) as exc:
             log.warning("Fuel provider %s failed: %s", defn["id"], type(exc).__name__)  # never log the URL (it may hold a key)
             raise StationsError("err.stations_failed") from None

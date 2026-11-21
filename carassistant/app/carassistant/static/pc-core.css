@@ -2599,7 +2599,8 @@ html.is-app .page-head:not(:has(.ph-s:not([data-car]))) { min-height: var(--head
 .tpl-who .ico { flex-shrink: 0; }
 .tpl-who em { flex-basis: 100%; font-style: normal; font-size: 12px; color: var(--muted); margin-top: 2px; }
 @media (max-width: 520px) { .tpl-row b { font-size: 20px; } }
-.tv-meta { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.tv-meta { margin-top: 10px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tv-meta .tg:only-child { grid-column: 1 / -1; }
 .tv-meta .tg { padding: 8px 12px; }
 
 .pos-town.pos-name { font-size: 18px; font-weight: 700; color: var(--strong); margin-top: 2px; }
