@@ -26,11 +26,19 @@ def _number(state: dict | None) -> float | None:
 def _store(conn: sqlite3.Connection, vehicle_id: int, key: str, value: str | None) -> None:
     if value is None:
         return
+    before = None
+    if key == "fuel_level":
+        row = conn.execute("SELECT value FROM live WHERE vehicle_id = ? AND key = 'fuel_level'", (vehicle_id,)).fetchone()
+        before = row["value"] if row else None
     conn.execute(
         "INSERT INTO live(vehicle_id, key, value, updated) VALUES(?,?,?,?) "
         "ON CONFLICT(vehicle_id, key) DO UPDATE SET value = excluded.value, updated = excluded.updated",
         (vehicle_id, key, value, datetime.now(UTC).isoformat(timespec="seconds")),
     )
+    if key == "fuel_level" and before is not None:
+        from . import connectors
+
+        connectors._refuel_seen(conn, vehicle_id, before, value)
 
 
 def refresh_vehicle(conn: sqlite3.Connection, vehicle: sqlite3.Row) -> bool:

@@ -1404,7 +1404,15 @@ def paged_list(conn: sqlite3.Connection, vid: int, request: Request, table: str,
 
 def fuel_list_context(conn: sqlite3.Connection, vid: int, request: Request) -> dict:
     got = paged_list(conn, vid, request, "fuel", ("station", "notes", "date"), "date DESC, COALESCE(odometer_km, 0) DESC, id DESC")
-    return {"fuel_items": got["items"], "total_rows": got["total"], "q": got["q"], "pager": got["pager"]}
+    from . import refuel_detect
+
+    return {
+        "fuel_items": got["items"],
+        "total_rows": got["total"],
+        "q": got["q"],
+        "pager": got["pager"],
+        "refuel_todo": refuel_detect.todo(conn, vid),
+    }
 
 
 def tire_pressure_context(conn: sqlite3.Connection, vid: int, chosen: str | None, rows, edit: bool = False) -> dict:

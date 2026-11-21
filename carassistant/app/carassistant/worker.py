@@ -67,7 +67,7 @@ def run_once(state: dict[str, float], now: float) -> None:
             maintain(conn)
         if notify.take_trip_flag():
             try:
-                notify.check_users(conn, only={"trip_end"})
+                notify.check_users(conn, only={"trip_end", "refuel"})
             except Exception:
                 log.exception("Trip notification failed")
         if now - state["notify"] >= NOTIFY_SECONDS:

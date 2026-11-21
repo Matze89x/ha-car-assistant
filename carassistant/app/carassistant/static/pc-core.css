@@ -2657,3 +2657,8 @@ label.nm-row.sw-row { cursor: pointer; text-transform: none; letter-spacing: 0; 
 .fs-src:last-child { border-bottom: 0; }
 .fs-name { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .fs-key { margin-top: 8px; display: grid; gap: 4px; }
+
+/* "Refuel noticed" card on the fuel page: what is missing, and one button to complete it */
+.fs-todo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fs-todo-t { flex: 1 1 200px; min-width: 0; display: grid; gap: 2px; }
+.fs-todo .button { margin-left: auto; }

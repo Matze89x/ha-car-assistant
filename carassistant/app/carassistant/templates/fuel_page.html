@@ -25,6 +25,13 @@
 {% endcall %}
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
 
+{% for it in refuel_todo %}
+<section class="card fs-todo">
+  <span class="mi-ic c6">{{ icon('gas-station', 19) }}</span>
+  <div class="fs-todo-t"><b>{{ _('fuel.todo_title') }} · {{ fdate(it.date) }}</b><small class="muted">{{ _('fuel.todo_text', pct=it.rise or '', litres=(' (~' ~ it.litres ~ ' L)') if it.litres else '') }}</small></div>
+  <a class="button primary small" href="{{ fu }}?edit={{ it.id }}#fuel">{{ icon('pencil', 16) }}<span>{{ _('fuel.todo_btn') }}</span></a>
+</section>
+{% endfor %}
 {% if stn %}{% include "_fuel_settings.html" %}{% endif %}
 {% if stn %}
 <section class="tp-sec" id="stations">

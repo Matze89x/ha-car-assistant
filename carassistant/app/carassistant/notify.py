@@ -50,6 +50,7 @@ EVENTS = (
     "low_energy",
     "tyre_pressure",
     "trip_end",
+    "refuel",
 )  # what a user can ask to be told about, for every car on its own
 GENERAL = ("addon_update",)  # ... and what is not about one car
 
@@ -148,7 +149,13 @@ def send(conn: sqlite3.Connection, title: str, message: str, service: str, url: 
 
 
 # where a message leads when it is about just one thing (below /v/<car>); everything else opens the car's overview
-PAGE_OF = {"maint_due": "/e/tasks", "appointment": "/e/appointments", "tyre_pressure": "/e/tires", "trip_end": "/e/trips"}
+PAGE_OF = {
+    "maint_due": "/e/tasks",
+    "appointment": "/e/appointments",
+    "tyre_pressure": "/e/tires",
+    "trip_end": "/e/trips",
+    "refuel": "/e/fuel",
+}
 
 
 def link_for(vehicle, pages: set[str]) -> str:
@@ -232,6 +239,15 @@ def _lines_for(
                 distance = trip["distance_km"]
                 lines.append(t("notify.trip_end", d=units.of().dist_str(distance) if distance else "-", place=trip["end_place"] or ""))
                 pages.add(PAGE_OF["trip_end"])
+    if "refuel" in events:
+        from . import refuel_detect
+
+        for item in refuel_detect.todo(conn, vid):
+            key = f"{user_key}:refuel:{vid}:{item['id']}"
+            if not _recently_sent(conn, key, now):
+                keys.append(key)
+                lines.append(t("notify.refuel", pct=item["rise"] or "", litres=f" (~{item['litres']} L)" if item["litres"] else ""))
+                pages.add(PAGE_OF["refuel"])
     return lines, keys, pages
 
 
@@ -268,6 +284,11 @@ def trip_ended() -> None:
     """A drive became a trip: let the worker tell the people who want to know right away (not only at the next 6-hourly check)."""
     _trip_flag.set()
     events.changed()
+
+
+def event_now() -> None:
+    """Something happened that a person wants to hear about at once (a refuel was noticed): wake the worker like a finished trip does."""
+    trip_ended()
 
 
 def take_trip_flag() -> bool:

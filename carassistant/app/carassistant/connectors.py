@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import secrets
 import sqlite3
@@ -17,6 +18,8 @@ from datetime import UTC, datetime
 
 from . import db, status, summary
 from . import vin as vin_info
+
+log = logging.getLogger(__name__)
 
 PREFIX = "ca_"
 MAX_ODOMETER_KM = 2_000_000
@@ -121,11 +124,28 @@ def _num(data: dict, key: str, low: float, high: float) -> float | None:
 
 
 def _store(conn: sqlite3.Connection, vehicle_id: int, key: str, value: str) -> None:
+    before = None
+    if key == "fuel_level":
+        row = conn.execute("SELECT value FROM live WHERE vehicle_id = ? AND key = 'fuel_level'", (vehicle_id,)).fetchone()
+        before = row["value"] if row else None
     conn.execute(
         "INSERT INTO live(vehicle_id, key, value, updated) VALUES(?,?,?,?) "
         "ON CONFLICT(vehicle_id, key) DO UPDATE SET value = excluded.value, updated = excluded.updated",
         (vehicle_id, key, value, _now()),
     )
+    if key == "fuel_level" and before is not None:
+        _refuel_seen(conn, vehicle_id, before, value)
+
+
+def _refuel_seen(conn: sqlite3.Connection, vehicle_id: int, before, after) -> None:
+    """The tank level rose a lot: an unfinished fuel entry is added and the person is told (see refuel_detect)."""
+    from . import notify, refuel_detect
+
+    try:
+        if refuel_detect.level_changed(conn, vehicle_id, before, after):
+            notify.event_now()
+    except Exception:  # noticing a refuel must never break storing the reading
+        log.exception("Refuel detection failed")
 
 
 # plain numbers: api key -> (live key, low, high)

@@ -60,7 +60,7 @@ Mit dem **MCP-Zugriff** unter *Einstellungen → System* lässt du Claude von ü
 ## Optionale Dienste (standardmäßig aus)
 Nichts verlässt deinen Server, wenn du es nicht unter *Einstellungen* einschaltest:
 - **Karteninfos** (*System*): zeigt die Standort-Karte mit OpenStreetMap-Kacheln, über die App geladen, **und** benennt Start und Ziel jeder Fahrt (aus einer Offline-Liste der Städte der Welt; mit eingetragener Adresse für Ortsnamen: von diesem Nominatim-kompatiblen Server), sodass das Fahrtenbuch Namen statt Koordinaten zeigt. Die Karte ist standardmäßig aus. Die Ortsnamen brauchen kein Internet; eine Adresse für Ortsnamen (ein Nominatim-kompatibler Server, nur https) ist optional, wird dann nur bei eingeschalteten Karteninfos gefragt und liefert auch die Straße des Autos.
-- **Spritpreise** (*System*): braucht **deinen eigenen** kostenlosen Key von tankerkoenig.de. Es gibt keinen eingebauten Key.
+- **Spritpreise**: werden auf der Tanken-Seite mit dem Zahnrad oben eingestellt (Preisquellen je Land, deine eigenen Keys, Startwerte) – für Deutschland brauchst du **deinen eigenen** kostenlosen Key von tankerkoenig.de, es gibt keinen eingebauten Key. **Tanken** wird am Tankstand erkannt: springt er um 15 Punkte oder mehr, erscheint ein unfertiger Tank-Eintrag mit einem Knopf *Ergänzen* (nur Menge und Preis vom Beleg fehlen), und du kannst unter *Einstellungen → Benutzer* darüber benachrichtigt werden.
 
 ## Backup
 *Einstellungen → System* lädt ein Backup von allem herunter und spielt es zurück; *Einstellungen → Auto → Sichern & verwalten* sichert ein einzelnes Auto (siehe [Sicherungen](backup.de.md)).

@@ -60,7 +60,7 @@ With the **MCP access** of *Settings → System* you can let Claude read - and, 
 ## Optional services (off by default)
 Nothing leaves your server unless you switch it on under *Settings*:
 - **Map info** (*System*): shows the location map with OpenStreetMap tiles, fetched through the app, **and** names the start and the end of each trip (from an offline list of the world's cities; with an address set for place names: from that Nominatim-compatible server), so the log book shows names instead of coordinates. The map is off by default. The place names need no internet; an address for place names (a Nominatim-compatible server, https only) is optional and then asked only while the map info is on, and also gives the street of the car.
-- **Fuel prices** (*System*): needs **your own** free key from tankerkoenig.de. There is no built-in key.
+- **Fuel prices**: set on the fuel page with the cog at the top (price sources per country, your own keys, start values) - for Germany you need **your own** free key from tankerkoenig.de, there is no built-in key. **Refuels** are noticed from the tank level: when it jumps by 15 points or more, an unfinished fuel entry appears with a *Complete* button (only amount and price from the receipt are missing), and you can be told about it in *Settings → User*.
 
 ## Backup
 *Settings → System* downloads a backup of everything and restores it; *Settings → Car → Backup and manage* backs up one car (see [Backups](backup.md)).
