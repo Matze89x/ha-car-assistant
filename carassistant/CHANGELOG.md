@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.4 Beta
+- Place names come from an offline list of the world's cities (GeoNames, CC BY 4.0): worldwide, nothing is sent; Nominatim only when an address is set. Fuel prices: an open provider interface (one JSON file per country, docs/fuel-providers.md), France added; Tankerkönig and OpenStreetMap stay. Updated dependencies and CI actions.
+
 ## 0.5.3 Beta
 - Map and data: map attribution reads © OpenStreetMap contributors with a link on every map; NOTICE lists the optional data services (Nominatim, Overpass, Tankerkönig) with their licences; the address used for place names can be changed under System > Map info (https only).
 
