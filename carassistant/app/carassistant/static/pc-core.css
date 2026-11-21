@@ -2644,3 +2644,8 @@ label.nm-row.sw-row { cursor: pointer; text-transform: none; letter-spacing: 0; 
 .card label.nm-row.sw-row .nm-t { flex: 1 1 auto; text-align: left; }
 .card label.nm-row.sw-row .nm-state { margin-left: auto; }
 .card label.nm-row.sw-row .switch { margin: 0; flex: none; }
+
+/* Setting rows (switches): a fine line above the first row and under every row, content centred vertically */
+.nm-row, .card label.nm-row.sw-row, form label.nm-row.sw-row { align-items: center; min-height: 52px; box-sizing: border-box; padding-top: 8px; padding-bottom: 8px; }
+.nm-row:first-child, .nm-panel > .nm-row:first-child, form > .nm-row:first-child, form > label.nm-row:first-child { border-top: 1px solid var(--glass-b); }
+.nm-row .nm-t, .nm-row .nm-state, .nm-row .switch { align-self: center; }
