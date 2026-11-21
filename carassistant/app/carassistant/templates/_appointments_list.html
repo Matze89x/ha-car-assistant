@@ -1,0 +1,31 @@
+{% from "_macros.html" import badge, field_input, cell, disp, flabel, del_form, icon with context %}
+{% set lead_f = entity.fields|selectattr('name', 'equalto', 'due_date')|first %}
+<div class="rec-grid ap-list">
+  {% for head, r in items %}
+  {% if head %}<h3 class="rec-month ap-h"><span>{{ _(head.title) }}</span></h3>{% endif %}
+  {% set ex = extras.get(r['id'], {}) %}
+  <article class="rec ap-row {{ 'muted-row' if r['done'] }}{{ ' editing' if edit_id == r['id'] }}" data-rec-edit>
+    <header class="ap-top">
+      <span class="ap-date">{{ cell(lead_f, r) }}</span>
+      <div class="ap-main"><h3 class="rec-title">{{ r['title'] }}</h3><span class="ap-kind">{{ _('kind.' ~ r['kind']) }}</span></div>
+      <div class="ap-side">{% if r['done'] %}<span class="badge ok">{{ _('f.done') }}</span>{% else %}{{ badge(ex.get('due')) }}{% endif %}
+        <button type="button" class="ghost-btn small" data-rec-open>{{ icon('pencil', 16) }}<span>{{ _('btn.edit') }}</span></button></div>
+    </header>
+    {% if r['notes'] %}<p class="ap-notes">{{ r['notes'] }}</p>{% endif %}
+    <div class="rec-inline">
+      <form method="post" action="{{ vurl }}/{{ r['id'] }}" class="grid">
+        {% for f in entity.fields %}
+          {% set own = form if edit_id == r['id'] else none %}
+          {% if own %}{% set val = own.get(f.name) %}
+          {% elif f.kind == 'month_or_date' and r['month_only'] %}{% set val = r[f.name][:7] %}
+          {% else %}{% set val = r[f.name] %}{% endif %}
+          <label class="{{ 'check' if f.kind == 'bool' }} {{ 'wide' if f.kind == 'textarea' }}">{{ flabel(f) }}
+            {{ field_input(f, val, true) }}</label>
+        {% endfor %}
+        <div class="wide"><div class="form-bar"><button type="button" class="ghost-btn small" data-rec-cancel>{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button><button type="submit" form="del-{{ r['id'] }}" class="danger">{{ icon('delete', 18) }}<span>{{ _('btn.delete') }}</span></button><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div></div>
+      </form>
+      {{ del_form('del-' ~ r['id'], vurl ~ '/' ~ r['id'] ~ '/delete') }}
+    </div>
+  </article>
+  {% endfor %}
+</div>

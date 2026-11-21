@@ -642,6 +642,22 @@ document.addEventListener("click", function (e) {
   var open = t.closest("[data-eqe]"), cancel = t.closest("[data-eqe-cancel]");
   if (!open && !cancel) { return; }
   var li = t.closest("li"); var form = li && li.querySelector(".eq-edit"); var btn = li && li.querySelector("[data-eqe]");
+  if (!form && open && li && (li.hasAttribute("data-id") || li.hasAttribute("data-action"))) {  // the edit form is made when it is first needed (one shared template, not one hidden form per row: a long list stays light)
+    var tpl = document.getElementById("eq-edit-tpl"), sec = document.getElementById("equipment");
+    if (tpl) {
+      form = tpl.content.firstElementChild.cloneNode(true);
+      var vals = {};
+      if (li.hasAttribute("data-action")) {
+        form.action = li.getAttribute("data-action");
+        try { vals = JSON.parse(li.getAttribute("data-vals") || "{}"); } catch (_) { vals = {}; }
+      } else {
+        form.action = ((sec && sec.getAttribute("data-item-url")) || "") + li.getAttribute("data-id");
+        vals = { title: li.getAttribute("data-title"), code: li.getAttribute("data-code"), status: li.getAttribute("data-status"), category: li.getAttribute("data-cat") };
+      }
+      Object.keys(vals).forEach(function (k) { if (form.elements[k]) { form.elements[k].value = vals[k] == null ? "" : vals[k]; } });
+      (li.querySelector(".eq-body") || li).appendChild(form);
+    }
+  }
   if (!form) { return; }
   var show = !!open && form.hidden;
   form.hidden = !show; if (btn) { btn.setAttribute("aria-expanded", show ? "true" : "false"); }
@@ -699,6 +715,7 @@ document.addEventListener("click", function (e) {
     var card = e.target.closest && e.target.closest('[data-rec-edit]');
     if (!card) return;
     if (e.target.closest('[data-rec-cancel]')) { close(card); return; }
+    if (e.target.closest('[data-rec-open]')) { card.classList.add('editing'); var f0 = card.querySelector('.rec-inline input, .rec-inline select, .rec-inline textarea'); if (f0) f0.focus(); return; }
     if (card.classList.contains('editing') || e.target.closest('a, button, input, select, textarea, label, form')) return;
     card.classList.add('editing');
     var first = card.querySelector('.rec-inline input, .rec-inline select, .rec-inline textarea');

@@ -190,7 +190,7 @@ def _counter_prepare(values: dict) -> dict:
 COUNTER_KINDS = ("tax", "business", "private", "other")
 SEASONS = ("summer", "winter", "allseason")
 TRIP_CATEGORIES = ("private", "business", "commute")
-KINDS = ("inspection", "service", "other")
+KINDS = ("inspection", "service", "insurance", "tax", "other")
 FUEL_TYPES = ("petrol", "diesel", "lpg", "cng", "hybrid", "electric")
 DRIVETRAINS = ("fwd", "rwd", "awd")
 TRANSMISSIONS = ("manual", "automatic", "dct", "cvt")

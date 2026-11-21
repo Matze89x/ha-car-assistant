@@ -1229,10 +1229,31 @@ def entity_context(
             end = r["end_km"] if r["end_km"] is not None else odo
             extras[r["id"]] = {"distance": (end - r["start_km"]) if end is not None else None}
     group_field = {"service": "date", "parts": "date"}.get(entity.key)  # lists with a date get a heading per period (Today, Yesterday, ...)
+    if entity.key == "appointments":  # "upcoming" (not marked done) first, then "completed"; a heading only where such a group exists
+        undone = conn.execute("SELECT COUNT(*) FROM appointments WHERE vehicle_id = ? AND done = 0", (vehicle["id"],)).fetchone()[0]
+        start = (page - 1) * lists.size()
+        heads = (
+            {0: {"key": "upcoming", "title": "appt.upcoming"}, undone: {"key": "done", "title": "appt.done"}}
+            if undone
+            else {0: {"key": "done", "title": "appt.done"}}
+        )
+        items = [(heads.get(start + i), r) for i, r in enumerate(rows)]
+        if (
+            edit_id is not None and rows and len(rows) > lists.size()
+        ):  # an edited record from another page comes first, without a heading of its own
+            items = [(None, rows[0])] + [(heads.get(start + i), r) for i, r in enumerate(rows[1:])]
+    else:
+        items = None
     items = (
-        lists.with_headings(rows, group_field, entities.previous_date(conn, entity, vehicle["id"], page, group_field), config.language())
-        if group_field
-        else [(None, r) for r in rows]
+        items
+        if items is not None
+        else (
+            lists.with_headings(
+                rows, group_field, entities.previous_date(conn, entity, vehicle["id"], page, group_field), config.language()
+            )
+            if group_field
+            else [(None, r) for r in rows]
+        )
     )
     return {
         "entity": entity,

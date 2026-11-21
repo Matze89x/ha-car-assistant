@@ -57,6 +57,7 @@
 {% set sfx = {'odometer_km': d, 'start_km': d, 'end_km': d, 'interval_km': d, 'last_km': d, 'installed_km': d, 'cost': ' ' ~ units.cur, 'price_total': ' ' ~ units.cur, 'price_per_unit': ' ' ~ units.cur ~ '/' ~ units.vol_unit(unit), 'amount': ' ' ~ units.vol_unit(unit)} %}
 {% set lead_f = shown|selectattr('kind', 'in', ['date', 'month_or_date'])|first %}
 {% set title_f = shown|selectattr('name', 'in', ['title', 'name'])|first %}
+{% if entity.key == 'appointments' %}{% include "_appointments_list.html" %}{% else %}
 <div class="rec-grid">
   {% for head, r in items %}
   {% if head %}<h3 class="rec-month"><span>{{ head.title }}</span></h3>{% endif %}
@@ -107,7 +108,7 @@
     </div>
   </article>
   {% endfor %}
-</div>
+</div>{% endif %}
 {% with pager_url=vurl, pager_into='.rec-grid' %}{% include "_pager.html" %}{% endwith %}
 {% else %}
   <div class="card empty-state">{{ icon(module_icon.get(entity.key, 'car'), 36) }}<p>{{ _(entity.empty_hint) }}</p></div>

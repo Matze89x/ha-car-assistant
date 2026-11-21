@@ -498,7 +498,7 @@ details.add-card[open] > summary { margin-bottom: 14px; }
 .tf-two { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
 
 /* ===== ONE icon button (circle): back, switch vehicle, delete, widget grip/eye, dialog close - sizes via modifiers ===== */
-.icon-btn, .back-btn, .cur-switch, .round-del, .wd-eye, .wd-grip, .wd-edit-btn, .vsw-x { display: inline-grid; place-items: center; flex: 0 0 auto; width: 40px; height: 40px; min-height: 0; padding: 0; border-radius: 999px; border: 1px solid var(--btn-edge); background: linear-gradient(180deg, rgba(var(--fg-rgb),.11) 0%, rgba(var(--fg-rgb),.05) 100%); -webkit-backdrop-filter: blur(12px) saturate(1.25); backdrop-filter: blur(12px) saturate(1.25); box-shadow: 0 1px 0 var(--btn-hi) inset; color: var(--text); cursor: pointer; text-decoration: none; }
+.icon-btn, .back-btn, .cur-switch, .round-del, .wd-eye, .wd-grip, .wd-edit-btn, .vsw-x { display: inline-grid; place-items: center; flex: 0 0 auto; width: 40px; height: 40px; min-height: 0; padding: 0; border-radius: 999px; border: 1px solid var(--btn-edge); background: linear-gradient(180deg, rgba(var(--fg-rgb),.11) 0%, rgba(var(--fg-rgb),.05) 100%); box-shadow: 0 1px 0 var(--btn-hi) inset; color: var(--text); cursor: pointer; text-decoration: none; }
 
 /* the same glass as every button */
 .icon-btn:hover, .back-btn:hover, .cur-switch:hover, .vsw-x:hover, .wd-eye:hover, .wd-grip:hover, .wd-edit-btn:hover { background: linear-gradient(180deg, rgba(var(--fg-rgb),.16) 0%, rgba(var(--fg-rgb),.08) 100%); border-color: rgba(var(--fg-rgb),.22); text-decoration: none; }
@@ -2105,7 +2105,7 @@ details.trip > summary { list-style: none; cursor: pointer; display: grid; grid-
 .rec-tap { cursor: pointer; }
 .rec-tap.editing { cursor: default; }
 .rec-inline { display: none; margin-top: auto; }
-.rec.editing > .rec-top, .rec.editing > .rec-facts, .rec.editing > .rec-actions { display: none; }
+.rec.editing > .rec-top, .rec.editing > .rec-facts, .rec.editing > .rec-actions, .rec.editing > .ap-top, .rec.editing > .ap-notes { display: none; }
 .rec.editing > .rec-inline { display: block; }
 .rec-inline .form-bar { justify-content: flex-end; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--glass-b); }
 .rec-inline .form-bar .primary { order: 3; }
@@ -2705,3 +2705,22 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 .nm-actions .te-check span { color: var(--text); background: linear-gradient(180deg, rgba(var(--fg-rgb), .09) 0%, rgba(var(--fg-rgb), .04) 100%); border: 1px solid var(--btn-edge); box-shadow: 0 1px 0 var(--btn-hi) inset; }
 .nm-actions .te-check input:checked + span { color: var(--ok); background: rgba(var(--ok-rgb), .16); border-color: rgba(var(--ok-rgb), .4); }
 .nm-actions .te-check.del input:checked + span { color: var(--overdue); background: rgba(var(--overdue-rgb), .14); border-color: rgba(var(--overdue-rgb), .4); }
+
+/* appointments: ONE column of compact rows - date, title with its kind, status and an Edit button; the edit form opens inside the row */
+.rec-grid.ap-list { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.ap-list .ap-h { margin: 10px 0 0; }
+.ap-list .ap-h:first-child { margin-top: 0; }
+.ap-row { padding: 10px 14px; gap: 6px; }
+.ap-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ap-date { flex: 0 0 auto; min-width: 82px; font-size: 13px; font-weight: 600; color: var(--muted); font-family: var(--mono, inherit); }
+.ap-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ap-main .rec-title { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+.ap-kind { font-size: 12px; color: var(--muted); }
+.ap-side { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; }
+.ap-notes { margin: 0; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+@media (max-width: 520px) {
+  .ap-top { flex-wrap: wrap; row-gap: 6px; }
+  .ap-date { order: 1; min-width: 0; }
+  .ap-main { order: 3; flex: 1 0 100%; }
+  .ap-side { order: 2; margin-left: auto; }
+}

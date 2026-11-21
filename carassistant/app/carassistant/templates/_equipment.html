@@ -12,20 +12,11 @@
       <div class="eq-gh eq-gh-{{ g.key }}"><span>{{ GT[g.key] }}</span><i>{{ g.rows|length }}</i></div>
       <ul class="eq-list">
         {% for r in g.rows %}
-        <li class="{{ 'miss' if r.status == 'missing' }}" data-q="{{ (r.title ~ ' ' ~ r.code ~ ' ' ~ c.name)|lower }}">
+        <li class="{{ 'miss' if r.status == 'missing' }}" data-q="{{ (r.title ~ ' ' ~ r.code ~ ' ' ~ c.name)|lower }}" data-id="{{ r.id }}" data-title="{{ r.title }}" data-code="{{ r.code }}" data-status="{{ r.status }}" data-cat="{{ c.key }}">
           <span class="eq-mk {{ 'retro' if r.status == 'retrofit' else ('no' if r.status == 'missing' else 'ok') }}">{{ icon('close' if r.status == 'missing' else 'check', 18) }}</span>
           <div class="eq-body">
             <div class="eq-line"><span class="eq-tx">{{ r.title }}</span>{% if r.code %}<span class="eq-pr-tag">{{ r.code }}</span>{% endif %}
               <button type="button" class="eq-i" data-eqe aria-expanded="false" aria-label="{{ _('btn.edit') }}: {{ r.title }}">{{ icon('pencil', 16) }}</button></div>
-            <form class="eq-edit" method="post" action="{{ base }}/v/{{ v.slug }}/equipment/item/{{ r.id }}" hidden>
-              <label>{{ _('eq.feature') }}<input name="title" value="{{ r.title }}" maxlength="120" required></label>
-              <div class="eq-two"><label>{{ _('eq.code') }}<input name="code" value="{{ r.code }}" maxlength="24"></label>
-                <label>{{ _('eq.status') }}<select name="status">{% for st in equip_status %}<option value="{{ st }}" {{ 'selected' if r.status == st }}>{{ GT[st] }}</option>{% endfor %}</select></label></div>
-              <label>{{ _('eq.move') }}<select name="category">{% for o in equip %}<option value="{{ o.key }}" {{ 'selected' if o.key == c.key }}>{{ o.name }}</option>{% endfor %}</select></label>
-              <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
-                <button class="ghost-btn small warn ib" name="del" value="1" formnovalidate data-confirm="{{ _('confirm.delete') }}">{{ icon('delete-outline', 16) }} <span class="sr">{{ _('btn.delete') }}</span></button>
-                <button type="button" class="ghost-btn small ib" data-eqe-cancel>{{ icon('close', 16) }}<span class="sr">{{ _('btn.cancel') }}</span></button></div>
-            </form>
           </div>
         </li>
         {% endfor %}
@@ -45,7 +36,19 @@
       </div>
     </details>
 {% endmacro %}
-<section class="eq-sec" id="equipment">
+<section class="eq-sec" id="equipment" data-item-url="{{ base }}/v/{{ v.slug }}/equipment/item/">
+<template id="eq-edit-tpl">
+  <form class="eq-edit" method="post" hidden>
+    <label>{{ _('eq.feature') }}<input name="title" maxlength="120" required></label>
+    <div class="eq-two"><label>{{ _('eq.code') }}<input name="code" maxlength="24"></label>
+      <label>{{ _('eq.status') }}<select name="status">{% for st in equip_status %}<option value="{{ st }}">{{ GT[st] }}</option>{% endfor %}</select></label></div>
+    <label>{{ _('eq.move') }}<select name="category">{% for o in equip %}<option value="{{ o.key }}">{{ o.name }}</option>{% endfor %}</select></label>
+    <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
+      <button class="ghost-btn small warn ib" name="del" value="1" formnovalidate data-confirm="{{ _('confirm.delete') }}">{{ icon('delete-outline', 16) }} <span class="sr">{{ _('btn.delete') }}</span></button>
+      <button type="button" class="ghost-btn small ib" data-eqe-cancel>{{ icon('close', 16) }}<span class="sr">{{ _('btn.cancel') }}</span></button></div>
+  </form>
+</template>
+
   <div class="vd-group-h eq-head">{{ _('eq.title') }} <span class="eq-total" id="eq-count" data-all="{{ total }}">{{ total }}</span></div>
   <label class="eq-searchbox"><span class="sb-ic">{{ icon('magnify', 18) }}</span><input type="search" id="eq-search" placeholder="{{ _('eq.search') }}" autocomplete="off" enterkeyhint="search"></label>
   <div class="eq-wrap eq-cols">
