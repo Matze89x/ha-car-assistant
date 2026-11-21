@@ -7,7 +7,7 @@ requests==2.34.2
 fpdf2==2.9.0
 pillow==13.0.0
 webauthn==3.0.1
-cryptography>=42
+cryptography>=50.0.2
 pywebpush==2.5.0
 pypdf>=5
 defusedxml>=0.7
