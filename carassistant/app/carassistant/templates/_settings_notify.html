@@ -6,28 +6,36 @@
   {% if not acct_me %}
     <p class="hint">{{ _('notify.user_need') }}</p>
   {% else %}
-  <h3 class="acct-sub">{{ _('notify.how_title') }}</h3>
-  {% if port_on %}
-  <div id="push-box" class="push-box" data-base="{{ base }}" data-unsupported="{{ _('push.unsupported') }}" data-ios="{{ _('push.ios_home') }}" data-failed="{{ _('push.failed') }}" data-https="{{ _('push.https_only') }}" data-ext="{{ external_url if ext_set else '' }}" data-denied="{{ _('push.denied') }}" data-label-on="{{ _('push.enable') }}" data-label-off="{{ _('push.disable') }}">
-    <p class="hint">{{ _('push.user_hint') }}</p>
-    {% if push_devices %}<div class="ar-v">{% for d in push_devices %}<span class="chip-pk">{{ icon('bell', 14) }} {{ d.label or _('push.device') }} <small class="muted">{{ d.created_at[:10] }}</small>
-      <form method="post" action="{{ base }}/settings/push/{{ d.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% endfor %}</div>
-    {% else %}<p class="muted">{{ _('push.no_devices') }}</p>{% endif %}
-    <div class="actions"><button type="button" id="push-on" class="primary small" {{ 'disabled' if not ext_set }}>{{ icon('bell', 16) }}<span>{{ _('push.enable') }}</span></button>
-      <form method="post" action="{{ base }}/settings/notifications/test" class="inline" id="push-test"><button class="small" {{ 'disabled' if not push_devices }}>{{ icon('bell-outline', 16) }} {{ _('notify.user_test') }}</button></form></div>
-    {% if not ext_set %}<p class="hint">{{ icon('lock', 16) }} {{ _('ext.needed') }}</p>{% endif %}
-    <p class="acct-msg" id="push-msg" hidden></p>
+  <div class="nm-block">
+    <h3 class="acct-sub">{{ _('notify.how_title') }}</h3>
+    {% if port_on %}
+    <div id="push-box" class="push-box" data-base="{{ base }}" data-unsupported="{{ _('push.unsupported') }}" data-ios="{{ _('push.ios_home') }}" data-failed="{{ _('push.failed') }}" data-https="{{ _('push.https_only') }}" data-ext="{{ external_url if ext_set else '' }}" data-denied="{{ _('push.denied') }}" data-label-on="{{ _('push.enable') }}" data-label-off="{{ _('push.disable') }}">
+      <p class="hint">{{ _('push.user_hint') }}</p>
+      {% if push_devices %}<div class="ar-v">{% for d in push_devices %}<span class="chip-pk">{{ icon('bell', 14) }} {{ d.label or _('push.device') }} <small class="muted">{{ d.created_at[:10] }}</small>
+        <form method="post" action="{{ base }}/settings/push/{{ d.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% endfor %}</div>
+      {% else %}<p class="muted">{{ _('push.no_devices') }}</p>{% endif %}
+      {% if not ext_set %}<p class="hint">{{ icon('lock', 14) }} {{ _('ext.needed') }}</p>{% endif %}
+      <p class="acct-msg" id="push-msg" hidden></p>
+      <div class="nm-actions">
+        <form method="post" action="{{ base }}/settings/notifications/test" class="inline" id="push-test"><button class="small" {{ 'disabled' if not push_devices }}>{{ icon('bell-outline', 16) }}<span>{{ _('notify.user_test') }}</span></button></form>
+        <button type="button" id="push-on" class="primary small" {{ 'disabled' if not ext_set }}>{{ icon('bell', 16) }}<span>{{ _('push.enable') }}</span></button>
+      </div>
+    </div>
+    <script src="{{ base }}/static/push.js?v={{ version }}" defer></script>
+    {% else %}
+    <form method="post" action="{{ base }}/settings/notifications" class="grid" data-live="1">
+      <label class="wide">{{ _('notify.user_service') }}<input type="text" name="service" value="{{ notify_prefs.service }}" maxlength="90" placeholder="mobile_app_my_phone" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+    </form>
+    <p class="hint">{{ _('notify.user_service_help') }}</p>
+    <p class="hint">{{ icon('info', 14) }} {{ _('push.ha_only') }}</p>
+    <div class="nm-actions">
+      <form method="post" action="{{ base }}/settings/notifications/test" class="inline"><button class="small" {{ 'disabled' if not notify_prefs.service }}>{{ icon('bell-outline', 16) }}<span>{{ _('notify.user_test') }}</span></button></form>
+    </div>
+    {% endif %}
   </div>
-  <script src="{{ base }}/static/push.js?v={{ version }}" defer></script>
-  {% else %}
-  <form method="post" action="{{ base }}/settings/notifications" class="grid" data-live="1">
-    <label class="wide">{{ _('notify.user_service') }}<input type="text" name="service" value="{{ notify_prefs.service }}" maxlength="90" placeholder="mobile_app_my_phone" autocapitalize="off" autocomplete="off" spellcheck="false"><small class="muted">{{ _('notify.user_service_help') }}</small></label>
-  </form>
-  <form method="post" action="{{ base }}/settings/notifications/test" class="inline"><button class="small" {{ 'disabled' if not notify_prefs.service }}>{{ icon('bell-outline', 16) }} {{ _('notify.user_test') }}</button></form>
-  <p class="hint">{{ icon('info', 14) }} {{ _('push.ha_only') }}</p>
-  {% endif %}
 
   {% if notify_matrix %}
+  <div class="nm-block">
   <h3 class="acct-sub" id="notify-matrix">{{ _('notify.matrix_title') }}</h3>
   <p class="hint">{{ _('notify.matrix_hint') }}</p>
   <form method="post" action="{{ base }}/settings/notifications/matrix" data-live="1" class="nm-form" id="nm-form" data-yes="{{ _('notify.yes') }}" data-no="{{ _('notify.no') }}">
@@ -51,6 +59,7 @@
     {% for key in notify_general %}<div class="nm-row"><span class="nm-t">{{ GEN[key] }}</span><span class="nm-state"></span><label class="switch"><input type="checkbox" name="gen" value="{{ key }}" {{ 'checked' if key in notify_matrix.general }}><span></span></label></div>{% endfor %}
   </form>
   <script src="{{ base }}/static/notify_matrix.js?v={{ version }}" defer></script>
+  </div>
   {% endif %}
   {% endif %}
 </section>

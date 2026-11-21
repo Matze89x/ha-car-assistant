@@ -2612,3 +2612,12 @@ html.is-app .page-head:not(:has(.ph-s:not([data-car]))) { min-height: var(--head
 .nm-t { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 500; color: var(--text); text-transform: none; letter-spacing: 0; text-align: left; }
 .nm-state { flex: 0 0 auto; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); min-width: 34px; text-align: right; }
 .nm-state.on { color: var(--accent); }
+
+/* The notification card is built from calm blocks: how you are told, then what you are told about; buttons sit at the bottom right of their block */
+.nm-block { margin-top: 14px; padding: 14px 16px; border: 1px solid var(--glass-b); border-radius: var(--r-m); background: rgba(var(--fg-rgb), .03); }
+.nm-block > .acct-sub { margin: 0 0 12px; }
+.nm-block .hint { margin: 8px 0 0; }
+.nm-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.nm-actions form { margin: 0; }
+.nm-actions button { white-space: nowrap; }
+.nm-block .ar-v { margin-top: 10px; }
