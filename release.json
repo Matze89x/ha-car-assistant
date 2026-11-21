@@ -10,5 +10,9 @@
       "en": "The public test version. Please try it and report what you find.",
       "de": "Die öffentliche Testversion. Bitte ausprobieren und melden, was dir auffällt."
     }
+  },
+  "dev": {
+    "base": "0.5.1",
+    "n": 1
   }
 }

@@ -13,6 +13,7 @@ Usage (from the repository root):
   python tools/release.py set 0.5.0 Beta ["EN line" "DE line"]   set the version and the stage, then write them everywhere
   python tools/release.py fix  "English text" "Deutscher Text"       next fix version (0.4.0 -> 0.4.1) + a line in both changelogs
   python tools/release.py feature "English" "Deutsch"                next feature version (0.4.1 -> 0.5.0) + changelog lines
+  python tools/release.py dev [0.5.1]          next development step of the Developer add-on (0.5.1.1 -> 0.5.1.2); a base version starts again at .1
   python tools/release.py check                exit code 1 when a place disagrees (the tests run this too)
 
 Places that get the value: pyproject.toml, carassistant/config.yaml (version and the stage in front of the description),
@@ -60,6 +61,11 @@ def block(data: dict, lang: str, style: str) -> str:
     return f"{badge} {note}".strip()
 
 
+def dev_version(data: dict) -> str:
+    """The version of the Developer add-on: the planned next release plus a counter (``0.5.1.3``)."""
+    return f"{data['dev']['base']}.{data['dev']['n']}"
+
+
 def _write(path: Path, text: str) -> bool:
     old = path.read_text(encoding="utf-8")
     if old == text:
@@ -86,6 +92,11 @@ def expected(data: dict) -> dict[Path, str]:
     text = re.sub(r'(?m)^__version__ = ".*"$', f'__version__ = "{v}"', text, count=1)
     text = re.sub(r'(?m)^STAGE = ".*"$', f'STAGE = "{stage}"', text, count=1) if "STAGE = " in text else text.rstrip("\n") + f'\nSTAGE = "{stage}"\n'
     out[p] = text
+
+    dev = data.get("dev")
+    p = ROOT / "carassistant-dev" / "config.yaml"
+    if dev and p.exists():  # the Developer add-on: next version + the number of development steps
+        out[p] = re.sub(r'(?m)^version: ".*"$', f'version: "{dev_version(data)}"', p.read_text(encoding="utf-8"), count=1)
 
     for name, (lang, style) in PAGES.items():
         p = ROOT / name
@@ -173,6 +184,15 @@ def main(argv: list[str]) -> int:
         if len(argv) == 5:  # with changelog lines: the new section is made as well
             add_changelog(data, {"en": argv[3], "de": argv[4]})
         print("written:", ", ".join(sync(data)))
+        return 0
+    if cmd == "dev":
+        base = argv[1] if len(argv) > 1 else data.get("dev", {}).get("base") or bump(data, "fix")
+        if not VERSION.match(base):
+            raise SystemExit("the base must look like 0.5.1")
+        old = data.get("dev", {})
+        data["dev"] = {"base": base, "n": old["n"] + 1 if old.get("base") == base else 1}
+        RELEASE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        print(f"Developer add-on now {dev_version(data)}; written:", ", ".join(sync(data)) or "nothing")
         return 0
     if cmd in ("fix", "feature", "release"):
         if len(argv) != 3:

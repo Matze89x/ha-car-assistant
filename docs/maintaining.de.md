@@ -17,6 +17,10 @@ Wie Meldungen und Beiträge zur nächsten Version werden. Beitragende ändern ni
 
 `RELEASE.FEATURES.FEHLER` plus die Stufe (Alpha / Beta): Die erste Zahl zählt Releases, die zweite Features, die dritte Fehlerkorrekturen. Nur `release.json` hält den Wert; `tools/release.py` schreibt ihn überall hin. Siehe [CONTRIBUTING](../CONTRIBUTING.de.md).
 
+## Die Developer-App
+
+`carassistant-dev/` ist eine zweite App im selben Repository (*Car Assistant Developer*, Slug `carassistant_dev`, eigene Daten). Ihr Dockerfile lädt beim Bauen den Zweig `dev` herunter. Ihre Version ist die nächste Version plus ein Zähler (`0.5.1.3`) in `release.json` (`dev`): `python tools/release.py dev` für jeden Schritt, der als Update ankommen soll (`dev 0.5.2` beginnt eine neue Basis bei `.1`). Der Store liest die App-Liste aus `main`; ein Dev-Schritt erreicht die Nutzer, wenn `dev` nach `main` vorgespult wird. Nach einem Release eine neue Basis setzen.
+
 ## Labels und Automatik
 
 - Die Labels stehen in `.github/labels.yml`; *Actions → Sync labels → Run workflow* legt sie an.

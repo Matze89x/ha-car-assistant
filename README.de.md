@@ -38,7 +38,7 @@ Alles ist modular: Module und Integrationen schaltest du unter **Integrationen**
 ## Installation
 [![Repository zu meinem Home Assistant hinzufügen](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FMatze89x%2Fha-car-assistant)
 
-Der Button fügt das Repository in dein Home Assistant ein; installiere dann *Car Assistant* im App Store. Weitere Wege (auch ohne GitHub): [docs/install.de.md](docs/install.de.md).
+Der Button fügt das Repository in dein Home Assistant ein; installiere dann *Car Assistant* im App Store. Im selben Store steht auch *Car Assistant Developer* (der neueste Entwicklungsstand, Version wie `0.5.1.3`, eigene Daten, zum Testen). Weitere Wege (auch ohne GitHub): [docs/install.de.md](docs/install.de.md).
 
 ## Dokumentation
 

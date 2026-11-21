@@ -38,7 +38,7 @@ Everything is modular: switch modules and integrations on or off under **Integra
 ## Installation
 [![Add the repository to my Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FMatze89x%2Fha-car-assistant)
 
-The button adds the repository to your Home Assistant; install *Car Assistant* from the app store. More ways (also without GitHub): [docs/install.md](docs/install.md).
+The button adds the repository to your Home Assistant; install *Car Assistant* from the app store. The same store also lists *Car Assistant Developer* (the newest development state, version like `0.5.1.3`, own data, for testing). More ways (also without GitHub): [docs/install.md](docs/install.md).
 
 ## Documentation
 
