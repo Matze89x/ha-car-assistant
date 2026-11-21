@@ -2583,3 +2583,19 @@ html.is-app .page-head:not(:has(.ph-s:not([data-car]))) { min-height: var(--head
 .demo-steps li { justify-content: flex-start; align-items: flex-start; padding: 10px 0; }
 .demo-steps li .ico { flex-shrink: 0; margin-top: 2px; }
 .demo-bar { justify-content: flex-end; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--glass-b); }
+
+/* Tyre pressure label of a set: size and car on top, then "normal load" and "fully loaded" with front / rear values (like the label in the car) */
+.tp-label { margin-top: 12px; border: 1px solid var(--glass-b); border-radius: var(--r-m); background: rgba(var(--fg-rgb), .04); overflow: hidden; }
+.tpl-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--glass-b); }
+.tpl-size { font-size: 22px; font-weight: 700; color: var(--ok); letter-spacing: .02em; }
+.tpl-car { display: inline-flex; align-items: center; gap: 8px; color: var(--strong); }
+.tpl-car b { font-size: 16px; font-weight: 700; }
+.tpl-cols, .tpl-row { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 8px; padding: 10px 14px; }
+.tpl-cols { padding-bottom: 2px; }
+.tpl-cols i { font-style: normal; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; text-align: center; }
+.tpl-row { border-top: 1px solid var(--glass-b); }
+.tpl-row b { font-size: 24px; font-weight: 700; text-align: center; }
+.tpl-who { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; color: var(--strong); }
+.tpl-who .ico { flex-shrink: 0; }
+.tpl-who em { flex-basis: 100%; font-style: normal; font-size: 12px; color: var(--muted); margin-top: 2px; }
+@media (max-width: 520px) { .tpl-row b { font-size: 20px; } .tpl-size { font-size: 18px; } }

@@ -1,7 +1,7 @@
 {% from "_macros.html" import icon with context %}
 {% set season_icon = {'summer': 'white-balance-sunny', 'winter': 'snowflake', 'allseason': 'sync'} %}
 {# The tyre pressure of a set tile: the value the car measured, the recommended one in brackets (only the recommended one without a reading) #}
-{% macro press_block(show_measured) %}
+{% macro press_block(show_measured, size='') %}
 {% if tp.set.get(tp.season) or (show_measured and tp.actual_when) %}
 {% set live = show_measured and tp.actual_when %}
 <div class="tv-pressure">
@@ -13,8 +13,13 @@
     <div class="tg"><i>{{ _('tp.' ~ w) }}</i><b class="mono">{% if got %}{{ got }} <small>{{ tp.unit }}{% if rec %} ({{ rec }}){% endif %}</small>{% elif rec %}<small class="rec-only">({{ rec }} {{ tp.unit }})</small>{% else %}–{% endif %}</b></div>
     {% endfor %}
   </div>
-  {% if tp.load_front or tp.load_rear %}
-  <div class="tg tv-load"><i>{{ _('tr.loaded') }}</i><b>{{ _('tp.front') }} {{ (tp.load_front ~ ' ' ~ tp.unit) if tp.load_front else '–' }} · {{ _('tp.rear') }} {{ (tp.load_rear ~ ' ' ~ tp.unit) if tp.load_rear else '–' }}</b></div>
+  {% if tp.front or tp.rear or tp.load_front or tp.load_rear %}
+  <div class="tp-label" role="table" aria-label="{{ _('tp.title') }}">
+    <div class="tpl-head" role="row"><span class="tpl-size mono">{{ size or '' }}</span><span class="tpl-car">{{ icon('car-side', 38) }}<b>{{ tp.unit }}</b></span></div>
+    <div class="tpl-cols" role="row"><span></span><i>{{ _('tp.axle_front') }}</i><i>{{ _('tp.axle_rear') }}</i></div>
+    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 22) }}{{ icon('briefcase', 16) }}<em>{{ _('tp.normal') }}</em></span><b class="mono">{{ ('%.1f'|format(tp.front)) if tp.front else '–' }}</b><b class="mono">{{ ('%.1f'|format(tp.rear)) if tp.rear else '–' }}</b></div>
+    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 22) }}{{ icon('account-group', 22) }}{{ icon('bag-suitcase', 16) }}<em>{{ _('tp.full') }}</em></span><b class="mono">{{ ('%.1f'|format(tp.load_front)) if tp.load_front else '–' }}</b><b class="mono">{{ ('%.1f'|format(tp.load_rear)) if tp.load_rear else '–' }}</b></div>
+  </div>
   {% endif %}
 </div>
 {% endif %}
@@ -34,7 +39,7 @@
       <h3>{{ r['name'] }}</h3>
       {% if r['mounted'] %}<span class="mounted-badge">{{ _('tires.mounted') }}{% if r['mounted_date'] %} · {{ fdate(r['mounted_date']) }}{% endif %}</span>{% endif %}
     </div>
-    {{ press_block(r['mounted'] or not any_mounted) }}
+    {{ press_block(r['mounted'] or not any_mounted, r['size'] ~ ((' / ' ~ r['rear_size']) if r['rear_size'] and r['rear_size'] != r['size'] else '')) }}
     <div class="tc-grid">
       {% if r['size'] or r['rear_size'] %}<div class="tg tv-big"><i>{{ _('tr.front_axle') }}</i><b class="mono">{{ r['size'] or '–' }}</b></div>{% endif %}
       {% if r['rear_size'] or r['rear_name'] %}<div class="tg tv-big"><i>{{ _('tr.rear_axle') }}</i><b class="mono">{{ r['rear_size'] or r['size'] or '–' }}</b>{% if r['rear_name'] %}<small>{{ r['rear_name'] }}</small>{% endif %}</div>{% endif %}
