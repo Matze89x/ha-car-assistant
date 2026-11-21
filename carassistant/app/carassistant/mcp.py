@@ -292,7 +292,11 @@ def t_get_logs(conn, args):
 
 def t_list_plugins(conn, args):
     """Plugins and integrations of one vehicle (or all): what is installed, switched on, set up - never tokens or secret settings."""
-    ids = [_vehicle(conn, args["vehicle"])] if args.get("vehicle") not in (None, "") else [r["id"] for r in conn.execute("SELECT id FROM vehicles")]
+    ids = (
+        [_vehicle(conn, args["vehicle"])]
+        if args.get("vehicle") not in (None, "")
+        else [r["id"] for r in conn.execute("SELECT id FROM vehicles")]
+    )
     out = []
     for vid in ids:
         for a in addons.list_for(conn, vid):
