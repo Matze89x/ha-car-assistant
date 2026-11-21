@@ -586,6 +586,44 @@ async def addon_guide_file(request: Request, vid: int, aid: int):
     )
 
 
+@app.post("/v/{vid}/integrations/{aid}/guide/bundle")
+async def addon_guide_bundle(request: Request, vid: int, aid: int):
+    """A zip of the package that carries the connection file (``connection_file_to`` of the bundle): built now, with the token of this run (compared
+    with the stored fingerprint first); nothing of it is stored. Administrator only, only while the package is approved."""
+    if (denied := _guard(request, vid)) is not None:
+        return denied
+    form = await form_dict(request)
+    candidate = (form.get("token") or "").strip()[:200]
+    name = (form.get("name") or "")[:60]
+    with db.tx() as conn:
+        addon = addons.get(conn, vid, aid)
+        bundle = next(
+            (b for b in (addon["m"].get("bundles", []) if addon else []) if b["name"] == name and b.get("connection_file_to")), None
+        )
+        if (
+            addon is None
+            or addon["kind"] != "plugin"
+            or not addon["m"].get("connection_file")
+            or bundle is None
+            or not pluginsvc.approved(addon)
+        ):
+            return go(request, f"/v/{vid}/plugins", "addon.err_id")
+        bad = _guide_token_ok(conn, aid, addon, candidate)
+        if bad:
+            return _guide_page(request, vid, aid, 3, "", errors={"__token": bad}, status=429 if bad == "err.token_rate" else 400)
+        text = addons.connection_file_text(
+            addon["m"], addon["vals"], token=candidate, vehicle=vid, url=config.external_url() or "", vin=_vin(vid)
+        )
+    data = assets.build_bundle(addon, bundle, text)
+    if data is None:
+        return go(request, f"/v/{vid}/plugins", "addon.err_id")
+    return Response(
+        data,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+    )
+
+
 @app.get("/v/{vid}/integrations/{aid}/info")
 def addon_info(request: Request, vid: int, aid: int):
     """Everything about ONE plugin / integration on one page: overview, what it offers and uses (interfaces, files), its log with the debug switch."""

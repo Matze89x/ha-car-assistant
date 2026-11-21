@@ -62,9 +62,13 @@ def read_file(addon: dict, name: str) -> tuple[bytes, str] | None:
     return data, addons.FILE_TYPES["." + name.rsplit(".", 1)[-1].lower()]
 
 
-def build_bundle(addon: dict, bundle: dict) -> bytes | None:
+def build_bundle(addon: dict, bundle: dict, connection_file: str | None = None) -> bytes | None:
     """The zip of a bundle: the entries in the given order, with the given paths, fixed times and permissions, so the same package always gives the
-    same bytes. None when a source is missing or the result would be too big."""
+    same bytes. None when a source is missing or the result would be too big. A bundle with ``connection_file_to`` is only built with the text of the
+    connection file (it holds the token, made for one download and never stored); without it there is no zip."""
+    to = bundle.get("connection_file_to")
+    if to and connection_file is None:
+        return None
     out = io.BytesIO()
     total = 0
     with zipfile.ZipFile(out, "w") as zf:
@@ -81,6 +85,12 @@ def build_bundle(addon: dict, bundle: dict) -> bytes | None:
             info.external_attr = 0o644 << 16
             info.create_system = 3
             zf.writestr(info, data, compress_type=zipfile.ZIP_DEFLATED, compresslevel=6)
+        if to:
+            info = zipfile.ZipInfo(to, date_time=(2020, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o600 << 16
+            info.create_system = 3
+            zf.writestr(info, connection_file.encode("utf-8"), compress_type=zipfile.ZIP_DEFLATED, compresslevel=6)
     return out.getvalue()
 
 
@@ -109,7 +119,8 @@ def listing(addon: dict, offered: bool) -> list[dict]:
             }
         )
     for b in addon["m"].get("bundles", []):
-        info = bundle_info(addon, b) if offered else {}
+        with_token = bool(b.get("connection_file_to"))
+        info = bundle_info(addon, b) if offered and not with_token else {}
         rows.append(
             {
                 "name": b["name"],
@@ -118,8 +129,10 @@ def listing(addon: dict, offered: bool) -> list[dict]:
                 "size": info.get("size", 0),
                 "sha256": info.get("sha256", ""),
                 "kind": "bundle",
-                "entries": [f"{e['from']} -> {e['to']}" for e in b["entries"]],
-                "href": f"/plugins/{addon['addon_id']}/files/{b['name']}" if offered else "",
+                "entries": [f"{e['from']} -> {e['to']}" for e in b["entries"]]
+                + ([f"(connection file) -> {b['connection_file_to']}"] if with_token else []),
+                "with_token": with_token,  # handed out only by the set-up guide, with the token of that run
+                "href": f"/plugins/{addon['addon_id']}/files/{b['name']}" if offered and not with_token else "",
             }
         )
     return rows

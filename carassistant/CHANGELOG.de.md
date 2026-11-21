@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.1 Beta
+- Plugins: ein Bundle kann in Schritt 3 der Einrichtungsanleitung die Anbindungsdatei (mit dem Token) enthalten - ein ZIP zum Installieren, eines zum Entfernen, nichts mehr von Hand kopieren (nie gespeichert, nur Administratoren). Die Demo-Seite ist aufgeräumter.
+
 ## 0.5.0 Beta
 - **0.5.0 Beta:** die Beta-Phase beginnt - die öffentliche Testversion. Neu seit der Alpha: Einstellungen in drei Ebenen (Benutzer, Auto, System), Benachrichtigungen und Web-Apps je Auto, MCP-Zugriff für Claude (ein Schalter, ein Schlüssel), die Fahrten-Auswertung und die Kostenseite, das eigene Design und Icon eines Autos. Dokumentation und Screenshots aller Seiten sind mit dieser Version erneuert; bitte ausprobieren und melden, was dir auffällt (siehe CONTRIBUTING).
 

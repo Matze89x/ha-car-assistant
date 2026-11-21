@@ -233,7 +233,15 @@ def clean_bundles(raw, files: list[dict]) -> list[dict]:
             if src is None or dst is None or any(x["to"] == dst for x in entries):
                 raise AddonError("addon.err_files")
             entries.append({"from": src, "to": dst})
-        out.append({"name": name, "label": _text(item, "label", 80) or name, "note": _text(item, "note", 300), "entries": entries})
+        extra = {}
+        if (
+            isinstance(item, dict) and item.get("connection_file_to") is not None
+        ):  # the connection file (with the token) goes into the zip at this path
+            to = _safe_path(item.get("connection_file_to"))
+            if to is None or any(x["to"] == to for x in entries):
+                raise AddonError("addon.err_files")
+            extra["connection_file_to"] = to
+        out.append({"name": name, "label": _text(item, "label", 80) or name, "note": _text(item, "note", 300), "entries": entries, **extra})
     return out
 
 

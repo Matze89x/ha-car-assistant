@@ -1,7 +1,7 @@
 ---
 # https://developers.home-assistant.io/docs/apps/configuration
 name: Car Assistant
-version: "0.5.0"
+version: "0.5.1"
 slug: carassistant
 description: Beta · Drive · Log · Go – vehicle logbook for Home Assistant – fuel, service, parts, documents, appointments, trips, km counters. One or many cars.
 url: https://github.com/Matze89x/ha-car-assistant

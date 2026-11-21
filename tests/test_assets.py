@@ -255,3 +255,39 @@ def test_the_tools_build_the_index_with_the_files_and_the_checker_finds_a_mismat
     assert "does not match the file" in errors and "not in plugins/index.json" not in errors.replace("does not match", "")
     (folder / "plugin.json").write_text(json.dumps({**built, "docs": "See {file:nothing.zip}"}))
     assert any("nothing.zip" in e for e in check(folder)[0])
+
+
+def test_a_bundle_with_the_connection_file_is_made_only_in_the_guide_with_the_token(client, monkeypatch):
+    from carassistant import addons_web
+
+    manifest = _manifest(connection_file={"name": "my.cfg", "template": "token={token}\n"})
+    for b in manifest["bundles"]:
+        b["connection_file_to"] = "mod/carassistant/my.cfg"
+    manifest["bundles"].append(
+        {
+            "name": "remove.zip",
+            "label": "Remove",
+            "entries": [{"from": "scripts/custom.sh", "to": "mod/custom.sh"}],
+            "connection_file_to": "mod/my.cfg",
+        }
+    )
+    manifest["setup"] = {"steps": [{"id": "files", "bundles": ["install.zip", "remove.zip"]}]}
+    vid, item = _install(client, monkeypatch, manifest)
+    assert item is not None
+    client.post(f"/v/{vid}/integrations/{item['id']}/service/approve")
+    assert client.get("/plugins/files-pkg/files/install.zip").status_code == 404  # never a plain download: it would be without the token
+    assert client.get("/plugins/files-pkg/files/remove.zip").status_code == 404
+    wrong = client.post(f"/v/{vid}/integrations/{item['id']}/guide/bundle", data={"name": "install.zip", "token": "ca_nope"})
+    assert wrong.status_code in (400, 429) and wrong.content[:2] != b"PK"
+    monkeypatch.setattr(addons_web, "_guide_token_ok", lambda *a: "")
+    for name, path in (("install.zip", "mod/carassistant/my.cfg"), ("remove.zip", "mod/my.cfg")):
+        r = client.post(f"/v/{vid}/integrations/{item['id']}/guide/bundle", data={"name": name, "token": "ca_secret"})
+        assert r.status_code == 200 and r.headers["cache-control"] == "no-store"
+        with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+            assert z.read(path).decode() == "token=ca_secret\n"
+    other = client.post(
+        f"/v/{vid}/integrations/{item['id']}/guide/bundle", data={"name": "nothing.zip", "token": "x"}, follow_redirects=False
+    )
+    assert other.headers.get("content-type") != "application/zip"
+    with pytest.raises(addons.AddonError):  # the connection file may not overwrite an entry
+        addons.clean_bundles([{"name": "a.zip", "entries": [{"from": "x.sh", "to": "m/x"}], "connection_file_to": "m/x"}], [])

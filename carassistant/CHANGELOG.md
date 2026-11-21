@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.1 Beta
+- Plugins: a bundle can carry the connection file (with the token) in step 3 of the set-up guide - one ZIP to install, one to remove, nothing to copy by hand (never stored, administrators only). The demo page is tidier.
+
 ## 0.5.0 Beta
 - **0.5.0 Beta:** the Beta phase starts - the public test version. New since the Alpha: settings in three levels (User, Car, System), notifications and web apps per car, MCP access for Claude (one switch, one key), the trip analysis and the cost page, the own design and icon of a car. Documentation and screenshots of all pages are renewed with this version; please try it and report what you find (see CONTRIBUTING).
 

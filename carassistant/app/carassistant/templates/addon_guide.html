@@ -88,7 +88,23 @@
   {% endif %}
   {% if bundle_rows %}
     {% if not pkg_offered %}<p class="flash err">{{ _('fil.not_approved') }} <a href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service">{{ _('svc.review') }}</a></p>{% endif %}
-    {{ file_rows(bundle_rows) }}
+    {% for row in bundle_rows %}
+    {% if row.with_token %}
+    <div class="guide-fileline">
+      <span class="mi-ic c4">{{ icon('download', 19) }}</span>
+      <span class="gf-t"><b>{{ row.label }}</b><small>{{ row.note or row.name }}</small></span>
+      {% if token and pkg_offered %}<form method="post" action="{{ base_url }}/guide/bundle" class="inline"><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="name" value="{{ row.name }}"><button>{{ icon('download', 18) }}<span>{{ row.name }}</span></button></form>{% endif %}
+    </div>
+    {% if not token and pkg_offered %}
+    <form method="post" action="{{ base_url }}/guide/bundle" class="guide-again">
+      <input type="hidden" name="name" value="{{ row.name }}">
+      <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
+      <button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button>
+    </form>
+    {% endif %}
+    {% else %}{{ file_rows([row]) }}{% endif %}
+    {% endfor %}
+    {% if bundle_rows|selectattr('with_token')|list %}<p class="hint">{{ icon('alert', 14) }} {{ _('guide.bundle_token_hint') }}</p>{% endif %}
   {% endif %}
   {% if texts.files %}<h3 class="guide-h3">{{ _('guide.howto') }}</h3><div class="guide-text">{{ texts.files|safe }}</div>{% endif %}
   <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step=2">{{ _('btn.back') }}</a><a class="button primary" href="{{ base }}{{ back_to }}">{{ _('guide.finish') }}</a></div>
