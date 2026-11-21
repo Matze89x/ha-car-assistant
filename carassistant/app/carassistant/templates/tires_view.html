@@ -17,8 +17,8 @@
   <div class="tp-label" role="table" aria-label="{{ _('tp.title') }}">
     <div class="tpl-head" role="row"><span class="tpl-size mono">{{ size or '' }}</span><span class="tpl-car">{{ icon('car-side', 38) }}<b>{{ tp.unit }}</b></span></div>
     <div class="tpl-cols" role="row"><span></span><i>{{ _('tp.axle_front') }}</i><i>{{ _('tp.axle_rear') }}</i></div>
-    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 22) }}{{ icon('briefcase', 16) }}<em>{{ _('tp.normal') }}</em></span><b class="mono">{{ ('%.1f'|format(tp.front)) if tp.front else '–' }}</b><b class="mono">{{ ('%.1f'|format(tp.rear)) if tp.rear else '–' }}</b></div>
-    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 22) }}{{ icon('account-group', 22) }}{{ icon('bag-suitcase', 16) }}<em>{{ _('tp.full') }}</em></span><b class="mono">{{ ('%.1f'|format(tp.load_front)) if tp.load_front else '–' }}</b><b class="mono">{{ ('%.1f'|format(tp.load_rear)) if tp.load_rear else '–' }}</b></div>
+    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 22) }}{{ icon('briefcase', 16) }}<em>{{ _('tp.normal') }}</em></span><b class="mono">{{ (tp.front|float|round(1)) if tp.front else '–' }}</b><b class="mono">{{ (tp.rear|float|round(1)) if tp.rear else '–' }}</b></div>
+    <div class="tpl-row" role="row"><span class="tpl-who">{{ icon('account-multiple', 22) }}{{ icon('account-group', 22) }}{{ icon('bag-suitcase', 16) }}<em>{{ _('tp.full') }}</em></span><b class="mono">{{ (tp.load_front|float|round(1)) if tp.load_front else '–' }}</b><b class="mono">{{ (tp.load_rear|float|round(1)) if tp.load_rear else '–' }}</b></div>
   </div>
   {% endif %}
 </div>

@@ -2587,7 +2587,7 @@ html.is-app .page-head:not(:has(.ph-s:not([data-car]))) { min-height: var(--head
 /* Tyre pressure label of a set: size and car on top, then "normal load" and "fully loaded" with front / rear values (like the label in the car) */
 .tp-label { margin-top: 12px; border: 1px solid var(--glass-b); border-radius: var(--r-m); background: rgba(var(--fg-rgb), .04); overflow: hidden; }
 .tpl-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--glass-b); }
-.tpl-size { font-size: 22px; font-weight: 700; color: var(--ok); letter-spacing: .02em; }
+.tpl-size { font-size: 24px; font-weight: 700; color: var(--ok); letter-spacing: .02em; }
 .tpl-car { display: inline-flex; align-items: center; gap: 8px; color: var(--strong); }
 .tpl-car b { font-size: 16px; font-weight: 700; }
 .tpl-cols, .tpl-row { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 8px; padding: 10px 14px; }
