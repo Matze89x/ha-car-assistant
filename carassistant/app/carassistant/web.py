@@ -2113,7 +2113,7 @@ def station_context(request: Request, vehicle: sqlite3.Row) -> dict:
     searched = bool(q.get("go"))
     electric = vehicle["fuel_type"] == "electric"
     fuel = "diesel" if vehicle["fuel_type"] == "diesel" else "e5"  # what the car needs: no question about it
-    sort = "price"
+    sort = q.get("sort") if q.get("sort") in ("price", "distance") else "price"  # the one choice left: price or distance first
     radius = 15.0  # kilometres, fixed
     radius_km = radius
     country = ha.country() if ha.available() else ""

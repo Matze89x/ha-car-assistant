@@ -23,6 +23,7 @@
   <button type="button" class="icon-btn" data-toggle-panel="#fuel-export" aria-label="{{ _('fx.export') }}">{{ icon('download', 18) }}</button>
   <button type="button" class="button primary" data-toggle-panel="#fuel-add" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>
 {% endcall %}
+{% if stn %}<p class="hint">{{ _('stations.intro') }}{% if not stn.has_key %} {{ _('stations.no_key_hint') }}{% endif %}</p>{% endif %}
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
 
 {% for it in refuel_todo %}
@@ -66,7 +67,6 @@
 {% endif %}
 
 <section class="tp-sec" id="fuel">
-  <div class="vd-group-h eq-head">{{ _('fuel.title') }} <span class="eq-total" id="eq-count">{{ total_rows }}</span></div>
   <div class="eq-panel tp-add" id="fuel-add" {{ 'hidden' if not (form and not edit_id) }}>{{ fuelform(none, fu) }}</div>
   <div class="eq-panel tp-add" id="fuel-export" hidden>
     <form method="get" class="eq-edit tp-form fx-form">

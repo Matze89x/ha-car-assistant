@@ -5,34 +5,43 @@
     <span class="mi-ic c6">{{ icon('gas-station', 20) }}</span>
     <div class="stn-ht"><h2>{{ _('stn.title') }}</h2><small>{{ s.fuel|upper }} · 15 {{ units.dist_unit }}</small></div>
   </div>
+  {% set keep = ('&lat=' ~ request.query_params.get('lat', '') ~ '&lon=' ~ request.query_params.get('lon', '')) if s.where == 'me' else '' %}
   <form method="get" action="{{ vurl }}" id="stform" data-no-car="{{ _('stations.no_car_pos') }}" data-denied="{{ _('stations.geo_denied') }}">
     <input type="hidden" name="go" value="1">
+    <input type="hidden" name="sort" value="{{ s.sort }}">
     <input type="hidden" name="lat" id="st-lat" value="{{ request.query_params.get('lat', '') }}">
     <input type="hidden" name="lon" id="st-lon" value="{{ request.query_params.get('lon', '') }}">
     <nav class="seg-tabs" aria-label="{{ _('stn.where') }}">
-      <a href="{{ vurl }}?go=1#stations" id="st-car" class="{{ 'on' if s.where == 'car' }}{{ '' if s.car_pos else ' off' }}">{{ icon('car', 18) }}<span>{{ v.name }}</span></a>
+      <a href="{{ vurl }}?go=1&amp;sort={{ s.sort }}#stations" id="st-car" class="{{ 'on' if s.where == 'car' }}{{ '' if s.car_pos else ' off' }}">{{ icon('car', 18) }}<span>{{ v.name }}</span></a>
       <a href="#stations" id="st-me" class="{{ 'on' if s.where == 'me' }}">{{ icon('pin', 18) }}<span>{{ _('stn.me') }}</span></a>
     </nav>
   </form>
+  {% if s.searched %}<nav class="seg-tabs" aria-label="{{ _('stations.sort') }}">
+    <a href="{{ vurl }}?go=1&amp;sort=price{{ keep|e }}#stations" class="{{ 'on' if s.sort == 'price' }}">{{ icon('gas-station', 18) }}<span>{{ _('stations.sort_price') }}</span></a>
+    <a href="{{ vurl }}?go=1&amp;sort=distance{{ keep|e }}#stations" class="{{ 'on' if s.sort == 'distance' }}">{{ icon('map-marker-radius', 18) }}<span>{{ _('stations.sort_distance') }}</span></a>
+  </nav>{% endif %}
   {% if not s.car_pos %}<p class="hint">{{ _('stations.no_car_pos') }}</p>{% endif %}
   <div class="flash err" id="st-msg" hidden></div>
   {% if s.error %}<div class="flash err">{{ _(s.error) }}</div>{% endif %}
   {% if s.searched and not s.error %}
     {% if s.results %}
-    {% set prices = s.results|selectattr('price')|map(attribute='price')|list %}
-    <div class="stn-list">
-      {% for r in s.results %}
-      <a class="stn{{ ' best' if s.info.prices and r.price and prices and r.price == prices|min }}" href="https://www.openstreetmap.org/?mlat={{ r.lat }}&amp;mlon={{ r.lon }}#map=17/{{ r.lat }}/{{ r.lon }}" target="_blank" rel="noopener noreferrer">
-        <span class="stn-t"><b>{{ r.name }}</b></span>
+    {% set prices = s.results|rejectattr('is_open', 'equalto', false)|selectattr('price')|map(attribute='price')|list %}
+    {% macro row(r) %}
+      {% set ps = fnum(r.price, 3) if r.price else '' %}
+      {% set cheapest = s.info.prices and r.price and prices and r.price == prices|min and r.is_open != false %}
+      <a class="stn{{ ' best' if cheapest }}{{ ' closed' if r.is_open == false }}" href="https://www.openstreetmap.org/?mlat={{ r.lat }}&amp;mlon={{ r.lon }}#map=17/{{ r.lat }}/{{ r.lon }}" target="_blank" rel="noopener noreferrer">
+        {% if s.info.prices %}<span class="stn-p">{% if ps %}<b>{{ ps[:-1] }}<sup>{{ ps[-1] }}</sup></b>{% else %}<b>–</b>{% endif %}<small>{{ units.cur }}</small></span>{% endif %}
+        <span class="stn-t"><b>{{ r.name }}</b>{% if r.address %}<small>{{ r.address }}</small>{% endif %}{% if s.info.prices and r.is_open is not none %}<span class="stn-open {{ 'ok' if r.is_open else 'bad' }}"><u></u>{{ _('stations.open') if r.is_open else _('stations.closed') }}</span>{% endif %}</span>
         <span class="stn-d">{{ fnum(units.d(r.distance_km), 1) }} {{ units.dist_unit }}</span>
-        {% if s.info.prices %}<span class="stn-p"><b>{{ fnum(r.price, 3) if r.price else '–' }}</b><small>{{ units.cur }}</small></span>{% endif %}
       </a>
-      {% endfor %}
+    {% endmacro %}
+    <div class="stn-list">
+      {% for r in s.results[:10] %}{{ row(r) }}{% endfor %}
+      {% if s.results|length > 10 %}<details class="stn-more"><summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('stn.more', n=s.results|length - 10) }}</span></summary>
+        <div class="stn-list">{% for r in s.results[10:] %}{{ row(r) }}{% endfor %}</div></details>{% endif %}
     </div>
     {% else %}<p class="muted">{{ _('stations.none') }}</p>{% endif %}
     <p class="hint">{{ _('stations.attr_tk') if s.source == 'tankerkoenig' else (s.info.attribution or _('stations.attr_osm')) }}</p>
-  {% elif not s.searched %}
-    <p class="hint">{{ _('stations.intro') }}{% if not s.has_key %} {{ _('stations.no_key_hint') }}{% endif %}</p>
   {% endif %}
 </section>
 {% endwith %}

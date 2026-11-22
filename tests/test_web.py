@@ -1294,3 +1294,22 @@ def test_one_tyre_set_per_season(client):
     with db.tx() as conn:
         assert conn.execute("SELECT COUNT(*) FROM tires WHERE vehicle_id = ? AND season = 'summer'", (vid,)).fetchone()[0] == 1
     assert "te-more" not in client.get(f"/v/{vid}/e/tires?edit=1&ps=summer").text  # no "add another set"
+
+
+def test_the_station_list_shows_ten_then_more_and_marks_the_closed(client, monkeypatch):
+    from carassistant import stations
+
+    vid = create_vehicle(client, "Pump Car")
+    from carassistant import db
+
+    with db.tx() as conn:
+        conn.execute("INSERT INTO live(vehicle_id, key, value, updated) VALUES(?, 'position', '52.5,13.4', datetime('now'))", (vid,))
+    found = [
+        stations.Station(f"Station {n}", "", "Main St. 1, 12345 Town", 52.5, 13.4, 1.0 + n, 1.800 + n / 1000, n != 0) for n in range(12)
+    ]
+    monkeypatch.setattr(stations, "nearby", lambda *a, **k: (found, "tankerkoenig"))
+    page = client.get(f"/v/{slug(vid)}/e/fuel?go=1&sort=price").text
+    assert page.count('<a class="stn') == 12 and 'class="stn-more"' in page and "2 more" in page  # ten, then the rest behind one click
+    assert "stn closed" in page and "sort=distance" in page  # the closed one is dimmed; the switch between price and distance
+    first_best = page.index("stn best")
+    assert "Station 1" in page[first_best : first_best + 600]  # the cheapest OPEN station is the green one, not the closed one
