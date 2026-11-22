@@ -53,6 +53,11 @@
   <form method="post" action="{{ base }}/settings/sources-auto" data-live="1">
     {{ switch_row('auto', _('sys.updates_auto'), sources_auto) }}
   </form>
+  <form method="post" action="{{ base }}/settings/app-update" data-live="1">
+    {{ switch_row('check', _('upd.check_app'), app_update.enabled, hint=_('upd.check_app_hint')) }}
+  </form>
+  <p class="hint upd-line">{% if app_update.latest %}{{ _('upd.latest', v=app_update.latest) }}{% if app_update.newer %} · <b class="upd-new">{{ _('upd.newer') }}</b>{% else %} · {{ _('upd.current') }}{% endif %}{% if app_update.checked %} · {{ _('upd.checked', when=fdate(app_update.checked) ~ ' ' ~ ftime(app_update.checked[11:16])) }}{% endif %}{% else %}{{ _('upd.never') }}{% endif %}{% if app_update.plugins %} · {{ _('upd.plugins') }}: {{ _('upd.n', n=app_update.plugins) }}{% endif %}</p>
+  <form method="post" action="{{ base }}/settings/app-update" class="mqtt-bar"><button class="ghost-btn" name="now" value="1">{{ icon('refresh', 18) }}<span>{{ _('upd.now') }}</span></button></form>
 </section>
 
 <section class="card" id="logs">

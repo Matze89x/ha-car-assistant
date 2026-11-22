@@ -45,5 +45,5 @@
 {% elif not searched and not electric %}
   <p class="hint">{{ _('stations.intro') }}{% if not has_key %} {{ _('stations.no_key_hint') }}{% endif %}</p>
 {% endif %}
-{% block scripts %}<script src="{{ base }}/static/stations.js?v={{ version }}" defer></script>{% endblock %}
+{% block scripts %}<script src="{{ base }}/static/stations.js?v={{ asset_v }}" defer></script>{% endblock %}
 {% endblock %}

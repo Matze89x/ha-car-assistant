@@ -21,7 +21,7 @@
         <button type="button" id="push-on" class="primary small" {{ 'disabled' if not ext_set }}>{{ icon('bell', 16) }}<span>{{ _('push.enable') }}</span></button>
       </div>
     </div>
-    <script src="{{ base }}/static/push.js?v={{ version }}" defer></script>
+    <script src="{{ base }}/static/push.js?v={{ asset_v }}" defer></script>
     {% else %}
     <form method="post" action="{{ base }}/settings/notifications" class="grid" data-live="1">
       <label class="wide">{{ _('notify.user_service') }}<input type="text" name="service" value="{{ notify_prefs.service }}" maxlength="90" placeholder="mobile_app_my_phone" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
@@ -58,7 +58,7 @@
     <h3 class="acct-sub">{{ _('notify.general_title') }}</h3>
     {% for key in notify_general %}{{ switch_row('gen', GEN[key], key in notify_matrix.general, key) }}{% endfor %}
   </form>
-  <script src="{{ base }}/static/notify_matrix.js?v={{ version }}" defer></script>
+  <script src="{{ base }}/static/notify_matrix.js?v={{ asset_v }}" defer></script>
   </div>
   {% endif %}
   {% endif %}

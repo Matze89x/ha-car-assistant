@@ -7,11 +7,11 @@
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0d1016">
   <title>{{ _('unlock.title') }} – Car Assistant</title>
-  {% if not logo_custom %}<link rel="icon" type="image/svg+xml" href="{{ base }}/static/favicon.svg?v={{ version }}">
+  {% if not logo_custom %}<link rel="icon" type="image/svg+xml" href="{{ base }}/static/favicon.svg?v={{ asset_v }}">
   {% endif %}<link rel="icon" href="{{ base }}/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="{{ icon_base }}/180.png">
   <style>:root{color-scheme:dark}html,body{background:#0d1016;color:#e8eaf0}</style>
-  <link rel="stylesheet" href="{{ base }}/static/app.css?v={{ version }}">
+  <link rel="stylesheet" href="{{ base }}/static/app.css?v={{ asset_v }}">
 </head>
 <body class="login-body">
   <div class="login-card card">

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, page_head, steps, form_bar, step_nav with context %}
-{% block scripts %}<script src="{{ base }}/static/media.js?v={{ version }}" defer></script>{% if google_help %}<script src="{{ base }}/static/lookup.js?v={{ version }}" defer></script>{% endif %}{% endblock %}
+{% block scripts %}<script src="{{ base }}/static/media.js?v={{ asset_v }}" defer></script>{% if google_help %}<script src="{{ base }}/static/lookup.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 {% set fuel_icon = {'petrol': 'gas-station', 'diesel': 'oil', 'lpg': 'water-percent', 'cng': 'fuel', 'hybrid': 'sync', 'electric': 'lightning-bolt'} %}
 {% macro fgroup(ic, chip, title, hint='', open=False, key='') %}
@@ -17,7 +17,7 @@
 
 {% if not editing %}
 <section class="vf-hero">
-  <img src="{{ base }}/static/car-default.webp?v={{ version }}" alt="">
+  <img src="{{ base }}/static/car-default.webp?v={{ asset_v }}" alt="">
   <div><h2>{{ _('vf.hero_title') }}</h2><p>{{ _('vf.hero_text') }}</p></div>
 </section>
 {% if demo_offered %}<form method="post" action="{{ base }}/vehicles/demo" class="card vf-demo">

@@ -8,7 +8,7 @@
   {% if theme_scheme == 'auto' %}<meta name="theme-color" media="(prefers-color-scheme: light)" content="#eef0f4">
   {% endif %}<meta name="theme-color" content="{{ theme_bg }}">
   <title>{% block title %}Car Assistant{% endblock %}</title>
-  {% if not logo_custom %}<link rel="icon" type="image/svg+xml" href="{{ base }}/static/favicon.svg?v={{ version }}">
+  {% if not logo_custom %}<link rel="icon" type="image/svg+xml" href="{{ base }}/static/favicon.svg?v={{ asset_v }}">
   {% endif %}<link rel="icon" href="{{ base }}/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="48x48" href="{{ icon_base }}/48.png?v={{ icon_rev }}">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ icon_base }}/180.png?v={{ icon_rev }}">
@@ -20,28 +20,32 @@
   <style>:root{color-scheme:{{ 'light dark' if theme_scheme == 'auto' else theme_scheme }}}html,body{background:{{ theme_bg }};color:{{ '#151922' if theme_scheme == 'light' else '#e8eaf0' }}}{% if theme_scheme == 'auto' %}@media (prefers-color-scheme: light){html,body{background:#eef0f4;color:#151922}}{% endif %}</style>
   <link rel="preload" href="{{ base }}/static/fonts/space-grotesk-variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="{{ base }}/static/fonts/space-mono-regular.woff2" as="font" type="font/woff2" crossorigin>
-  <script src="{{ base }}/static/embed.js?v={{ version }}"></script>
-  <script src="{{ base }}/static/softnav.js?v={{ version }}" defer></script>
-  <link rel="stylesheet" href="{{ base }}/static/app.css?v={{ version }}">
-  <link rel="stylesheet" href="{{ base }}/static/pc-core.css?v={{ version }}">
-  {% if theme_attr == 'auto' %}<link rel="stylesheet" href="{{ base }}/static/themes/light.css?v={{ version }}" media="(prefers-color-scheme: light)">
-  {% elif theme_file %}<link rel="stylesheet" href="{{ base }}/static/themes/{{ theme_file }}.css?v={{ version }}">{% endif %}
+  <script src="{{ base }}/static/embed.js?v={{ asset_v }}"></script>
+  <script src="{{ base }}/static/softnav.js?v={{ asset_v }}" defer></script>
+  <link rel="stylesheet" href="{{ base }}/static/app.css?v={{ asset_v }}">
+  <link rel="stylesheet" href="{{ base }}/static/pc-core.css?v={{ asset_v }}">
+  {% if theme_attr == 'auto' %}<link rel="stylesheet" href="{{ base }}/static/themes/light.css?v={{ asset_v }}" media="(prefers-color-scheme: light)">
+  {% elif theme_file %}<link rel="stylesheet" href="{{ base }}/static/themes/{{ theme_file }}.css?v={{ asset_v }}">{% endif %}
   <style id="accent-custom">{{ accent_css|safe }}</style>
-  <script src="{{ base }}/static/app.js?v={{ version }}" defer></script>
-  {% if live_poll %}<script src="{{ base }}/static/livepoll.js?v={{ version }}" defer></script>{% endif %}
+  <script src="{{ base }}/static/app.js?v={{ asset_v }}" defer></script>
+  {% if live_poll %}<script src="{{ base }}/static/livepoll.js?v={{ asset_v }}" defer></script>{% endif %}
   {% block head %}{% endblock %}
 </head>
 <body{% if haptics and not hide_nav %} data-haptics="1"{% endif %}{% if live_poll %} data-live-poll="{{ base }}{{ live_poll }}"{% endif %}>
 <div class="shell{{ ' setup' if hide_nav }}">
   {% if not hide_nav %}<aside class="side">
-    <a class="sb-brand" href="{{ base }}/" title="{{ _('nav.home') }}" aria-label="{{ _('nav.home') }}"><i class="brand-mark"><img src="{{ base }}/static/logo-car.svg?v={{ version }}" alt="" width="54" height="54"></i><span><b>Car Assistant</b><small class="sb-slogan">Drive · Log · Go</small></span></a>
+    <a class="sb-brand" href="{{ base }}/" title="{{ _('nav.home') }}" aria-label="{{ _('nav.home') }}"><i class="brand-mark"><img src="{{ base }}/static/logo-car.svg?v={{ asset_v }}" alt="" width="54" height="54"></i><span><b>Car Assistant</b><small class="sb-slogan">Drive · Log · Go</small></span></a>
     {% set cur = namespace(i=0) %}
     {% for it in nav_items %}{% if it.on %}{% set cur.i = loop.index0 %}{% endif %}{% endfor %}
     <nav class="tabbar n{{ nav_items|length }} i{{ cur.i }}" id="tabbar" data-i="{{ cur.i }}" aria-label="Main">
       <span class="tab-ind" aria-hidden="true"></span>
       {% for it in nav_items %}<a href="{{ base }}{{ it.href }}" class="tab {{ 'on' if it.on }}" data-alert="{{ 1 if it.alert else 0 }}" aria-label="{{ (it.text or _(it.label)) }}{{ ' – ' ~ _('nav.alert') if it.alert }}" title="{{ (it.text or _(it.label)) }}{{ ' – ' ~ _('nav.alert') if it.alert }}">{{ icon(it.icon, 27) }}<span class="tl">{{ (it.text or _(it.label)) }}</span></a>{% endfor %}
     </nav>
-    <div class="sb-foot"><span class="dot"></span><span class="sb-ver">v{{ version }}</span></div>
+    {% if update_pending.app or update_pending.plugins %}<div class="sb-upd">
+      {% if update_pending.app %}<a href="{{ base }}/settings/system#updates"><span class="u-k">{{ _('upd.system') }}</span><b>v{{ update_pending.app }}</b></a>{% endif %}
+      {% if update_pending.plugins %}<a href="{{ base }}{{ ('/v/' ~ v.slug ~ '/plugins') if v else '/settings/system#updates' }}"><span class="u-k">{{ _('upd.plugins') }}</span><b>{{ _('upd.n', n=update_pending.plugins) }}</b></a>{% endif %}
+    </div>{% endif %}
+    <div class="sb-foot" {% if update_pending.app or update_pending.plugins %}title="{{ _('upd.available') }}"{% endif %}><span class="dot {{ 'warn' if update_pending.app or update_pending.plugins }}"></span><span class="sb-ver">v{{ version }}</span></div>
   </aside>{% endif %}
   <div class="content">
     {% if switch_vehicles %}

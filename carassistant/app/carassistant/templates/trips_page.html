@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, page_head with context %}
 {% block head %}{% if map_tiles %}<link rel="stylesheet" href="{{ base }}/static/vendor/leaflet/leaflet.min.css?v=1.9.4">{% endif %}{% endblock %}
-{% block scripts %}{% if map_tiles %}<script src="{{ base }}/static/vendor/leaflet/leaflet.min.js?v=1.9.4" defer></script>{% endif %}<script src="{{ base }}/static/trips.js?v={{ version }}" defer></script>{% endblock %}
+{% block scripts %}{% if map_tiles %}<script src="{{ base }}/static/vendor/leaflet/leaflet.min.js?v=1.9.4" defer></script>{% endif %}<script src="{{ base }}/static/trips.js?v={{ asset_v }}" defer></script>{% endblock %}
 {% block content %}
 {% set tu = base ~ '/v/' ~ v.id ~ '/e/trips' %}
 {% set cu = base ~ '/v/' ~ v.id ~ '/e/counters' %}

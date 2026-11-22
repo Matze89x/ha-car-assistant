@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import hashlib
 import logging
 import re
 import sqlite3
@@ -23,6 +24,7 @@ from . import (
     access,
     accounts,
     appicon,
+    appupdate,
     backup,
     calendar_ics,
     charts,
@@ -92,9 +94,31 @@ MAX_DOC = 25 * 1024 * 1024
 DOC_CATEGORIES = ("manual", "invoice", "insurance", "registration", "inspection", "other")
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, title="Car Assistant", version=__version__)
-app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
+
+
+class _FreshStatic(StaticFiles):
+    """Our own CSS / scripts / images: the browser asks again every time (a cheap "not modified" when nothing changed), so a new build never shows old styles."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+def _asset_version() -> str:
+    """The version plus a short fingerprint of the files in ``static``: every build changes the address of its CSS and scripts (also developer builds, which keep the version number)."""
+    stamp = hashlib.sha1(usedforsecurity=False)
+    for f in sorted((HERE / "static").iterdir()):
+        if f.is_file():
+            info = f.stat()
+            stamp.update(f"{f.name}{info.st_size}{int(info.st_mtime)}".encode())
+    return f"{__version__}-{stamp.hexdigest()[:6]}"
+
+
+app.mount("/static", _FreshStatic(directory=HERE / "static"), name="static")
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)  # pages and styles shrink to about a fifth
 templates = Jinja2Templates(directory=HERE / "templates")
+templates.env.globals["asset_v"] = _asset_version()
 
 
 # ------------------------------------------------------------------ middleware
@@ -447,6 +471,7 @@ def render(request: Request, name: str, status: int = 200, **ctx):
         fdate=fdate,
         fshort=fshort,
         ftime=regional.ftime,
+        update_pending=appupdate.pending(),
         field_value=regional.field_value,
         date_placeholder=regional.placeholder,
         fnum=fnum,
@@ -2201,6 +2226,7 @@ def _settings_section(request: Request, section: str):
         has_users = accounts.has_users(conn)
         design_ctx = _design_context(conn)
         sources_auto = db.get_setting(conn, "sources.auto", "") == "1"
+        app_update = appupdate.status(conn)
         log_keep = connectors.log_keep(conn)
         log_days = connectors.log_days(conn)
         log_total = conn.execute("SELECT COUNT(*) FROM vehicle_logs").fetchone()[0]
@@ -2271,6 +2297,7 @@ def _settings_section(request: Request, section: str):
         notify_matrix=notify_matrix,
         start_car=start_car,
         sources_auto=sources_auto,
+        app_update=app_update,
         log_keep=log_keep,
         log_days=log_days,
         log_days_choices=connectors.LOG_DAYS_CHOICES,
@@ -2457,6 +2484,22 @@ async def settings_sources_auto(request: Request):
     form = await form_dict(request)
     with db.tx() as conn:
         db.set_setting(conn, "sources.auto", "1" if form.get("auto") else None)
+    if form.get("ajax"):
+        return Response(status_code=204)
+    return go(request, "/settings/system#updates", "saved")
+
+
+@app.post("/settings/app-update")
+async def settings_app_update(request: Request):
+    """Opt-in: look once a day (or now) at the public release file for a newer Car Assistant."""
+    form = await form_dict(request)
+    with db.tx() as conn:
+        if "now" in form:
+            ok = appupdate.check(conn)
+            appupdate.forget()
+            return go(request, "/settings/system#updates", "saved" if ok else "err.update_check")
+        db.set_setting(conn, appupdate.SETTING, "1" if form.get("check") else None)
+    appupdate.forget()
     if form.get("ajax"):
         return Response(status_code=204)
     return go(request, "/settings/system#updates", "saved")

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, page_head with context %}
-{% block scripts %}{% if section == 'car' %}<script src="{{ base }}/static/media.js?v={{ version }}" defer></script>{% endif %}{% endblock %}
+{% block scripts %}{% if section == 'car' %}<script src="{{ base }}/static/media.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 {% set titles = {'user': _('set.user'), 'car': _('set.car'), 'system': _('set.system')} %}
 {% set icons_of = {'user': 'account', 'car': 'car', 'system': 'settings'} %}

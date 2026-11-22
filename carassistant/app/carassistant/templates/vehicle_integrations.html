@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, page_head with context %}
-{% block scripts %}<script src="{{ base }}/static/media.js?v={{ version }}" defer></script>{% endblock %}
+{% block scripts %}<script src="{{ base }}/static/media.js?v={{ asset_v }}" defer></script>{% endblock %}
 {% block content %}
 {% call page_head('puzzle', _('addon.integrations')) %}
   {% if itab == 'navigation' %}<form method="post" action="{{ base }}/sources/refresh"><input type="hidden" name="kind" value="integration"><input type="hidden" name="vid" value="{{ v.id }}"><input type="hidden" name="back" value="manage"><button class="button" aria-label="{{ _('pk.check') }}">{{ icon('refresh', 18) }}<span class="lbl">{{ _('pk.check') }}</span></button></form>

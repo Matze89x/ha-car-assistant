@@ -6,7 +6,7 @@ import logging
 import threading
 import time
 
-from . import config, db, events, live, notify, simulator
+from . import appupdate, config, db, events, live, notify, simulator
 from .mqtt_ha import publisher
 
 log = logging.getLogger(__name__)
@@ -62,6 +62,11 @@ def run_once(state: dict[str, float], now: float) -> None:
                 changed = True
             except Exception:
                 log.exception("Reading the sources failed")
+        if appupdate.due(conn):
+            try:
+                appupdate.check(conn)
+            except Exception:
+                log.exception("Looking for a newer version failed")
         if now - state.setdefault("maintain", now) >= MAINTENANCE_SECONDS:
             state["maintain"] = now
             maintain(conn)

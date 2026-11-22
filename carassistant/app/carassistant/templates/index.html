@@ -17,7 +17,7 @@
   {% set v = s.vehicle %}
   <div class="vehicle-wrap">
   <a class="card vehicle-card" href="{{ base }}/v/{{ v.slug }}">
-    {% if v.photo %}<img class="vc-img" src="{{ base }}/v/{{ v.slug }}/photo?v={{ v.photo }}" alt="" loading="lazy">{% else %}<img class="vc-img default" src="{{ base }}/static/car-default.webp?v={{ version }}" alt="" loading="lazy">{% endif %}
+    {% if v.photo %}<img class="vc-img" src="{{ base }}/v/{{ v.slug }}/photo?v={{ v.photo }}" alt="" loading="lazy">{% else %}<img class="vc-img default" src="{{ base }}/static/car-default.webp?v={{ asset_v }}" alt="" loading="lazy">{% endif %}
     <h2>{{ v.name }}</h2>
     <p class="muted">{{ [v.make, v.model, v.year]|select|join(' · ') }}{% if v.plate %} · {{ v.plate }}{% endif %}</p>
     <p class="big">{% if s.odometer is not none %}{{ fnum(uof(v).d(s.odometer)) }} {{ uof(v).dist_unit }}{% else %}–{% endif %}</p>

@@ -7,18 +7,18 @@
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0d1016">
   <title>{{ _('login.title') }} – Car Assistant</title>
-  {% if not logo_custom %}<link rel="icon" type="image/svg+xml" href="{{ base }}/static/favicon.svg?v={{ version }}">
+  {% if not logo_custom %}<link rel="icon" type="image/svg+xml" href="{{ base }}/static/favicon.svg?v={{ asset_v }}">
   {% endif %}<link rel="icon" href="{{ base }}/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="48x48" href="{{ icon_base }}/48.png">
   <link rel="apple-touch-icon" href="{{ icon_base }}/180.png">
   <style>:root{color-scheme:dark}html,body{background:#0d1016;color:#e8eaf0}</style>
-  <link rel="stylesheet" href="{{ base }}/static/app.css?v={{ version }}">
+  <link rel="stylesheet" href="{{ base }}/static/app.css?v={{ asset_v }}">
   <script src="{{ base }}/static/auth.js" defer></script>
 </head>
 <body class="login-body">
   <div class="login-card card" data-base="{{ base }}">
     {% if logo_custom %}<img class="login-logo" src="{{ icon_base }}/128.png" alt="" width="72" height="72">
-    {% else %}<img class="login-logo big" src="{{ base }}/static/about-logo.svg?v={{ version }}" alt="" width="132" height="132">{% endif %}
+    {% else %}<img class="login-logo big" src="{{ base }}/static/about-logo.svg?v={{ asset_v }}" alt="" width="132" height="132">{% endif %}
     <div class="brand-lock"><h1>Car <span>Assistant</span></h1>
     <p class="login-slogan">Drive · Log · Go</p></div>
     <p class="login-sub">{{ _('login.sub') }}</p>

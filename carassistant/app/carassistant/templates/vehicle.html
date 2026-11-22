@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import badge, icon, WD_LABELS with context %}
 {% block head %}{% if place and map_tiles %}<link rel="stylesheet" href="{{ base }}/static/vendor/leaflet/leaflet.min.css?v=1.9.4">{% endif %}{% endblock %}
-{% block scripts %}<script src="{{ base }}/static/widgets.js?v={{ version }}" defer></script><script src="{{ base }}/static/media.js?v={{ version }}" defer></script>{% if place and map_tiles %}<script src="{{ base }}/static/vendor/leaflet/leaflet.min.js?v=1.9.4"></script><script src="{{ base }}/static/map.js?v={{ version }}"></script>{% endif %}{% endblock %}
+{% block scripts %}<script src="{{ base }}/static/widgets.js?v={{ asset_v }}" defer></script><script src="{{ base }}/static/media.js?v={{ asset_v }}" defer></script>{% if place and map_tiles %}<script src="{{ base }}/static/vendor/leaflet/leaflet.min.js?v=1.9.4"></script><script src="{{ base }}/static/map.js?v={{ asset_v }}"></script>{% endif %}{% endblock %}
 {% block content %}
 {% set tk = tabs|map(attribute='key')|list %}
 <div class="wgrid" id="wgrid" data-save="{{ base }}/v/{{ v.slug }}/widgets" data-edit="{{ _('wd.edit') }}" data-done="{{ _('wd.done') }}" data-labels="{{ WD_LABELS|tojson|forceescape }}">

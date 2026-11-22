@@ -117,4 +117,4 @@
 {% endif %}
 {% endif %}
 {% endblock %}
-{% block scripts %}{% if entity.key == 'tires' and tp_edit %}<script src="{{ base }}/static/tires.js?v={{ version }}" defer></script>{% endif %}{% if stn %}<script src="{{ base }}/static/stations.js?v={{ version }}" defer></script>{% endif %}{% endblock %}
+{% block scripts %}{% if entity.key == 'tires' and tp_edit %}<script src="{{ base }}/static/tires.js?v={{ asset_v }}" defer></script>{% endif %}{% if stn %}<script src="{{ base }}/static/stations.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
