@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.10 Beta
+- Fixed: the "Car data live" widget cut off labels and values when the car reported long or many values; the columns now follow the room and labels and values wrap, nothing is cut off.
+
 ## 0.5.9 Beta
 - The word "Assistant" in the name is shown in the main colour of the design (side bar, About, login); the slogan stays green.
 - Colour of your own: a brightness slider under the colour wheel; whatever colour is chosen stays visible (3 : 1) and readable as text (4.5 : 1) on its design - a pale colour is deepened on the light design, a dark one lightened on the dark design (hue kept).

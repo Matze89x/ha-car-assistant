@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.10 Beta
+- Behoben: das Widget „Fahrzeugdaten live“ schnitt Beschriftungen und Werte ab, wenn das Auto lange oder viele Werte meldete; die Spalten richten sich jetzt nach dem Platz, Beschriftungen und Werte brechen um, nichts wird abgeschnitten.
+
 ## 0.5.9 Beta
 - Das Wort „Assistant“ im Namen steht in der Hauptfarbe des Designs (Seitenleiste, Über, Anmeldung); der Slogan bleibt grün.
 - Eigene Farbe: ein Helligkeits-Regler unter dem Farbkreis; egal welche Farbe, sie bleibt sichtbar (3 : 1) und als Text lesbar (4,5 : 1) auf ihrem Design – eine helle Farbe wird auf dem hellen Design abgedunkelt, eine dunkle auf dem dunklen aufgehellt (Farbton bleibt).
