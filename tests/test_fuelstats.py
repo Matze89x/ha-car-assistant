@@ -110,10 +110,11 @@ def test_widget_sparkline_and_mini_bars():
 
     assert charts.spark_svg([1.0]) == "" and charts.spark_svg([]) == ""
     svg = charts.spark_svg([6.1, 5.8, 6.4, 5.9])
-    assert svg.startswith("<svg") and 'class="sp-line"' in svg and 'class="sp-dot"' in svg
+    assert svg.startswith("<svg") and 'class="sp-line"' in svg and 'class="sp-dot"' in svg and "<circle" not in svg
     assert charts.mini_bars_svg([("Mon", 0.0), ("Tue", 0.0)]) == ""
     bars = charts.mini_bars_svg([("Mon", 10.0), ("Tue", 0.0), ("Wed", 5.0)])
     assert bars.count("<rect") == 3 and bars.count('class="mb top"') == 1 and 'class="mb none"' in bars
+    assert "viewBox" not in bars and 'rx="3"' in bars  # laid out in percent: never stretched
 
 
 def test_expense_list_has_every_priced_entry_newest_first_and_filters_by_kind(conn, vehicle):

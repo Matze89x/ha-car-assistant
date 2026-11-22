@@ -136,31 +136,32 @@ def spark_svg(values: list[float], width: int = 160, height: int = 44) -> str:
         return ""
     lo, hi = min(vals), max(vals)
     span = (hi - lo) or 1.0
-    pad = 5.0
-    step = (width - 2 * pad) / (len(vals) - 1)
-    pts = [(pad + i * step, pad + (height - 2 * pad) * (1 - (v - lo) / span)) for i, v in enumerate(vals)]
+    pad = 5.0  # top and bottom; the line runs edge to edge (the dot may reach over the edge)
+    step = width / (len(vals) - 1)
+    pts = [(i * step, pad + (height - 2 * pad) * (1 - (v - lo) / span)) for i, v in enumerate(vals)]
     line = " ".join(f"{'M' if i == 0 else 'L'}{x:.1f},{y:.1f}" for i, (x, y) in enumerate(pts))
     area = f"{line} L{pts[-1][0]:.1f},{height} L{pts[0][0]:.1f},{height} Z"
     x, y = pts[-1]
     return (
         f'<svg class="spark" viewBox="0 0 {width} {height}" preserveAspectRatio="none" role="img" xmlns="http://www.w3.org/2000/svg">'
-        f'<path class="sp-area" d="{area}"/><path class="sp-line" d="{line}"/><circle class="sp-dot" cx="{x:.1f}" cy="{y:.1f}" r="3.2"/></svg>'
+        f'<path class="sp-area" d="{area}"/><path class="sp-line" d="{line}"/><path class="sp-dot" d="M{x:.1f},{y:.1f}h.01"/></svg>'
     )
 
 
 def mini_bars_svg(rows: list[tuple[str, float]], width: int = 160, height: int = 44) -> str:
-    """Tiny bar chart (one bar per label, e.g. the last seven days); the highest bar is classed ``top``. Empty when everything is zero."""
+    """Tiny bar chart (one bar per label, e.g. the last seven days); the highest bar is classed ``top``. Empty when everything is zero.
+    No view box: the bars are laid out in percent of the box and keep their round corners (px) at any size - nothing is stretched."""
     top = max((v for _l, v in rows), default=0)
     if top <= 0:
         return ""
-    slot = width / len(rows)
+    slot = 100 / len(rows)
     bar = slot * 0.62
     body = ""
     for i, (label, v) in enumerate(rows):
-        h = max(2.0, (height - 4) * v / top) if v > 0 else 2.0
+        share = max(5.0, 94 * v / top) if v > 0 else 5.0
         cls = "top" if v == top else ("none" if v <= 0 else "")
         body += (
-            f'<rect class="mb {cls}" x="{slot * i + (slot - bar) / 2:.1f}" y="{height - h:.1f}" width="{bar:.1f}" height="{h:.1f}" rx="2">'
+            f'<rect class="mb {cls}" x="{slot * i + (slot - bar) / 2:.2f}%" y="{100 - share:.1f}%" width="{bar:.2f}%" height="{share:.1f}%" rx="3">'
             f"<title>{escape(label)}: {v:.0f}</title></rect>"
         )
-    return f'<svg class="minibars" viewBox="0 0 {width} {height}" preserveAspectRatio="none" role="img" xmlns="http://www.w3.org/2000/svg">{body}</svg>'
+    return f'<svg class="minibars" role="img" xmlns="http://www.w3.org/2000/svg">{body}</svg>'

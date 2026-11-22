@@ -3,9 +3,9 @@
 {% call widget('alert', 'c6', _('overview.attention'), none, w.size) %}
   <ul class="wd-list">
   {% for a in s.attention[:4] %}
-    <li class="wd-li"><span class="badge {{ a.severity }}">{{ _('sev.' ~ a.severity) }}</span>
-      <div class="wd-li-t"><strong>{{ a.title }}</strong>
+    <li class="wd-li">      <div class="wd-li-t"><strong>{{ a.title }}</strong>
       <small class="wd-meta">{% if a.days_left is not none %}<span>{% if a.days_left < 0 %}{{ _('due.overdue_days', n=-a.days_left) }}{% else %}{{ _('due.in_days', n=a.days_left) }}{% endif %}</span>{% endif %}{% if a.km_left is not none %}<span>{% if a.km_left < 0 %}{{ _('due.overdue_km', n=fnum(units.d(-a.km_left)) ~ ' ' ~ units.dist_unit) }}{% else %}{{ _('due.in_km', n=fnum(units.d(a.km_left)) ~ ' ' ~ units.dist_unit) }}{% endif %}</span>{% endif %}</small></div>
+      <span class="badge {{ a.severity }}">{{ _('sev.' ~ a.severity) }}</span>
     </li>
   {% endfor %}
   </ul>

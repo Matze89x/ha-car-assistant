@@ -4,5 +4,6 @@
   <div class="cd-grid">
   {% for d in car_data %}<div class="cd-item"><span class="cd-l">{{ icon(d.icon, 15) }} {{ d.label }}</span><span class="cd-v">{{ d.value }}</span></div>{% endfor %}
   </div>
+  {% if fresh_at %}<p class="cd-ping">{{ icon('clock', 14) }} {{ _('cd.last_ping', ago=fresh_ago, when=fshort(fresh_at)) }}</p>{% endif %}
 {% endcall %}
 {% endif %}

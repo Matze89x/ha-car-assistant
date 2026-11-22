@@ -2,7 +2,7 @@
 {% if car_warnings %}
 {% call widget('alert', 'c6', _('vm.title'), none, w.size, 'st-warn') %}
   <ul class="wd-list">
-  {% for m in car_warnings %}<li><span class="badge {{ m.severity }}">{{ _('vm.badge') }}</span> <strong>{{ m.text }}</strong></li>{% endfor %}
+  {% for m in car_warnings %}<li class="wd-li"><div class="wd-li-t"><strong>{{ m.text }}</strong></div><span class="badge {{ m.severity }}">{{ _('vm.badge') }}</span></li>{% endfor %}
   </ul>
 {% endcall %}
 {% endif %}

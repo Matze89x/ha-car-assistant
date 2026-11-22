@@ -144,6 +144,12 @@ def freshness(live: Live, t: Translator) -> str:
     return ago(max(stamps), t) if stamps else ""
 
 
+def last_signal(live: Live):
+    """The moment the car last reported anything (a datetime) or None."""
+    stamps = [stamp for _, stamp in live.values() if stamp]
+    return max(stamps) if stamps else None
+
+
 def hero_badges(live: Live, t: Translator) -> dict[str, list[dict]]:
     """Two plaques at the car picture: ignition on the left, doors & windows on the right. Only with real data."""
     left: list[dict] = []

@@ -2407,7 +2407,7 @@ svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5
 .wd .spark, .wd .minibars { display: block; width: 100%; height: 44px; margin-top: 4px; color: rgb(var(--wc)); }
 .wd .sp-area { fill: rgba(var(--wc), .18); stroke: none; }
 .wd .sp-line { fill: none; stroke: rgb(var(--wc)); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.wd .sp-dot { fill: rgb(var(--wc)); }
+.wd .sp-dot { fill: none; stroke: rgb(var(--wc)); stroke-width: 7; stroke-linecap: round; vector-effect: non-scaling-stroke; }  /* a round dot that stays round however wide the chart is */
 .wd .mb { fill: rgba(var(--wc), .4); }
 .wd .mb.top { fill: rgb(var(--wc)); }
 .wd .mb.none { fill: rgba(var(--fg-rgb), .12); }
@@ -2424,7 +2424,7 @@ svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5
 .wd-count.overdue b { color: var(--overdue); }
 .wd-count.soon b { color: var(--soon); }
 @media (min-width: 900px) { .wd { padding: 16px 18px; } .wd-v { font-size: 24px; } .wd .spark, .wd .minibars { height: 52px; } }
-.wd-li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; align-items: start; padding: 8px 0; border-top: 1px solid var(--glass-b); }
+.wd-li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: start; padding: 8px 0; border-top: 1px solid var(--glass-b); }
 .wd-list:has(.wd-li) { gap: 0; }
 .wd-list .wd-li:first-child { border-top: 0; padding-top: 0; }
 .wd-li-t { display: grid; gap: 2px; min-width: 0; }
@@ -2841,3 +2841,11 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
   .side .sb-brand span:has(.sb-slogan) b { font-size: calc(100cqw / 6.5); }
   .side .sb-brand span:has(.sb-slogan) small.sb-slogan { width: 100%; min-width: 0; font-size: calc(50cqw / 6.5); margin-top: .7em; }
 }
+
+/* widget lists: the text on the left, its status chip on the right */
+.wd-li > .badge { justify-self: end; align-self: start; white-space: nowrap; }
+.wd .spark { overflow: visible; }
+.wd .minibars { overflow: visible; }
+
+/* live car data: when the car last reported - always shown under the values */
+.cd-ping { display: flex; align-items: center; gap: 6px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--glass-b); font-size: 12px; color: var(--muted); }

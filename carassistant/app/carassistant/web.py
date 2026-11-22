@@ -900,6 +900,7 @@ def vehicle_overview(request: Request, vid: int):
             hero_media=hero_media,
             **{f"media_{k}": val for k, val in media.panel(conn, vid).items()},
             fresh_ago=vehicle_status.freshness(live_rows, t),
+            fresh_at=vehicle_status.last_signal(live_rows),
             closure_open=len(vehicle_status.open_closures(live_rows)) + len(vehicle_status.car_messages(live_rows, t)),
             car_warnings=vehicle_status.car_messages(live_rows, t),
             car_data=vehicle_status.car_data(live_rows, t, unit_for(vehicle["fuel_type"])),
