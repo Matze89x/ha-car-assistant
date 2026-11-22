@@ -115,3 +115,9 @@ def test_home_screen_icon_is_opaque_and_found_at_the_root(client):
         assert res.status_code == 200 and res.headers["content-type"] == "image/png"
         image = Image.open(io.BytesIO(res.content))
         assert image.size == (180, 180) and image.mode == "RGB", path  # no alpha channel: iOS would paint it black
+
+
+def test_every_switch_row_has_a_line_above_and_below_and_air_after_it():
+    css = (STATIC / "pc-core.css").read_text(encoding="utf-8")
+    assert "label.nm-row.sw-row, .card label.nm-row.sw-row, form label.nm-row.sw-row { border-top: 1px solid var(--glass-b); }" in css
+    assert ".sw-row + .hint" in css and "form:has(> .sw-row:last-child) + .hint" in css

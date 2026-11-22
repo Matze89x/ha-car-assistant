@@ -2826,3 +2826,4 @@ label.nm-row.sw-row, .card label.nm-row.sw-row, form label.nm-row.sw-row { borde
 .sw-row + .sw-row, form + form > .sw-row:first-child, form:has(> .sw-row:last-child) + form > .sw-row:first-child { border-top: 0 !important; }
 .sw-row + .hint, .sw-row + p, .sw-row + small, .sw-row + .mqtt-bar, .sw-row + details, .sw-row + .flash, .sw-row + ul { margin-top: 14px; }
 .hint + form > .sw-row:first-child, p + form > .sw-row:first-child { margin-top: 6px; }
+form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form:has(> .sw-row:last-child) + details, form:has(> .sw-row:last-child) + ul { margin-top: 14px; }
