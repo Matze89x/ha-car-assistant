@@ -539,6 +539,33 @@ def read_events(conn: sqlite3.Connection, vehicle_id: int, since: str | None, ki
     return [dict(r) for r in rows]
 
 
+def ingest_trip_summary(conn: sqlite3.Connection, vehicle_id: int, data: dict) -> str:
+    """The values of the car's own trip computer for a drive that just ended: ``{"ts", "distance_km", "consumption_l_100km", "avg_speed_kmh",
+    "minutes"}`` (all optional but at least one value). They are given to the trip that ended at ``ts`` (now when missing); when that trip is
+    not made yet they wait for it."""
+    if not isinstance(data, dict):
+        raise ApiError("invalid_body", "The body must be a JSON object.", 422)
+    try:
+        ts = _iso(data["ts"]) if data.get("ts") is not None else _now()
+    except ValueError as exc:
+        raise ApiError("invalid_value", "'ts' must be an ISO time like 2026-11-15T08:30:00Z.", 422) from exc
+    km = _num(data, "distance_km", 0, 5000)
+    cons = _num(data, "consumption_l_100km", 0, 100)
+    speed = _num(data, "avg_speed_kmh", 0, 400)
+    minutes = _num(data, "minutes", 0, 100000)
+    if km is None and cons is None and speed is None and minutes is None:
+        raise ApiError("invalid_value", "Send at least one of distance_km, consumption_l_100km, avg_speed_kmh, minutes.", 422)
+    conn.execute(
+        "INSERT INTO trip_summaries(vehicle_id, ts, distance_km, consumption, avg_kmh, minutes) VALUES(?,?,?,?,?,?)",
+        (vehicle_id, ts, km, cons, speed, round(minutes) if minutes is not None else None),
+    )
+    from . import trips
+
+    trips.from_track(conn, vehicle_id)  # a drive that has ended becomes its trip first, then the values are attached
+    trips.attach_summaries(conn, vehicle_id)
+    return "stored"
+
+
 def ingest_refuel(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str) -> str:
     """A refuel the car noticed (the tank jumped): ``{"date", "odometer_km", "amount", "price_total", "full_tank"}``, all optional. Becomes an
     entry of the fuel log marked with the plugin; an entry already there for that day and mileage is left alone."""

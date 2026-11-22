@@ -173,6 +173,7 @@ def from_track(conn: sqlite3.Connection, vehicle_id: int, now: datetime | None =
         )
         conn.executemany(f"UPDATE vehicle_track SET trip_id = {int(trip_id)} WHERE id = ?", ids)
         made += 1
+    attach_summaries(conn, vehicle_id, now)
     if made:
         from . import places
 
@@ -400,3 +401,41 @@ def stats(points: list[sqlite3.Row]) -> dict:
         "start": first.astimezone().strftime("%H:%M") if first else None,
         "end": last.astimezone().strftime("%H:%M") if last else None,
     }
+
+
+SUMMARY_MATCH = timedelta(minutes=20)  # an on-board trip belongs to the trip that ended this close to it
+SUMMARY_KEEP = timedelta(days=3)  # one that finds no trip in this time is dropped
+
+
+def attach_summaries(conn: sqlite3.Connection, vehicle_id: int, now: datetime | None = None) -> int:
+    """Give the values of the car's own trip computer (consumption, average speed, duration; sent with ``trip_summary``) to the trip that
+    ended at that time. Safe to call as often as you like; returns how many were attached."""
+    now = now or datetime.now(UTC)
+    waiting = conn.execute("SELECT * FROM trip_summaries WHERE vehicle_id = ? ORDER BY ts", (vehicle_id,)).fetchall()
+    if not waiting:
+        return 0
+    candidates = []
+    for r in conn.execute(
+        "SELECT id, date, end_time FROM trips WHERE vehicle_id = ? AND end_time IS NOT NULL AND consumption_l100 IS NULL AND avg_kmh IS NULL "
+        "AND bc_minutes IS NULL ORDER BY date DESC, id DESC LIMIT 200",
+        (vehicle_id,),
+    ):
+        try:
+            candidates.append((r["id"], datetime.fromisoformat(f"{r['date']}T{r['end_time']}").astimezone()))
+        except ValueError:
+            continue
+    done = 0
+    for item in waiting:
+        when = datetime.fromisoformat(item["ts"]).astimezone()
+        best = min(((abs(end - when), tid) for tid, end in candidates), default=None)
+        if best and best[0] <= SUMMARY_MATCH:
+            conn.execute(
+                "UPDATE trips SET consumption_l100 = ?, avg_kmh = ?, bc_minutes = ? WHERE id = ?",
+                (item["consumption"], item["avg_kmh"], item["minutes"], best[1]),
+            )
+            candidates = [c for c in candidates if c[0] != best[1]]
+            conn.execute("DELETE FROM trip_summaries WHERE id = ?", (item["id"],))
+            done += 1
+        elif now - when > SUMMARY_KEEP:
+            conn.execute("DELETE FROM trip_summaries WHERE id = ?", (item["id"],))
+    return done

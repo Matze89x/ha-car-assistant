@@ -349,6 +349,24 @@ def api_events_read(request: Request, vehicle_id: int, since: str | None = None,
             return _err(exc.code, exc.message, exc.status)
 
 
+@app.post("/api/v1/vehicles/{vehicle_id}/trip-summary")
+async def api_trip_summary(request: Request, vehicle_id: int):
+    """The values of the car's own trip computer for the drive that just ended (consumption, average speed, duration)."""
+    data, failed = await _json(request, MAX_BODY)
+    if failed:
+        return failed
+    with db.tx() as conn:
+        if (gate := _vehicle_gate(request, vehicle_id, conn)) is not None:
+            return gate
+        try:
+            result = connectors.ingest_trip_summary(conn, vehicle_id, data)
+        except connectors.ApiError as exc:
+            return _err(exc.code, exc.message, exc.status)
+        control = connectors.control(conn, vehicle_id, connectors.addon_for_token(conn, request.state.api_token["id"]))
+    events.changed()
+    return {"ok": True, "result": result, "control": control}
+
+
 @app.post("/api/v1/vehicles/{vehicle_id}/refuel")
 async def api_refuel(request: Request, vehicle_id: int):
     """A refuel the car noticed. Added to the fuel log, marked with the plugin; duplicates for the same day and mileage are ignored."""

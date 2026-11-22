@@ -73,6 +73,7 @@ MIGRATIONS: list[str] = [
     (SCHEMA_DIR / "migrations_54.sql").read_text(encoding="utf-8"),  # tyre sets: DOT and rear name move into the notes
     (SCHEMA_DIR / "migrations_55.sql").read_text(encoding="utf-8"),  # documents: note, document date, valid until
     (SCHEMA_DIR / "migrations_56.sql").read_text(encoding="utf-8"),  # plugin tokens: optional encrypted copy
+    (SCHEMA_DIR / "migrations_57.sql").read_text(encoding="utf-8"),  # trip values of the car's on-board computer
 ]
 
 

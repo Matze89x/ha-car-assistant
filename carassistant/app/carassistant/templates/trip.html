@@ -11,6 +11,9 @@
     <dt>{{ _('f.start_place') }}</dt><dd>{{ trip.start_place or '–' }}</dd>
     <dt>{{ _('f.end_place') }}</dt><dd>{{ trip.end_place or '–' }}</dd>
     <dt>{{ _('f.distance') }}</dt><dd>{{ fnum(units.d(distance), 1) if distance is not none else '–' }} {{ units.dist_unit }}</dd>
+    {% if trip.consumption_l100 is not none %}<dt>{{ _('trips.consumption') }}</dt><dd>{{ fnum(units.c(trip.consumption_l100), 1) }} {{ units.consumption_unit() }}</dd>{% endif %}
+    {% if trip.avg_kmh is not none %}<dt>{{ _('trips.avg_speed') }}</dt><dd>{{ fnum(units.d(trip.avg_kmh), 0) }} {{ units.speed_unit }}</dd>{% endif %}
+    {% if trip.bc_minutes is not none %}<dt>{{ _('trips.duration') }}</dt><dd>{{ trip.bc_minutes }} min</dd>{% endif %}
     <dt>{{ _('f.category') }}</dt><dd>{{ _('category.' ~ trip.category) }}</dd>
     {% if trip.purpose %}<dt>{{ _('f.purpose') }}</dt><dd>{{ trip.purpose }}</dd>{% endif %}
     <dt>{{ _('trips.source') }}</dt><dd>{{ trip.source }}</dd>

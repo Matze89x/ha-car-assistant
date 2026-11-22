@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -429,3 +431,34 @@ def test_oil_change_due_fields(api):
     )
     data = api.get("/api/v1/vehicles/1/data", headers=hdr(token)).json()["data"]
     assert data["oil_change_due_km"] == 18600 and data["oil_change_due_days"] == -3
+
+
+def test_trip_summary_goes_to_the_trip_that_ended_then(api):
+    token = setup(api)
+    now = datetime.now(UTC).replace(microsecond=0)
+    start = now - timedelta(hours=2)
+    points = [
+        {"ts": (start + timedelta(minutes=m)).isoformat(), "lat": 52.5 + m * 0.002, "lon": 13.4, "speed_kmh": 40} for m in range(0, 10)
+    ]
+    assert api.post("/api/v1/vehicles/1/track", headers=hdr(token), json={"points": points}).status_code == 200
+    end = datetime.fromisoformat(points[-1]["ts"])
+    body = {
+        "ts": (end + timedelta(minutes=1)).isoformat(),
+        "distance_km": 2.0,
+        "consumption_l_100km": 8.2,
+        "avg_speed_kmh": 26,
+        "minutes": 28,
+    }
+    r = api.post("/api/v1/vehicles/1/trip-summary", headers=hdr(token), json=body)
+    assert r.status_code == 200
+    from carassistant import db
+
+    with db.tx() as conn:
+        trip = conn.execute("SELECT consumption_l100, avg_kmh, bc_minutes FROM trips").fetchone()
+        assert (trip["consumption_l100"], trip["avg_kmh"], trip["bc_minutes"]) == (8.2, 26, 28)
+        assert conn.execute("SELECT COUNT(*) FROM trip_summaries").fetchone()[0] == 0  # attached, nothing waits
+    assert api.post("/api/v1/vehicles/1/trip-summary", headers=hdr(token), json={}).status_code == 422
+    far = api.post("/api/v1/vehicles/1/trip-summary", headers=hdr(token), json={"ts": start.isoformat(), "avg_speed_kmh": 30})
+    assert far.status_code == 200
+    with db.tx() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM trip_summaries").fetchone()[0] == 1  # no trip ended then: it waits

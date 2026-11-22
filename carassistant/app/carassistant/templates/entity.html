@@ -81,6 +81,7 @@
       <div><dt>{{ _(f.label) }}</dt><dd>{{ cell(f, r) }}{{ sfx.get(f.name, '') }}</dd></div>
       {% endif %}{% endfor %}
       {% for f in shown %}{% if f.kind == 'bool' and r[f.name] and f.name != 'done' %}<div><dt>{{ _(f.label) }}</dt><dd>✓</dd></div>{% endif %}{% endfor %}
+      {% if entity.key == 'trips' %}{% if r['consumption_l100'] is not none %}<div><dt>{{ _('trips.consumption') }}</dt><dd>{{ fnum(units.c(r['consumption_l100']), 1) }} {{ units.consumption_unit() }}</dd></div>{% endif %}{% if r['avg_kmh'] is not none %}<div><dt>{{ _('trips.avg_speed') }}</dt><dd>{{ fnum(units.d(r['avg_kmh']), 0) }} {{ units.speed_unit }}</dd></div>{% endif %}{% if r['bc_minutes'] is not none %}<div><dt>{{ _('trips.duration') }}</dt><dd>{{ r['bc_minutes'] }} min</dd></div>{% endif %}{% endif %}
       {% for c in entity.list_extra %}{% if ex.get('distance') is not none %}<div><dt>{{ _('f.distance') }}</dt><dd>{{ fnum(units.d(ex.get('distance')), 1) }} {{ units.dist_unit }}</dd></div>{% endif %}{% endfor %}
       {% if entity.key == 'tasks' %}
         <div><dt>{{ _('f.last_done') }}</dt><dd>{% if ex.get('last_date') or ex.get('last_km') %}{{ fdate(ex.get('last_date')) }}{% if ex.get('last_km') %} · {{ fnum(units.d(ex['last_km'])) }} {{ units.dist_unit }}{% endif %}{% else %}–{% endif %}</dd></div>
