@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.14 Beta
+- Einrichtungsanleitung für Anfänger: Schritt 2 hat drei Token-Boxen (gespeichert, vorhanden, neu) mit einer Auswahl und einer Zurück/Weiter-Zeile, ohne Einstellungsblock, wenn das Plugin keine nennt. Schritt 3 zeigt die Pakete des Plugins als gleich große Download-Boxen, ohne eigenen Download der Anbindungsdatei, wenn ein Paket sie enthält.
+
 ## 0.5.13 Beta
 - Plugins bekommen Freiraum, ihre Einrichtung selbst zu gestalten (alles optional): die Einrichtungsanleitung kann nur die Einstellungen zeigen, die ein Plugin je Schritt nennt, Schritte hinzufügen, die eine Seite des Plugin-Dienstes öffnen, und ein Plugin kann eine eigene Einstellungsseite benennen.
 - Neuer Feldtyp „value“ (ein Wert, den nur der Dienst des Plugins setzt) und `GET` / `PUT /api/v1/vehicles/<id>/plugin-settings`, damit der Dienst eines Plugins seine eigenen Einstellungen lesen und ändern kann: nur Schlüssel, die das Paket mit `service_writable` markiert, Teil der Freigabe des Administrators, wie das Formular geprüft, protokolliert und begrenzt; `GET /api/v1` nennt `features`.
