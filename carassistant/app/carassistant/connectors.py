@@ -240,6 +240,8 @@ NUMBERS = {
     "consumption_l_100km": ("consumption", 0, 100),  # l/100 km, or kWh/100 km for an electric car
     "service_due_days": ("service_due_days", -3650, 3650),  # reported by the car; negative = overdue
     "service_due_km": ("service_due_km", -100000, 100000),
+    "oil_change_due_days": ("oil_change_due_days", -3650, 3650),  # reported by the car; negative = overdue
+    "oil_change_due_km": ("oil_change_due_km", -100000, 100000),
     "fuel_amount": (
         "fuel_amount",
         0,
@@ -556,10 +558,19 @@ def ingest_refuel(conn: sqlite3.Connection, vehicle_id: int, data: dict, source:
     same = conn.execute("SELECT odometer_km FROM fuel WHERE vehicle_id = ? AND date = ?", (vehicle_id, day)).fetchall()
     if any(km is None or r["odometer_km"] is None or abs(r["odometer_km"] - km) <= 5 for r in same):
         return "ignored (an entry for this day and mileage exists)"
+    unfinished = amount is None  # the car noticed it but knows no amount: the person completes it, like a refuel noticed by the app
+    notes = f"auto:tank:api:{datetime.now(UTC).astimezone().strftime('%Y-%m-%dT%H:%M')}" if unfinished else f"api:{source}"[:60]
     conn.execute(
         "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_total, full_tank, notes) VALUES(?,?,?,?,?,?,?)",
-        (vehicle_id, day, km, amount, total, 1 if full else 0, f"api:{source}"[:60]),
+        (vehicle_id, day, km, amount, total, 1 if full else 0, notes),
     )
+    if unfinished:
+        try:
+            from . import notify
+
+            notify.event_now()
+        except Exception:
+            log.exception("The refuel could not be announced")
     return "stored"
 
 

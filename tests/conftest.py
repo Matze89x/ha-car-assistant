@@ -24,6 +24,9 @@ def env(tmp_path, monkeypatch):
     from carassistant import notify
 
     notify._recent.clear()  # so does the memory of messages just sent
+    from carassistant import refuel_detect
+
+    refuel_detect._floor.clear()  # and the tank levels of a rise in progress
     db.migrate()
     with db.tx() as conn:
         db.set_setting(conn, "setup.language", "1")  # tests start after the first-start language choice

@@ -403,3 +403,29 @@ def test_the_car_names_its_own_spot(api):
         assert places.here_cached(conn, 52.5, 13.4) == ("Berlin", "Hauptstraße 12")
     bad = api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"position": {**pos, "street": 5}})
     assert bad.status_code == 422
+
+
+def test_refuel_without_amount_is_unfinished_and_small_steps_add_up(api):
+    from carassistant import db, refuel_detect
+
+    token = setup(api)
+    r = api.post("/api/v1/vehicles/1/refuel", headers=hdr(token), json={"odometer_km": 52000, "full_tank": True})
+    assert r.status_code == 200
+    with db.tx() as conn:
+        todo = refuel_detect.todo(conn, 1)
+    assert len(todo) == 1 and todo[0]["odometer_km"] == 52000 and todo[0]["rise"] is None
+    with db.tx() as conn:  # 33 -> 40 -> 50 is one refuel of 17 points
+        conn.execute("DELETE FROM fuel")
+        refuel_detect._floor.clear()
+        assert refuel_detect.level_changed(conn, 1, 33, 40) is False
+        assert refuel_detect.level_changed(conn, 1, 40, 50) is True
+
+
+def test_oil_change_due_fields(api):
+    token = setup(api)
+    assert (
+        api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"oil_change_due_km": 18600, "oil_change_due_days": -3}).status_code
+        == 200
+    )
+    data = api.get("/api/v1/vehicles/1/data", headers=hdr(token)).json()["data"]
+    assert data["oil_change_due_km"] == 18600 and data["oil_change_due_days"] == -3

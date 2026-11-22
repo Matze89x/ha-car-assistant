@@ -45,6 +45,7 @@ All fields are optional – send what you know. Unknown fields are rejected (`42
 | `heading_deg` | number | 0 … 360 | (stored, for plugins and trips) |
 | `consumption_l_100km` | number | 0 … 100 (l or kWh per 100 km, from the car) | Home: car data |
 | `service_due_days` / `service_due_km` | number | days / km until the car's own service; negative = overdue | Home: car data |
+| `oil_change_due_days` / `oil_change_due_km` | number | days / km until the oil change; negative = overdue | Home: car data, vehicle messages |
 | `plugged` | boolean | `true` = charging cable connected | Home: car data |
 | `charge_limit_pct` / `charge_minutes_left` | number | 0 … 100 / 0 … 5000 | Home: car data |
 | `parking_brake` | boolean | `true` = applied | Home: car data (when applied) |

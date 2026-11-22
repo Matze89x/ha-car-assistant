@@ -386,14 +386,15 @@ def car_data(live: Live, t: Translator, base: str = "L") -> list[dict]:
         if oil_warn == "yes":
             text = (text + " · " if text else "") + t("cd.oil_warning")
         out.append({"icon": "oil-level", "label": t("cd.oil_level"), "value": text})
-    days, km = num("service_due_days"), num("service_due_km")
-    if days is not None or km is not None:
-        bits = []
-        if days is not None:
-            bits.append(t("cd.in_days", n=int(days)) if days >= 0 else t("cd.overdue_days", n=int(-days)))
-        if km is not None:
-            bits.append(t("cd.in_km", n=units.of().dist_str(km)) if km >= 0 else t("cd.overdue_km", n=units.of().dist_str(-km)))
-        out.append({"icon": "wrench", "label": t("cd.service"), "value": " · ".join(bits)})
+    for prefix, icon, label in (("service", "wrench", "cd.service"), ("oil_change", "oil-level", "cd.oil_change")):
+        days, km = num(f"{prefix}_due_days"), num(f"{prefix}_due_km")
+        if days is not None or km is not None:
+            bits = []
+            if days is not None:
+                bits.append(t("cd.in_days", n=int(days)) if days >= 0 else t("cd.overdue_days", n=int(-days)))
+            if km is not None:
+                bits.append(t("cd.in_km", n=units.of().dist_str(km)) if km >= 0 else t("cd.overdue_km", n=units.of().dist_str(-km)))
+            out.append({"icon": icon, "label": t(label), "value": " · ".join(bits)})
     return out
 
 
@@ -407,16 +408,17 @@ def car_messages(live: Live, t: Translator) -> list[dict]:
         except ValueError:
             return None
 
-    days, km = num("service_due_days"), num("service_due_km")
-    parts, severity = [], None
-    if days is not None and days <= 30:
-        parts.append(t("cd.in_days", n=int(days)) if days >= 0 else t("cd.overdue_days", n=int(-days)))
-        severity = "overdue" if days < 0 else "soon"
-    if km is not None and km <= 1000:
-        parts.append(t("cd.in_km", n=units.of().dist_str(km)) if km >= 0 else t("cd.overdue_km", n=units.of().dist_str(-km)))
-        severity = "overdue" if km < 0 or severity == "overdue" else "soon"
-    if parts:
-        out.append({"code": "service", "text": t("vm.service") + ": " + " · ".join(parts), "severity": severity})
+    for prefix, code, label in (("service", "service", "vm.service"), ("oil_change", "oil_change", "vm.oil_change")):
+        days, km = num(f"{prefix}_due_days"), num(f"{prefix}_due_km")
+        parts, severity = [], None
+        if days is not None and days <= 30:
+            parts.append(t("cd.in_days", n=int(days)) if days >= 0 else t("cd.overdue_days", n=int(-days)))
+            severity = "overdue" if days < 0 else "soon"
+        if km is not None and km <= 1000:
+            parts.append(t("cd.in_km", n=units.of().dist_str(km)) if km >= 0 else t("cd.overdue_km", n=units.of().dist_str(-km)))
+            severity = "overdue" if km < 0 or severity == "overdue" else "soon"
+        if parts:
+            out.append({"code": code, "text": t(label) + ": " + " · ".join(parts), "severity": severity})
     return out
 
 

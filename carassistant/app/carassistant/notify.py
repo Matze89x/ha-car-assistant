@@ -256,7 +256,7 @@ def _lines_for(
                 keys.append(key)
                 lines.append(
                     t(
-                        "notify.charge" if item["charge"] else "notify.refuel",
+                        "notify.charge" if item["charge"] else ("notify.refuel" if item["rise"] else "notify.refuel_plain"),
                         pct=item["rise"] or "",
                         litres=f" (~{item['litres']} {item['unit']})" if item["litres"] else "",
                     )

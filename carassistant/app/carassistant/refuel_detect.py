@@ -14,6 +14,8 @@ from datetime import UTC, datetime, timedelta
 from . import summary
 
 log = logging.getLogger(__name__)
+STEP_MINUTES = 10  # a tank that fills in several small steps counts as one refuel when the steps follow each other within this time
+_floor: dict[int, tuple[float, datetime]] = {}  # per vehicle: the lowest level of the current rise and when it last changed
 JUMP_PCT = 15.0  # percentage points of the tank between two readings that count as a refuel
 GUARD_HOURS = 3  # one detection per drive to the pump
 MARK = "auto:tank"
@@ -29,8 +31,18 @@ def _num(value) -> float | None:
 def level_changed(conn: sqlite3.Connection, vehicle_id: int, old, new) -> bool:
     """Called with the old and the new tank level (percent) just before / after it is stored. True when an unfinished fuel entry was added."""
     before, after = _num(old), _num(new)
-    if before is None or after is None or after - before < JUMP_PCT:
+    if before is None or after is None:
         return False
+    stamp = datetime.now(UTC)
+    low, seen = _floor.get(vehicle_id, (before, stamp))
+    if stamp - seen > timedelta(minutes=STEP_MINUTES):
+        low = before  # an old rise is forgotten
+    low = min(low, before, after)
+    _floor[vehicle_id] = (low, stamp)
+    before = low  # the rise over several readings close together (33 -> 40 -> 50 counts as 17)
+    if after - before < JUMP_PCT:
+        return False
+    _floor[vehicle_id] = (after, stamp)
     vehicle = conn.execute("SELECT fuel_type FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
     if vehicle is None or vehicle["fuel_type"] == "electric":
         return False

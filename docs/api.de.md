@@ -45,6 +45,7 @@ Alle Felder sind optional – sende, was du weißt. Unbekannte Felder werden abg
 | `heading_deg` | Zahl | 0 … 360 | (wird gespeichert, für Plugins und Fahrten) |
 | `consumption_l_100km` | Zahl | 0 … 100 (l oder kWh je 100 km, vom Auto) | Home: Fahrzeugdaten |
 | `service_due_days` / `service_due_km` | Zahl | Tage / km bis zum Service des Autos; negativ = überfällig | Home: Fahrzeugdaten |
+| `oil_change_due_days` / `oil_change_due_km` | Zahl | Tage / km bis zum Ölwechsel; negativ = überfällig | Home: Fahrzeugdaten, Fahrzeugmeldungen |
 | `plugged` | Wahrheitswert | `true` = Ladekabel steckt | Home: Fahrzeugdaten |
 | `charge_limit_pct` / `charge_minutes_left` | Zahl | 0 … 100 / 0 … 5000 | Home: Fahrzeugdaten |
 | `parking_brake` | Wahrheitswert | `true` = angezogen | Home: Fahrzeugdaten (wenn angezogen) |

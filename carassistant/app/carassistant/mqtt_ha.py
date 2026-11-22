@@ -81,6 +81,8 @@ SENSORS: tuple[SensorDef, ...] = (
     _s("adblue_level_pct", "AdBlue level", unit="%", state_class="measurement", icon="mdi:water-percent", live=True),
     _s("adblue_range_km", "AdBlue range", unit="km", device_class="distance", state_class="measurement", icon="mdi:water-percent", live=True, precision=0),
     _s("service_due_days", "Service in", unit="d", state_class="measurement", icon="mdi:wrench-clock", live=True),
+    _s("oil_change_due_days", "Oil change in", unit="d", state_class="measurement", icon="mdi:oil", live=True),
+    _s("oil_change_due_km", "Oil change in", unit="km", device_class="distance", state_class="measurement", icon="mdi:oil", live=True, precision=0),
     _s("service_due_km", "Service in", unit="km", device_class="distance", state_class="measurement", icon="mdi:wrench", live=True, precision=0),
     _s("warnings", "Warnings", state_class="measurement", icon="mdi:alert-outline", live=True),
     *(

@@ -16,14 +16,14 @@ def test_a_big_rise_of_the_tank_level_adds_an_unfinished_fuel_entry_once(client)
         _level(conn, vid, 20)
         _level(conn, vid, 25)  # a small change is no refuel
         assert conn.execute("SELECT COUNT(*) FROM fuel WHERE vehicle_id = ?", (vid,)).fetchone()[0] == 0
-        _level(conn, vid, 95)  # +70 points
+        _level(conn, vid, 95)  # +75 points from the lowest level of the rise (20)
         row = conn.execute("SELECT * FROM fuel WHERE vehicle_id = ?", (vid,)).fetchone()
-        assert row["amount"] is None and row["price_total"] is None and row["full_tank"] == 1 and row["notes"].startswith("auto:tank:+70%")
+        assert row["amount"] is None and row["price_total"] is None and row["full_tank"] == 1 and row["notes"].startswith("auto:tank:+75%")
         _level(conn, vid, 30)
         _level(conn, vid, 98)  # a second jump hours later would be a new refuel, but not within the guard time
         assert conn.execute("SELECT COUNT(*) FROM fuel WHERE vehicle_id = ?", (vid,)).fetchone()[0] == 1
         todo = refuel_detect.todo(conn, vid)
-        assert todo[0]["rise"] == 70 and todo[0]["litres"] == 35  # a rough estimate from the tank size, never stored as the amount
+        assert todo[0]["rise"] == 75 and todo[0]["litres"] == 38  # a rough estimate from the tank size, never stored as the amount
     page = client.get(f"/v/{vid}/e/fuel").text
     assert "Refuel noticed" in page or "Tanken erkannt" in page
 
