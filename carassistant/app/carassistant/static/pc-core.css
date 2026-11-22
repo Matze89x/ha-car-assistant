@@ -635,7 +635,7 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
    It always sits in the slot right under the page header (.notice-slot); old .flash markup looks the same and app.js moves it there. */
 .notice-slot { display: grid; gap: 10px; margin: 0 0 var(--sp-block); }
 .notice-slot:empty { display: none; }
-.notice, .flash { display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; margin: 0; padding: 12px 16px; border-radius: var(--r-m); border: 1px solid var(--glass-b); background: var(--glass); color: var(--text); font-size: 14px; font-weight: 500; line-height: 1.45; box-shadow: 0 1px 0 var(--btn-hi) inset; }
+.notice, .flash { display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; margin: 0; padding: 12px 16px; border-radius: var(--r-m); border: 1px solid var(--glass-b); background: var(--glass); color: var(--text); font-size: 14px; font-weight: 500; line-height: 1.45; }
 .notice > .ico, .notice > span:first-child > .ico { flex: 0 0 auto; margin-top: 1px; color: var(--accent); }
 .notice > span:last-child, .notice .n-t { min-width: 0; flex: 1 1 auto; }
 .notice a { text-decoration: underline; }
@@ -649,6 +649,8 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 .notice.err .ico { color: var(--overdue); }
 .notice.fading { transition: opacity .5s ease, transform .5s ease; opacity: 0; transform: translateY(-4px); }
 .notice.gone { display: none; }
+/* until notices.js (loaded right after the page, before the first paint) has moved them into the slot, the old places show nothing: no flash, no jump */
+main:has(> .notice-slot) .flash:not([id]):not(dialog *), main > .notice-slot + p.hint, main > .notice-slot + span.hint, main > .notice-slot + .set-scope, main > .notice-slot + .pk-bar:has(> .hint:only-child) { display: none; }
 .notice .hint, .notice p { margin: 0; }
 .notice.set-scope, .notice.pk-bar { margin: 0; }
 

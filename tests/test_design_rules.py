@@ -148,5 +148,5 @@ def test_every_page_head_has_the_one_notice_slot_and_the_script_fills_it(client)
     for path in (f"/v/{vid}/e/service", f"/v/{vid}/docs", f"/v/{vid}/plugins", "/settings/user"):
         page = client.get(path).text
         assert 'class="notice-slot"' in page and 'id="notice-icons"' in page, path
-    js = (Path(__file__).resolve().parents[1] / "carassistant/app/carassistant/static/app.js").read_text(encoding="utf-8")
+    js = (Path(__file__).resolve().parents[1] / "carassistant/app/carassistant/static/notices.js").read_text(encoding="utf-8")
     assert ".notice-slot" in js and '"info"' in js and '"err"' in js
