@@ -2,7 +2,7 @@
 {% if car_data %}
 {% call widget('gauge', 'c5', _('cd.title'), none, w.size, '', none, fresh_ago, (fshort(fresh_at) if fresh_at else '')) %}
   <div class="cd-grid">
-  {% for d in car_data %}<div class="cd-item{{ ' cd-wide' if d.value|length > 16 }}"><span class="cd-l">{{ icon(d.icon, 15) }} {{ d.label }}</span><span class="cd-v">{{ d.value }}</span></div>{% endfor %}
+  {% for d in car_data %}<div class="cd-item"><span class="cd-l">{{ icon(d.icon, 15) }} {{ d.label }}</span><span class="cd-v">{{ d.value }}</span></div>{% endfor %}
   </div>
 {% endcall %}
 {% endif %}

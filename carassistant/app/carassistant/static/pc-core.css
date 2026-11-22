@@ -665,10 +665,6 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 .dbg-msg { overflow-wrap: anywhere; }
 .dbg-line.lv-warn .dbg-lv { color: var(--soon); }
 .dbg-line.lv-error .dbg-lv, .dbg-line.lv-error .dbg-msg { color: var(--overdue); }
-.cd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin-top: 6px; }
-.cd-item { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.cd-l { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 5px; }
-.cd-v { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
 .dbg-form { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
 .dbg-form .check { margin: 0; }
 
@@ -2875,9 +2871,6 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .wd-b { gap: 3px; }
 .wd-v { font-size: 20px; line-height: 1.2; }
 .wd-s { font-size: 12px; }
-.cd-grid { gap: 8px 12px; margin-top: 2px; }
-.cd-l { font-size: 10px; }
-.cd-v { font-size: 15px; }
 .wd .pos-head .pos-place { font-size: 16px; }
 @media (min-width: 900px) { .wd { padding: 14px 16px; } .wd-v { font-size: 24px; } }
 
@@ -2885,15 +2878,6 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .wd .nav-btns { flex-wrap: nowrap; margin: 8px 0 0; }
 .wd .nav-btn { flex: 1 1 0; min-width: 0; min-height: 34px; padding: 0 8px; font-size: 12px; white-space: nowrap; }
 
-/* live car data: one slim line per value - the label on the left, the value on the right, hairlines between; two columns, long values take the whole row */
-.cd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin-top: 0; }
-@media (min-width: 1100px) { .cd-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.cd-item { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--glass-b); background: none; border-radius: 0; }
-.cd-item.cd-wide { grid-column: 1 / -1; }
-.cd-l { flex: 0 1 auto; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cd-v { flex: 0 0 auto; text-align: right; font-size: 14px; line-height: 1.25; }
-.cd-item { align-items: center; }
-.cd-l { display: inline-flex; align-items: center; }
 .wd-li { align-items: center; }
 .pos-head { align-items: center; }
 
@@ -2908,3 +2892,12 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .ac-val::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--strong); border: 2px solid rgba(var(--shade-rgb), .5); box-shadow: 0 1px 4px rgba(var(--shade-rgb), .4); cursor: pointer; }
 .ac-val::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--strong); border: 2px solid rgba(var(--shade-rgb), .5); cursor: pointer; }
 .ac-val-h { margin: 6px 0 0; font-size: 12px; }
+
+/* Live car data: ONE slim line per value, built to cope with any set of values (the car reports what it reports): the columns follow the room
+   (one on a narrow widget, two, three on a wide one), a label may wrap, and when label and value do not fit side by side the value drops under
+   the label instead of squeezing it. Nothing is cut off. */
+.cd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15.5rem), 1fr)); gap: 0 20px; margin: 0; }
+.cd-item { display: flex; flex-flow: row wrap; align-items: center; justify-content: space-between; gap: 2px 12px; min-width: 0; padding: 7px 0; border-bottom: 1px solid var(--glass-b); }
+.cd-l { flex: 1 1 auto; display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); overflow-wrap: anywhere; }
+.cd-l .ico { flex: none; }
+.cd-v { flex: 0 1 auto; margin-left: auto; min-width: 0; text-align: right; font-size: 14px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
