@@ -1481,7 +1481,7 @@ label.button.pk-btn { position: relative; }
 
 /* About: the logo is exactly as wide as the name below it, with faint red / green light running along the lines behind the car (the animation lives in the SVG itself) */
 .about-id { display: inline-flex; flex-direction: column; align-items: stretch; width: max-content; max-width: 100%; }
-.about-id .about-logo { display: block; width: 0; min-width: 100%; height: auto; aspect-ratio: 1; filter: drop-shadow(0 0 22px rgba(var(--accent-rgb), .28)); }
+.about-id .about-logo { display: block; width: 0; min-width: 100%; height: auto; aspect-ratio: 1; }
 
 /* The slogan "Drive · Log · Go" is green (the colour of "ok") everywhere: here in the side bar, on About, on the login and the locked page. */
 .side .sb-brand small.sb-slogan { color: var(--ok); letter-spacing: .08em; text-transform: uppercase; font-size: 10px; font-weight: 600; }
@@ -1645,7 +1645,7 @@ label.check > input[type=checkbox]:not(.switch input):not(.sw input) { margin: 1
 .mi-ic.c5, .navrow .iconpick .mi-ic.c5 { --ic: #8d95a3; }
 .mi-ic.c6, .navrow .iconpick .mi-ic.c6 { --ic: #ff4d5e; }
 .mi-ic.c7, .navrow .iconpick .mi-ic.c7 { --ic: #27b8c8; }
-.mi-ic[class*=" c"], .navrow .iconpick .mi-ic[class*=" c"] { background: color-mix(in srgb, var(--ic) 20%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ic) 42%, transparent); color: var(--ic); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.mi-ic[class*=" c"], .navrow .iconpick .mi-ic[class*=" c"] { background: color-mix(in srgb, var(--ic) 20%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ic) 42%, transparent); color: var(--ic); }
 .mi-ic[class*=" c"] .ico { color: var(--ic); width: 22px; height: 22px; filter: none; }
 .mi-ic::before { content: none; }
 .mi-ic { position: relative; overflow: hidden; }
@@ -2714,18 +2714,10 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 }
 }
 
-/* The name "Car Assistant" and its slogan are ALWAYS exactly the same width (side bar, About, login): the name decides the width, the slogan is spread over it */
-.side .sb-brand span:has(.sb-slogan) { display: inline-flex; flex-direction: column; width: max-content; }
-.brand-lock { display: inline-flex; flex-direction: column; width: max-content; max-width: 100%; margin: 0 auto; }
-.side .sb-brand .sb-slogan, .about-id .about-slogan, .brand-lock .login-slogan { display: block; width: 0; min-width: 100%; margin-inline: 0; white-space: nowrap; text-align: justify; text-align-last: justify; letter-spacing: 0; }
-.about-id .about-slogan { margin-top: 4px; font-size: 12px; }
-.about-id h2 { text-align: center; }
-.brand-lock .login-slogan { font-size: 11px; }
 /* About: compact and centred */
 .about-page .about-hero { text-align: center; padding: 16px 16px 14px; }
 .about-page .about-hero .about-id { display: inline-flex; flex-direction: column; align-items: stretch; width: max-content; max-width: 100%; gap: 6px; margin: 0 auto; }
 .about-page .about-hero .about-id .about-logo { width: 0; min-width: 100%; height: auto; }
-.about-page .about-hero h2 { font-size: 24px; text-align: center; }
 .about-page .about-hero .about-tag { margin: 10px auto; max-width: 30em; text-align: center; font-size: 14px; }
 .about-page .about-links { justify-content: center; }
 .about-page .mg-head { justify-content: center; text-align: center; }
@@ -2780,3 +2772,17 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 .rec-inline .form-bar { flex-wrap: wrap; }
 .rec-grid.doc-grid { grid-template-columns: minmax(0, 1fr); }
 .about-page .about-hero .about-id .about-logo { width: 112px; min-width: 0; align-self: center; }
+
+/* THE LOCKUP: name and slogan are ONE unit that scales together. Everything is in em of the name's size (--bl), so the slogan is always half as big,
+   as wide as the name (letter spacing worked out from the font), and the gap is the same - in the side bar, on About and on the login page. */
+.side .sb-brand span:has(.sb-slogan), .brand-lock, .about-id { --bl: 16px; font-size: var(--bl); display: inline-flex; flex-direction: column; width: max-content; max-width: 100%; }
+.brand-lock, .about-id { --bl: 26px; margin-inline: auto; }
+.side .sb-brand b, .brand-lock h1, .about-id h2 { display: block; margin: 0; padding: 0; font-size: 1em; font-weight: 700; letter-spacing: 0; line-height: 1.1; text-align: left; white-space: nowrap; }
+.brand-lock h1 span { color: var(--accent); }
+.side .sb-brand .sb-slogan, .brand-lock .login-slogan, .about-id .about-slogan {
+  display: block; width: 0; min-width: 100%; margin: .7em 0 0; padding: 0; font-size: .5em; font-weight: 600; letter-spacing: .366em; line-height: 1.1;
+  text-transform: uppercase; text-align: left; white-space: nowrap; overflow: visible; color: var(--ok);
+}
+.about-id .about-logo { margin-bottom: .45em; }
+.brand-lock, .about-id { display: flex; }
+.about-page .about-hero .about-id { display: flex; }
