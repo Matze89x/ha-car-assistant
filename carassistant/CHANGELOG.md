@@ -4,6 +4,12 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.12 Beta
+- Settings: Language, Date & time, Time zone and Units & currency are ONE "Region" card; the new time zone (automatic = Home Assistant's, summer / winter time follows) is used everywhere and the clock is shown. The System, Car and User pages are built as two fixed, evenly filling columns with much shorter texts; the MCP card shows only the last call.
+- Fixed: times in plugin logs, traffic and "last used" were shown in UTC and now follow the system time zone; the video background choice no longer reloads the page; notifications never show raw coordinates as a place.
+- Plugin set-up: optional "Remember plugin tokens" (Settings > System > Security, off by default) keeps an encrypted copy of the token of plugins with a connection file, so the set-up guide can offer it again (administrators only, never in backups or logs).
+- Plugin API: announced changes will show in the answers (Deprecation / Sunset headers); the docs now carry a "Stability and compatibility" promise for plugin and integration authors.
+
 ## 0.5.11 Beta
 - Fixed: the "last signal" no longer jumps to the moment the app was restarted. A value sent again unchanged is no news, the Plugin API takes `measured_at` (when the car really reported), values from Home Assistant carry the time Home Assistant gives. The dot beside it is green with contact (the car reported within 30 minutes) and red without; the time is the last report.
 

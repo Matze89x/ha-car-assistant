@@ -4,6 +4,12 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.12 Beta
+- Einstellungen: Sprache, Datum & Uhrzeit, Zeitzone und Einheiten & Währung sind EINE Karte „Region“; die neue Zeitzone (automatisch = die von Home Assistant, Sommer-/Winterzeit folgt) gilt überall, die Uhrzeit wird angezeigt. Die Seiten System, Auto und Benutzer bestehen aus zwei festen, gleichmäßig füllenden Spalten mit deutlich kürzeren Texten; die MCP-Karte zeigt nur den letzten Aufruf.
+- Behoben: Zeiten in Plugin-Protokollen, Verkehr und „zuletzt benutzt“ wurden in UTC angezeigt und folgen jetzt der System-Zeitzone; die Wahl des Video-Hintergrunds lädt die Seite nicht mehr neu; Benachrichtigungen zeigen nie rohe Koordinaten als Ort.
+- Plugin-Einrichtung: optional „Plugin-Token merken“ (Einstellungen > System > Sicherheit, standardmäßig aus) behält eine verschlüsselte Kopie des Tokens von Plugins mit Verbindungsdatei, damit die Einrichtung es wieder anbieten kann (nur Administratoren, nie in Sicherungen oder Protokollen).
+- Plugin-API: angekündigte Änderungen erscheinen künftig in den Antworten (Header Deprecation / Sunset); die Doku enthält jetzt ein Versprechen „Stabilität und Kompatibilität“ für Plugin- und Integrations-Autoren.
+
 ## 0.5.11 Beta
 - Behoben: das „letzte Signal“ springt nicht mehr auf den Moment des Neustarts. Ein unverändert erneut gesendeter Wert ist keine Neuigkeit, die Plugin-API nimmt `measured_at` (wann das Auto wirklich gemeldet hat), Werte aus Home Assistant tragen die Zeit von Home Assistant. Der Punkt daneben ist grün bei Kontakt (das Auto hat sich in den letzten 30 Minuten gemeldet) und rot ohne; die Zeit ist die letzte Meldung.
 
