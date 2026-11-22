@@ -778,8 +778,8 @@ document.addEventListener("click", function (e) {
   });
 })();
 (function () {
-  /* clicking a tab: the marker swipes to it at once (like the navigation). A tab that opens another page remembers where the marker was and when,
-     and segtabs.js continues the movement on the new page, so it never jumps or starts over. */
+  /* clicking a tab: the marker swipes to it. A tab that switches inside the page swipes at once; a tab that opens another page remembers where the
+     marker was and segtabs.js lets it swipe from there as soon as the new page is there (the old page is gone by then, a swipe on it would never be seen). */
   if (window.__segTabs) { return; }
   window.__segTabs = true;
   document.addEventListener("click", function (event) {
@@ -793,7 +793,8 @@ document.addEventListener("click", function (e) {
       try {
         var all = document.querySelectorAll("main .seg-tabs");
         sessionStorage.setItem("segFrom", JSON.stringify({ i: Array.prototype.indexOf.call(all, bar), n: bar.querySelectorAll("a").length, left: from, w: a.width, t: Date.now() }));
-      } catch (e) { /* no storage: the marker still swipes on this page */ }
+      } catch (e) { /* no storage: the page changes without the swipe */ }
+      return;
     }
     var ind = document.createElement("i");
     ind.className = "seg-ind";
