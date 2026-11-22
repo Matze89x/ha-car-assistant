@@ -120,7 +120,7 @@ def api_root(request: Request):
         "api": 1,
         "connector": request.state.api_token["name"],
         "fields": sorted(connectors.KNOWN),
-        "features": ["measured_at", "plugin-settings"],  # what a plugin can check before it uses it
+        "features": ["measured_at", "plugin-settings", "oil-change", "trip-summary", "position-names", "refuel-notify"],  # what a plugin can check before it uses it
     }
 
 
