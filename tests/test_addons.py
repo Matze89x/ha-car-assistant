@@ -524,7 +524,14 @@ def test_a_service_may_read_and_change_only_the_settings_the_package_marks_writa
         addon = addons.list_for(conn, vid)[0]
         token = addons.new_token(conn, vid, addon)
     h = {"Authorization": f"Bearer {token}"}
-    assert client.get("/api/v1", headers=h).json()["features"] == ["measured_at", "plugin-settings", "oil-change", "trip-summary", "position-names", "refuel-notify"]
+    assert client.get("/api/v1", headers=h).json()["features"] == [
+        "measured_at",
+        "plugin-settings",
+        "oil-change",
+        "trip-summary",
+        "position-names",
+        "refuel-notify",
+    ]
     got = client.get(f"/api/v1/vehicles/{vid}/plugin-settings", headers=h).json()
     assert got["writable"] == ["debug", "interval", "mode", "secret", "status"] and got["settings"]["owner_only"] == ""
     put = lambda values: client.put(f"/api/v1/vehicles/{vid}/plugin-settings", headers=h, json={"values": values})  # noqa: E731
