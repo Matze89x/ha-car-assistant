@@ -631,13 +631,26 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
   .table-wrap .badge { white-space: normal; }
 }
 
-/* "Saved" notices float over the page and fade away: they no longer push the page down and squeeze it under the header. */
-.flash.ok { position: fixed; z-index: 3500; left: 50%; top: calc(var(--safe-top) + 12px); width: min(92vw, 420px); margin: 0; transform: translateX(-50%); padding: 12px 16px; font-weight: 600; background: linear-gradient(var(--ok-bg), var(--ok-bg)), var(--card); border: 1px solid rgba(var(--ok-rgb), .4); box-shadow: 0 10px 30px rgba(var(--shade-rgb), .35); pointer-events: none; animation: flash-out 3.6s ease forwards; }
-@keyframes flash-out { 0%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -8px); visibility: hidden; } }
-@media (prefers-reduced-motion: reduce) {
-  .flash.ok { animation-duration: 3.6s; }
-}
-.flash.err { margin: var(--sp-top) 0 var(--sp-col); }
+/* ONE notice component (info / saved / warning / error): a transparent tile like the buttons, the icon in front, the tint from the design.
+   It always sits in the slot right under the page header (.notice-slot); old .flash markup looks the same and app.js moves it there. */
+.notice-slot { display: grid; gap: 10px; margin: 0 0 var(--sp-block); }
+.notice-slot:empty { display: none; }
+.notice, .flash { display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; margin: 0; padding: 12px 16px; border-radius: var(--r-m); border: 1px solid var(--glass-b); background: var(--glass); color: var(--text); font-size: 14px; font-weight: 500; line-height: 1.45; box-shadow: 0 1px 0 var(--btn-hi) inset; }
+.notice > .ico, .notice > span:first-child > .ico { flex: 0 0 auto; margin-top: 1px; color: var(--accent); }
+.notice > span:last-child, .notice .n-t { min-width: 0; flex: 1 1 auto; }
+.notice a { text-decoration: underline; }
+.notice.info { color: var(--muted); }
+.notice.info .ico { color: var(--accent); }
+.notice.ok, .flash.ok { border-color: rgba(var(--ok-rgb), .4); background: linear-gradient(var(--ok-bg), var(--ok-bg)), var(--glass); }
+.notice.ok .ico { color: var(--ok); }
+.notice.warn, .flash.warn { border-color: rgba(var(--soon-rgb), .45); background: linear-gradient(rgba(var(--soon-rgb), .12), rgba(var(--soon-rgb), .12)), var(--glass); }
+.notice.warn .ico { color: var(--soon); }
+.notice.err, .flash.err { border-color: rgba(var(--overdue-rgb), .45); background: linear-gradient(var(--overdue-bg), var(--overdue-bg)), var(--glass); }
+.notice.err .ico { color: var(--overdue); }
+.notice.fading { transition: opacity .5s ease, transform .5s ease; opacity: 0; transform: translateY(-4px); }
+.notice.gone { display: none; }
+.notice .hint, .notice p { margin: 0; }
+.notice.set-scope, .notice.pk-bar { margin: 0; }
 
 /* Page changes keep showing the old page until the new one is ready (no white frame in between inside the Home Assistant app). */
 @view-transition { navigation: auto; }

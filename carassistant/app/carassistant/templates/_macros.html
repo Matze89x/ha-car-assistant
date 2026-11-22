@@ -88,6 +88,7 @@
 {% macro page_head(ic, title, sub=none, tabs=true) -%}
 <div class="page-head">{% if back_href %}<a class="back-btn{{ ' deep' if back_deep }}" href="{{ base }}{{ back_href }}" aria-label="{{ _('nav.more') }}" title="{{ _('nav.more') }}">{{ icon('chevron-left', 22) }}</a>{% endif %}<div class="ph-t"><h1>{{ icon(ic, 26) }}<span>{{ title }}</span></h1>{% set subline = (v.name if v and not app_car else none) if sub is none else sub %}{% if subline %}<div class="ph-s"{{ ' data-car' if sub is none }}>{{ subline }}{% if sub is none and switch_vehicles %}<button type="button" class="cur-switch" data-open="vsw" aria-label="{{ _('nav.change') }}" title="{{ _('nav.change') }}">{{ icon('swap', 15) }}</button>{% endif %}</div>{% endif %}</div>{% if caller %}<div class="actions">{{ caller() }}</div>{% endif %}</div>
 {% if section_tabs and tabs %}<nav class="seg-tabs" aria-label="{{ v.name }}">{% for st in section_tabs %}<a href="{{ base }}{{ st.href }}" class="{{ 'on' if st.on }}"{% if st.on %} aria-current="page"{% endif %}>{{ st.title }}</a>{% endfor %}</nav>{% endif %}
+{% if tabs %}<div class="notice-slot" aria-live="polite"></div>{% endif %}
 {%- endmacro %}
 
 {# Labels of the widget settings (one entry per option and choice; add the next widget's options here) #}

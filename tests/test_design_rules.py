@@ -136,3 +136,17 @@ def test_section_labels_share_one_air_above_and_one_distance_to_the_tile_below()
             if ".card.grid" in head or ".pl-fix" in head:
                 continue
             assert "var(--sp-label" in line, line
+
+
+def test_every_page_head_has_the_one_notice_slot_and_the_script_fills_it(client):
+    """Info, saved, warning and error all land in ONE slot under the page header (app.js moves the old .flash markup there)."""
+    from pathlib import Path
+
+    from tests.test_web import create_vehicle
+
+    vid = create_vehicle(client)
+    for path in (f"/v/{vid}/e/service", f"/v/{vid}/docs", f"/v/{vid}/plugins", "/settings/user"):
+        page = client.get(path).text
+        assert 'class="notice-slot"' in page and 'id="notice-icons"' in page, path
+    js = (Path(__file__).resolve().parents[1] / "carassistant/app/carassistant/static/app.js").read_text(encoding="utf-8")
+    assert ".notice-slot" in js and '"info"' in js and '"err"' in js

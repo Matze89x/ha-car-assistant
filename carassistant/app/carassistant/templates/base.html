@@ -75,6 +75,7 @@
     <div class="vpage {{ 'vhome' if (v and tab == 'overview') else 'vsub' }}{{ ' with-more' if more_pane }}">
     {% if more_pane %}<aside class="more-pane" aria-label="{{ _('nav.more') }}">{{ page_head('more', _('nav.more'), '', false) }}{% set groups = more_pane %}{% include "_more_groups.html" %}</aside>{% endif %}
     {% if v and tab == 'overview' and not hide_hero %}{% include "_tabs.html" %}{% endif %}
+    <template id="notice-icons"><span data-k="info">{{ icon('information-outline', 20) }}</span><span data-k="ok">{{ icon('check-circle-outline', 20) }}</span><span data-k="warn">{{ icon('alert-outline', 20) }}</span><span data-k="err">{{ icon('alert-circle-outline', 20) }}</span></template>
     <main>
       {% if msg %}
         <div class="flash {{ 'err' if msg.startswith('err.') or msg.startswith('acct.') or '.err_' in msg or msg == 'notify_fail' else 'ok' }}" role="status">
