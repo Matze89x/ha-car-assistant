@@ -116,7 +116,9 @@ def accent_css(color: str, scheme: str) -> str:
         return accent_css(color, "dark") + "@media (prefers-color-scheme: light){" + accent_css(color, "light") + "}"
     h, light, s = colorsys.rgb_to_hls(red, green, blue)
     if scheme == "light":
-        base = min(max(light, 0.18), 0.62)  # wide on purpose: the brightness slider has to be felt; readable_lightness() below keeps it readable
+        base = min(
+            max(light, 0.18), 0.62
+        )  # wide on purpose: the brightness slider has to be felt; readable_lightness() below keeps it readable
         hi = base - 0.07
     else:
         base = min(max(light, 0.30), 0.72)
