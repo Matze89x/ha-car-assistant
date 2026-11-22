@@ -59,10 +59,31 @@ def forget() -> None:
     _cache["value"] = None
 
 
-def plugin_updates(conn: sqlite3.Connection) -> int:
-    rows = conn.execute("SELECT * FROM vehicle_addons").fetchall()
+def package_updates(conn: sqlite3.Connection) -> list[dict]:
+    """Installed plugins and integrations (of every car) for which their source offers a newer version."""
+    rows = conn.execute(
+        "SELECT a.*, v.name AS car, v.slug AS car_slug FROM vehicle_addons a JOIN vehicles v ON v.id = a.vehicle_id ORDER BY v.name COLLATE NOCASE, a.id"
+    ).fetchall()
     offered = addons._newer_versions(conn, rows)
-    return sum(1 for r in rows if sources.is_newer(offered.get(r["id"], ""), json.loads(r["manifest"]).get("version", "")))
+    out = []
+    for r in rows:
+        manifest = json.loads(r["manifest"])
+        if sources.is_newer(offered.get(r["id"], ""), manifest.get("version", "")):
+            out.append(
+                {
+                    "kind": r["kind"],
+                    "name": manifest.get("name") or r["addon_id"],
+                    "car": r["car"],
+                    "car_slug": r["car_slug"],
+                    "installed": manifest.get("version", ""),
+                    "latest": offered[r["id"]],
+                }
+            )
+    return out
+
+
+def plugin_updates(conn: sqlite3.Connection) -> int:
+    return len(package_updates(conn))
 
 
 def status(conn: sqlite3.Connection) -> dict:
@@ -74,6 +95,7 @@ def status(conn: sqlite3.Connection) -> dict:
         "checked": db.get_setting(conn, "app.update.checked", ""),
         "newer": bool(latest) and sources.is_newer(latest, __version__),
         "plugins": plugin_updates(conn),
+        "packages": package_updates(conn),
     }
 
 

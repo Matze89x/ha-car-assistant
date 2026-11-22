@@ -2496,6 +2496,8 @@ async def settings_app_update(request: Request):
     with db.tx() as conn:
         if "now" in form:
             ok = appupdate.check(conn)
+            for kind in sources.KINDS:  # the person pressed the button: the package sources are read as well
+                sources.refresh_all(conn, kind)
             appupdate.forget()
             return go(request, "/settings/system#updates", "saved" if ok else "err.update_check")
         db.set_setting(conn, appupdate.SETTING, "1" if form.get("check") else None)

@@ -45,7 +45,7 @@
       {% if update_pending.app %}<a href="{{ base }}/settings/system#updates"><span class="u-k">{{ _('upd.system') }}</span><b>v{{ update_pending.app }}</b></a>{% endif %}
       {% if update_pending.plugins %}<a href="{{ base }}{{ ('/v/' ~ v.slug ~ '/plugins') if v else '/settings/system#updates' }}"><span class="u-k">{{ _('upd.plugins') }}</span><b>{{ _('upd.n', n=update_pending.plugins) }}</b></a>{% endif %}
     </div>{% endif %}
-    <div class="sb-foot" {% if update_pending.app or update_pending.plugins %}title="{{ _('upd.available') }}"{% endif %}><span class="dot {{ 'warn' if update_pending.app or update_pending.plugins }}"></span><span class="sb-ver">v{{ version }}</span></div>
+    <div class="sb-foot" {% if update_pending.app or update_pending.plugins %}{% set why = [] %}{% if update_pending.app %}{% set _w = why.append(_('upd.system') ~ ' v' ~ update_pending.app) %}{% endif %}{% if update_pending.plugins %}{% set _w = why.append(_('upd.plugins') ~ ': ' ~ _('upd.n', n=update_pending.plugins)) %}{% endif %}title="{{ _('upd.available') }}: {{ why|join(' · ') }}" aria-label="{{ _('upd.available') }}: {{ why|join(' · ') }}"{% endif %}><span class="dot {{ 'warn' if update_pending.app or update_pending.plugins }}"></span><span class="sb-ver">v{{ version }}</span></div>
   </aside>{% endif %}
   <div class="content">
     {% if switch_vehicles %}

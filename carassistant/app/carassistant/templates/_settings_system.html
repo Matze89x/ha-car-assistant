@@ -57,6 +57,9 @@
     {{ switch_row('check', _('upd.check_app'), app_update.enabled, hint=_('upd.check_app_hint')) }}
   </form>
   <p class="hint upd-line">{% if app_update.latest %}{{ _('upd.latest', v=app_update.latest) }}{% if app_update.newer %} · <b class="upd-new">{{ _('upd.newer') }}</b>{% else %} · {{ _('upd.current') }}{% endif %}{% if app_update.checked %} · {{ _('upd.checked', when=fdate(app_update.checked) ~ ' ' ~ ftime(app_update.checked[11:16])) }}{% endif %}{% else %}{{ _('upd.never') }}{% endif %}{% if app_update.plugins %} · {{ _('upd.plugins') }}: {{ _('upd.n', n=app_update.plugins) }}{% endif %}</p>
+  {% if app_update.packages %}<ul class="upd-list">
+    {% for p in app_update.packages %}<li><a href="{{ base }}/v/{{ p.car_slug }}/plugins"><span class="mi-ic {{ 'c4' if p.kind == 'plugin' else 'c1' }}">{{ icon('plug' if p.kind == 'plugin' else 'puzzle', 18) }}</span><span class="upd-t"><b>{{ p.name }}</b><small>{{ p.car }} · {{ _('addon.kind_plugin') if p.kind == 'plugin' else _('addon.kind_integration') }}</small></span><span class="upd-v">v{{ p.installed }} → v{{ p.latest }}</span></a></li>{% endfor %}
+  </ul>{% endif %}
   <form method="post" action="{{ base }}/settings/app-update" class="mqtt-bar"><button class="ghost-btn" name="now" value="1">{{ icon('refresh', 18) }}<span>{{ _('upd.now') }}</span></button></form>
 </section>
 
