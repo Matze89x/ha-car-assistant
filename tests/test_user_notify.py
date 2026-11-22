@@ -1,5 +1,5 @@
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from tests.test_web import create_vehicle
 
@@ -160,6 +160,8 @@ def test_events_are_chosen_per_car(client, monkeypatch):
 def test_a_finished_trip_is_announced_at_once(client, monkeypatch):
     from carassistant import trips, worker
 
+    DAY = (datetime.now(UTC) - timedelta(hours=20)).date().isoformat()  # a drive from yesterday evening or earlier today: always "recent"
+
     uid = _admin(client)
     vid = create_vehicle(client, "Trip Car")
     sent = []
@@ -169,9 +171,9 @@ def test_a_finished_trip_is_announced_at_once(client, monkeypatch):
         for i in range(8):  # a drive of a few kilometres, long ago enough to count as finished
             conn.execute(
                 "INSERT INTO vehicle_track(vehicle_id, ts, lat, lon) VALUES(?, ?, ?, 8.0)",
-                (vid, f"2026-11-20T10:{i:02d}:00+00:00", 50.0 + i * 0.01),
+                (vid, f"{DAY}T10:{i:02d}:00+00:00", 50.0 + i * 0.01),
             )
-        assert trips.from_track(conn, vid, datetime(2026, 11, 20, 12, 0, tzinfo=UTC)) == 1
+        assert trips.from_track(conn, vid, datetime.fromisoformat(f"{DAY}T12:00:00+00:00")) == 1
     # the finished drive wakes the worker, which tells the user without waiting for the 6-hourly check
     worker.run_once({"poll": 1e12, "publish": 1e12, "notify": 1e12, "maintain": 1e12, "srcauto": 1e12}, 1.0)
     assert len(sent) == 1
