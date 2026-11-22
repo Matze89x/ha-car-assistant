@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.16 Beta
+- Ein ruhigeres, einheitliches Design: eine Hinweis-Kachel unter jedem Seitenkopf (Info, Gespeichert, Warnung, Fehler), runde Symbolknöpfe im Seitenkopf, derselbe Abstand bei allen Abschnittsbeschriftungen, Symbole in jeder Tab-Leiste und Fahrtenkarten in voller Breite im Format 16:9. Tanken: neue, einfache Tankstellensuche (Kraftstoff vom Auto, 15 km, Preis und Entfernung), die Tankungen-Suche entfällt. Reifen: ein Satz pro Saison mit Pflicht-Namen, Schild-Symbol für den montierten Satz. Umbauten: Hinzufügen wie auf den anderen Seiten. Plugin-Token werden immer gemerkt und stecken in Sicherungen (Sicherungsdateien privat halten). Seiten von Paketen behalten die maximale Breite und bekommen einen Fuß. Barrierefreiheit: nur noch eine Überschrift der Ebene 1 pro Seite; Demo-Dokumente ohne Datei zeigen keinen Öffnen-Knopf mehr.
+
 ## 0.5.15 Beta
 - Plugins können Straße und Ort mit der Position senden, die Namen des Autos ersetzen die Adress-Abfrage. Ein Tanken ohne Menge wird ein unfertiger Eintrag mit Push, und ein in kleinen Schritten gefüllter Tank zählt als ein Tanken. Neue Felder für den Ölwechsel, und die Werte des Bordcomputers (Verbrauch, Durchschnittstempo, Dauer) erscheinen an der passenden Fahrt. `GET /api/v1` nennt die neuen Fähigkeiten in `features`.
 

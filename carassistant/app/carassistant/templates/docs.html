@@ -19,7 +19,7 @@
         {% if d.valid_until %}<div><dt>{{ _('docs.valid_until') }}</dt><dd>{{ fdate(d.valid_until) }}</dd></div>{% endif %}
       </dl>
       {% if d.notes %}<p class="md-notes">{{ d.notes }}</p>{% endif %}
-      <div class="rec-actions doc-acts"><a class="ghost-btn small" href="{{ base }}/v/{{ v.slug }}/docs/{{ d.id }}">{{ icon('download', 16) }}<span>{{ _('docs.open') }}</span></a><button type="button" class="ghost-btn small" data-rec-open>{{ icon('pencil', 16) }}<span>{{ _('btn.edit') }}</span></button></div>
+      <div class="rec-actions doc-acts">{% if d.size %}<a class="ghost-btn small" href="{{ base }}/v/{{ v.slug }}/docs/{{ d.id }}">{{ icon('download', 16) }}<span>{{ _('docs.open') }}</span></a>{% endif %}<button type="button" class="ghost-btn small" data-rec-open>{{ icon('pencil', 16) }}<span>{{ _('btn.edit') }}</span></button></div>
       <div class="rec-inline">
         <form method="post" action="{{ base }}/v/{{ v.slug }}/docs/{{ d.id }}" class="grid">
           <label>{{ _('f.title') }}<input type="text" name="title" maxlength="120" required value="{{ d.title }}"></label>

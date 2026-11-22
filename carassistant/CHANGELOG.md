@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.16 Beta
+- A calmer, more consistent design: one notice tile under every page header (info, saved, warning, error), round icon-only header buttons, the same spacing for all section labels, symbols in every tab bar, and trip maps in full width 16:9. Fuel: a new, simple station search (fuel type from the car, 15 km, price and distance) and the fill-up search is gone. Tyres: one set per season with a required name, a shield symbol for the mounted set. Modifications: add like on the other pages. Plugin tokens are always kept and travel in backups (keep backup files private). Pages of packages keep the maximum width and get a foot. Accessibility: one heading level one per page; demo documents without a file no longer show an Open button.
+
 ## 0.5.15 Beta
 - Plugins can send street and place with the position, and the car's own names are used instead of an address lookup. A refuel sent without an amount becomes an unfinished entry with the push, and a tank filled in small steps counts as one refuel. New fields for the oil change, and the car's trip computer values (consumption, average speed, duration) are shown on the matching trip. `GET /api/v1` lists the new abilities in `features`.
 
