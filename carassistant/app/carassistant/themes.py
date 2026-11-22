@@ -79,6 +79,27 @@ def _luminance(r: float, g: float, b: float) -> float:
     return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
 
 
+# the surfaces a design colour has to be readable on (a card of the light design / of the dark one)
+SURFACE = {"light": "#f4f5f7", "dark": "#181c24"}
+
+
+def contrast(a: str, b: str) -> float:
+    """WCAG contrast ratio of two ``#rrggbb`` colours (1 = none, 21 = black on white)."""
+    la, lb = (_luminance(*(int(c[i : i + 2], 16) / 255 for i in (1, 3, 5))) for c in (a, b))
+    hi, lo = max(la, lb), min(la, lb)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def readable_lightness(h: float, s: float, light: float, scheme: str, ratio: float) -> float:
+    """The lightness nearest to ``light`` at which this colour reaches ``ratio`` on the surface of the scheme: darker on the light design,
+    lighter on the dark one. A pale green on white becomes a deeper green, a dark blue on dark a lighter blue - the hue stays."""
+    surface = SURFACE["light" if scheme == "light" else "dark"]
+    step = -0.01 if scheme == "light" else 0.01
+    while 0.04 < light < 0.96 and contrast(_hex(h, s, light), surface) < ratio:
+        light += step
+    return light
+
+
 def _hex(h: float, s: float, light: float) -> str:
     r, g, b = colorsys.hls_to_rgb(h, min(max(light, 0.0), 1.0), s)
     return f"#{round(r * 255):02x}{round(g * 255):02x}{round(b * 255):02x}"
@@ -100,6 +121,8 @@ def accent_css(color: str, scheme: str) -> str:
     else:
         base = min(max(light, 0.42), 0.58)
         hi = min(base + 0.26, 0.82)
+    base = readable_lightness(h, s, base, scheme, 3.0)  # whatever the colour: fills and lines of it are always visible (3 : 1)
+    ink = _hex(h, s, readable_lightness(h, s, base, scheme, 4.5))  # ... and as text always readable (4.5 : 1)
     top, bot, top_h, bot_h = base + 0.10, base - 0.03, base + 0.14, base
     main = _hex(h, s, base)
     mr, mg, mb = (int(main[i : i + 2], 16) for i in (1, 3, 5))
@@ -110,7 +133,7 @@ def accent_css(color: str, scheme: str) -> str:
         ":root:root:root{"
         f"--accent:{main};--accent-rgb:{mr}, {mg}, {mb};--accent-hi:{_hex(h, s, hi)};"
         f"--accent-top:{_hex(h, s, top)};--accent-bot:{_hex(h, s, bot)};--accent-top-h:{_hex(h, s, top_h)};--accent-bot-h:{_hex(h, s, bot_h)};"
-        f"--accent-text:{text}"
+        f"--accent-text:{text};--accent-ink:{ink}"
         "}"
     )
 

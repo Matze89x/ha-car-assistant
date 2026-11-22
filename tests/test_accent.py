@@ -112,3 +112,19 @@ def test_the_frame_of_the_icon_follows_the_design(client):
     assert appicon.themed(None)
     client.post("/settings/theme", data={"theme": "default"})  # Classic red again: the original icon, as drawn
     assert edge() == classic and not appicon.themed(None)
+
+
+def test_any_colour_stays_visible_and_readable_on_its_design():
+    """A pale colour on the light design (or a dark one on the dark design) is deepened / lightened until it can be seen (3 : 1) and read as text (4.5 : 1)."""
+    import re
+
+    from carassistant import themes
+
+    for colour in ("#00ffab", "#ffff00", "#ff0000", "#3ddc84", "#ffffff", "#000000", "#2f8cff", "#a855f7"):
+        for scheme in ("light", "dark"):
+            css = themes.accent_css(colour, scheme)
+            main = re.search(r"--accent:(#[0-9a-f]{6})", css).group(1)
+            ink = re.search(r"--accent-ink:(#[0-9a-f]{6})", css).group(1)
+            surface = themes.SURFACE[scheme]
+            assert themes.contrast(main, surface) >= 2.9, (colour, scheme, main)
+            assert themes.contrast(ink, surface) >= 4.4, (colour, scheme, ink)
