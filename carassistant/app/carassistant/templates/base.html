@@ -34,7 +34,7 @@
 <body{% if haptics and not hide_nav %} data-haptics="1"{% endif %}{% if live_poll %} data-live-poll="{{ base }}{{ live_poll }}"{% endif %}>
 <div class="shell{{ ' setup' if hide_nav }}">
   {% if not hide_nav %}<aside class="side">
-    <a class="sb-brand" href="{{ base }}/" title="{{ _('nav.home') }}" aria-label="{{ _('nav.home') }}"><i class="brand-mark"><img src="{{ base }}/static/logo-car.svg?v={{ asset_v }}" alt="" width="54" height="54"></i><span><b>Car Assistant</b><small class="sb-slogan">Drive · Log · Go</small></span></a>
+    <a class="sb-brand" href="{{ base }}/" title="{{ _('nav.home') }}" aria-label="{{ _('nav.home') }}"><i class="brand-mark"><img src="{{ base }}/static/logo-car.svg?v={{ asset_v }}" alt="" width="54" height="54"></i><span><b>Car <em>Assistant</em></b><small class="sb-slogan">Drive · Log · Go</small></span></a>
     {% set cur = namespace(i=0) %}
     {% for it in nav_items %}{% if it.on %}{% set cur.i = loop.index0 %}{% endif %}{% endfor %}
     <nav class="tabbar n{{ nav_items|length }} i{{ cur.i }}" id="tabbar" data-i="{{ cur.i }}" aria-label="Main">

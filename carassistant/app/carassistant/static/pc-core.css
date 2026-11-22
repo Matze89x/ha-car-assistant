@@ -2896,3 +2896,6 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .cd-l { display: inline-flex; align-items: center; }
 .wd-li { align-items: center; }
 .pos-head { align-items: center; }
+
+/* the name: "Assistant" is in the main colour of the design (the slogan stays green) - side bar, About and login alike */
+.side .sb-brand b em, .about-id h2 em, .brand-lock h1 em { font-style: normal; color: var(--accent); }

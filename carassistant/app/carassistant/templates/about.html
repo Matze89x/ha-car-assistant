@@ -9,7 +9,7 @@
   {% if logo_custom %}<i class="brand-mark big custom"><img src="{{ icon_base ~ '/128.png?v=' ~ icon_rev }}" alt="" width="84" height="84"></i>
   {% endif %}
   <div class="about-id">{% if not logo_custom %}<img class="about-logo" src="{{ base }}/static/about-logo.svg?v={{ asset_v }}" alt="" width="150" height="150">{% endif %}
-  <h2>Car Assistant</h2><p class="about-slogan">Drive · Log · Go</p></div>
+  <h2>Car <em>Assistant</em></h2><p class="about-slogan">Drive · Log · Go</p></div>
   <p class="about-tag">{{ _('about.tagline') }}</p>
   <div class="about-links">
     <span class="badge ok">v{{ about.version }}{% if about.stage %} {{ about.stage }}{% endif %}</span>
