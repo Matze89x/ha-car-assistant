@@ -1282,3 +1282,15 @@ def test_a_tyre_set_needs_a_name_when_saved_from_the_edit_page(client):
     assert client.post(f"/v/{vid}/e/tires/save", data=data).status_code == 400  # no made-up heading
     ok = client.post(f"/v/{vid}/e/tires/save", data={**data, "n_allseason_name": "All-season set"}, follow_redirects=False)
     assert ok.status_code == 303
+
+
+def test_one_tyre_set_per_season(client):
+    vid = create_vehicle(client)
+    assert client.post(f"/v/{vid}/e/tires", data={"name": "S1", "season": "summer"}, follow_redirects=False).status_code == 303
+    assert client.post(f"/v/{vid}/e/tires", data={"name": "S2", "season": "summer"}).status_code == 400  # one each
+    client.post(f"/v/{vid}/e/tires/save", data={"view": "summer", "n_summer_name": "S3"})
+    from carassistant import db
+
+    with db.tx() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM tires WHERE vehicle_id = ? AND season = 'summer'", (vid,)).fetchone()[0] == 1
+    assert "te-more" not in client.get(f"/v/{vid}/e/tires?edit=1&ps=summer").text  # no "add another set"

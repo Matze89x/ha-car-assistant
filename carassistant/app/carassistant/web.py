@@ -1588,7 +1588,8 @@ async def tire_save_all(request: Request, vid: int):
                     conn, vid, season, {n: form.get(f"p_{season}_{n}", "") for n in ("front", "rear", "load_front", "load_rear")}
                 )
                 fresh = {n: form.get(f"n_{season}_{n}", "") for n in _TIRE_FIELDS}
-                if any(v.strip() for v in fresh.values()):
+                has_set = conn.execute("SELECT 1 FROM tires WHERE vehicle_id = ? AND season = ?", (vid, season)).fetchone()
+                if not has_set and any(v.strip() for v in fresh.values()):  # one set per season
                     # the name (the heading of the set) is a must: no made-up default, the form says so
                     entities.insert(conn, ENTITIES["tires"], vid, entities.parse_form(ENTITIES["tires"], {**fresh, "season": season}))
             for row in conn.execute("SELECT id, season FROM tires WHERE vehicle_id = ?", (vid,)).fetchall():
@@ -1621,6 +1622,11 @@ async def entity_add(request: Request, vid: int, key: str):
         with db.tx() as conn:
             vehicle = vehicle_or_404(conn, vid)
             values = entities.parse_form(entity, form, units.of(vehicle), unit_for(vehicle["fuel_type"]))  # typed in the units shown
+            if (
+                key == "tires"
+                and conn.execute("SELECT 1 FROM tires WHERE vehicle_id = ? AND season = ?", (vid, values.get("season"))).fetchone()
+            ):
+                raise FormError("err.tires_one_per_season")  # summer, winter and all-season: one set each
             entities.insert(conn, entity, vid, values)
     except FormError as exc:
         return entity_page(request, vid, "trips" if key == "counters" else key, form, exc.args, status=400)

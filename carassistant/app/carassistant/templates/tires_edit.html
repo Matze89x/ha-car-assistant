@@ -44,9 +44,7 @@
   {% set season_rows = rows|selectattr('season', 'equalto', sn)|list %}
   <section class="te-panel tire-wrap tv-sets" data-panel="{{ sn }}" {{ 'hidden' if sn != tp.season }}>
     {% for r in season_rows %}{{ set_card(sn, 't' ~ r['id'] ~ '_', r, pv if loop.first else none) }}{% endfor %}
-    {% if season_rows %}
-    <details class="card add-card te-more"><summary><span class="add-ic">{{ icon('plus', 18) }}</span><span>{{ _('tires.add') }}</span></summary>{{ set_card(sn, 'n_' ~ sn ~ '_', none, none) }}</details>
-    {% else %}{{ set_card(sn, 'n_' ~ sn ~ '_', none, pv) }}{% endif %}
+    {% if not season_rows %}{{ set_card(sn, 'n_' ~ sn ~ '_', none, pv) }}{% endif %}
   </section>
   {% endfor %}
 </form>
