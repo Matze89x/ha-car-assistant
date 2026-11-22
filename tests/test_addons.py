@@ -414,7 +414,10 @@ def test_the_guide_takes_over_a_token_the_device_already_has_and_then_keeps_it_f
 
     config.forget_external()
     url = f"/v/{slug(vid)}/integrations/{aid}"
-    assert "Use an existing token" in client.get(f"{url}/guide?step=2").text  # none in the app yet
+    page2 = client.get(
+        f"{url}/guide?step=2"
+    ).text  # none in the app yet: the existing-token box is shown (input = adopt) and nothing is stored
+    assert "Keep using the existing token" in page2 and 'name="adopt_token"' in page2 and 'value="saved"' not in page2
     settings = {"server": "https://car.example.com", "interval": "60", "dns": ""}
     for bad in ("not-a-token", "ca_short"):
         assert client.post(f"{url}/guide/next", data={**settings, "adopt_token": bad}).status_code == 400
@@ -423,9 +426,7 @@ def test_the_guide_takes_over_a_token_the_device_already_has_and_then_keeps_it_f
     assert step3.status_code == 200 and f'name="token" value="{mine}"' in step3.text
     assert client.get("/api/v1", headers={"Authorization": f"Bearer {mine}"}).status_code == 200  # it works as a token
     again = client.get(f"{url}/guide?step=2").text
-    assert (
-        "This plugin has a token" in again and mine not in again and "Use an existing token" not in again
-    )  # fixed now, only its mark shows
+    assert "This plugin has a token" in again and mine not in again and 'name="have_token"' in again  # fixed now, only its mark shows
     with db.tx() as conn:
         assert mine not in json.dumps([dict(r) for r in conn.execute("SELECT * FROM api_tokens")])  # only the fingerprint is stored
         before = conn.execute("SELECT COUNT(*) FROM api_tokens").fetchone()[0]
@@ -590,3 +591,33 @@ def test_a_package_may_name_one_of_its_frame_pages_as_its_own_settings_page(clie
     assert addons.parse_package(json.dumps({**base, "settings_page": "cfg"}).encode())["settings_page"] == "cfg"
     assert "settings_page" not in addons.parse_package(json.dumps({**base, "settings_page": "nope"}).encode())  # only an own frame page
     assert "settings_page" not in addons.parse_package(json.dumps(base).encode())
+
+
+def test_step_two_has_three_boxes_and_next_does_the_chosen_one(client):
+    vid = create_vehicle(client)
+    upload(client, vid, json.dumps(SETUP_MANIFEST).encode())
+    with db.tx() as conn:
+        aid = addons.list_for(conn, vid)[0]["id"]
+    client.post(f"/v/{vid}/edit", data={"name": "My Car", "vin": "WV1ZZZ2KZZZ012345", "fuel_type": "diesel"})
+    with db.tx() as conn:
+        db.set_setting(conn, "ext.url", "https://car.example.com")
+    from carassistant import config
+
+    config.forget_external()
+    url = f"/v/{slug(vid)}/integrations/{aid}"
+    settings = {"server": "https://car.example.com", "interval": "60", "dns": ""}
+    first = client.get(f"{url}/guide?step=2").text
+    assert first.count('name="token_mode"') == 2 and 'value="new" checked' in first  # no token yet: existing + new, "new" preselected
+    made = client.post(f"{url}/guide/next", data={**settings, "token_mode": "new"})
+    token = re.search(r"ca_[A-Za-z0-9_-]{20,}", made.text).group(0)
+    assert made.status_code == 200 and "link.cfg" in made.text
+    again = client.get(f"{url}/guide?step=2").text
+    assert 'value="existing" checked' in again and "<code>•••• " in again  # a token is known: "keep using" is preselected
+    renewed = client.post(f"{url}/guide/next", data={**settings, "token_mode": "new"})  # the old token becomes invalid
+    token2 = re.search(r"ca_[A-Za-z0-9_-]{20,}", renewed.text).group(0)
+    assert token2 != token and client.get("/api/v1", headers={"Authorization": f"Bearer {token}"}).status_code == 401
+    assert client.get("/api/v1", headers={"Authorization": f"Bearer {token2}"}).status_code == 200
+    kept = client.post(f"{url}/guide/next", data={**settings, "token_mode": "existing", "have_token": token2})
+    assert kept.status_code == 200 and f'name="token" value="{token2}"' in kept.text
+    wrong = client.post(f"{url}/guide/next", data={**settings, "token_mode": "existing", "have_token": "ca_wrong"})
+    assert wrong.status_code == 400

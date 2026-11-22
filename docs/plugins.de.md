@@ -213,6 +213,8 @@ Ein Plugin mit Anbindungsdatei kann eine Anleitung mitbringen, die Car Assistant
 
 Ein Schritt bringt einen optionalen `text` mit (bis 3000 Zeichen; die Schritte `check`, `token` und `files` kennt die Anleitung) und `l10n` je Schritt (`title`, `text`). Der Text ist einfacher Text mit `1. `- / `- `-Listen, `**fett**` und `[Beschriftung](https://...)`-Links (nur https); alles andere erscheint, wie getippt. Die `note` eines Bundles sagt, was es tut (zum Beispiel dass es zuerst den alten Stand sichert).
 
+**Einsteigerfreundliche Schritte 2 und 3.** Schritt 2 zeigt drei Boxen mit Auswahl oben (genau eine ist gewählt): *Gespeichertes Token verwenden* (nur wenn die App eine entschlüsselbare gespeicherte Kopie hat; vorgewählt), *Vorhandenes Token weiter verwenden* (das Token aus der Datei im Gerät eintragen; ohne Token in der App ist das der Übernehmen-Weg) und *Neues Token erstellen* (das alte wird ungültig; bei vorhandenem Token fragt *Weiter* noch einmal nach). *Weiter* führt die Auswahl aus und geht zu Schritt 3. Mit `"settings": []` am Schritt entfällt der Einstellungsblock (Überschrift und Hinweis) ganz. Schritt 3 zeigt die `bundles` des Plugins als gleich große Boxen (Name, `note`, Größe, ein Download-Knopf); der einzelne Download der Anbindungsdatei erscheint nur, wenn das Plugin **kein** Paket mit `connection_file_to` hat, denn die Datei steckt schon im Paket.
+
 ### Freiraum für das Plugin: eigene Schritte, Einstellungen und Werte
 Alles Folgende ist **optional** und nur eine Ergänzung; die Sicherheit bleibt bei der App (Prüfung von Adresse und VIN, Token, Anbindungsdatei, Pakete, Freigabe durch den Administrator).
 

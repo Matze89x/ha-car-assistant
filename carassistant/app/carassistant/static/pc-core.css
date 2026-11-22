@@ -2925,3 +2925,13 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .rg-row select { width: 100%; min-width: 0; text-overflow: ellipsis; }
 .rg-units .season-pick .sp b { font-size: 12px; overflow-wrap: normal; }
 .rg-units .season-pick .sp { min-width: 0; padding-inline: 6px; }
+
+/* Setup guide, step 2/3: boxes with a choice on top (radio behaviour), download boxes */
+.guide-opts { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.guide-opt.pick { cursor: pointer; }
+.guide-opt.pick:has(input[type="radio"]:checked) { border-color: var(--accent); background: rgba(var(--fg-rgb), .06); }
+.guide-opt .pick-h { display: flex; align-items: center; gap: 10px; }
+.guide-opt .pick-h input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); flex: none; }
+.guide-opt.dl h3 { display: flex; align-items: center; gap: 8px; }
+.guide-opt.dl .inline { margin: 0; }
+.guide-set { margin-top: 14px; }

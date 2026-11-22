@@ -37,54 +37,67 @@
     <p class="hint">{{ _('api.token_once') }}</p>
     <ul class="codes"><li class="mono token-line">{{ token }}</li></ul>
     <p class="hint">{{ _('guide.token_fresh_hint') }}</p>
+    <form method="post" action="{{ base_url }}/guide/next" class="guide-stack"><input type="hidden" name="token" value="{{ token }}">
+    <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step=1">{{ _('btn.back') }}</a><button class="primary">{{ _('guide.next') }}</button></div></form>
   {% else %}
-  {% if has_token %}<p class="guide-fp"><b>{{ _('guide.token_have') }}</b> <code>•••• {{ fingerprint }}</code></p>{% endif %}
-  <div class="guide-opts">
-    {% if saved_token %}<div class="guide-opt">
-      <h3>{{ _('guide.token_saved') }}</h3>
-      <button type="submit" form="gform" name="use_saved" value="1" class="primary">{{ icon('key-variant', 18) }}<span>{{ _('guide.token_saved_use') }}</span></button>
-    </div>{% endif %}
-    <div class="guide-opt">
-      <h3>{{ _('guide.token_reuse') if has_token else _('guide.adopt_title') }}</h3>
-      <p class="hint">{{ _('guide.token_reuse_hint') if has_token else _('guide.adopt_hint') }}</p>
-      <input type="password" name="{{ 'have_token' if has_token else 'adopt_token' }}" form="gform" maxlength="200" autocomplete="off" placeholder="ca_..." aria-label="{{ _('addon.token_have_field') }}">
-    </div>
-    <div class="guide-opt">
-      <h3>{{ _('guide.token_new') }}</h3>
-      <p class="hint">{{ _('guide.token_new_hint') if has_token else _('guide.token_none_hint') }}</p>
-      <form method="post" action="{{ base_url }}/guide/token" {% if has_token %}data-confirm="{{ _('addon.confirm_token') }}"{% endif %}><button>{{ icon('refresh' if has_token else 'plus', 18) }}<span>{{ _('guide.token_new') }}</span></button></form>
-    </div>
-  </div>
-  {% endif %}
-</section>
-<form method="post" action="{{ base_url }}/guide/next" class="addon-fields set-form guide-stack" id="gform">
+  {% set mode0 = 'saved' if saved_token else ('existing' if has_token else 'new') %}
+  <form method="post" action="{{ base_url }}/guide/next" class="guide-stack" id="gform" data-confirm-new="{{ _('addon.confirm_token') if has_token else '' }}">
   <input type="hidden" name="token" value="{{ token }}">
-  <section class="card guide-step">
+  {% if has_token and not saved_token %}<p class="guide-fp"><b>{{ _('guide.token_have') }}</b> <code>•••• {{ fingerprint }}</code></p>{% endif %}
+  <div class="guide-opts">
+    {% if saved_token %}<label class="guide-opt pick">
+      <span class="pick-h"><input type="radio" name="token_mode" value="saved" {{ 'checked' if mode0 == 'saved' }}><b>{{ _('guide.token_saved_use') }}</b></span>
+      <span class="hint">{{ _('guide.token_have') }} <code>•••• {{ fingerprint }}</code></span>
+    </label>{% endif %}
+    <label class="guide-opt pick">
+      <span class="pick-h"><input type="radio" name="token_mode" value="existing" {{ 'checked' if mode0 == 'existing' }}><b>{{ _('guide.token_reuse') }}</b></span>
+      <span class="hint">{{ _('guide.token_reuse_hint2') if has_token else _('guide.adopt_hint') }}</span>
+      <input type="password" name="{{ 'have_token' if has_token else 'adopt_token' }}" maxlength="200" autocomplete="off" placeholder="ca_..." aria-label="{{ _('addon.token_have_field') }}">
+    </label>
+    <label class="guide-opt pick">
+      <span class="pick-h"><input type="radio" name="token_mode" value="new" {{ 'checked' if mode0 == 'new' }}><b>{{ _('guide.token_new') }}</b></span>
+      <span class="hint">{{ _('guide.token_new_hint') if has_token else _('guide.token_none_hint') }}</span>
+    </label>
+  </div>
+  {% if main_fields or adv_fields %}
+  <section class="addon-fields set-form guide-set">
     <h2>{{ icon('settings', 20) }} {{ _('addon.settings') }}</h2>
-    {% for f in main_fields %}{{ addon_field(f, shown.get(f.key, ''), errors.get(f.key, ''), shown, addon) }}
-    {% else %}<p class="hint">{{ _('addon.no_settings') }}</p>{% endfor %}
+    {% for f in main_fields %}{{ addon_field(f, shown.get(f.key, ''), errors.get(f.key, ''), shown, addon) }}{% endfor %}
     {% if adv_fields %}
     <details class="guide-adv"{{ ' open' if adv_fields|selectattr('key', 'in', errors)|list }}><summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('guide.advanced') }}</span></summary>
       {% for f in adv_fields %}{{ addon_field(f, shown.get(f.key, ''), errors.get(f.key, ''), shown, addon) }}{% endfor %}
     </details>
     {% endif %}
   </section>
+  {% endif %}
   <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step=1">{{ _('btn.back') }}</a><button class="primary">{{ _('guide.next') }}</button></div>
-</form>
+  </form>
+  {% endif %}
+</section>
 </div>
 
 {% elif step == 3 %}
 {% set tb = bundle_rows|selectattr('with_token')|list %}
+{% macro box(row) %}
+<div class="guide-opt dl">
+  <h3>{{ icon('download', 19) }} {{ row.label }}</h3>
+  {% if row.note %}<p class="hint">{{ row.note }}</p>{% endif %}
+  <small class="muted">{% if row.size %}{{ row.size|filesizeformat }}{% endif %}</small>
+  {% if row.with_token %}
+    {% if token %}<form method="post" action="{{ base_url }}/guide/bundle" class="inline"><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="name" value="{{ row.name }}"><button class="primary">{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>
+    {% else %}<button class="primary" name="name" value="{{ row.name }}" form="gagain">{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button>{% endif %}
+  {% elif row.href %}<a class="button primary" href="{{ base }}{{ row.href }}" download>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></a>{% endif %}
+</div>
+{% endmacro %}
 <section class="card guide-step">
   <h2>{{ _('guide.files_title') }}</h2>
-  {% if has_file %}
-  {% if tb %}<details class="guide-adv"><summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('guide.file_single') }}</span></summary>{% endif %}
+  {% if has_file and not tb %}
   <div class="guide-fileline">
     <span class="mi-ic c4">{{ icon('download', 19) }}</span>
     <span class="gf-t"><b>{{ file_name }}</b><small>{{ _('guide.file_hint') }}</small></span>
     {% if token %}<form method="post" action="{{ base_url }}/guide/file" class="inline"><input type="hidden" name="token" value="{{ token }}"><button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>{% endif %}
   </div>
-  {% if token %}{% if fresh and not tb %}<p class="hint">{{ _('guide.file_new_hint') }}</p>{% endif %}
+  {% if token %}{% if fresh %}<p class="hint">{{ _('guide.file_new_hint') }}</p>{% endif %}
   {% else %}
   <form method="post" action="{{ base_url }}/guide/file" class="guide-again">
     <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
@@ -92,28 +105,18 @@
   </form>
   <p class="hint">{{ _('guide.file_again_hint') }}</p>
   {% endif %}
-  {% if tb %}</details>{% endif %}
   {% endif %}
   {% if bundle_rows %}
     {% if not pkg_offered %}<p class="flash err">{{ _('fil.not_approved') }} <a href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service">{{ _('svc.review') }}</a></p>{% endif %}
     {% if tb and not token and pkg_offered %}
-    <form method="post" action="{{ base_url }}/guide/bundle" class="guide-again">
+    <form method="post" action="{{ base_url }}/guide/bundle" class="guide-again" id="gagain">
       <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
-      {% for row in tb %}<div class="guide-fileline"><span class="mi-ic c4">{{ icon('download', 19) }}</span><span class="gf-t"><b>{{ row.label }}</b>{% if row.note %}<small>{{ row.note }}</small>{% endif %}</span><button name="name" value="{{ row.name }}">{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></div>{% endfor %}
     </form>
     {% endif %}
-    {% for row in bundle_rows %}
-    {% if row.with_token %}
-    {% if token and pkg_offered %}
-    <div class="guide-fileline">
-      <span class="mi-ic c4">{{ icon('download', 19) }}</span>
-      <span class="gf-t"><b>{{ row.label }}</b>{% if row.note %}<small>{{ row.note }}</small>{% endif %}</span>
-      <form method="post" action="{{ base_url }}/guide/bundle" class="inline"><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="name" value="{{ row.name }}"><button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>
-    </div>
+    {% if pkg_offered or not tb %}
+    <div class="guide-opts">{% for row in bundle_rows %}{% if not row.with_token or pkg_offered %}{{ box(row) }}{% endif %}{% endfor %}</div>
     {% endif %}
-    {% else %}{{ file_rows([row]) }}{% endif %}
-    {% endfor %}
-    {% if tb %}<p class="hint">{{ icon('alert', 14) }} {{ _('guide.bundle_token_hint') }}</p>{% endif %}
+    {% if tb and fresh %}<p class="hint">{{ icon('alert', 14) }} {{ _('guide.file_new_hint') }}</p>{% endif %}
   {% endif %}
   {% if texts.files %}<h3 class="guide-h3">{{ _('guide.howto') }}</h3><div class="guide-text">{{ texts.files|safe }}</div>{% endif %}
   <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step=2">{{ _('btn.back') }}</a>{% if extra_steps %}<a class="button primary" href="{{ base_url }}/guide?step=4">{{ _('guide.next') }}</a>{% else %}<a class="button primary" href="{{ base }}{{ back_to }}">{{ _('guide.finish') }}</a>{% endif %}</div>

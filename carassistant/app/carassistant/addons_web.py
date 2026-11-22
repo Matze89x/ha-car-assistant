@@ -557,7 +557,12 @@ async def addon_guide_next(request: Request, vid: int, aid: int):
     carried = (form.get("token") or "").strip()[:200]
     have = (form.get("have_token") or "").strip()[:200]
     adopt = (form.get("adopt_token") or "").strip()[:200]
-    use_saved = bool(form.get("use_saved"))
+    mode = (form.get("token_mode") or "").strip()  # the three boxes of step 2: saved | existing | new (empty = older form)
+    use_saved = bool(form.get("use_saved")) or mode == "saved"
+    if mode in ("saved", "new"):
+        have = adopt = ""
+    elif mode == "existing":
+        use_saved = False
     with db.tx() as conn:
         addon = addons.get(conn, vid, aid)
         if addon is None or addon["kind"] != "plugin" or not addon["m"].get("setup"):
@@ -609,7 +614,13 @@ async def addon_guide_next(request: Request, vid: int, aid: int):
                 connectors.remember(
                     conn, addon.get("token_id"), have
                 )  # a token that was typed (and fits) is kept from now on, when allowed
-        made = addons.set_up(conn, vid, addon, form, keys)  # saves the settings; a plugin without a token gets one here (shown once)
+        renewed = ""
+        if mode == "new":  # "Make a new token": the old one becomes invalid, the new one is shown once and carried to step 3
+            renewed = addons.new_token(conn, vid, addon)
+            addon = addons.get(conn, vid, aid)
+        made = (
+            addons.set_up(conn, vid, addon, form, keys) or renewed
+        )  # saves the settings; a plugin without a token gets one here (shown once)
     if made and pluginsvc.service_of(addon):
         pluginsvc.write_token(addon, made)
     if pluginsvc.service_of(addon):
