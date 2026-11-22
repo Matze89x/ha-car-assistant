@@ -778,8 +778,8 @@ document.addEventListener("click", function (e) {
   });
 })();
 (function () {
-  /* clicking a tab: the marker slides to it. A tab that switches inside the page slides at once; a tab that opens another page remembers where the
-     marker was, and segtabs.js lets it slide from there on the new page (the page is swapped quickly, so sliding on the old one would never be seen) */
+  /* clicking a tab: the marker swipes to it at once (like the navigation). A tab that opens another page remembers where the marker was and when,
+     and segtabs.js continues the movement on the new page, so it never jumps or starts over. */
   if (window.__segTabs) { return; }
   window.__segTabs = true;
   document.addEventListener("click", function (event) {
@@ -788,13 +788,12 @@ document.addEventListener("click", function (e) {
     var bar = link.closest(".seg-tabs"), old = bar.querySelector("a.on");
     if (!old || old === link || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { return; }
     var box = bar.getBoundingClientRect(), a = old.getBoundingClientRect(), b = link.getBoundingClientRect();
-    var from = a.left - box.left + bar.scrollLeft - 1;
+    var from = a.left - box.left + bar.scrollLeft - 1, to = b.left - box.left + bar.scrollLeft - 1;
     if (!link.hasAttribute("data-tab")) {
       try {
         var all = document.querySelectorAll("main .seg-tabs");
         sessionStorage.setItem("segFrom", JSON.stringify({ i: Array.prototype.indexOf.call(all, bar), n: bar.querySelectorAll("a").length, left: from, w: a.width, t: Date.now() }));
-      } catch (e) { /* no storage: no slide, the page still changes */ }
-      return;
+      } catch (e) { /* no storage: the marker still swipes on this page */ }
     }
     var ind = document.createElement("i");
     ind.className = "seg-ind";
@@ -804,7 +803,7 @@ document.addEventListener("click", function (e) {
     old.classList.remove("on"); link.classList.add("on");
     requestAnimationFrame(function () { requestAnimationFrame(function () {
       ind.style.width = b.width + "px";
-      ind.style.transform = "translateX(" + (b.left - box.left + bar.scrollLeft - 1) + "px)";
+      ind.style.transform = "translateX(" + to + "px)";
     }); });
     setTimeout(function () { bar.classList.remove("sliding"); if (ind.parentNode) { ind.parentNode.removeChild(ind); } }, 450);
   }, true);
