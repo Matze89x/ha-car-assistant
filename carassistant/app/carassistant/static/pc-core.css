@@ -2849,3 +2849,18 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 
 /* live car data: when the car last reported - always shown under the values */
 .cd-ping { display: flex; align-items: center; gap: 6px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--glass-b); font-size: 12px; color: var(--muted); }
+
+/* location widget, compact: the place (large) with what it is under it, the three navigation links on the right of the same row, chips and the map hint small below */
+.pos-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.pos-id { min-width: 0; }
+.pos-head .pos-place { font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+.pos-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.pos-head .nav-btns { flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin: 0; }
+.pos-head .nav-btn { flex: 0 0 auto; min-height: 30px; padding: 0 10px; font-size: 12px; }
+.pos-chips { margin: 8px 0 0; }
+.pos-off { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.pos-map { margin-top: 8px; height: 160px; }
+.pos-head { flex-wrap: wrap; row-gap: 8px; }
+.pos-head .pos-id { flex: 1 1 9em; }
+.pos-head .nav-btns { flex: 1 1 auto; }
+@media (max-width: 520px) { .pos-head .nav-btn { flex: 1 1 0; justify-content: center; } }
