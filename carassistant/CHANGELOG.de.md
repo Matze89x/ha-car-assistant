@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.19 Beta
+- Tankstellensuche: Die Sortierung nach Preis und Entfernung ist jetzt ein kleiner runder Schalter mit zwei Symbolen oben rechts in der Karte statt einer zweiten Tab-Leiste.
+
 ## 0.5.18 Beta
 - Tanken: eine neue Tankstellensuche - Preis groß links, Name und Adresse, Entfernung rechts, lange Namen brechen um, Umschalter zwischen Preis und Entfernung, geschlossene Tankstellen abgeblendet und nie als günstigste markiert, zehn Tankstellen mit einem Knopf für den Rest. Die Einleitung der Seite steht in der Info-Kachel, die zusätzliche Überschrift „Tanken (32)“ entfällt.
 

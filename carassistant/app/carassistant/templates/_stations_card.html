@@ -1,11 +1,15 @@
 {% from "_macros.html" import icon with context %}
 {% with s = stn %}
 <section class="stn-card{{ '' if inline else ' card' }}" id="stations{{ '-body' if inline else '' }}">
+  {% set keep = ('&lat=' ~ request.query_params.get('lat', '') ~ '&lon=' ~ request.query_params.get('lon', '')) if s.where == 'me' else '' %}
   <div class="stn-head">
     <span class="mi-ic c6">{{ icon('gas-station', 20) }}</span>
     <div class="stn-ht"><h2>{{ _('stn.title') }}</h2><small>{{ s.fuel|upper }} · 15 {{ units.dist_unit }}</small></div>
+    {% if s.searched %}<div class="stn-sort" role="group" aria-label="{{ _('stations.sort') }}">
+      <a href="{{ vurl }}?go=1&amp;sort=price{{ keep|e }}#stations" class="{{ 'on' if s.sort == 'price' }}" title="{{ _('stations.sort_price') }}" aria-label="{{ _('stations.sort_price') }}">{{ icon('gas-station', 18) }}</a>
+      <a href="{{ vurl }}?go=1&amp;sort=distance{{ keep|e }}#stations" class="{{ 'on' if s.sort == 'distance' }}" title="{{ _('stations.sort_distance') }}" aria-label="{{ _('stations.sort_distance') }}">{{ icon('map-marker-radius', 18) }}</a>
+    </div>{% endif %}
   </div>
-  {% set keep = ('&lat=' ~ request.query_params.get('lat', '') ~ '&lon=' ~ request.query_params.get('lon', '')) if s.where == 'me' else '' %}
   <form method="get" action="{{ vurl }}" id="stform" data-no-car="{{ _('stations.no_car_pos') }}" data-denied="{{ _('stations.geo_denied') }}">
     <input type="hidden" name="go" value="1">
     <input type="hidden" name="sort" value="{{ s.sort }}">
@@ -16,10 +20,6 @@
       <a href="#stations" id="st-me" class="{{ 'on' if s.where == 'me' }}">{{ icon('pin', 18) }}<span>{{ _('stn.me') }}</span></a>
     </nav>
   </form>
-  {% if s.searched %}<nav class="seg-tabs" aria-label="{{ _('stations.sort') }}">
-    <a href="{{ vurl }}?go=1&amp;sort=price{{ keep|e }}#stations" class="{{ 'on' if s.sort == 'price' }}">{{ icon('gas-station', 18) }}<span>{{ _('stations.sort_price') }}</span></a>
-    <a href="{{ vurl }}?go=1&amp;sort=distance{{ keep|e }}#stations" class="{{ 'on' if s.sort == 'distance' }}">{{ icon('map-marker-radius', 18) }}<span>{{ _('stations.sort_distance') }}</span></a>
-  </nav>{% endif %}
   {% if not s.car_pos %}<p class="hint">{{ _('stations.no_car_pos') }}</p>{% endif %}
   <div class="flash err" id="st-msg" hidden></div>
   {% if s.error %}<div class="flash err">{{ _(s.error) }}</div>{% endif %}

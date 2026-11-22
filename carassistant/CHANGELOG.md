@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.19 Beta
+- Fuel station search: price and distance sorting is now one small round switch with two symbols in the top right of the card instead of a second tab bar.
+
 ## 0.5.18 Beta
 - Fuel: a new station search - price large on the left, name and address, distance on the right, long names wrap, a switch between price and distance, closed stations dimmed and never marked cheapest, ten stations with a button for the rest. The page introduction sits in the info tile and the extra "Fuel (32)" heading is gone.
 

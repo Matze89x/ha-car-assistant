@@ -2979,3 +2979,8 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .stn-more { margin-top: 10px; } .stn-more > summary { list-style: none; cursor: pointer; } .stn-more > summary::-webkit-details-marker { display: none; }
 .stn-more[open] > summary { display: none; }
 .stn-more .stn-list { margin-top: 0; }
+.stn-head .stn-ht { flex: 1; min-width: 0; }
+.stn-sort { flex: 0 0 auto; display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .06); }  /* price | distance: one small round switch with two symbols */
+.stn-sort a { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; color: var(--muted); text-decoration: none; transition: background .18s, color .18s; }
+.stn-sort a:hover { color: var(--text); text-decoration: none; }
+.stn-sort a.on { background: rgba(var(--ok-rgb), .18); color: var(--ok); box-shadow: inset 0 0 0 1px rgba(var(--ok-rgb), .4); }
