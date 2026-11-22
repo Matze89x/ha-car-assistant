@@ -104,9 +104,9 @@
 {%- endmacro %}
 
 {# One Home widget: a uniform tile with an icon chip, a title and a body. `href` makes the whole tile a link; size "m" spans the row. #}
-{% macro widget(ic, chip, title, href=none, size='s', tone='', id=none) -%}
+{% macro widget(ic, chip, title, href=none, size='s', tone='', id=none, meta='', meta_title='') -%}
 {% if href %}<a class="wd {{ size }} {{ tone }} wc-{{ chip }}"{% if id %} id="{{ id }}"{% endif %} href="{{ base }}/v/{{ v.slug }}{{ href }}">{% else %}<section class="wd {{ size }} {{ tone }} wc-{{ chip }}"{% if id %} id="{{ id }}"{% endif %}>{% endif %}
-  <div class="wd-h"><span class="mi-ic {{ chip }}">{{ icon(ic, 17) }}</span><span class="wd-t">{{ title }}</span>{% if href %}{{ icon('chevron', 16) }}{% endif %}</div>
+  <div class="wd-h"><span class="mi-ic {{ chip }}">{{ icon(ic, 17) }}</span><span class="wd-t">{{ title }}</span>{% if meta %}<span class="wd-meta-r"{% if meta_title %} title="{{ meta_title }}"{% endif %}>{{ icon('clock', 12) }} {{ meta }}</span>{% endif %}{% if href %}{{ icon('chevron', 16) }}{% endif %}</div>
   <div class="wd-b">{{ caller() }}</div>
 {% if href %}</a>{% else %}</section>{% endif %}
 {%- endmacro %}

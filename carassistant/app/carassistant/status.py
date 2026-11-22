@@ -200,19 +200,30 @@ def location(live: Live, t: Translator, now: datetime | None = None) -> dict | N
     if point is None:
         return None
     lat, lon = point
-    parked = ignition(live) is False
+    ign = ignition(live)
+    parked = ign is False
     chips: list[dict] = []
+    since = live["ignition"][1] if parked and "ignition" in live else None
     if parked:
-        since = live["ignition"][1]
-        chips.append({"text": t("loc.parked_since", time=regional.ftime(since.astimezone())) if since else t("loc.parked"), "tone": "ok"})
+        chips.append(
+            {
+                "text": t("loc.parked_since", time=regional.ftime(since.astimezone())) if since else t("loc.parked"),
+                "tone": "ok",
+                "kind": "parked",
+            }
+        )
     if updated:
-        chips.append({"text": t("loc.last_signal", ago=ago(updated, t, now)), "tone": ""})
+        chips.append({"text": t("loc.last_signal", ago=ago(updated, t, now)), "tone": "", "kind": "signal"})
     target = f"{lat:.6f},{lon:.6f}"
     return {
         "lat": f"{lat:.6f}",
         "lon": f"{lon:.6f}",
         "coords": f"{lat:.5f}, {lon:.5f}",
-        "title": t("loc.here") if parked else t("loc.last_known"),
+        "title": (
+            (t("loc.here_since", time=regional.ftime(since.astimezone())) if since else t("loc.here"))
+            if parked
+            else (t("loc.driving") if ign else t("loc.last_known"))
+        ),
         "chips": chips,
         "links": [
             {"key": "waze", "name": "Waze", "url": f"https://waze.com/ul?ll={quote(target, safe=',')}&navigate=yes"},

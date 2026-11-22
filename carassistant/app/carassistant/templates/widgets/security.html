@@ -2,5 +2,5 @@
 {% if s.attention or closure_open or s.inspection or (hero_badges and hero_badges.right) %}{% call widget('security', 'c2', _('tab.security'), '/security', w.size, 'st-ok' if not (s.attention or closure_open) else ('st-warn' if s.overdue else 'st-soon')) %}
   <div class="wd-v">{% if s.attention or closure_open %}{{ _('sec.open', n=s.attention|length + closure_open) }}{% else %}{{ _('sec.all_ok') }}{% endif %}</div>
   {% if s.inspection %}<div class="wd-s">{{ _('tile.inspection') }} {{ fdate(s.inspection.due_date) }}</div>{% endif %}
-  {% if hero_badges and hero_badges.right %}<div class="wd-s">{{ hero_badges.right[0].value }}</div>{% endif %}
+  
 {% endcall %}{% endif %}

@@ -79,14 +79,15 @@ def test_location_needs_a_valid_position():
 
 def test_location_card_parked_and_links():
     card = status.location(live(position="52.516275,13.377704", ignition="off"), T, NOW)
-    assert card["title"] == "Your car is parked here" and card["coords"] == "52.51628, 13.37770"
+    assert card["title"].startswith("Your car has been parked here since ") and card["coords"] == "52.51628, 13.37770"
     assert [c["text"] for c in card["chips"]][1] == "Last signal 5 min ago"
     assert card["chips"][0]["text"].startswith("Parked since ") and card["chips"][0]["tone"] == "ok"
     urls = {link["key"]: link["url"] for link in card["links"]}
     assert urls["waze"] == "https://waze.com/ul?ll=52.516275,13.377704&navigate=yes"
     assert urls["google"].endswith("destination=52.516275,13.377704") and "daddr=52.516275,13.377704" in urls["apple"]
     moving = status.location(live(position="52.5,13.4", ignition="on"), T, NOW)
-    assert moving["title"] == "Last known position" and len(moving["chips"]) == 1
+    assert moving["title"] == "Your car is driving here" and len(moving["chips"]) == 1
+    assert status.location(live(position="52.5,13.4"), T, NOW)["title"] == "Last known position"  # no ignition reading
 
 
 def test_api_accepts_ignition(api):  # noqa: F811
