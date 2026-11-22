@@ -1,9 +1,6 @@
 {% from "_macros.html" import icon, form_bar, switch_row with context %}
-{% if not (acct_external and acct_has_users) %}
-<section class="card user-intro">
-  <p>{{ _('user.intro_short', n=lock_after, m=lock_minutes) }}</p>
-</section>
-{% endif %}
+<div class="sys-cols">
+<div class="sys-col">
 {% include "_account.html" %}
 <section class="card" id="prefs">
   <h2>{{ icon('account') }} {{ _('prefs.title') }}</h2>
@@ -24,6 +21,12 @@
   {% if not port_on %}<p class="hint">{{ icon('info', 14) }} {{ _('prefs.no_port') }}</p>{% endif %}
   {% endif %}
 </section>
+<section class="card" id="lists">
+  <h2>{{ icon('list') }} {{ _('lists.title') }}</h2>
+  <form method="post" action="{{ base }}/settings/page-size" data-live>
+    <label>{{ _('lists.size') }}<select name="size">{% for n in page_sizes %}<option value="{{ n }}" {{ 'selected' if n == page_size }}>{{ _('lists.size_n', n=n) }}</option>{% endfor %}</select></label>
+  </form>
+</section>
 <section class="card" id="webapp">
   <h2>{{ icon('home') }} {{ _('webapp.title') }}</h2>
   <p class="hint">{{ _('webapp.text') }}</p>
@@ -38,6 +41,8 @@
         <button type="button" class="ghost-btn small" data-copy="{{ ext }}/app/{{ car.slug }}" data-done="{{ _('mcp.copied') }}">{{ icon('content-copy', 16) }}<span>{{ _('mcp.copy') }}</span></button></div></div>{% endfor %}
   </div>{% endif %}
 </section>
+</div>
+<div class="sys-col">
 {% if ext_set or not port_on %}{% include "_settings_notify.html" %}{% endif %}  {# with a port, notifications and passkeys need the address saved under System #}
 <section class="card" id="blocked">
   <h2>{{ icon('shield') }} {{ _('user.blocked_title') }}</h2>
@@ -51,10 +56,5 @@
   {% else %}<p class="muted">{{ _('user.blocked_none') }}</p>{% endif %}
 </section>
 
-<section class="card" id="lists">
-  <h2>{{ icon('list') }} {{ _('lists.title') }}</h2>
-  <form method="post" action="{{ base }}/settings/page-size" data-live>
-    <label>{{ _('lists.size') }}<select name="size">{% for n in page_sizes %}<option value="{{ n }}" {{ 'selected' if n == page_size }}>{{ _('lists.size_n', n=n) }}</option>{% endfor %}</select></label>
-  </form>
-  <p class="hint">{{ _('lists.hint') }}</p>
-</section>
+</div>
+</div>

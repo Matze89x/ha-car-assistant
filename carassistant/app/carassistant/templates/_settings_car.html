@@ -2,11 +2,10 @@
 {% if not car %}
 <section class="card"><p class="muted">{{ _('car.none') }}</p><p><a class="button primary" href="{{ base }}/vehicles/new">{{ icon('plus', 18) }}<span>{{ _('vehicle.add') }}</span></a></p></section>
 {% else %}
-<div class="sys-grid car-grid">
-
+<div class="sys-cols car-grid">
+<div class="sys-col">
 <section class="card" id="icons">
   <h2>{{ icon('edit') }} {{ _('settings.icon') }}</h2>
-  <p class="hint">{{ _('settings.icon_hint') }}</p>
   <div class="icon-row">
     <img class="icon-prev" src="{{ base }}/v/{{ car.slug }}/icon/128.png?v={{ icon_rev_of(car.id) }}" alt="" width="56" height="56">
     <strong class="ir-name">{{ car.name }}</strong>
@@ -19,16 +18,16 @@
 
 <section class="card" id="media">
   <h2>{{ icon('camera') }} {{ _('pe.picture') }}</h2>
-  <p class="hint">{{ _('media.intro', n=media_keep) }}</p>
   {% with library=media_library, photos=media_photos, videos=media_videos, keep=media_keep, kinds=media_kinds, kind=media_kind, media_back='car' %}{% include "_media_panel.html" %}{% endwith %}
 </section>
 
+</div>
+<div class="sys-col">
 {% set dp = {'id': 'theme', 'title': _('vf.group_design'), 'hint': _('vf.design_hint'), 'action': base ~ '/v/' ~ car.slug ~ '/theme', 'accent_save': base ~ '/v/' ~ car.slug ~ '/accent', 'current': car.theme or '', 'accent': car_accent, 'system_option': True} %}
 {% include "_design_picker.html" %}
 
 <section class="card" id="ha">
   <h2>{{ icon('plug') }} {{ _('bind.title') }}</h2>
-  <p class="hint">{{ _('bind.hint') }}</p>
   <form method="post" action="{{ base }}/v/{{ car.slug }}/bindings" class="grid">
     {% for key in ['bind_odometer', 'bind_fuel_level', 'bind_range', 'bind_tracker'] %}
       <label>{{ _('f.' ~ key) }}<input name="{{ key }}" list="ha-entities" placeholder="sensor.…" value="{{ car[key] or '' }}" autocomplete="off"></label>
@@ -52,5 +51,6 @@
   </ul>
 </section>
 
+</div>
 </div>
 {% endif %}

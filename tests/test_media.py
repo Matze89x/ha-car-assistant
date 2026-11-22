@@ -45,7 +45,7 @@ def test_upload_photo_and_video_and_show_video_on_home(client):
     assert ranged.status_code == 206  # iPhones only play videos that can be read in ranges
     home = client.get(f"/v/{vid}").text
     assert "hero-video" in home and f"/media/{mid}/file" in home
-    assert "Photos" in client.get(f"/v/{vid}/media").text
+    assert "As the car" in client.get(f"/v/{vid}/media").text
 
 
 def test_rejects_wrong_files(client):

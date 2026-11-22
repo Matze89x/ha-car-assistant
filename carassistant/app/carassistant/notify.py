@@ -55,6 +55,12 @@ EVENTS = (
 GENERAL = ("addon_update",)  # ... and what is not about one car
 
 
+def _readable_place(place: str | None) -> str:
+    """A place for a message: a name, never a raw pair of coordinates (a place the offline list could not name is left out)."""
+    text = (place or "").strip()
+    return "" if re.fullmatch(r"-?\d+(\.\d+)?\s*[,;]\s*-?\d+(\.\d+)?", text) else text
+
+
 def push_mode() -> bool:
     """With a port set people sign in and get web push; without one the Home Assistant notify service is the way."""
     return (ha.network_port() or (None, None))[1] is not None
@@ -237,7 +243,9 @@ def _lines_for(
             if not _recently_sent(conn, key, now):
                 keys.append(key)
                 distance = trip["distance_km"]
-                lines.append(t("notify.trip_end", d=units.of().dist_str(distance) if distance else "-", place=trip["end_place"] or ""))
+                lines.append(
+                    t("notify.trip_end", d=units.of().dist_str(distance) if distance else "-", place=_readable_place(trip["end_place"]))
+                )
                 pages.add(PAGE_OF["trip_end"])
     if "refuel" in events:
         from . import refuel_detect

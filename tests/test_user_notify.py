@@ -178,3 +178,10 @@ def test_a_finished_trip_is_announced_at_once(client, monkeypatch):
     worker.run_once({"poll": 1e12, "publish": 1e12, "notify": 1e12, "maintain": 1e12, "srcauto": 1e12}, 1.0)
     assert len(sent) == 1
     assert notify.take_trip_flag() is False
+
+
+def test_a_message_never_shows_raw_coordinates_as_a_place():
+    from carassistant import notify
+
+    assert notify._readable_place("49.33276, 7.09618") == "" and notify._readable_place("-12.5,130.1") == ""
+    assert notify._readable_place("Neunkirchen") == "Neunkirchen" and notify._readable_place(None) == ""

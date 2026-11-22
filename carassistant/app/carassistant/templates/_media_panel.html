@@ -6,7 +6,6 @@
       <input type="file" name="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,.png,.jpg,.jpeg,.webp,.mp4,.mov,.webm" required data-autosubmit data-poster></label>
     <input type="file" name="poster" class="poster-slot" hidden tabindex="-1" aria-hidden="true">
   </form>
-  <p class="hint">{{ _('media.limits', photo=40, video=40) }}</p>
 </section>
 
 {% macro media_grid(rows, name, badge_key, flag) %}
@@ -38,7 +37,6 @@
 <div class="mg-head"><h2>{{ _('media.photo_title') }} <small>{{ photos|length }}</small></h2></div>
 <p class="hint">{{ _('media.photo_hint') }}</p>
 {% if photos %}{{ media_grid(photos, 'photo', 'media.photo_badge', 'photo') }}{% else %}<p class="hint">{{ _('media.none_photo') }}</p>{% endif %}
-<p class="hint">{{ _('media.full', n=keep) }}</p>
 </div>
 {% for m in library %}<form method="post" action="{{ base }}/v/{{ v.slug }}/media/{{ m.id }}/delete" id="mdel-{{ m.id }}" data-confirm="{{ _('media.confirm_delete') }}" hidden><input type="hidden" name="back" value="{{ media_back }}"></form>{% endfor %}
 
