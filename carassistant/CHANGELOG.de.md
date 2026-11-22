@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.9 Beta
+- Das Wort „Assistant“ im Namen steht in der Hauptfarbe des Designs (Seitenleiste, Über, Anmeldung); der Slogan bleibt grün.
+
 ## 0.5.8 Beta
 - Dashboard-Widgets mit einheitlichem Aussehen (Symbol und Titel links, Notiz oder Pfeil rechts, höchstens eine Zeile); Diagramme behalten ihre Form, Status-Chips rechts; Fahrzeugdaten live als schlanke Zeilen mit dem letzten Signal des Autos; kompaktes Standort-Widget („hier steht / fährt dein Auto“).
 - Termine in einer kompakten Spalte mit Bearbeiten-Knopf je Termin (Kommende / Abgeschlossene); Zusatzarbeiten ohne vorgegebene Arbeiten, passende Symbole, Zurücksetzen im Bearbeiten; Umbauten nach Jahr mit Summen; Teile & Einkäufe als Kassenzettel; Dokumente als Karten mit Bearbeiten (Titel, Kategorie, Datum, gültig bis, Notiz).

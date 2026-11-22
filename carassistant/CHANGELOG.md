@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.9 Beta
+- The word "Assistant" in the name is shown in the main colour of the design (side bar, About, login); the slogan stays green.
+
 ## 0.5.8 Beta
 - Dashboard widgets share one look (icon and title left, note or arrow right, at most one line); charts keep their shape, status chips sit on the right; live car data as slim rows with the car's last signal; compact position widget ("parked here since" / "driving here").
 - Appointments in one compact column with an Edit button each (Upcoming / Completed); Extra work without ready-made jobs, fitting icons, Reset inside Edit; Modifications by year with sums; Parts & purchases as till receipts; Documents as cards with Edit (title, category, date, valid until, note).
