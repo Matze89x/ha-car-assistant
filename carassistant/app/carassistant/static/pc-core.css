@@ -2362,7 +2362,7 @@ svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5
 .grip { display: none; }
 
 /* Tyres: the recommended pressure sits inside the tyre set tile */
-.tv-pressure { display: grid; gap: 8px; padding-top: 4px; border-top: 1px solid var(--glass-b); }
+.tv-pressure { display: grid; gap: 8px; }
 .tv-pressure .tp-l { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; }
 
 /* Tyres: pressure per wheel (measured, recommended in brackets), one-form edit page with season tabs */
