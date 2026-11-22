@@ -144,6 +144,18 @@ def freshness(live: Live, t: Translator) -> str:
     return ago(max(stamps), t) if stamps else ""
 
 
+CONNECTED_MINUTES = 30  # a car that reported within this time counts as connected
+
+
+def connected(live: Live, now: datetime | None = None) -> bool | None:
+    """Is there contact with the car? True when it reported within the last half hour, False when the last report is older, None when it never
+    reported anything (nothing to judge)."""
+    stamp = last_signal(live)
+    if stamp is None:
+        return None
+    return ((now or datetime.now(UTC)) - stamp).total_seconds() <= CONNECTED_MINUTES * 60
+
+
 def last_signal(live: Live):
     """The moment the car last reported anything (a datetime) or None."""
     stamps = [stamp for _, stamp in live.values() if stamp]

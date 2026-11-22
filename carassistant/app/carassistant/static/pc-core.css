@@ -2901,3 +2901,8 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .cd-l { flex: 1 1 auto; display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); overflow-wrap: anywhere; }
 .cd-l .ico { flex: none; }
 .cd-v { flex: 0 1 auto; margin-left: auto; min-width: 0; text-align: right; font-size: 14px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+
+/* connection dot: green = contact with the car (it reported within the last half hour), red = no contact - the time beside it is the last report */
+.hero-fresh .live.on i { background: var(--ok); box-shadow: 0 0 8px rgba(var(--ok-rgb), .7); }
+.hero-fresh .live.off i { background: var(--overdue); box-shadow: 0 0 8px rgba(var(--overdue-rgb), .6); }
+.hero-fresh .live.off { color: var(--overdue); }

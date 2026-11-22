@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from datetime import UTC, datetime
 
 from . import ha, summary
 
@@ -23,22 +22,19 @@ def _number(state: dict | None) -> float | None:
     return value * MILES_TO_KM if unit in ("mi", "miles") else value
 
 
-def _store(conn: sqlite3.Connection, vehicle_id: int, key: str, value: str | None) -> None:
+def _store(conn: sqlite3.Connection, vehicle_id: int, key: str, value: str | None, at: str | None = None) -> None:
     if value is None:
         return
-    before = None
     from . import connectors
 
-    if key in connectors.WATCHED:
-        row = conn.execute("SELECT value FROM live WHERE vehicle_id = ? AND key = ?", (vehicle_id, key)).fetchone()
-        before = row["value"] if row else None
-    conn.execute(
-        "INSERT INTO live(vehicle_id, key, value, updated) VALUES(?,?,?,?) "
-        "ON CONFLICT(vehicle_id, key) DO UPDATE SET value = excluded.value, updated = excluded.updated",
-        (vehicle_id, key, value, datetime.now(UTC).isoformat(timespec="seconds")),
-    )
-    if key in connectors.WATCHED:
-        connectors._watch(conn, vehicle_id, key, before, value)
+    connectors._store(conn, vehicle_id, key, value, at)
+
+
+def _reported(state: dict | None) -> str | None:
+    """When Home Assistant says the entity last reported / changed - not when we looked."""
+    from . import connectors
+
+    return connectors.moment((state or {}).get("last_reported") or (state or {}).get("last_updated"))
 
 
 def refresh_vehicle(conn: sqlite3.Connection, vehicle: sqlite3.Row) -> bool:
@@ -55,12 +51,13 @@ def refresh_vehicle(conn: sqlite3.Connection, vehicle: sqlite3.Row) -> bool:
                 changed = True
     for bind, key in (("bind_fuel_level", "fuel_level"), ("bind_range", "range_km")):
         if vehicle[bind]:
-            value = _number(ha.get_state(vehicle[bind]))
+            state = ha.get_state(vehicle[bind])
+            value = _number(state)
             if value is not None:
-                _store(conn, vid, key, f"{value:.0f}")
+                _store(conn, vid, key, f"{value:.0f}", _reported(state))
     if vehicle["bind_tracker"]:
         state = ha.get_state(vehicle["bind_tracker"])
         attrs = (state or {}).get("attributes") or {}
         if "latitude" in attrs and "longitude" in attrs:
-            _store(conn, vid, "position", f"{float(attrs['latitude']):.6f},{float(attrs['longitude']):.6f}")
+            _store(conn, vid, "position", f"{float(attrs['latitude']):.6f},{float(attrs['longitude']):.6f}", _reported(state))
     return changed

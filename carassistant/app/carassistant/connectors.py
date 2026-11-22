@@ -126,15 +126,41 @@ def _num(data: dict, key: str, low: float, high: float) -> float | None:
 WATCHED = ("fuel_level", "charging", "battery_pct", "charge_power_kw")  # readings whose change can mean a refuel or a charging session
 
 
-def _store(conn: sqlite3.Connection, vehicle_id: int, key: str, value: str) -> None:
-    before = None
-    if key in WATCHED:
-        row = conn.execute("SELECT value FROM live WHERE vehicle_id = ? AND key = ?", (vehicle_id, key)).fetchone()
-        before = row["value"] if row else None
+def moment(value) -> str | None:
+    """A point in time given as an ISO text (``2026-11-20T08:15:00Z``, with or without a zone: UTC then), a datetime or seconds since 1970 ->
+    the stored form (UTC, whole seconds). Nothing in the future; None when it cannot be read or is empty."""
+    if value in (None, ""):
+        return None
+    try:
+        if isinstance(value, datetime):
+            stamp = value
+        elif isinstance(value, (int, float)) and not isinstance(value, bool):
+            stamp = datetime.fromtimestamp(float(value), UTC)
+        else:
+            stamp = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+    except (ValueError, OverflowError, OSError):
+        return None
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=UTC)
+    return min(stamp.astimezone(UTC), datetime.now(UTC)).isoformat(timespec="seconds")
+
+
+def _store(conn: sqlite3.Connection, vehicle_id: int, key: str, value: str, at: str | None = None) -> None:
+    """Keep one live value. The time kept with it is WHEN THE CAR REPORTED it: ``at`` when the sender knows it (``measured_at``, or the time Home
+    Assistant gives), otherwise the arrival - but a value that is exactly the one already stored is no news (a plugin that sends its remembered
+    values again after a restart of the app does not make the car look as if it had just reported), and a time never goes backwards."""
+    row = conn.execute("SELECT value, updated FROM live WHERE vehicle_id = ? AND key = ?", (vehicle_id, key)).fetchone()
+    before = row["value"] if row else None
+    if row and row["value"] == value and at is None:
+        stamp = row["updated"]
+    else:
+        stamp = at or _now()
+        if row and row["updated"] and stamp < row["updated"]:
+            stamp = row["updated"]
     conn.execute(
         "INSERT INTO live(vehicle_id, key, value, updated) VALUES(?,?,?,?) "
         "ON CONFLICT(vehicle_id, key) DO UPDATE SET value = excluded.value, updated = excluded.updated",
-        (vehicle_id, key, value, _now()),
+        (vehicle_id, key, value, stamp),
     )
     if key in WATCHED:
         _watch(conn, vehicle_id, key, before, value)
@@ -188,6 +214,7 @@ NUMBERS = {
 BOOLS = ("charging", "plugged", "climate_on", "parking_brake", "oil_warning")  # stored as yes / no
 TYRES = ("fl", "fr", "rl", "rr")  # front left, front right, rear left, rear right
 KNOWN = {
+    "measured_at",
     "odometer_km",
     "vin",
     "position",
@@ -395,9 +422,12 @@ def ingest_track(conn: sqlite3.Connection, vehicle_id: int, data: dict) -> int:
         (vehicle_id, vehicle_id, MAX_TRACK_KEEP),
     )
     newest = max(rows, key=lambda r: r[1])
-    _store(conn, vehicle_id, "position", f"{newest[2]:.6f},{newest[3]:.6f}")
+    at = (
+        newest[1] if any(isinstance(i, dict) and i.get("ts") is not None for i in points) else None
+    )  # the point's own time, when it has one
+    _store(conn, vehicle_id, "position", f"{newest[2]:.6f},{newest[3]:.6f}", at)
     if newest[4] is not None:
-        _store(conn, vehicle_id, "speed_kmh", f"{newest[4]:g}")
+        _store(conn, vehicle_id, "speed_kmh", f"{newest[4]:g}", at)
     from . import trips
 
     trips.from_track(conn, vehicle_id)  # drives that have ended become trips of the log book
@@ -698,6 +728,11 @@ def ingest(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str) -
     unknown = sorted(set(data) - KNOWN)
     if unknown:
         raise ApiError("unknown_field", f"Unknown field(s): {', '.join(unknown)}. Allowed: {', '.join(sorted(KNOWN))}.", 422)
+    at = None
+    if data.get("measured_at") not in (None, ""):
+        at = moment(data["measured_at"])
+        if at is None:
+            raise ApiError("invalid_value", "'measured_at' must be a time like 2026-11-20T08:15:00Z (or seconds since 1970).", 422)
     result: dict[str, str] = {}
     vin = None
     if "vin" in data:
@@ -750,30 +785,30 @@ def ingest(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str) -
             result["odometer_km"] = "ignored (not higher than the known reading)"
     for key, value in numbers.items():
         if value is not None:
-            _store(conn, vehicle_id, NUMBERS[key][0], f"{value:.0f}" if key in ("fuel_level_pct", "range_km") else f"{value:g}")
+            _store(conn, vehicle_id, NUMBERS[key][0], f"{value:.0f}" if key in ("fuel_level_pct", "range_km") else f"{value:g}", at)
             result[key] = "stored"
     for key, value in bools.items():
         if value is not None:
-            _store(conn, vehicle_id, key, "yes" if value else "no")
+            _store(conn, vehicle_id, key, "yes" if value else "no", at)
             result[key] = "stored"
     if tyres is not None:
-        _store(conn, vehicle_id, "tyre_pressure_bar", json.dumps(tyres, sort_keys=True))
+        _store(conn, vehicle_id, "tyre_pressure_bar", json.dumps(tyres, sort_keys=True), at)
         result["tyre_pressure_bar"] = "stored"
     if lat is not None:
-        _store(conn, vehicle_id, "position", f"{lat:.6f},{lon:.6f}")
+        _store(conn, vehicle_id, "position", f"{lat:.6f},{lon:.6f}", at)
         result["position"] = "stored"
     if ign is not None:
-        _store(conn, vehicle_id, "ignition", "on" if ign else "off")
+        _store(conn, vehicle_id, "ignition", "on" if ign else "off", at)
         result["ignition"] = "stored"
     if locked is not None:
-        _store(conn, vehicle_id, "locked", "locked" if locked else "unlocked")
+        _store(conn, vehicle_id, "locked", "locked" if locked else "unlocked", at)
         result["locked"] = "stored"
     for key, merged in (("doors", doors), ("windows", windows), ("lights", lights)):
         if merged is not None:
-            _store(conn, vehicle_id, key, json.dumps(merged, sort_keys=True))
+            _store(conn, vehicle_id, key, json.dumps(merged, sort_keys=True), at)
             result[key] = "stored"
     if warnings is not None:
-        _store(conn, vehicle_id, "warnings", json.dumps(warnings, sort_keys=True))
+        _store(conn, vehicle_id, "warnings", json.dumps(warnings, sort_keys=True), at)
         result["warnings"] = "stored"
     from . import trips
 

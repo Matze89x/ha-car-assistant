@@ -3,7 +3,7 @@
   {% if v.plate %}<span class="plate">{{ v.plate }}</span>{% endif %}
   <div class="hero-name"><h1>{{ v.name }}</h1>{% if switch_vehicles %}<button type="button" class="cur-switch" data-open="vsw" aria-label="{{ _('nav.change') }}" title="{{ _('nav.change') }}">{{ icon('swap', 20) }}</button>{% endif %}</div>
   {% set model_line = [v.make, v.model, v.year]|select|join(' · ') %}
-  <div class="hero-fresh hero-meta{{ ' hero-meta-empty' if not (model_line or fresh_ago) }}">{% if model_line %}<span>{{ model_line }}</span>{% endif %}{% if fresh_ago %}<span class="live"><i></i>{{ fresh_ago }}</span>{% endif %}</div>
+  <div class="hero-fresh hero-meta{{ ' hero-meta-empty' if not (model_line or fresh_ago) }}">{% if model_line %}<span>{{ model_line }}</span>{% endif %}{% if fresh_ago %}<span class="live {{ 'on' if fresh_connected else 'off' }}" title="{{ _('conn.on') if fresh_connected else _('conn.off') }}"><i></i>{{ fresh_ago }}</span>{% endif %}</div>
   {% if tab == 'overview' and s %}
 {% set tk = tabs|map(attribute='key')|list %}
   {% set show_insp = s.inspection and ('appointments' in tk) %}

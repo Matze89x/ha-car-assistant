@@ -285,3 +285,57 @@ def test_a_drive_ends_when_the_ignition_goes_off(api):
     api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"ignition": False})
     with db.tx() as conn:
         assert conn.execute("SELECT COUNT(*) FROM trips").fetchone()[0] == 1  # ignition off: the trip is closed at once
+
+
+def _stamps(vehicle_id=1):
+    from carassistant import db
+
+    with db.tx() as conn:
+        return {
+            r["key"]: (r["value"], r["updated"])
+            for r in conn.execute("SELECT key, value, updated FROM live WHERE vehicle_id = ?", (vehicle_id,))
+        }
+
+
+def test_a_value_sent_again_unchanged_is_no_news_and_measured_at_is_kept(api):
+    """The last signal is when the CAR reported, not when we were told again (a restart of the app or the plugin sends remembered values)."""
+    token = setup(api)
+    old = "2026-11-01T08:00:00Z"
+    r = api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 300, "measured_at": old})
+    assert r.status_code == 200
+    assert _stamps()["range_km"][1].startswith("2026-11-01T08:00:00")
+    # the same value again without a time: the car did not report anything new
+    assert api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 300}).status_code == 200
+    assert _stamps()["range_km"][1].startswith("2026-11-01T08:00:00")
+    # a changed value without a time counts from its arrival
+    api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 280})
+    assert _stamps()["range_km"][1] > "2026-11-02"
+    # a time never goes backwards, and one in the future is cut to now
+    api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 270, "measured_at": old})
+    assert _stamps()["range_km"][1] > "2026-11-02"
+    api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 260, "measured_at": "2999-01-01T00:00:00Z"})
+    assert _stamps()["range_km"][1] < "2100"
+    assert api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 250, "measured_at": "yesterday"}).status_code == 422
+
+
+def test_home_assistant_values_carry_the_time_home_assistant_gives(api, monkeypatch):
+    from carassistant import db, ha, live
+
+    setup(api)
+    state = {"state": "55", "attributes": {}, "last_reported": "2026-11-01T09:30:00+00:00"}
+    monkeypatch.setattr(ha, "get_state", lambda entity: state)
+    with db.tx() as conn:
+        conn.execute("UPDATE vehicles SET bind_fuel_level = 'sensor.fuel' WHERE id = 1")
+        live.refresh_vehicle(conn, conn.execute("SELECT * FROM vehicles WHERE id = 1").fetchone())
+    assert _stamps()["fuel_level"][1].startswith("2026-11-01T09:30:00")  # not the moment we looked
+
+
+def test_connected_means_the_car_reported_within_half_an_hour():
+    from datetime import UTC, datetime, timedelta
+
+    from carassistant import status
+
+    now = datetime(2026, 11, 22, 12, 0, tzinfo=UTC)
+    assert status.connected({}, now) is None
+    assert status.connected({"range_km": ("300", now - timedelta(minutes=10))}, now) is True
+    assert status.connected({"range_km": ("300", now - timedelta(minutes=45))}, now) is False
