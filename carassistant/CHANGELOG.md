@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.11 Beta
+- Fixed: the "last signal" no longer jumps to the moment the app was restarted. A value sent again unchanged is no news, the Plugin API takes `measured_at` (when the car really reported), values from Home Assistant carry the time Home Assistant gives. The dot beside it is green with contact (the car reported within 30 minutes) and red without; the time is the last report.
+
 ## 0.5.10 Beta
 - Fixed: the "Car data live" widget cut off labels and values when the car reported long or many values; the columns now follow the room and labels and values wrap, nothing is cut off.
 

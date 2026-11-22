@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.11 Beta
+- Behoben: das „letzte Signal“ springt nicht mehr auf den Moment des Neustarts. Ein unverändert erneut gesendeter Wert ist keine Neuigkeit, die Plugin-API nimmt `measured_at` (wann das Auto wirklich gemeldet hat), Werte aus Home Assistant tragen die Zeit von Home Assistant. Der Punkt daneben ist grün bei Kontakt (das Auto hat sich in den letzten 30 Minuten gemeldet) und rot ohne; die Zeit ist die letzte Meldung.
+
 ## 0.5.10 Beta
 - Behoben: das Widget „Fahrzeugdaten live“ schnitt Beschriftungen und Werte ab, wenn das Auto lange oder viele Werte meldete; die Spalten richten sich jetzt nach dem Platz, Beschriftungen und Werte brechen um, nichts wird abgeschnitten.
 
