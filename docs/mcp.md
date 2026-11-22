@@ -65,6 +65,9 @@ Request headers cannot be changed later: for a new key remove the connector and 
 | `get_settings` | read | language, units, currency and how many vehicles / plugins / integrations exist |
 | `add_entry` | write | add a record (wrong values are refused with the reason) |
 | `update_entry` | write | change only the given fields of a record |
+| `update_vehicle` | write | fill in the master data of a vehicle (vin, plate, make, model, year, ...) |
+| `update_document` | write | change title, category, date, validity or note of a document |
+| `set_tyre_pressure` | write | set the recommended tyre pressure of a season |
 | `delete_entry` | write | delete a record (cannot be undone) |
 
 Values are in base units (km, litres or kWh, bar, °C, money as a plain number), independent of the units you chose for display.

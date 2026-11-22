@@ -65,6 +65,9 @@ Die Request headers lassen sich später nicht ändern: für einen neuen Schlüss
 | `get_settings` | Lesen | Sprache, Einheiten, Währung und wie viele Fahrzeuge / Plugins / Integrationen es gibt |
 | `add_entry` | Schreiben | einen Eintrag anlegen (falsche Werte werden mit Grund abgelehnt) |
 | `update_entry` | Schreiben | nur die genannten Felder eines Eintrags ändern |
+| `update_vehicle` | Schreiben | die Stammdaten eines Fahrzeugs ergänzen (FIN, Kennzeichen, Marke, Modell, Baujahr, ...) |
+| `update_document` | Schreiben | Titel, Kategorie, Datum, Gültigkeit oder Notiz eines Dokuments ändern |
+| `set_tyre_pressure` | Schreiben | den empfohlenen Reifendruck einer Saison setzen |
 | `delete_entry` | Schreiben | einen Eintrag löschen (nicht rückgängig zu machen) |
 
 Werte sind in Basiseinheiten (km, Liter oder kWh, bar, °C, Geld als reine Zahl), unabhängig von den Einheiten, die du zur Anzeige gewählt hast.

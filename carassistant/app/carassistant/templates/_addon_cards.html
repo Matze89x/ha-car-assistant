@@ -10,7 +10,7 @@
       <small class="addon-src">{% if a.m.author %}{{ _('addon.by', name=a.m.author) }} · {% endif %}{{ _('addon.from_source', name=a.source_name) if a.source_name else (_('addon.from_url') if a.need and a.need.url else _('addon.from_upload')) }}</small>
     </div>
     {% if a.missing %}<span class="run-pill need"><i></i>{{ _('addon.needs') }}</span>
-    {% else %}<span class="run-pill {{ 'on' if a.active }}"><i></i>{{ (_('addon.running') if a.active else _('addon.stopped')) if plugin else (_('addon.on_state') if a.active else _('addon.off_state')) }}</span>{% endif %}
+    {% elif plugin %}<span class="run-pill {{ 'on' if a.active }}"><i></i>{{ _('addon.running') if a.active else _('addon.stopped') }}</span>{% endif %}
   </div>
   {% if a.m.description %}<p class="addon-d">{{ a.m.description }}</p>{% endif %}
   {% if a.pkgfiles and not a.svc %}<p class="hint svc-line">{{ icon('download', 16) }} <b>{{ _('fil.title') }}: {{ a.pkgfiles.n }}</b>{% if a.pkgfiles.approved %} · {{ _('fil.state_ok') }} <a class="small" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/service">{{ _('svc.details') }}</a>{% else %} · {{ _('fil.state_wait') }} <a class="button small primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/service">{{ _('svc.review') }}</a>{% endif %}</p>{% endif %}
@@ -36,14 +36,15 @@
     {% set in_bar = nav_order is defined and ('x-' ~ a.addon_id) in (nav_order[:4]|map('first')|list) %}
     {# Three clear buttons with words (start/stop, settings, more); the one main action - open - on the right. Everything else lives under "More", each with a line of explanation. #}
     <div class="addon-bar">
-      {% if a.active %}<button class="stop" form="aact-{{ a.id }}" name="active" value="0">{{ icon('stop', 18) }}<span>{{ _('addon.stop') if plugin else _('addon.turn_off') }}</span></button>
-      {% else %}<button class="go" form="aact-{{ a.id }}" name="active" value="1">{{ icon('play', 18) }}<span>{{ _('addon.start') if plugin else _('addon.turn_on') }}</span></button>{% endif %}
+      {% if plugin %}{% if a.active %}<button class="stop" form="aact-{{ a.id }}" name="active" value="0">{{ icon('stop', 18) }}<span>{{ _('addon.stop') }}</span></button>
+      {% else %}<button class="go" form="aact-{{ a.id }}" name="active" value="1">{{ icon('play', 18) }}<span>{{ _('addon.start') }}</span></button>{% endif %}{% endif %}
       <a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/info">{{ icon('info', 18) }}<span>{{ _('info.title') }}</span></a>
       {% if a.m.settings or plugin %}<a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/settings">{{ icon('settings', 18) }}<span>{{ _('addon.settings') }}</span></a>{% endif %}
       {% if a.m.setup and a.status != 'configured' %}<a class="button primary push-right" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ _('addon.setup') }}</span></a>
       {% elif a.has_update %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/update" class="push-right"><button class="primary">{{ icon('refresh', 18) }}<span>{{ _('addon.update') }}</span></button></form>
-      {% elif a.active and a.m.pages %}<a class="button primary push-right" href="{{ base }}/v/{{ v.slug }}/m/{{ a.addon_id }}">{{ icon('chevron', 18) }}<span>{{ _('addon.open') }}</span></a>{% endif %}
+      {% elif (a.active or not plugin) and a.m.pages %}<a class="button primary push-right" href="{{ base }}/v/{{ v.slug }}/m/{{ a.addon_id }}">{{ icon('chevron', 18) }}<span>{{ _('addon.open') }}</span></a>{% endif %}
     </div>
+    <div class="addon-uninstall"><button class="danger small" form="adel-{{ a.id }}">{{ icon('delete', 16) }}<span>{{ _('addon.uninstall') }}</span></button></div>
     <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/active" id="aact-{{ a.id }}" hidden></form>
 
       {% endif %}

@@ -2827,3 +2827,17 @@ label.nm-row.sw-row, .card label.nm-row.sw-row, form label.nm-row.sw-row { borde
 .sw-row + .hint, .sw-row + p, .sw-row + small, .sw-row + .mqtt-bar, .sw-row + details, .sw-row + .flash, .sw-row + ul { margin-top: 14px; }
 .hint + form > .sw-row:first-child, p + form > .sw-row:first-child { margin-top: 6px; }
 form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form:has(> .sw-row:last-child) + details, form:has(> .sw-row:last-child) + ul { margin-top: 14px; }
+
+.addon-uninstall { display: flex; justify-content: flex-end; margin-top: 8px; }
+.pk-sort { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
+.pk-sort > span { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+.pk-sort a { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--glass-b); background: var(--glass2); color: var(--muted); font-size: 13px; text-decoration: none; }
+.pk-sort a.on { color: var(--text); border-color: rgba(var(--accent-rgb), .55); background: rgba(var(--accent-rgb), .14); }
+
+/* Side bar: the name fills the whole width from the logo to the right edge (like the lines below it) and the slogan spreads exactly as wide - the size follows the width of the bar */
+@media (min-width: 1280px) {
+  .side .sb-brand { padding-right: 0; }
+  .side .sb-brand span:has(.sb-slogan) { display: block; flex: 1 1 0; min-width: 0; width: auto; container-type: inline-size; }
+  .side .sb-brand span:has(.sb-slogan) b { font-size: calc(100cqw / 6.5); }
+  .side .sb-brand span:has(.sb-slogan) small.sb-slogan { width: 100%; min-width: 0; font-size: calc(50cqw / 6.5); margin-top: .7em; }
+}

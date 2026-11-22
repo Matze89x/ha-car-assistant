@@ -18,7 +18,7 @@ import sqlite3
 import time
 from collections import defaultdict, deque
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from urllib.parse import urlparse
 
 from . import STAGE, __version__, accounts, addons, config, db, entities, events, fuelstats, ha, slugs, summary, units
@@ -460,6 +460,86 @@ def t_update_entry(conn, args):
     return {"ok": True, "id": row_id}
 
 
+def t_update_vehicle(conn, args):
+    """Fill in or correct the master data of a vehicle (only the fields of data_gaps: vin, plate, make, model, year, ...)."""
+    vid = _vehicle(conn, args.get("vehicle"))
+    values = _values(args)
+    unknown = sorted(set(values) - set(VEHICLE_FIELDS))
+    if unknown:
+        raise ToolError(f"Not allowed here: {', '.join(unknown)}. Allowed: {', '.join(VEHICLE_FIELDS)}.")
+    if not values:
+        raise ToolError("Give at least one field in 'values'.")
+    clean: dict[str, object] = {}
+    for key, raw in values.items():
+        text = "" if raw is None else str(raw).strip()
+        if key == "year":
+            if text and not (text.isdigit() and 1885 <= int(text) <= 2100):
+                raise ToolError("'year' must be a four-digit year.")
+            clean[key] = int(text) if text else None
+        else:
+            clean[key] = text[:120] or None
+    conn.execute(f"UPDATE vehicles SET {', '.join(f'{k} = ?' for k in clean)} WHERE id = ?", (*clean.values(), vid))
+    events.changed()
+    return {"ok": True, "updated": sorted(clean)}
+
+
+def t_update_document(conn, args):
+    """Title, category, document date, validity and note of a stored document (the file itself is never touched)."""
+    vid = _vehicle(conn, args.get("vehicle"))
+    doc_id = _int(args, "id", 0, 0, 10**12)
+    row = conn.execute("SELECT * FROM documents WHERE id = ? AND vehicle_id = ?", (doc_id, vid)).fetchone()
+    if row is None:
+        raise ToolError("No such document for this vehicle.")
+    values = _values(args)
+    allowed = ("title", "category", "doc_date", "valid_until", "notes")
+    unknown = sorted(set(values) - set(allowed))
+    if unknown:
+        raise ToolError(f"Not allowed here: {', '.join(unknown)}. Allowed: {', '.join(allowed)}.")
+    categories = ("manual", "invoice", "insurance", "registration", "inspection", "other")
+    if "category" in values and values["category"] not in categories:
+        raise ToolError(f"'category' must be one of: {', '.join(categories)}.")
+    for key in ("doc_date", "valid_until"):
+        if values.get(key):
+            try:
+                values[key] = date.fromisoformat(str(values[key])[:10]).isoformat()
+            except ValueError:
+                raise ToolError(f"'{key}' must be a date like 2026-12-31.") from None
+    new = {
+        k: (str(values[k]).strip()[:2000] or None) if k in values and values[k] is not None else (values.get(k) if k in values else row[k])
+        for k in allowed
+    }
+    new["title"] = new["title"] or row["filename"]
+    conn.execute(
+        "UPDATE documents SET title = ?, category = ?, doc_date = ?, valid_until = ?, notes = ? WHERE id = ?",
+        (new["title"], new["category"] or row["category"], new["doc_date"], new["valid_until"], new["notes"], doc_id),
+    )
+    return {"ok": True, "id": doc_id}
+
+
+def t_set_tyre_pressure(conn, args):
+    """The recommended pressure (bar) of a season, front and rear axle."""
+    vid = _vehicle(conn, args.get("vehicle"))
+    season = str(args.get("season", ""))
+    if season not in ("summer", "winter", "allseason"):
+        raise ToolError("'season' must be summer, winter or allseason.")
+    bars = []
+    for key in ("front_bar", "rear_bar"):
+        try:
+            bar = float(args[key])
+        except (KeyError, TypeError, ValueError):
+            raise ToolError(f"'{key}' must be a number in bar.") from None
+        if not 0.5 <= bar <= 6.0:
+            raise ToolError(f"'{key}' looks wrong (0.5 - 6.0 bar expected).")
+        bars.append(round(bar, 2))
+    conn.execute(
+        "INSERT INTO tire_pressure(vehicle_id, season, front_bar, rear_bar) VALUES(?,?,?,?) "
+        "ON CONFLICT(vehicle_id, season) DO UPDATE SET front_bar = excluded.front_bar, rear_bar = excluded.rear_bar",
+        (vid, season, *bars),
+    )
+    events.changed()
+    return {"ok": True, "season": season, "front_bar": bars[0], "rear_bar": bars[1]}
+
+
 def t_delete_entry(conn, args):
     vid = _vehicle(conn, args.get("vehicle"))
     entity = _entity(str(args.get("kind", "")))
@@ -585,6 +665,35 @@ TOOLS: tuple[tuple[str, str, dict, bool, object], ...] = (
         _schema({"vehicle": _VEHICLE, "kind": _KIND, "id": {"type": "integer"}, "values": _VALUES}, ("vehicle", "kind", "id", "values")),
         True,
         t_update_entry,
+    ),
+    (
+        "update_vehicle",
+        "Fill in or correct the master data of a vehicle: vin, plate, make, model, year, first_reg, hsn, tsn, engine, color (needs write access). Use it after data_gaps.",
+        _schema({"vehicle": _VEHICLE, "values": _VALUES}, ("vehicle", "values")),
+        True,
+        t_update_vehicle,
+    ),
+    (
+        "update_document",
+        "Change title, category (manual, invoice, insurance, registration, inspection, other), doc_date, valid_until or notes of a stored document (needs write access; the file is not touched).",
+        _schema({"vehicle": _VEHICLE, "id": {"type": "integer"}, "values": _VALUES}, ("vehicle", "id", "values")),
+        True,
+        t_update_document,
+    ),
+    (
+        "set_tyre_pressure",
+        "Set the recommended tyre pressure in bar for a season (summer, winter, allseason), front and rear axle (needs write access).",
+        _schema(
+            {
+                "vehicle": _VEHICLE,
+                "season": {"type": "string", "description": "summer, winter or allseason"},
+                "front_bar": {"type": "number"},
+                "rear_bar": {"type": "number"},
+            },
+            ("vehicle", "season", "front_bar", "rear_bar"),
+        ),
+        True,
+        t_set_tyre_pressure,
     ),
     (
         "delete_entry",

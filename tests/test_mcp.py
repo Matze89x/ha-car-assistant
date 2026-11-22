@@ -197,6 +197,49 @@ def test_one_switch_decides_read_or_write_for_the_key(ing, program, monkeypatch)
     assert error
 
 
+def test_a_car_can_be_completed_through_the_vehicle_document_and_tyre_tools(ing, program, monkeypatch):
+    from carassistant import db
+
+    _ready(ing, monkeypatch, "write")
+    with db.tx() as conn:
+        vid = conn.execute("INSERT INTO vehicles(name, slug, fuel_type) VALUES('Test Car', 'test-car', 'petrol')").lastrowid
+        conn.execute(
+            "INSERT INTO documents(vehicle_id, category, title, filename, mime, size) VALUES(?,?,?,?,?,?)",
+            (vid, "other", "Scan", "scan.pdf", "application/pdf", 10),
+        )
+        doc = conn.execute("SELECT id FROM documents").fetchone()["id"]
+    key = _key(ing)
+    error, answer = call(
+        program, key, "update_vehicle", vehicle="test-car", values={"plate": "AB-CD 123", "year": "2019", "engine": "2.0 TDI"}
+    )
+    assert not error and answer["updated"] == ["engine", "plate", "year"]
+    with db.tx() as conn:
+        row = conn.execute("SELECT plate, year, engine FROM vehicles WHERE id = ?", (vid,)).fetchone()
+    assert (row["plate"], row["year"], row["engine"]) == ("AB-CD 123", 2019, "2.0 TDI")
+    error, answer = call(program, key, "update_vehicle", vehicle="test-car", values={"photo": "x"})
+    assert error and "Not allowed" in answer["error"]
+    error, answer = call(program, key, "update_vehicle", vehicle="test-car", values={"year": "20x9"})
+    assert error and "year" in answer["error"]
+    error, answer = call(
+        program,
+        key,
+        "update_document",
+        vehicle="test-car",
+        id=doc,
+        values={"category": "insurance", "valid_until": "2027-03-01", "title": "Policy"},
+    )
+    assert not error and answer["ok"]
+    _e, docs = call(program, key, "list_documents", vehicle="test-car")
+    assert docs[0]["category"] == "insurance" and docs[0]["title"] == "Policy" and docs[0]["filename"] == "scan.pdf"
+    error, answer = call(program, key, "update_document", vehicle="test-car", id=doc, values={"category": "nonsense"})
+    assert error
+    error, answer = call(program, key, "set_tyre_pressure", vehicle="test-car", season="summer", front_bar=2.4, rear_bar=2.6)
+    assert not error and answer["front_bar"] == 2.4
+    assert call(program, key, "get_tyres", vehicle="test-car")[1]["pressure_bar"][0]["rear_bar"] == 2.6
+    error, _ = call(program, key, "set_tyre_pressure", vehicle="test-car", season="summer", front_bar=25, rear_bar=2.6)
+    assert error
+
+
 def test_renewing_replaces_the_key_and_deleting_removes_it(ing, program, monkeypatch):
     from carassistant import db
 

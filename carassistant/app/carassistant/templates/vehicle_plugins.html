@@ -11,6 +11,7 @@
 {% if ptab == 'manage' %}
 <div class="pk-bar"><span class="hint">{{ _('plug.intro', car=v.name) }}</span>
 </div>
+{% if items|length > 1 %}{% include "_pk_sort.html" %}{% endif %}
 <div class="pk-grid one">{% with rows=items, empty=_('plug.none') %}{% include "_addon_cards.html" %}{% endwith %}</div>
 {% elif ptab == 'add' %}
 {% with kind='plugin' %}{% include "_available_card.html" %}{% endwith %}

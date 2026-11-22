@@ -345,3 +345,22 @@ def test_the_demo_plugin_is_never_offered_to_pick(conn, vehicle):
         "example-plugin"
     ]  # the demo cars still fetch the demo plugin
     assert sources.package(conn, sid, "plugin", "demo-connector") is not None
+
+
+def test_github_rate_limit_is_not_reported_as_a_wrong_key(monkeypatch, client):
+    import io
+    import urllib.error
+
+    import pytest
+
+    from carassistant import sources
+
+    class Opener:
+        def open(self, request, timeout=None):
+            raise urllib.error.HTTPError(request.full_url, 403, "rate limited", {"X-RateLimit-Remaining": "0"}, io.BytesIO(b""))
+
+    monkeypatch.undo()  # the fixture of this file replaces _http by a fake: the real one is needed here
+    monkeypatch.setattr(sources.urllib.request, "build_opener", lambda *a: Opener())
+    with pytest.raises(sources.SourceError) as err:
+        sources._http("https://api.github.com/repos/x/y/contents/index.json", {}, False)
+    assert err.value.args[0] == "err.src_rate"

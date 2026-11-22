@@ -1,0 +1,1 @@
+<nav class="pk-sort" aria-label="{{ _('sort.title') }}"><span>{{ _('sort.title') }}</span>{% for c in sort_choices %}<a href="?sort={{ c }}" class="{{ 'on' if c == sort }}"{% if c == sort %} aria-current="true"{% endif %}>{{ _('sort.' ~ c) }}</a>{% endfor %}</nav>

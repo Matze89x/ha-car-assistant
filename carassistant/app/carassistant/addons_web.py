@@ -42,13 +42,39 @@ def _source_ctx(conn, kind: str, vid: int) -> dict:
     return {"rows": rows, "kind": kind, "vid": vid, "has_default": any(r["is_default"] for r in rows)}
 
 
+def _sort_installed(items: list[dict], key: str) -> list[dict]:
+    """The installed packages: by name (default), the newest installed first, or those that need something (update, set-up) first."""
+    if key == "recent":
+        return sorted(items, key=lambda a: a["created_at"] or "", reverse=True)
+    if key == "status":
+        return sorted(items, key=lambda a: (not a["missing"], not a["has_update"], (a["m"].get("name") or "").lower()))
+    return sorted(items, key=lambda a: (a["m"].get("name") or "").lower())
+
+
+def _sort_available(rows, key: str) -> list:
+    """The packages of the sources: by name (default), by source, or the ones not yet installed first."""
+    if key == "source":
+        return sorted(rows, key=lambda p: ((p["source_name"] or "").lower(), (p["name"] or "").lower()))
+    if key == "new":
+        return sorted(rows, key=lambda p: (bool(p["installed"]), (p["name"] or "").lower()))
+    return sorted(rows, key=lambda p: (p["name"] or "").lower())
+
+
+def _sort_ctx(request: Request, tab_manage: bool) -> dict:
+    asked = request.query_params.get("sort", "")
+    choices = ("name", "recent", "status") if tab_manage else ("name", "source", "new")
+    return {"sort": asked if asked in choices else "name", "sort_choices": choices}
+
+
 def _integrations_page(request: Request, vid: int, tab: str):
     with db.tx() as conn:
         vehicle = vehicle_or_404(conn, vid)
-        items = _with_service([a for a in addons.list_for(conn, vid) if a["kind"] == "integration"])
+        sortc = _sort_ctx(request, tab == "navigation")
+        items = _sort_installed(_with_service([a for a in addons.list_for(conn, vid) if a["kind"] == "integration"]), sortc["sort"])
         return render(
             request,
             "vehicle_integrations.html",
+            **sortc,
             **vehicle_ctx(conn, vehicle, "integrations"),
             hide_hero=True,
             itab=tab,
@@ -60,7 +86,7 @@ def _integrations_page(request: Request, vid: int, tab: str):
             nav_aid={navigation.X + a["addon_id"]: a["id"] for a in items},  # the switch of an integration page in the order
             picker_icons=icon_set.PICKER_ICONS,
             functions=_functions(conn, vid),
-            available=sources.available(conn, "integration", vid),
+            available=_sort_available(sources.available(conn, "integration", vid), sortc["sort"]),
             last_read=conn.execute("SELECT MAX(checked_at) FROM sources").fetchone()[0],
             **_source_ctx(conn, "integration", vehicle["id"]),
             have_packages=bool(conn.execute("SELECT 1 FROM source_packages LIMIT 1").fetchone()),
@@ -94,17 +120,19 @@ def _with_service(items: list[dict]) -> list[dict]:
 def _plugins_page(request: Request, vid: int, tab: str):
     with db.tx() as conn:
         vehicle = vehicle_or_404(conn, vid)
-        items = _with_service([a for a in addons.list_for(conn, vid) if a["kind"] == "plugin"])
+        sortc = _sort_ctx(request, tab == "manage")
+        items = _sort_installed(_with_service([a for a in addons.list_for(conn, vid) if a["kind"] == "plugin"]), sortc["sort"])
         return render(
             request,
             "vehicle_plugins.html",
+            **sortc,
             **vehicle_ctx(conn, vehicle, "plugins"),
             hide_hero=True,
             ptab=tab,
             section_tabs=_tabs(f"/v/{vehicle['slug']}/plugins", tab, PLUG_TABS),
             items=items,
             chips=nav_chips.CHIP,
-            available=sources.available(conn, "plugin", vid),
+            available=_sort_available(sources.available(conn, "plugin", vid), sortc["sort"]),
             last_read=conn.execute("SELECT MAX(checked_at) FROM sources").fetchone()[0],
             **_source_ctx(conn, "plugin", vehicle["id"]),
             have_packages=bool(conn.execute("SELECT 1 FROM source_packages LIMIT 1").fetchone()),

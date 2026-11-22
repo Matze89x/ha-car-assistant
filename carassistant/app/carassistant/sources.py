@@ -189,6 +189,8 @@ def _http(url: str, headers: dict[str, str], check_host: bool, limit: int = MAX_
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             raise SourceError("err.src_missing") from exc
+        if exc.code in (403, 429) and exc.headers is not None and exc.headers.get("X-RateLimit-Remaining") == "0":
+            raise SourceError("err.src_rate") from exc  # not a wrong key: GitHub allows only 60 anonymous requests an hour per address
         raise SourceError("err.src_auth" if exc.code in (401, 403) else "err.src_net") from exc
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise SourceError("err.src_net") from exc
