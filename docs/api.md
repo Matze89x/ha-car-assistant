@@ -26,7 +26,7 @@ All fields are optional – send what you know. Unknown fields are rejected (`42
 | `fuel_level_pct` | number | 0 … 100 | Home |
 | `range_km` | number | 0 … 3000 | Home |
 | `fuel_amount` | number | 0 … 1000: litres in the tank (kWh in the battery of an electric car), when the car reports the amount itself. With the size of the tank (vehicle data) the app also shows the per cent; with the per cent and the size it works out the amount | Home |
-| `position` | `{"lat": .., "lon": ..}` | valid coordinates | Home: location card |
+| `position` | `{"lat": .., "lon": .., "street": "..", "place": ".."}` | valid coordinates; `street` (with house number) and `place` (town) are optional text, up to 120 characters: when the car knows them itself they replace the address lookup for that spot (nothing is asked from a server) and name the place of trips | Home: location card |
 | `ignition` | boolean | `true` = on | Home plaque, "parked since" |
 | `doors` | object `name → boolean/null` | `true` = open, `false` = closed, `null` = remove the name | Home plaque, Security page |
 | `windows` | object `name → boolean/null` | same as `doors` | Home plaque, Security page |

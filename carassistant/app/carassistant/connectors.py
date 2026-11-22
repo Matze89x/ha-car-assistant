@@ -806,6 +806,12 @@ def ingest(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str) -
         lat, lon = _num(pos, "lat", -90, 90), _num(pos, "lon", -180, 180)
         if lat is None or lon is None:
             raise ApiError("invalid_value", "'position' needs lat and lon.", 422)
+        names = {}
+        for field in ("street", "place"):  # optional: the car names the spot itself (street with number / town)
+            text = pos.get(field)
+            if text is not None and not isinstance(text, str):
+                raise ApiError("invalid_value", f"'position.{field}' must be text.", 422)
+            names[field] = " ".join((text or "").split())[:120]
     if vin is not None:  # the VIN is typed in by a person; the car only has to match it (like a key)
         row = conn.execute("SELECT vin FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
         if not row["vin"]:
@@ -836,6 +842,11 @@ def ingest(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str) -
     if lat is not None:
         _store(conn, vehicle_id, "position", f"{lat:.6f},{lon:.6f}", at)
         result["position"] = "stored"
+        if names["street"] or names["place"]:
+            from . import places
+
+            places.set_given(conn, lat, lon, names["place"], names["street"])
+            result["position_names"] = "stored"
     if ign is not None:
         _store(conn, vehicle_id, "ignition", "on" if ign else "off", at)
         result["ignition"] = "stored"

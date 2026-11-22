@@ -390,3 +390,16 @@ def test_plugin_tokens_are_kept_encrypted_only_when_the_administrator_allows_it(
         assert connectors.remembered(conn, token_id) == ""
         assert conn.execute("SELECT token_enc FROM api_tokens WHERE id = ?", (token_id,)).fetchone()["token_enc"] is None
         assert connectors.verify(conn, token) is not None  # the token itself keeps working
+
+
+def test_the_car_names_its_own_spot(api):
+    from carassistant import db, places
+
+    token = setup(api)
+    pos = {"lat": 52.5, "lon": 13.4, "street": "  Hauptstraße   12 ", "place": "Berlin"}
+    r = api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"position": pos})
+    assert r.status_code == 200
+    with db.tx() as conn:
+        assert places.here_cached(conn, 52.5, 13.4) == ("Berlin", "Hauptstraße 12")
+    bad = api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"position": {**pos, "street": 5}})
+    assert bad.status_code == 422

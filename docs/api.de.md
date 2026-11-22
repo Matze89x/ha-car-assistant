@@ -26,7 +26,7 @@ Alle Felder sind optional – sende, was du weißt. Unbekannte Felder werden abg
 | `fuel_level_pct` | Zahl | 0 … 100 | Home |
 | `range_km` | Zahl | 0 … 3000 | Home |
 | `fuel_amount` | Zahl | 0 … 1000: Liter im Tank (kWh in der Batterie eines Elektroautos), wenn das Auto die Menge selbst meldet. Mit der Tankgröße (Fahrzeugdaten) zeigt die App auch die Prozent; mit Prozent und Größe rechnet sie die Menge aus | Home |
-| `position` | `{"lat": .., "lon": ..}` | gültige Koordinaten | Home: Standort-Karte |
+| `position` | `{"lat": .., "lon": .., "street": "..", "place": ".."}` | gültige Koordinaten; `street` (mit Hausnummer) und `place` (Ort) sind optionaler Text bis 120 Zeichen: Kennt das Auto sie selbst, ersetzen sie die Adress-Abfrage für diesen Punkt (kein Server wird gefragt) und benennen den Ort der Fahrten | Home: Standort-Karte |
 | `ignition` | Wahrheitswert | `true` = an | Home-Plakette, „Geparkt seit“ |
 | `doors` | Objekt `Name → Wahrheitswert/null` | `true` = offen, `false` = zu, `null` = Namen entfernen | Home-Plakette, Sicherheits-Seite |
 | `windows` | Objekt `Name → Wahrheitswert/null` | wie `doors` | Home-Plakette, Sicherheits-Seite |

@@ -233,3 +233,15 @@ def kick_here(lat: float, lon: float) -> None:
             _here_running.release()
 
     threading.Thread(target=work, name="place-here", daemon=True).start()
+
+
+def set_given(conn, lat: float, lon: float, town: str, road: str) -> None:
+    """The car (a plugin) names the spot itself: kept like a looked-up name for this spot, so it replaces the lookup (no server is asked)."""
+    lang = config.language()
+    now = datetime.now(UTC).isoformat(timespec="seconds")
+    town = town or citydb.nearest(lat, lon, lang) or ""
+    conn.execute(
+        "INSERT OR REPLACE INTO place_names(key, name, created_at) VALUES(?,?,?)", ("here:" + _key(lat, lon, lang), f"{town}\t{road}", now)
+    )
+    if town:  # the places of trips use the same name
+        conn.execute("INSERT OR REPLACE INTO place_names(key, name, created_at) VALUES(?,?,?)", (_key(lat, lon, lang), town, now))
