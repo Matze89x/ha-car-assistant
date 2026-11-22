@@ -231,6 +231,7 @@ document.addEventListener("focusin", function (e) { var t = e.target; if (t && t
   if (accentBox && window.fetch) {
     var cv = accentBox.querySelector(".ac-wheel"), c2 = cv.getContext("2d"), dot = accentBox.querySelector(".ac-dot");
     var hexIn = accentBox.querySelector(".ac-hex"), size = cv.width, half = size / 2, timer = null, saveTimer = null;
+    var valIn = accentBox.querySelector(".ac-val"), bright = 1;  // the brightness of the colour (the wheel itself only chooses hue and strength)
     function hsv(h, s, v) {
       var i = Math.floor(h * 6), f = h * 6 - i, p = v * (1 - s), q = v * (1 - f * s), t2 = v * (1 - (1 - f) * s), m = i % 6;
       var r = [v, q, p, p, t2, v][m], g = [t2, v, v, q, p, p][m], b = [p, p, t2, v, v, q][m];
@@ -241,7 +242,7 @@ document.addEventListener("focusin", function (e) { var t = e.target; if (t && t
       var n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
       var max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min, h = 0;
       if (d) { h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; }
-      return { h: h, s: max ? d / max : 0 };
+      return { h: h, s: max ? d / max : 0, v: max };
     }
     (function drawWheel() {
       var img = c2.createImageData(size, size);
@@ -257,8 +258,12 @@ document.addEventListener("focusin", function (e) { var t = e.target; if (t && t
       var c = fromHex(hex), ang = c.h * 2 * Math.PI, rad = c.s * 100;  // percent of the box
       dot.style.left = (50 + Math.cos(ang) * rad / 2) + "%"; dot.style.top = (50 + Math.sin(ang) * rad / 2) + "%";
     }
+    function track(hex) {  // the slider's track runs from dark to the chosen colour at full brightness
+      var c = fromHex(hex); accentBox.style.setProperty("--ac-c", toHex(hsv(c.h, c.s, 1)));
+    }
     function apply(hex, save) {
-      hexIn.value = hex; place(hex);
+      hexIn.value = hex; place(hex); track(hex);
+      var v = fromHex(hex).v; bright = v; if (valIn) { valIn.value = Math.round(v * 100); }
       clearTimeout(timer);
       timer = setTimeout(function () { var tag = accentTag(); accentFetch(hex, currentScheme()).then(function (css) { if (tag) { tag.textContent = css; } }); }, 40);
       if (save) {
@@ -272,7 +277,12 @@ document.addEventListener("focusin", function (e) { var t = e.target; if (t && t
     function pick(e, save) {
       var r = cv.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), rad = r.width / 2;
       var dist = Math.min(Math.sqrt(dx * dx + dy * dy), rad);
-      apply(toHex(hsv((Math.atan2(dy, dx) / (2 * Math.PI) + 1) % 1, dist / rad, 1)), save);
+      apply(toHex(hsv((Math.atan2(dy, dx) / (2 * Math.PI) + 1) % 1, dist / rad, bright)), save);
+    }
+    if (valIn) {
+      var vStop = function (save) { var c = fromHex(hexIn.value); apply(toHex(hsv(c.h, c.s, valIn.value / 100)), save); };
+      valIn.addEventListener("input", function () { vStop(false); });
+      valIn.addEventListener("change", function () { vStop(true); });
     }
     var down = false;
     cv.addEventListener("pointerdown", function (e) { down = true; cv.setPointerCapture(e.pointerId); pick(e, false); });
@@ -280,7 +290,7 @@ document.addEventListener("focusin", function (e) { var t = e.target; if (t && t
     cv.addEventListener("pointerup", function (e) { if (down) { down = false; pick(e, true); } });
     hexIn.addEventListener("input", function () { var v = hexIn.value.trim().toLowerCase(); if (v[0] !== "#") { v = "#" + v; } if (/^#[0-9a-f]{6}$/.test(v)) { apply(v, true); } });
     Array.prototype.forEach.call(accentBox.querySelectorAll(".ac-sw"), function (b) { b.style.background = b.getAttribute("data-hex"); b.addEventListener("click", function () { apply(b.getAttribute("data-hex"), true); }); });
-    place(hexIn.value);
+    place(hexIn.value); track(hexIn.value); bright = fromHex(hexIn.value).v; if (valIn) { valIn.value = Math.round(bright * 100); }
   }
 
   var themeForm = document.querySelector("form[data-theme-live]");

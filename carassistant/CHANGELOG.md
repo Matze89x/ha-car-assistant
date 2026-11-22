@@ -6,6 +6,7 @@ Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it be
 
 ## 0.5.9 Beta
 - The word "Assistant" in the name is shown in the main colour of the design (side bar, About, login); the slogan stays green.
+- Colour of your own: a brightness slider under the colour wheel; whatever colour is chosen stays visible (3 : 1) and readable as text (4.5 : 1) on its design - a pale colour is deepened on the light design, a dark one lightened on the dark design (hue kept).
 
 ## 0.5.8 Beta
 - Dashboard widgets share one look (icon and title left, note or arrow right, at most one line); charts keep their shape, status chips sit on the right; live car data as slim rows with the car's last signal; compact position widget ("parked here since" / "driving here").

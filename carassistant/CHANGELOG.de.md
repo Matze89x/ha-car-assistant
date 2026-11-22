@@ -6,6 +6,7 @@ Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie
 
 ## 0.5.9 Beta
 - Das Wort „Assistant“ im Namen steht in der Hauptfarbe des Designs (Seitenleiste, Über, Anmeldung); der Slogan bleibt grün.
+- Eigene Farbe: ein Helligkeits-Regler unter dem Farbkreis; egal welche Farbe, sie bleibt sichtbar (3 : 1) und als Text lesbar (4,5 : 1) auf ihrem Design – eine helle Farbe wird auf dem hellen Design abgedunkelt, eine dunkle auf dem dunklen aufgehellt (Farbton bleibt).
 
 ## 0.5.8 Beta
 - Dashboard-Widgets mit einheitlichem Aussehen (Symbol und Titel links, Notiz oder Pfeil rechts, höchstens eine Zeile); Diagramme behalten ihre Form, Status-Chips rechts; Fahrzeugdaten live als schlanke Zeilen mit dem letzten Signal des Autos; kompaktes Standort-Widget („hier steht / fährt dein Auto“).

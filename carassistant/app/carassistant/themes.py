@@ -116,11 +116,11 @@ def accent_css(color: str, scheme: str) -> str:
         return accent_css(color, "dark") + "@media (prefers-color-scheme: light){" + accent_css(color, "light") + "}"
     h, light, s = colorsys.rgb_to_hls(red, green, blue)
     if scheme == "light":
-        base = min(max(light, 0.34), 0.50)
+        base = min(max(light, 0.18), 0.62)  # wide on purpose: the brightness slider has to be felt; readable_lightness() below keeps it readable
         hi = base - 0.07
     else:
-        base = min(max(light, 0.42), 0.58)
-        hi = min(base + 0.26, 0.82)
+        base = min(max(light, 0.30), 0.72)
+        hi = min(base + 0.26, 0.86)
     base = readable_lightness(h, s, base, scheme, 3.0)  # whatever the colour: fills and lines of it are always visible (3 : 1)
     ink = _hex(h, s, readable_lightness(h, s, base, scheme, 4.5))  # ... and as text always readable (4.5 : 1)
     top, bot, top_h, bot_h = base + 0.10, base - 0.03, base + 0.14, base

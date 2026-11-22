@@ -21,6 +21,8 @@
     <div class="ac-wheel-box"><canvas class="ac-wheel" width="440" height="440" aria-label="{{ _('accent.wheel') }}"></canvas><i class="ac-dot"></i></div>
     <div class="ac-side">
       <label class="tf-field"><span class="tf-l">{{ _('accent.hex') }}</span><input class="ac-hex" type="text" value="{{ dp.accent }}" maxlength="7" spellcheck="false" autocomplete="off" aria-label="{{ _('accent.hex') }}"></label>
+      <label class="tf-field ac-val-f"><span class="tf-l">{{ _('accent.value') }}</span><input class="ac-val" type="range" min="25" max="100" value="100" aria-label="{{ _('accent.value') }}"></label>
+      <p class="hint ac-val-h">{{ _('accent.value_hint') }}</p>
       <div class="ac-presets" role="group" aria-label="{{ _('accent.presets') }}">
         {% for c in accent_presets %}<button type="button" class="ac-sw" data-hex="{{ c }}" aria-label="{{ c }}"></button>{% endfor %}
       </div>
