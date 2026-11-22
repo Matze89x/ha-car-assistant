@@ -4,6 +4,10 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.13 Beta
+- Plugins get freedom to shape their own set-up (all optional): the set-up guide can show only the settings a plugin lists per step, add steps that open a page of the plugin's service, and a plugin can name its own settings page.
+- New field type "value" (a value only the plugin's service sets) and `GET` / `PUT /api/v1/vehicles/<id>/plugin-settings`, so a plugin's service can read and change its own settings: only keys the package marks `service_writable`, part of the administrator's approval, checked like the form, logged and rate limited; `GET /api/v1` lists `features`.
+
 ## 0.5.12 Beta
 - Settings: Language, Date & time, Time zone and Units & currency are ONE "Region" card; the new time zone (automatic = Home Assistant's, summer / winter time follows) is used everywhere and the clock is shown. The System, Car and User pages are built as two fixed, evenly filling columns with much shorter texts; the MCP card shows only the last call.
 - Fixed: times in plugin logs, traffic and "last used" were shown in UTC and now follow the system time zone; the video background choice no longer reloads the page; notifications never show raw coordinates as a place.

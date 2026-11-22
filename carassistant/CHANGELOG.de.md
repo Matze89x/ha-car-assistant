@@ -4,6 +4,10 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.13 Beta
+- Plugins bekommen Freiraum, ihre Einrichtung selbst zu gestalten (alles optional): die Einrichtungsanleitung kann nur die Einstellungen zeigen, die ein Plugin je Schritt nennt, Schritte hinzufügen, die eine Seite des Plugin-Dienstes öffnen, und ein Plugin kann eine eigene Einstellungsseite benennen.
+- Neuer Feldtyp „value“ (ein Wert, den nur der Dienst des Plugins setzt) und `GET` / `PUT /api/v1/vehicles/<id>/plugin-settings`, damit der Dienst eines Plugins seine eigenen Einstellungen lesen und ändern kann: nur Schlüssel, die das Paket mit `service_writable` markiert, Teil der Freigabe des Administrators, wie das Formular geprüft, protokolliert und begrenzt; `GET /api/v1` nennt `features`.
+
 ## 0.5.12 Beta
 - Einstellungen: Sprache, Datum & Uhrzeit, Zeitzone und Einheiten & Währung sind EINE Karte „Region“; die neue Zeitzone (automatisch = die von Home Assistant, Sommer-/Winterzeit folgt) gilt überall, die Uhrzeit wird angezeigt. Die Seiten System, Auto und Benutzer bestehen aus zwei festen, gleichmäßig füllenden Spalten mit deutlich kürzeren Texten; die MCP-Karte zeigt nur den letzten Aufruf.
 - Behoben: Zeiten in Plugin-Protokollen, Verkehr und „zuletzt benutzt“ wurden in UTC angezeigt und folgen jetzt der System-Zeitzone; die Wahl des Video-Hintergrunds lädt die Seite nicht mehr neu; Benachrichtigungen zeigen nie rohe Koordinaten als Ort.
