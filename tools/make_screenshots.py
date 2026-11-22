@@ -5,7 +5,7 @@
 
 Needs Google Chrome (or set CHROME=/path/to/chrome). Runs the app itself on a free port with an empty temporary data folder, fills it with the two
 demo cars of tools/demo_data.py and takes the pictures; nothing of a real installation is read. Desktop pictures are 1200 px wide, phone pictures
-390 px wide at double density.
+500 px wide at double density (Chrome never makes a window narrower than 500 px; the pages use their phone layout up to 520 px).
 """
 
 from __future__ import annotations
@@ -31,11 +31,15 @@ DIESEL, EV = "demo-diesel", "demo-electric"
 # name, path, width, height (desktop pictures; the height cuts the page where it is still worth looking at)
 DESKTOP = (
     ("dashboard", f"/v/{DIESEL}", 1200, 1250),
+    ("dashboard-map", f"/v/{DIESEL}", 1200, 2100),
     ("dashboard-ev", f"/v/{EV}", 1200, 1250),
     ("fuel", f"/v/{DIESEL}/e/fuel", 1200, 1300),
     ("trips", f"/v/{DIESEL}/e/trips?ap=all", 1200, 2300),
+    ("trip-map", f"/v/{DIESEL}/e/trips?ap=all&open=1", 1200, 3600, (1590, 2740)),  # the first trip of the demo car is open: its route on the map, coloured by speed
     ("service", f"/v/{DIESEL}/e/service", 1200, 1300),
     ("tires", f"/v/{DIESEL}/e/tires", 1200, 1300),
+    ("mods", f"/v/{DIESEL}/e/mods", 1200, 1100),
+    ("notice", f"/v/{DIESEL}/docs?m=err.required", 1200, 800),  # the one notice tile under the page header: an error message (red) above the page introduction
     ("tasks", f"/v/{DIESEL}/e/tasks", 1200, 1300),
     ("appointments", f"/v/{DIESEL}/e/appointments", 1200, 1000),
     ("parts", f"/v/{DIESEL}/e/parts", 1200, 1000),
@@ -51,12 +55,14 @@ DESKTOP = (
     ("settings-system", "/settings/system", 1200, 3300),
 )
 MOBILE = (
-    ("mobile-dashboard", f"/v/{DIESEL}", 390, 844),
-    ("mobile-fuel", f"/v/{DIESEL}/e/fuel", 390, 844),
-    ("mobile-trips", f"/v/{DIESEL}/e/trips?ap=all", 390, 1500),
-    ("mobile-report", f"/v/{DIESEL}/report?g=month&n=12", 390, 1500),
-    ("mobile-more", f"/v/{DIESEL}/more", 390, 844),
-    ("mobile-settings-car", f"/settings/car?car={DIESEL}", 390, 1500),
+    ("mobile-dashboard", f"/v/{DIESEL}", 500, 844),
+    ("mobile-fuel", f"/v/{DIESEL}/e/fuel", 500, 844),
+    ("mobile-trips", f"/v/{DIESEL}/e/trips?ap=all", 500, 1500),
+    ("mobile-trip-map", f"/v/{DIESEL}/e/trips?ap=all&open=1", 500, 3000, (1700, 2700)),
+    ("mobile-tires", f"/v/{DIESEL}/e/tires", 500, 1100),
+    ("mobile-report", f"/v/{DIESEL}/report?g=month&n=12", 500, 1500),
+    ("mobile-more", f"/v/{DIESEL}/more", 500, 844),
+    ("mobile-settings-car", f"/settings/car?car={DIESEL}", 500, 1500),
 )
 # the same dashboard in every design: (picture, theme of the car, its colour)
 DESIGNS = (
@@ -95,6 +101,7 @@ def seed(data: Path, lang: str) -> None:
                 )
         accounts.create_user(conn, "demo", "correct horse battery staple", admin=True)
         db.set_setting(conn, "ext.url", "https://car.example.com")
+        db.set_setting(conn, "map.tiles", "1")  # the maps of the trips and the position show real map tiles in the pictures
     config.forget_external()
     config.forget_settings()
     with db.tx() as conn:
@@ -113,7 +120,7 @@ def wait_for(url: str, seconds: float = 40) -> None:
     raise SystemExit(f"the app did not start: {url}")
 
 
-def shot(base: str, path: str, out: Path, width: int, height: int, scale: int) -> None:
+def shot(base: str, path: str, out: Path, width: int, height: int, scale: int, crop: tuple[int, int] | None = None) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
         CHROME,
@@ -128,6 +135,14 @@ def shot(base: str, path: str, out: Path, width: int, height: int, scale: int) -
         base + path,
     ]
     subprocess.run(cmd, check=True, capture_output=True, timeout=90)
+    if crop:  # a tall picture of which only a band is worth showing (the open trip with its map); needs Pillow, else the whole picture stays
+        try:
+            from PIL import Image
+
+            with Image.open(out) as im:
+                im.crop((0, crop[0] * scale, im.width, min(im.height, crop[1] * scale))).save(out)
+        except ImportError:
+            pass
 
 
 def main() -> None:
@@ -149,13 +164,13 @@ def main() -> None:
             try:
                 base = f"http://127.0.0.1:{port}"
                 wait_for(base + "/healthz")
-                for name, path, w, h in DESKTOP:
+                for name, path, w, h, *crop in DESKTOP:
                     if not only or name in only:
-                        shot(base, path, out_root / lang / f"{name}.png", w, h, 1)
+                        shot(base, path, out_root / lang / f"{name}.png", w, h, 1, *crop)
                         print(lang, name, flush=True)
-                for name, path, w, h in MOBILE:
+                for name, path, w, h, *crop in MOBILE:
                     if not only or name in only:
-                        shot(base, path, out_root / lang / f"{name}.png", w, h, 2)
+                        shot(base, path, out_root / lang / f"{name}.png", w, h, 2, *crop)
                         print(lang, name, flush=True)
                 db = sqlite3.connect(data / "carassistant.db")
                 for name, theme, accent in DESIGNS:

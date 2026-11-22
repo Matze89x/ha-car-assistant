@@ -9,16 +9,16 @@
 🇬🇧 English · [🇩🇪 Deutsch](README.de.md)
 
 <!-- release:start -->
-[![Release](https://img.shields.io/badge/release-0.5.16%20Beta-orange.svg)](carassistant/CHANGELOG.md) The public test version. Please try it and report what you find.
+[![Release](https://img.shields.io/badge/release-0.5.17%20Beta-orange.svg)](carassistant/CHANGELOG.md) The public test version. Please try it and report what you find.
 <!-- release:end -->
 
 **Your car's own logbook and dashboard.** Car Assistant keeps **every document and all the data of your vehicles in one place** – papers, invoices and manuals stored digitally, plus the data of the car itself as soon as a plugin delivers it (it runs as an app inside Home Assistant) – one or many cars, combustion, hybrid or electric:
 
-- ⛽ fuel stops and charging sessions with consumption and cost statistics, fuel stations nearby
+- ⛽ fuel stops and charging sessions with consumption and cost statistics, the cheapest **fuel stations nearby** in one line each
 - 🔧 service book, extra work (maintenance schedule) with reminders, appointments (MOT/TÜV, insurance) and calendar export
 - 📦 spare parts you bought (part number, shop, price, installed where)
 - 📄 all documents: manuals, invoices, insurance and registration papers
-- 🛞 tyre sets with recommended pressures per season, modifications, trips (GPX/CSV, PDF export)
+- 🛞 tyre sets with recommended pressures per season, modifications, trips with the **route on a map coloured by speed** (GPX/CSV, PDF export)
 - 🧮 your own km counters, e.g. for the tax year
 - 📘 the **vehicle passport** with the facts you need, a VIN copy button and a list of equipment; the car's **manual** (import a PDF / EPUB / text, chapters, search, EPUB export)
 - 📍 status and location on Home (ignition, doors, tyre pressures, position with map) as soon as a plugin delivers the data

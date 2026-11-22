@@ -169,3 +169,11 @@ def test_the_server_places_notices_in_the_slot_before_the_page_is_sent():
     assert "Saved." in slot and "Broken" in slot and "Intro text" in slot and "<svg" in slot
     assert '<p class="hint">' not in out and out.count('class="flash') == 1 and 'id="st-msg"' in out  # only the dynamic one stays
     assert notices.place("<main>no slot</main>") == "<main>no slot</main>"
+
+
+def test_every_linked_widget_shows_its_arrow():
+    """A widget that is a link carries the arrow at the top right - also the small ones (no rule may hide it)."""
+    from pathlib import Path
+
+    css = (Path(__file__).resolve().parents[1] / "carassistant/app/carassistant/static/pc-core.css").read_text(encoding="utf-8")
+    assert ".wd.s .wd-h > .ico:last-child { display: none; }" not in css

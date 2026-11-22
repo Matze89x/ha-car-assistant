@@ -1365,7 +1365,18 @@ def entity_page(request: Request, vid: int, key: str, form: dict | None = None, 
                     )
                 },
             )
-            return render(request, "trips_page.html", status=status, form=form or {}, error=error, edit_id=edit_id, **ctx, **extra)
+            opened = request.query_params.get("open", "")
+            return render(
+                request,
+                "trips_page.html",
+                status=status,
+                form=form or {},
+                error=error,
+                edit_id=edit_id,
+                open_id=int(opened) if opened.isdigit() else None,
+                **ctx,
+                **extra,
+            )  # ?open=<id>: that trip is shown open (map and details), for links and pictures
         if key == "tasks":
             odo = summary.current_odometer(conn, vid)
             book = summary.service_index(conn, vid)

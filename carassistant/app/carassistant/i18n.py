@@ -1184,7 +1184,7 @@ EN: dict[str, str] = {
     "tp.moving": "Avg while moving",
     "tp.idle": "Standing",
     "tp.estimate": "Consumption and costs are an estimate: the average consumption of this car x the driven distance (x the average price you paid). Speeds and driving style are worked out from the recorded positions.",
-    "tp.points": "{n} points - start {a}, end {b} - fastest section {v}",
+    "tp.points": "{n} points · start {a}, end {b} · fastest section {v}",
     "tp.hard": "{n}x hard",
     "tp.peak": "peaks avg {v}",
     "tp.in_motion": "{n} min moving",

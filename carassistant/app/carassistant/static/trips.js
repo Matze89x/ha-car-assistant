@@ -71,6 +71,15 @@
     if (d.open) { load(card); }
   }, true);
 
+  /* a trip that is open from the start (a link with ?open=<id>) is shown the same way */
+  function openAtStart() {
+    Array.prototype.forEach.call(document.querySelectorAll("details.trip[open]"), function (d) {
+      var card = d.querySelector(".tp-card");
+      if (card) { card.hidden = false; load(card); }
+    });
+  }
+  if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", openAtStart); } else { openAtStart(); }
+
   function load(card) {
     if (card.getAttribute("data-loaded")) { return; }
     card.setAttribute("data-loaded", "1");
@@ -100,7 +109,14 @@
         if (d.idle_pct !== null) { setText(card, "idle", d.idle_pct + " %", false); setText(card, "movmin", (card.getAttribute("data-inmotion") || "{n}").replace("{n}", d.moving_min), false); }
       }
       var note = card.querySelector(".tp-note");
-      if (note && d.n) { note.textContent = (card.getAttribute("data-note") || "").replace("{n}", d.n).replace("{a}", d.start || "").replace("{b}", d.end || "").replace("{v}", d.max_kmh ? Math.round(d.max_kmh * f) + " " + u : "-"); }
+      if (note && d.n) {  /* only the parts we have values for: positions without time stamps have no start, end or top speed */
+        var vals = { "{n}": d.n, "{a}": d.start || "", "{b}": d.end || "", "{v}": d.max_kmh ? Math.round(d.max_kmh * f) + " " + u : "" };
+        note.textContent = (card.getAttribute("data-note") || "").split(" \u00b7 ").map(function (part) {
+          var empty = false;
+          Object.keys(vals).forEach(function (k) { if (part.indexOf(k) >= 0) { if (vals[k] === "") { empty = true; } part = part.split(k).join(vals[k]); } });
+          return empty ? "" : part;
+        }).filter(function (p) { return p; }).join(" \u00b7 ");
+      }
       draw(card, d);
     }).catch(function () { /* the card stays with what it has */ });
   }

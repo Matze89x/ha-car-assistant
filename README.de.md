@@ -9,16 +9,16 @@
 [🇬🇧 English](README.md) · 🇩🇪 Deutsch
 
 <!-- release:start -->
-[![Release](https://img.shields.io/badge/release-0.5.16%20Beta-orange.svg)](carassistant/CHANGELOG.de.md) Die öffentliche Testversion. Bitte ausprobieren und melden, was dir auffällt.
+[![Release](https://img.shields.io/badge/release-0.5.17%20Beta-orange.svg)](carassistant/CHANGELOG.de.md) Die öffentliche Testversion. Bitte ausprobieren und melden, was dir auffällt.
 <!-- release:end -->
 
 **Das Logbuch und Dashboard für dein Auto.** Car Assistant bewahrt **alle Dokumente und Daten deiner Fahrzeuge an einem Ort** auf – Unterlagen, Rechnungen und Handbücher digital abgelegt, dazu die Daten des Autos selbst, sobald ein Plugin sie liefert (es läuft als App in Home Assistant) – ein Auto oder mehrere, Verbrenner, Hybrid oder Elektro:
 
-- ⛽ Tankstopps und Ladevorgänge mit Verbrauchs- und Kostenstatistik, Tankstellen in der Nähe
+- ⛽ Tankstopps und Ladevorgänge mit Verbrauchs- und Kostenstatistik, die günstigsten **Tankstellen in der Nähe** je in einer Zeile
 - 🔧 Servicebuch, Zusatzarbeiten (Wartungsplan) mit Erinnerungen, Termine (TÜV, Versicherung) und Kalenderexport
 - 📦 gekaufte Ersatzteile (Teilenummer, Shop, Preis, wo verbaut)
 - 📄 alle Dokumente: Handbücher, Rechnungen, Versicherungs- und Zulassungspapiere
-- 🛞 Reifensätze mit empfohlenem Reifendruck je Saison, Umbauten, Fahrten (GPX/CSV, PDF-Export)
+- 🛞 Reifensätze mit empfohlenem Reifendruck je Saison, Umbauten, Fahrten mit der **Route auf einer nach Tempo eingefärbten Karte** (GPX/CSV, PDF-Export)
 - 🧮 eigene Km-Zähler, z. B. für das Steuerjahr
 - 📘 der **Fahrzeugpass** mit den wichtigen Fakten, FIN-Kopierknopf und der Ausstattungsliste; das **Handbuch** des Autos (PDF / EPUB / Text importieren, Kapitel, Suche, EPUB-Export)
 - 📍 Status und Standort auf Home (Zündung, Türen, Reifendruck, Position mit Karte), sobald ein Plugin die Daten liefert
