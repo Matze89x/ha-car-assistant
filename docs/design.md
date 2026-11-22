@@ -58,7 +58,7 @@ Next to the *More* list the first element of the page starts on the same line as
 | Component | Class / macro | Notes |
 |---|---|---|
 | Card | `.card` | glass, `--r-l`, 18 px padding, no coloured bar |
-| Home widget | `widget()` macro → `.wd`, `.wd-slot` | one uniform tile: icon chip, title, value (`.wd-v`), sub line (`.wd-s`); size `s` (half row) or `m` (full row); a template in `templates/widgets/` renders nothing when there is no data |
+| Home widget | `widget()` macro → `.wd`, `.wd-slot` | one uniform tile: icon chip and title left, a small note (`meta`, e.g. the last signal) or the arrow right, value (`.wd-v`), at most one sub line (`.wd-s`); status chips right, text left; charts are never stretched (round dot, round bars); size `s` (half row) or `m` (full row); a template in `templates/widgets/` renders nothing when there is no data |
 | List row (More, settings) | `.mgroup` > `.mi` | icon chip `.mi-ic.c1…c7`, title `.mi-t`, hint `.mi-v`, chevron |
 | Icon chip | `.mi-ic.cN` | 32 px, gradient per colour; colours are part of the module (`CHIP` in `nav_web.py`) |
 | Buttons | `button`, `.button`, `.primary`, `.danger`, `.small` | one glass system (translucent fill, light top edge): 44 px / `--r-m`; `.primary` = red glass (the one main action), `.danger` / `.warn` = red outline, `.small` = 36 px / `--r-s`; `.ghost-btn` on a link, label or button has the same look; only theme tokens are used, so every design (also your own theme file) recolours it |
@@ -67,7 +67,9 @@ Next to the *More* list the first element of the page starts on the same line as
 | Empty state | `.card.empty-state` | icon, one sentence that says what to do |
 | Fields | `input`, `select`, `textarea`, `.tf-field` / `.tf-l` | uppercase 11 px label above, 48 px fields, example values as placeholders (neutral, never a brand) |
 | Choice tiles | `.season-pick` / `.sp` | big selectable tiles with an icon instead of a drop-down for 2–4 options |
-| Switch | `.switch` | on = accent |
+| Switch | `.switch`, `switch_row()` macro | on = accent; every on/off setting is a switch row with a line above and below (two rows share one line; never a second line above a button bar) |
+| Name + slogan | `.brand-lock`, `.sb-brand`, `.about-id` | always ONE unit: slogan half the size, exactly as wide as the name (side bar: fills the bar), same gap everywhere |
+| Dates and times | `regional.py` | shown as set under Settings → System → Date & time; stored ISO / 24 h |
 | Chips / badges | `.badge`, `.pos-chip`, `.schip` | pills (`999px`), status colours only |
 | Info page | `.about-hero`, `.about-stats`, `.about-car` | hero card (logo, name, version), figure tiles, then one card per car with rows (icon chip, name, small text, badges) – see the About page |
 | Car picture / video | `.hero-car.soft`, `.hero-media` | photos and videos fade out on all sides; a video plays once and rests on its last frame (`static/media.js`); library page `media.html` with thumbnails, "in use" badge, delete x |

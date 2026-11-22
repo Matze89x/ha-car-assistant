@@ -58,7 +58,7 @@ Neben der *Weiteres*-Liste beginnt das erste Element der Seite auf derselben Lin
 | Baustein | Klasse / Makro | Hinweise |
 |---|---|---|
 | Karte | `.card` | Glas, `--r-l`, 18 px Innenabstand, kein farbiger Balken |
-| Home-Widget | `widget()`-Makro → `.wd`, `.wd-slot` | eine einheitliche Kachel: Icon-Chip, Titel, Wert (`.wd-v`), Unterzeile (`.wd-s`); Größe `s` (halbe Zeile) oder `m` (ganze Zeile); eine Vorlage in `templates/widgets/` zeigt nichts, wenn es keine Daten gibt |
+| Home-Widget | `widget()`-Makro → `.wd`, `.wd-slot` | eine einheitliche Kachel: Icon-Chip und Titel links, rechts eine kleine Notiz (`meta`, z. B. das letzte Signal) oder der Pfeil, Wert (`.wd-v`), höchstens eine Zeile (`.wd-s`); Status-Chips rechts, Text links; Diagramme werden nie verzerrt (runder Punkt, runde Balken); Unterzeile (`.wd-s`); Größe `s` (halbe Zeile) oder `m` (ganze Zeile); eine Vorlage in `templates/widgets/` zeigt nichts, wenn es keine Daten gibt |
 | Listenzeile (Weiteres, Einstellungen) | `.mgroup` > `.mi` | Icon-Chip `.mi-ic.c1…c7`, Titel `.mi-t`, Hinweis `.mi-v`, Pfeil |
 | Icon-Chip | `.mi-ic.cN` | 32 px, Verlauf je Farbe; die Farben gehören zum Modul (`CHIP` in `nav_web.py`) |
 | Knöpfe | `button`, `.button`, `.primary`, `.danger`, `.small` | ein Glas-System (durchscheinende Fläche, helle Oberkante): 44 px / `--r-m`; `.primary` = rotes Glas (die eine Hauptaktion), `.danger` / `.warn` = roter Rand, `.small` = 36 px / `--r-s`; `.ghost-btn` an Link, Label oder Button sieht gleich aus; es werden nur Theme-Werte benutzt, jedes Design (auch eine eigene Theme-Datei) färbt ihn um |
@@ -67,7 +67,9 @@ Neben der *Weiteres*-Liste beginnt das erste Element der Seite auf derselben Lin
 | Leerzustand | `.card.empty-state` | Icon, ein Satz, der sagt, was zu tun ist |
 | Felder | `input`, `select`, `textarea`, `.tf-field` / `.tf-l` | Beschriftung 11 px Großbuchstaben darüber, 48-px-Felder, Beispielwerte als Platzhalter (neutral, nie eine Marke) |
 | Auswahl-Kacheln | `.season-pick` / `.sp` | große wählbare Kacheln mit Icon statt Dropdown bei 2–4 Optionen |
-| Schalter | `.switch` | an = Akzent |
+| Schalter | `.switch`, Makro `switch_row()` | an = Akzent; jede An/Aus-Einstellung ist eine Schalter-Zeile mit Linie oben und unten (zwei Zeilen teilen sich eine Linie; nie eine zweite Linie über einer Button-Leiste) |
+| Name + Slogan | `.brand-lock`, `.sb-brand`, `.about-id` | immer EINE Einheit: Slogan halb so groß, exakt so breit wie der Name (Seitenleiste: füllt die Leiste), überall gleicher Abstand |
+| Datum und Uhrzeit | `regional.py` | angezeigt wie unter Einstellungen → System → Datum & Uhrzeit; gespeichert ISO / 24 h |
 | Chips / Marken | `.badge`, `.pos-chip`, `.schip` | Pillen (`999px`), nur Statusfarben |
 | Info-Seite | `.about-hero`, `.about-stats`, `.about-car` | Kopfkarte (Logo, Name, Version), Zahlenkacheln, dann je Auto eine Karte mit Zeilen (Icon-Chip, Name, Kleintext, Badges) – siehe Seite „Über“ |
 | Auto-Bild / Video | `.hero-car.soft`, `.hero-media` | Fotos und Videos blenden an allen Seiten aus; ein Video läuft einmal und bleibt auf dem letzten Bild stehen (`static/media.js`); Bibliothek `media.html` mit Vorschau, Badge „In Benutzung“, Löschen-x |

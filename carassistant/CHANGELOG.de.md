@@ -4,6 +4,15 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.8 Beta
+- Dashboard-Widgets mit einheitlichem Aussehen (Symbol und Titel links, Notiz oder Pfeil rechts, höchstens eine Zeile); Diagramme behalten ihre Form, Status-Chips rechts; Fahrzeugdaten live als schlanke Zeilen mit dem letzten Signal des Autos; kompaktes Standort-Widget („hier steht / fährt dein Auto“).
+- Termine in einer kompakten Spalte mit Bearbeiten-Knopf je Termin (Kommende / Abgeschlossene); Zusatzarbeiten ohne vorgegebene Arbeiten, passende Symbole, Zurücksetzen im Bearbeiten; Umbauten nach Jahr mit Summen; Teile & Einkäufe als Kassenzettel; Dokumente als Karten mit Bearbeiten (Titel, Kategorie, Datum, gültig bis, Notiz).
+- Neue Einstellung Datum & Uhrzeit (Datumsreihenfolge, 12 / 24 Stunden), überall verwendet; „Auswertung“ heißt jetzt „Kostensicht“.
+- Updates: optional einmal am Tag ein Blick auf ein neues Car Assistant und auf Paket-Updates; der Punkt am Fuß der Seitenleiste wird gelb und nennt den Grund.
+- Integrationen haben keinen Ein/Aus-Knopf mehr (installieren / deinstallieren), Listen lassen sich sortieren; GitHubs Stundenlimit wird als solches gemeldet, nicht als falscher Zugangsschlüssel.
+- MCP: neue Lese-Werkzeuge (Plugins, Dokumente, Laden, Reifen, Einstellungen) und Werkzeuge, um ein Auto zu vervollständigen (Fahrzeugdaten, Dokumente, Reifendruck).
+- Schnellere Ausstattungsliste im Fahrzeugpass und schnellere Umbauten, ruhigeres Logo, Name und Slogan immer eine Einheit (auch in der Seitenleiste), Schalter-Zeilen mit Linien oben und unten, weichere Farben in der Fahrten-Auswertung, nie veraltete Stile.
+
 ## 0.5.7 Beta
 - Reifen: die Bearbeiten-Seite sieht genau wie die Ansicht aus (Name, Größen vorne / hinten, die vier Drücke, eingelagert bei, Notizen) mit Speichern unten rechts bei jedem Satz; DOT / Alter und der Name der Hinterachse sind als Felder weg (was dort stand, steht jetzt in den Notizen).
 - Die vom Auto gemeldeten Drücke stehen unter dem Etikett als "vom Fahrzeug erhalten am <Datum>" und fehlen ganz, wenn das Auto keine meldet.

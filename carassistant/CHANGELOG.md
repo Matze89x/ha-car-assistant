@@ -4,6 +4,15 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.8 Beta
+- Dashboard widgets share one look (icon and title left, note or arrow right, at most one line); charts keep their shape, status chips sit on the right; live car data as slim rows with the car's last signal; compact position widget ("parked here since" / "driving here").
+- Appointments in one compact column with an Edit button each (Upcoming / Completed); Extra work without ready-made jobs, fitting icons, Reset inside Edit; Modifications by year with sums; Parts & purchases as till receipts; Documents as cards with Edit (title, category, date, valid until, note).
+- New setting Date & time (date order, 12 / 24 hours) used everywhere; "Report" is now "Costs" (Kostensicht).
+- Updates: optional daily look for a new Car Assistant and for package updates; the dot at the foot of the side bar turns amber and says why.
+- Integrations have no on/off button any more (install / uninstall), lists can be sorted; GitHub's hourly limit is reported as such, not as a wrong access key.
+- MCP: new read tools (plugins, documents, charging, tyres, settings) and tools to complete a car (vehicle data, documents, tyre pressure).
+- Faster vehicle passport equipment list and Modifications page, a calmer logo, name and slogan always one unit (also in the side bar), switch rows with lines above and below, softer trip analysis colours, styles never stale.
+
 ## 0.5.7 Beta
 - Tyres: the edit page looks exactly like the view (name, sizes front / rear, the four pressures, stored at, notes) with Save at the bottom right of each set; DOT / age and the rear axle name are gone as fields (what was typed there moved into the notes).
 - The pressures the car reported are shown below the label as "received from the vehicle on <date>" and are not shown when the car reports none.

@@ -49,7 +49,9 @@ Die Beschreibung eines Pakets, siehe [plugins.de.md](plugins.de.md) (id, name, v
 
 1. **Quellen** – Adresse eines Repositorys eintragen; ein privates Repository braucht einen *Zugangsschlüssel* (ein Token mit Leserecht), der auf dem Server bleibt.
 2. **Hinzufügen** (je Fahrzeug) – die Pakete aller Quellen, eines antippen zeigt die Beschreibung, dann *Installieren*.
-3. **Verwalten** (je Fahrzeug) – Einstellungen, *Nach Updates suchen* (liest die Quellen und markiert Kacheln mit neuerer Version) und *Update* auf so einer Kachel, *Aktiv* an/aus, *Deinstallieren*.
+3. **Verwalten** (je Fahrzeug) – Einstellungen, *Nach Updates suchen* (liest die Quellen und markiert Kacheln mit neuerer Version) und *Update* auf so einer Kachel, *Start / Stopp* (nur Plugins; Integrationen haben kein An/Aus), *Deinstallieren*; die Listen lassen sich sortieren.
+
+Antwortet GitHub mit „403“, weil sein Stundenlimit für anonyme Anfragen (60 pro Adresse) verbraucht ist, sagt die App das – am Zugangsschlüssel liegt es nicht; später noch einmal versuchen.
 
 Eine Quelle lässt sich nur löschen, wenn **kein daraus installiertes Paket** mehr vorhanden ist.
 
