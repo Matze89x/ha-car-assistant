@@ -34,4 +34,8 @@
       slot.appendChild(info); hint.remove();
     }
   }
+  /* "saved" fades away after a moment (the server placed it already) */
+  slot.querySelectorAll(".notice.ok").forEach(function (box) {
+    setTimeout(function () { box.classList.add("fading"); setTimeout(function () { box.classList.add("gone"); }, 600); }, 4000);
+  });
 })();

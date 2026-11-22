@@ -150,3 +150,22 @@ def test_every_page_head_has_the_one_notice_slot_and_the_script_fills_it(client)
         assert 'class="notice-slot"' in page and 'id="notice-icons"' in page, path
     js = (Path(__file__).resolve().parents[1] / "carassistant/app/carassistant/static/notices.js").read_text(encoding="utf-8")
     assert ".notice-slot" in js and '"info"' in js and '"err"' in js
+
+
+def test_the_server_places_notices_in_the_slot_before_the_page_is_sent():
+    from carassistant import notices
+
+    page = (
+        '<body><main>\n<div class="flash ok" role="status">Saved.</div>\n<div class="page-head"></div>'
+        + notices.SLOT
+        + '<p class="hint"><svg class="ico"><path d="x"></path></svg> Intro text</p><div class="card">x</div>'
+        '<div class="flash err">Broken</div><div class="flash err" id="st-msg" hidden></div></main></body>'
+    )
+    out = notices.place(page)
+    slot = out[out.index('<div class="notice-slot"') : out.index('<div class="card">')]
+    assert slot.index("notice ok") < slot.index("notice err") < slot.index("notice info") or slot.index("notice err") < slot.index(
+        "notice info"
+    )
+    assert "Saved." in slot and "Broken" in slot and "Intro text" in slot and "<svg" in slot
+    assert '<p class="hint">' not in out and out.count('class="flash') == 1 and 'id="st-msg"' in out  # only the dynamic one stays
+    assert notices.place("<main>no slot</main>") == "<main>no slot</main>"

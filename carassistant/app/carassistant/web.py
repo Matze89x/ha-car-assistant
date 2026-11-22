@@ -45,6 +45,7 @@ from . import (
     media,
     modules,
     navigation,
+    notices,
     notify,
     plugins,
     push,
@@ -489,7 +490,12 @@ def render(request: Request, name: str, status: int = 200, **ctx):
         icon_rev_of=appicon.revision,
         has_icon=appicon.has_custom,
     )
-    return templates.TemplateResponse(request, name, ctx, status_code=status)
+    response = templates.TemplateResponse(request, name, ctx, status_code=status)
+    response.body = notices.place(response.body.decode("utf-8")).encode(
+        "utf-8"
+    )  # info, saved, warning, error: in the slot before the page is sent
+    response.headers["content-length"] = str(len(response.body))
+    return response
 
 
 def go(request: Request, path: str, msg: str | None = None) -> RedirectResponse:

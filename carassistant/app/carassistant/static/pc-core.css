@@ -555,7 +555,7 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 }
 
 /* umbrella pages: the segmented bar that switches between the pages of one family (the original's "Fuel | Analysis" switch) */
-.seg-tabs { display: flex; gap: 4px; padding: 3px; margin: 0 0 var(--sp-head); border-radius: var(--r-m); background: rgba(var(--fg-rgb),.075); overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.seg-tabs { position: relative; display: flex; gap: 4px; padding: 3px; margin: 0 0 var(--sp-head); border-radius: var(--r-m); border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb),.075); overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .seg-tabs::-webkit-scrollbar { display: none; }
 .seg-tabs a { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 14px; border-radius: var(--r-s); color: var(--muted); font-weight: 600; font-size: 14px; white-space: nowrap; text-decoration: none; }
 .seg-tabs a:hover { color: var(--strong); text-decoration: none; }
@@ -2958,3 +2958,9 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .guide-opt.dl h3 { display: flex; align-items: center; gap: 8px; }
 .guide-opt.dl .inline { margin: 0; }
 .guide-set { margin-top: 14px; }
+
+/* the tab bar has the same contour as the tiles; clicking a tab slides the marker over to it (app.js) */
+.seg-tabs .seg-ind { position: absolute; top: 3px; bottom: 3px; left: 0; z-index: 0; border-radius: var(--r-s); background: rgba(var(--ok-rgb), .18); box-shadow: inset 0 0 0 1px rgba(var(--ok-rgb), .4); pointer-events: none; transition: transform .28s cubic-bezier(.3, .8, .3, 1), width .28s cubic-bezier(.3, .8, .3, 1); }
+.seg-tabs.sliding a { position: relative; z-index: 1; }
+.seg-tabs.sliding a.on { background: none; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .seg-tabs .seg-ind { transition: none; } }

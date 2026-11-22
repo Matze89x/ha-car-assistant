@@ -777,3 +777,26 @@ document.addEventListener("click", function (e) {
     if (text) { el.setAttribute("aria-label", text); el.title = text; }
   });
 })();
+
+(function () {
+  /* clicking a tab of a tab bar: the marker slides from the old tab to the new one while the page changes */
+  if (window.__segTabs) { return; }
+  window.__segTabs = true;
+  document.addEventListener("click", function (event) {
+    var link = event.target.closest && event.target.closest(".seg-tabs a");
+    if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.button) { return; }
+    var bar = link.closest(".seg-tabs"), old = bar.querySelector("a.on");
+    if (!old || old === link || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { return; }
+    var ind = document.createElement("i"), box = bar.getBoundingClientRect(), a = old.getBoundingClientRect(), b = link.getBoundingClientRect();
+    ind.className = "seg-ind";
+    ind.style.width = a.width + "px";
+    ind.style.transform = "translateX(" + (a.left - box.left + bar.scrollLeft - 1) + "px)";
+    bar.classList.add("sliding"); bar.appendChild(ind);
+    old.classList.remove("on"); link.classList.add("on");
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      ind.style.width = b.width + "px";
+      ind.style.transform = "translateX(" + (b.left - box.left + bar.scrollLeft - 1) + "px)";
+    }); });
+    setTimeout(function () { bar.classList.remove("sliding"); if (ind.parentNode) { ind.parentNode.removeChild(ind); } }, 450);
+  }, true);
+})();
