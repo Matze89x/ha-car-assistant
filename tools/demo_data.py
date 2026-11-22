@@ -242,6 +242,10 @@ def create(conn: sqlite3.Connection, electric: bool = False) -> int:
         "INSERT INTO tires(vehicle_id, name, season, size, dot, storage, mounted, mounted_date, mounted_km) VALUES(?,?,?,?,?,?,?,?,?)",
         (vid, "Winter set", "winter", "205/55 R16", "3921", "Cellar", 0, winter.isoformat(), _km_at(winter)),
     )
+    conn.execute(
+        "INSERT INTO tires(vehicle_id, name, season, size, dot, storage, mounted) VALUES(?,?,?,?,?,?,?)",
+        (vid, "All-season set", "allseason", "225/45 R17", "1224", "Garage", 0),
+    )  # every season that shows pressures has a set with a name
 
     # counters (tax year and a business-trip counter)
     year_start = date(today.year, 1, 1)

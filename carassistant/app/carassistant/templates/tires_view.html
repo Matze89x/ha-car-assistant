@@ -47,7 +47,7 @@
     {% if r['notes'] %}<div class="tg tv-note"><i>{{ _('f.notes') }}</i><p>{{ r['notes'] }}</p></div>{% endif %}
   </article>
   {% else %}
-  {% if tp.set.get(cur) %}<section class="card tp-card tv-press">{{ press_block(cur == tp.mounted_season or not any_mounted) }}</section>
+  {% if tp.set.get(cur) %}<section class="card tp-card tv-press"><div class="tc-head"><span class="tc-ic s-{{ cur }}">{{ icon(season_icon.get(cur, 'sync'), 22) }}</span><h3>{{ _('season.' ~ cur) }}</h3></div>{{ press_block(cur == tp.mounted_season or not any_mounted) }}</section>
   {% else %}<div class="card empty-state">{{ icon(module_icon.get('tires', 'car'), 36) }}<p>{{ _('tires.none_season') }}</p></div>{% endif %}
   {% endfor %}
 </div>

@@ -7,7 +7,7 @@
   {% if not r %}<p class="tp-l">{{ _('tires.add') }}</p>{% endif %}
   <div class="tc-head">
     <span class="tc-ic s-{{ sn }}">{{ icon(season_icon[sn] if r else 'plus', 22) }}</span>
-    <input class="tf-title" name="{{ pre }}name" maxlength="80" value="{{ (r['name'] if r else '') or '' }}" placeholder="{{ _('tires.ph_name') }}" aria-label="{{ _('f.name') }}">
+    <input class="tf-title" name="{{ pre }}name" maxlength="80" value="{{ (r['name'] if r else '') or '' }}" placeholder="{{ _('tires.ph_name') }}" aria-label="{{ _('f.name') }}" {{ 'required' if r }}>
   </div>
   <div class="tp-label tpl-edit" role="table" aria-label="{{ _('tp.title') }}">
     <div class="tpl-head"><span class="tpl-size tpl-size-in">

@@ -1589,7 +1589,7 @@ async def tire_save_all(request: Request, vid: int):
                 )
                 fresh = {n: form.get(f"n_{season}_{n}", "") for n in _TIRE_FIELDS}
                 if any(v.strip() for v in fresh.values()):
-                    fresh["name"] = fresh["name"].strip() or i18n.translator(config.language())(f"season.{season}")
+                    # the name (the heading of the set) is a must: no made-up default, the form says so
                     entities.insert(conn, ENTITIES["tires"], vid, entities.parse_form(ENTITIES["tires"], {**fresh, "season": season}))
             for row in conn.execute("SELECT id, season FROM tires WHERE vehicle_id = ?", (vid,)).fetchall():
                 key = f"t{row['id']}_"

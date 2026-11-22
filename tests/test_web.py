@@ -548,6 +548,7 @@ def test_tyre_edit_saves_everything_at_once(client):
         data={
             "view": "winter",
             "n_summer_name": "Summer set",
+            "n_winter_name": "Winter",
             "n_winter_size": "205/55 R16",
             "p_winter_front": "2,5",
             "p_winter_rear": "2.7",
@@ -1273,3 +1274,11 @@ def test_car_web_app_shows_one_car_only_and_can_be_left(client):
     assert left.status_code == 303 and "ca_car" in left.headers.get("set-cookie", "")
     client.cookies.clear()
     assert 'class="cur-switch"' in client.get(f"/v/{one}").text
+
+
+def test_a_tyre_set_needs_a_name_when_saved_from_the_edit_page(client):
+    vid = create_vehicle(client)
+    data = {"view": "allseason", "n_allseason_size": "225/45 R17", "n_allseason_name": ""}
+    assert client.post(f"/v/{vid}/e/tires/save", data=data).status_code == 400  # no made-up heading
+    ok = client.post(f"/v/{vid}/e/tires/save", data={**data, "n_allseason_name": "All-season set"}, follow_redirects=False)
+    assert ok.status_code == 303
