@@ -108,7 +108,20 @@ Erfolg: `{"ok": true, "result": {"odometer_km": "stored", …}}`. Fehler haben d
 ## Beispiel
 [`docs/examples/push_data.py`](examples/push_data.py) – nur Python-Standardbibliothek. Dasselbe geht mit `curl`, Node, einem Home-Assistant-`rest_command` oder einem Mikrocontroller.
 
-## Stabilität
-Die API ist versioniert (`/api/v1`). Neue Felder können dazukommen; bestehende ändern sich innerhalb von `v1` nicht.
+## Stabilität und Kompatibilität (ein Versprechen an alle, die Plugins schreiben)
+Menschen schreiben eigene Plugins und Integrationen, deshalb gilt: **was heute funktioniert, funktioniert weiter**. Die Regeln:
+
+- **`/api/v1` ist eingefroren.** Innerhalb von `v1` ändern sich bestehende Felder, ihre Bedeutung und die Antworten bestehender Endpunkte nicht so, dass ein Plugin kaputtgeht. Es kommen nur **Ergänzungen** dazu: neue optionale Felder in Anfragen, neue Schlüssel in Antworten, neue Endpunkte, neue erlaubte Werte. Ein Plugin muss **Schlüssel in Antworten, die es nicht kennt, ignorieren**.
+- **Erst nachsehen, dann senden.** `GET /api/v1` liefert `version`, `api` und `fields` (was dieses Car Assistant annimmt). Ein älteres Car Assistant beantwortet ein unbekanntes Feld mit `422 unknown_field`; ein Plugin, das ein neueres Feld nutzen will, prüft also zuerst, ob es in `fields` steht (Beispiel: `measured_at`).
+- **Nichts wird still geändert oder entfernt.** Eine Funktion, die sich ändern, ersetzt werden oder wegfallen soll, wird zuerst als **veraltet angekündigt**: im Changelog, in diesen Dokumenten (ein Hinweis *Veraltet* mit dem Datum der Entfernung und dem, was man stattdessen nutzt) und – wo es um eine Anfrage geht – mit den Antwort-Headern `Deprecation: true` und `Sunset: <Datum>`. Der Ersatz gibt es **zum Zeitpunkt** der Ankündigung.
+- **Frist.** Eine veraltete Funktion funktioniert nach der Ankündigung **mindestens 6 Monate und 2 Versionen** unverändert weiter. Erst danach darf sie entfernt werden. Einzige Ausnahme sind Sicherheitskorrekturen (kürzer, mit Nennung des Grundes).
+- **Brechende Änderungen** kommen nur in einer **neuen API-Version** (`/api/v2`); `v1` bleibt danach **mindestens 12 Monate** verfügbar.
+- **Die Paketdatei (`plugin.json`)** folgt denselben Regeln: neue Schlüssel sind optional, alte funktionieren weiter; Schlüssel, die ein älteres Car Assistant nicht kennt, werden ignoriert, ein Paket kann also mehrere Versionen bedienen.
+- **Sicherungen:** jedes ältere Sicherungsformat bleibt wiederherstellbar ([Sicherung](backup.de.md)).
+- **Beta (0.x):** wir halten uns schon jetzt daran, damit Plugins, die heute entstehen, bei 1.0 nicht neu geschrieben werden müssen.
+
+**Aktuell veraltet:** nichts.
+
+*Für die Maintainer:* jede Änderung an der API oder der Paketdatei wird vor dem Zusammenführen gegen diese Liste geprüft (siehe `CLAUDE.md`).
 
 - `GET /api/v1/vehicles/<id>/modules/<integration>/<page>` – die Einträge einer Seite einer installierten, laufenden [Integration](integrations.de.md) dieses Autos (zum Beispiel die Sender des Webradios), in ihrer Reihenfolge. `secret`-Felder (Zugangscodes) sind nie darin enthalten.
