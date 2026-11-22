@@ -2820,3 +2820,9 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 .upd-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .upd-t small { color: var(--muted); font-size: 12px; }
 .upd-v { flex: 0 0 auto; font-family: "Space Mono", monospace; font-size: 12px; color: var(--soon); }
+
+/* every switch row has a line above AND below; two rows (or two forms with a row each) share one line; text after a row gets air */
+label.nm-row.sw-row, .card label.nm-row.sw-row, form label.nm-row.sw-row { border-top: 1px solid var(--glass-b); }
+.sw-row + .sw-row, form + form > .sw-row:first-child, form:has(> .sw-row:last-child) + form > .sw-row:first-child { border-top: 0 !important; }
+.sw-row + .hint, .sw-row + p, .sw-row + small, .sw-row + .mqtt-bar, .sw-row + details, .sw-row + .flash, .sw-row + ul { margin-top: 14px; }
+.hint + form > .sw-row:first-child, p + form > .sw-row:first-child { margin-top: 6px; }
