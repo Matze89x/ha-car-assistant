@@ -34,6 +34,14 @@ def create() -> bytes:
             dst = sqlite3.connect(snapshot)
             try:
                 src.backup(dst)
+                from . import vault
+
+                for row in dst.execute("SELECT id, token_enc FROM api_tokens WHERE token_enc IS NOT NULL").fetchall():
+                    try:  # the key of this system is not in the backup: the kept tokens go in readable and are sealed again on restore
+                        dst.execute("UPDATE api_tokens SET token_enc = ? WHERE id = ?", (vault.decrypt(row[1]), row[0]))
+                    except Exception:
+                        dst.execute("UPDATE api_tokens SET token_enc = NULL WHERE id = ?", (row[0],))
+                dst.commit()
             finally:
                 dst.close()
         finally:
@@ -114,3 +122,7 @@ def restore(data: bytes) -> None:
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     dest.write_bytes(zf.read(name))
     db.migrate()
+    from . import connectors
+
+    with db.tx() as conn:
+        connectors.reseal(conn)

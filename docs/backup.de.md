@@ -13,7 +13,7 @@ Das Dateiformat steht in [vehicle-file.de.md](vehicle-file.de.md) - es ist auch 
 - das Fahrzeug und alle seine Listen (Service, Tanken / Laden, Fahrten mit Strecke, Termine, Aufgaben, Reifen, Umbauten, Teile, Zähler, Dokumente, Fotos und Videos), seine Live-Werte
 - das **Handbuch** samt Seitenbildern, wenn es als Paket importiert wurde (siehe [manual-package.de.md](manual-package.de.md); die Bilder vergrößern die Datei, bis zur Grenze von 500 MB)
 - seine Einstellungen (Navigation, Home-Widgets, ausgeblendete Funktionen)
-- seine **Anbindungs-Token** (der Fingerabdruck, den der Server speichert – ein Plugin funktioniert danach mit seinem bisherigen Token weiter)
+- seine **Anbindungs-Token** (der Fingerabdruck, den der Server speichert – ein Plugin funktioniert danach mit seinem bisherigen Token weiter, dazu das gemerkte Token selbst, damit die Einrichtung es wieder anbieten kann; die Datei privat halten)
 - seine **Integrationen und Plugins mit ihren Einstellungen** – aber **nicht die Pakete selbst**
 
 *Fahrzeug hinzufügen → Fahrzeug aus einer Sicherung wiederherstellen* legt aus so einer Datei ein **neues** Fahrzeug an (gleicher Name bekommt eine Nummer). Danach gilt:

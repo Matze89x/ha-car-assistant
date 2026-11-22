@@ -13,7 +13,7 @@ The file format is described in [vehicle-file.md](vehicle-file.md) - it is also 
 - the vehicle and all its lists (service, fuel / charging, trips with their route, appointments, tasks, tyres, modifications, parts, counters, documents, photos and videos), its live values
 - the **manual** with its page images, when it was imported as a package (see [manual-package.md](manual-package.md); the images add their size to the file, up to the 500 MB limit)
 - its settings (navigation, Home widgets, hidden functions)
-- its **connection tokens** (the fingerprint the server keeps, so a plugin keeps working with the token it already has)
+- its **connection tokens** (the fingerprint the server keeps, so a plugin keeps working with the token it already has, and the kept token itself so the set-up guide can offer it again; keep the file private)
 - its **integrations and plugins with their settings** - but **not the packages themselves**
 
 *Add vehicle → Restore a vehicle from a backup* creates a **new** vehicle from such a file (the same name gets a number). After a restore:

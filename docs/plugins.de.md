@@ -189,7 +189,7 @@ Ein Gerät im Auto braucht oft eine kleine Datei mit Adresse, Fahrzeug und Token
 
 ### Einrichtungsanleitung (`setup`)
 
-**Token merken (optional, standardmäßig aus):** unter *Einstellungen → System → Sicherheit* kann ein Administrator *Plugin-Token merken* einschalten. Dann wird das Token eines Plugins mit Anbindungsdatei zusätzlich **verschlüsselt** behalten (der Schlüssel liegt in `secret.key` im Datenordner und ist in keiner Sicherung enthalten), und die Einrichtung bietet *Gespeichertes Token verwenden* an, statt noch einmal zu fragen. Es wird nur einem Administrator in dieser Einrichtung gezeigt, nie in einer Fahrzeugsicherung oder einem Protokoll. Das Ausschalten löscht alle gemerkten Kopien; ohne die Option ist nur der Fingerabdruck des Tokens bekannt.
+**Token merken (immer an):** Das Token eines Plugins mit Anbindungsdatei wird zusätzlich **verschlüsselt** behalten (der Schlüssel liegt in `secret.key` im Datenordner), und die Einrichtung bietet *Gespeichertes Token verwenden* an, statt noch einmal zu fragen. Es wird nur einem Administrator in dieser Einrichtung gezeigt, nie in einem Protokoll. Sicherungen enthalten das gemerkte Token, damit es nach einer Wiederherstellung auf einem anderen System funktioniert (der Schlüssel ist nicht in der Datei): Behandle eine Sicherungsdatei so privat wie die Tokens selbst.
 
 
 Ein Plugin mit Anbindungsdatei kann eine Anleitung mitbringen, die Car Assistant in **drei festen Schritten** zeigt (auf der Karte unter *Mehr*: *Einrichtung*; sie lässt sich jederzeit erneut durchgehen):

@@ -1171,7 +1171,7 @@ def set_up(conn: sqlite3.Connection, vehicle_id: int, addon: dict, form: dict, o
         token = connectors.create_token(conn, f"{addon['m']['name']}", vehicle_id)
         token_id = conn.execute("SELECT id FROM api_tokens ORDER BY id DESC LIMIT 1").fetchone()["id"]
         if addon["m"].get("connection_file"):
-            connectors.remember(conn, token_id, token)  # only when the administrator allows it (System > Security)
+            connectors.remember(conn, token_id, token)
     conn.execute(
         "UPDATE vehicle_addons SET status = 'configured', settings = ?, token_id = ? WHERE id = ?",
         (json.dumps(_sealed(addon["m"], _guide_values(addon, form, only))), token_id, addon["id"]),

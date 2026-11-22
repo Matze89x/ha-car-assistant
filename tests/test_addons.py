@@ -619,7 +619,9 @@ def test_step_two_has_three_boxes_and_next_does_the_chosen_one(client):
     token = re.search(r"ca_[A-Za-z0-9_-]{20,}", made.text).group(0)
     assert made.status_code == 200 and "link.cfg" in made.text
     again = client.get(f"{url}/guide?step=2").text
-    assert 'value="existing" checked' in again and "<code>•••• " in again  # a token is known: "keep using" is preselected
+    assert 'value="saved" checked' in again and "<code>•••• " in again  # a kept token is offered and preselected
+    saved = client.post(f"{url}/guide/next", data={**settings, "token_mode": "saved"})
+    assert saved.status_code == 200 and f'name="token" value="{token}"' in saved.text
     renewed = client.post(f"{url}/guide/next", data={**settings, "token_mode": "new"})  # the old token becomes invalid
     token2 = re.search(r"ca_[A-Za-z0-9_-]{20,}", renewed.text).group(0)
     assert token2 != token and client.get("/api/v1", headers={"Authorization": f"Bearer {token}"}).status_code == 401

@@ -2,7 +2,7 @@
 
 A vehicle backup is a zip: ``vehicle.json`` (the data) and ``files/`` (documents, photos, videos). It holds the vehicle, all its lists (service, fuel,
 trips with their route, ...), its live values, its settings (navigation, widgets, hidden functions), its connection tokens (as the hash the server
-keeps, so a plugin keeps working with the token it already has) and its integrations and plugins with their settings - but NOT the packages
+keeps, so a plugin keeps working with the token it already has, plus the kept token itself: the file is as private as the tokens) and its integrations and plugins with their settings - but NOT the packages
 themselves. Restored as a NEW vehicle; integrations and plugins come back switched OFF (activate them on purpose) and, when their package is not
 installed, as "needs the package" (see addons.py).
 
@@ -103,6 +103,14 @@ def export(conn: sqlite3.Connection, vid: int, with_codes: bool = False) -> byte
         if row:
             data["settings"][prefix] = row["value"]
     data["tokens"] = _rows(conn, "SELECT id, name, token_hash, created_at FROM api_tokens WHERE vehicle_id = ?", (vid,))
+    from . import connectors
+
+    for tok in data[
+        "tokens"
+    ]:  # the kept token goes in readable (the key of this system is not in the file): the file is as private as the tokens
+        kept = connectors.remembered(conn, tok["id"])
+        if kept:
+            tok["token"] = kept
     for a in conn.execute(
         "SELECT a.*, COALESCE(s.url, a.source_url) AS origin FROM vehicle_addons a LEFT JOIN sources s ON s.id = a.source_id WHERE a.vehicle_id = ? ORDER BY a.id",
         (vid,),
@@ -342,10 +350,15 @@ def _fill(conn: sqlite3.Connection, zf: zipfile.ZipFile, data: dict, new_id: int
         if conn.execute("SELECT 1 FROM api_tokens WHERE token_hash = ?", (tok["token_hash"],)).fetchone():
             token_ids[tok.get("id")] = None
             continue
-        token_ids[tok.get("id")] = conn.execute(
+        new_token = conn.execute(
             "INSERT INTO api_tokens(name, token_hash, vehicle_id, created_at) VALUES(?,?,?,?)",
             (str(tok.get("name") or "")[:40], tok["token_hash"], new_id, str(tok.get("created_at") or "")),
         ).lastrowid
+        token_ids[tok.get("id")] = new_token
+        if isinstance(tok.get("token"), str):
+            from . import connectors
+
+            connectors.remember(conn, new_token, tok["token"])  # only kept when it really is the token of that fingerprint
     addons.restore_all(conn, new_id, data.get("addons") or [], token_ids)
     from . import pagemods
 

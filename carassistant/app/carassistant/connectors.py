@@ -82,17 +82,10 @@ def token_matches(conn: sqlite3.Connection, token_id: int | None, candidate: str
     return bool(row) and bool(candidate) and hmac.compare_digest(row["token_hash"], _hash(candidate))
 
 
-REMEMBER_SETTING = "tokens.remember"
-
-
-def remember_enabled(conn: sqlite3.Connection) -> bool:
-    return db.get_setting(conn, REMEMBER_SETTING, "") == "1"
-
-
 def remember(conn: sqlite3.Connection, token_id: int | None, token: str | None) -> bool:
-    """Keep an ENCRYPTED copy of a plugin's token (only while the administrator allows it, and only a token that really is the one of ``token_id``).
-    The copy lets the set-up guide offer the token again; it is never part of a backup, a log or a page except that guide for an administrator."""
-    if not token_id or not token or not remember_enabled(conn) or not token_matches(conn, token_id, token):
+    """Keep an ENCRYPTED copy of a plugin's token (always on; only a token that really is the one of ``token_id``). The copy lets the set-up
+    guide offer the token again and goes into the backups; it is never part of a log or a page except that guide for an administrator."""
+    if not token_id or not token or not token_matches(conn, token_id, token):
         return False
     from . import vault
 
@@ -101,8 +94,8 @@ def remember(conn: sqlite3.Connection, token_id: int | None, token: str | None) 
 
 
 def remembered(conn: sqlite3.Connection, token_id: int | None) -> str:
-    """The kept token of ``token_id`` ('' when none, when remembering is off, or when the copy does not fit the token any more)."""
-    if not token_id or not remember_enabled(conn):
+    """The kept token of ``token_id`` ('' when none, or when the copy does not fit the token any more)."""
+    if not token_id:
         return ""
     row = conn.execute("SELECT token_enc FROM api_tokens WHERE id = ?", (token_id,)).fetchone()
     if not row or not row["token_enc"]:
@@ -116,9 +109,14 @@ def remembered(conn: sqlite3.Connection, token_id: int | None) -> str:
     return token if token_matches(conn, token_id, token) else ""
 
 
-def forget_all(conn: sqlite3.Connection) -> None:
-    """Wipe every kept copy (switching the option off does this)."""
-    conn.execute("UPDATE api_tokens SET token_enc = NULL")
+def reseal(conn: sqlite3.Connection) -> None:
+    """After a restore: a kept token that came in readable (backups carry them so they work on another system) is encrypted with this system's key."""
+    from . import vault
+
+    for row in conn.execute(
+        "SELECT id, token_enc FROM api_tokens WHERE token_enc IS NOT NULL AND token_enc NOT LIKE ?", (vault.PREFIX + "%",)
+    ).fetchall():
+        conn.execute("UPDATE api_tokens SET token_enc = ? WHERE id = ?", (vault.encrypt(row["token_enc"]), row["id"]))
 
 
 def has_live_source(conn: sqlite3.Connection, vehicle_id: int) -> bool:
