@@ -120,7 +120,7 @@ Menschen schreiben eigene Plugins und Integrationen, deshalb gilt: **was heute f
 - **Sicherungen:** jedes ältere Sicherungsformat bleibt wiederherstellbar ([Sicherung](backup.de.md)).
 - **Beta (0.x):** wir halten uns an die Grundsätze schon jetzt (nichts still, nur Ergänzungen, erst ankündigen), damit Plugins, die heute entstehen, bei 1.0 nicht neu geschrieben werden müssen. Die festen Fristen folgen mit 1.0.
 
-**Aktuell veraltet:** nichts.
+**Aktuell veraltet:** nichts. Wird etwas angekündigt, tragen alle Antworten, die es berühren, die üblichen HTTP-Header `Deprecation: true`, `Sunset: <Datum>` (wenn ein Datum gesetzt ist) und einen `Link` auf diesen Abschnitt; eine `POST`-Antwort, die ein veraltetes Feld benutzt hat, nennt es unter `deprecated` (`field`, `since`, `sunset`, `use`). Diese Header sind nur ein Etikett, das sagt „das ändert sich – siehe Doku“; die Funktion läuft weiter. Ein Plugin gegen ein aktuelles Car Assistant testen und die Header der Antworten ansehen.
 
 *Für die Maintainer:* jede Änderung an der API oder der Paketdatei wird vor dem Zusammenführen gegen diese Liste geprüft (siehe `CLAUDE.md`).
 

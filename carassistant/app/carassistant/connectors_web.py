@@ -9,7 +9,7 @@ import zlib
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from . import __version__, auth_web, config, connectors, db, events, summary
+from . import __version__, auth_web, config, connectors, db, deprecations, events, summary
 from .web import app, form_dict, go, render
 
 MAX_BODY = 20_000
@@ -79,6 +79,11 @@ async def watch_connector_traffic(request: Request, call_next):
                 )
     except (ValueError, IndexError, KeyError):
         pass
+    parts = path.split("/")
+    for name, value in deprecations.headers(
+        deprecations.for_endpoint(request.method, "/".join(["", *parts[1:4], "{id}", *parts[5:]]))
+    ).items():
+        response.headers[name] = value  # an announced change: the plugin author sees it in the first test run
     return response
 
 
@@ -169,7 +174,12 @@ async def api_data(request: Request, vehicle_id: int):
             return _err(exc.code, exc.message, exc.status)
         control = connectors.control(conn, vehicle_id, connectors.addon_for_token(conn, request.state.api_token["id"]))
     events.changed()
-    return {"ok": True, "result": result, "control": control}  # the answer tells the plugin what the dashboard asks of it
+    body = {"ok": True, "result": result, "control": control}  # the answer tells the plugin what the dashboard asks of it
+    old = deprecations.used_fields(data)
+    if old:  # fields announced as deprecated: named in the answer and in the headers, they still work
+        body["deprecated"] = old
+        return JSONResponse(body, headers=deprecations.headers(list(deprecations.FIELDS[o["field"]] for o in old)))
+    return body
 
 
 @app.get("/api/v1/vehicles/{vehicle_id}/control")

@@ -339,3 +339,29 @@ def test_connected_means_the_car_reported_within_half_an_hour():
     assert status.connected({}, now) is None
     assert status.connected({"range_km": ("300", now - timedelta(minutes=10))}, now) is True
     assert status.connected({"range_km": ("300", now - timedelta(minutes=45))}, now) is False
+
+
+def test_nothing_is_deprecated_today_and_an_announced_change_is_shown_in_the_answer(api, monkeypatch):
+    from datetime import date
+
+    from carassistant import deprecations
+
+    token = setup(api)
+    r = api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 300})
+    assert "deprecation" not in r.headers and "deprecated" not in r.json()  # the lists are empty: nothing is announced
+    assert not deprecations.ENDPOINTS and not deprecations.FIELDS
+    # announce a field and an endpoint: the headers and the answer say so, and everything keeps working
+    monkeypatch.setitem(deprecations.FIELDS, "range_km", {"since": "0.9.0", "sunset": date(2027, 6, 1), "use": "range_km2"})
+    r = api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 310})
+    assert r.status_code == 200 and r.json()["result"]["range_km"] == "stored"
+    assert (
+        r.headers["deprecation"] == "true"
+        and r.headers["sunset"].endswith("2027 00:00:00 GMT")
+        and 'rel="deprecation"' in r.headers["link"]
+    )
+    assert r.json()["deprecated"] == [{"field": "range_km", "since": "0.9.0", "sunset": "2027-06-01", "use": "range_km2"}]
+    monkeypatch.setitem(
+        deprecations.ENDPOINTS, ("GET", "/api/v1/vehicles/{id}/data"), {"since": "0.9.0", "sunset": None, "use": "something else"}
+    )
+    r = api.get("/api/v1/vehicles/1/data", headers=hdr(token))
+    assert r.status_code == 200 and r.headers["deprecation"] == "true" and "sunset" not in r.headers

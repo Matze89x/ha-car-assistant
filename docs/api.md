@@ -120,7 +120,7 @@ People write their own plugins and integrations, so **what works today keeps wor
 - **Backups:** every older backup format stays restorable ([backup](backup.md)).
 - **Beta (0.x):** we keep to the principles above already (nothing silent, additions only, announce first), so that plugins written now do not have to be rewritten at 1.0. The fixed periods follow with 1.0.
 
-**Currently deprecated:** nothing.
+**Currently deprecated:** nothing. When something is announced, every answer that touches it carries the standard HTTP headers `Deprecation: true`, `Sunset: <date>` (when a date is set) and a `Link` to this section, and a `POST` answer that used a deprecated field lists it under `deprecated` (`field`, `since`, `sunset`, `use`). These headers are only a label that says "this will change - see the docs"; the function keeps working. Test a plugin against a current Car Assistant and look at the headers of the answers.
 
 *For the maintainers:* any change to the API or the package file is checked against this list before it is merged (see `CLAUDE.md`).
 
