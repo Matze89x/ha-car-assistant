@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.18 Beta
+- Fuel: a new station search - price large on the left, name and address, distance on the right, long names wrap, a switch between price and distance, closed stations dimmed and never marked cheapest, ten stations with a button for the rest. The page introduction sits in the info tile and the extra "Fuel (32)" heading is gone.
+
 ## 0.5.17 Beta
 - Documentation and screenshots are new and show the full app: real maps (the route of a trip on a full-width 16:9 map, the location of the car), the one notice tile, the simple station search, tyres with their sets and modifications. The phone pictures are no longer cut off. A trip can be opened by a link (?open=<id>). Every linked Home widget shows its arrow at the top right, the tab icons sit closer to their text, and the station search card has even spacing.
 
