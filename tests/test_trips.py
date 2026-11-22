@@ -83,7 +83,7 @@ def test_parse_range_defaults_and_swaps():
     assert s.endswith("-01-01") and e.endswith("-12-31")
 
 
-def test_the_trip_card_has_a_legend_a_square_map_and_driving_style_in_one_column_on_wide_screens():
+def test_the_trip_card_has_a_legend_a_wide_map_and_driving_style_in_one_column_on_wide_screens():
     from pathlib import Path
 
     app = Path(__file__).resolve().parents[1] / "carassistant" / "app" / "carassistant"
@@ -92,7 +92,7 @@ def test_the_trip_card_has_a_legend_a_square_map_and_driving_style_in_one_column
         'class="tp-legend"' in page and "data-legend=" in page and "data-hard=" in page and "data-note=" in page
     )  # the colours are explained, the texts are there
     css = (app / "static" / "pc-core.css").read_text()
-    assert "aspect-ratio: 1 / 1" in css.split(".tp-map {")[1].split("}")[0]  # as wide as high
+    assert "aspect-ratio: 16 / 9" in css.split(".tp-map {")[1].split("}")[0]  # the full width, 16:9
     assert "min-width: 700px) { .tp-tiles { grid-template-columns: minmax(0, 1fr); } }" in css  # one column from a tablet on
     js = (app / "static" / "trips.js").read_text()
     assert "pos-map" in js and "data-map" in js and "fitBounds" in js  # light / dark like the location map, the route in the middle

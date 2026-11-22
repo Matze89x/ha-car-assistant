@@ -39,7 +39,7 @@
     <div class="tc-head">
       <span class="tc-ic s-{{ r['season'] }}">{{ icon(season_icon.get(r['season'], 'sync'), 22) }}</span>
       <h3>{{ r['name'] }}</h3>
-      {% if r['mounted'] %}<span class="mounted-badge">{{ _('tires.mounted') }}{% if r['mounted_date'] %} · {{ fdate(r['mounted_date']) }}{% endif %}</span>{% endif %}
+      {% if r['mounted'] %}<span class="mounted-badge">{{ icon('shield-check', 16) }}<span>{{ _('tires.mounted') }}{% if r['mounted_date'] %} · {{ fdate(r['mounted_date']) }}{% endif %}</span></span>{% endif %}
     </div>
     {{ press_block(r['mounted'] or not any_mounted, r['size'], r['rear_size'] or r['size']) }}
     {% if not (tp.set.get(tp.season) and (tp.front or tp.rear or tp.load_front or tp.load_rear)) and (r['size'] or r['rear_size']) %}<div class="tp-label"><div class="tpl-head"><span class="tpl-size mono">{% if r['size'] %}<span>{{ r['size'] }}</span>{% endif %}{% if r['rear_size'] and r['rear_size'] != r['size'] %}<span>{{ r['rear_size'] }}</span>{% endif %}</span></div></div>{% endif %}

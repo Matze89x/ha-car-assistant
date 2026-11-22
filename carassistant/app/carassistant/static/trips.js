@@ -45,13 +45,13 @@
       }
       L.circleMarker([pts[0][0], pts[0][1]], { radius: 7, color: "#fff", weight: 2, fillColor: "#2fbf6a", fillOpacity: 1 }).addTo(map);
       L.circleMarker([pts[pts.length - 1][0], pts[pts.length - 1][1]], { radius: 7, color: "#fff", weight: 2, fillColor: "#ef4452", fillOpacity: 1 }).addTo(map);
-      map.invalidateSize(); map.fitBounds(bounds, { padding: [28, 28] });  /* the route fills the square map and sits in its middle */
+      map.invalidateSize(); map.fitBounds(bounds, { padding: [28, 28] });  /* the route fills the 16:9 map and sits in its middle */
       return;
     }
     /* no map tiles allowed: the route as a drawing */
     var lats = pts.map(function (p) { return p[0]; }), lons = pts.map(function (p) { return p[1]; });
     var minLat = Math.min.apply(null, lats), maxLat = Math.max.apply(null, lats), minLon = Math.min.apply(null, lons), maxLon = Math.max.apply(null, lons);
-    var k = Math.max(Math.cos(((minLat + maxLat) / 2) * Math.PI / 180), 0.01), W = 400, H = 400, pad = 28;
+    var k = Math.max(Math.cos(((minLat + maxLat) / 2) * Math.PI / 180), 0.01), W = 640, H = 360, pad = 28;
     var wd = Math.max((maxLon - minLon) * k, 1e-6), hd = Math.max(maxLat - minLat, 1e-6), sc = Math.min((W - 2 * pad) / wd, (H - 2 * pad) / hd);
     var ox = (W - wd * sc) / 2, oy = (H - hd * sc) / 2;
     function xy(p) { return [ox + (p[1] - minLon) * k * sc, oy + (maxLat - p[0]) * sc]; }

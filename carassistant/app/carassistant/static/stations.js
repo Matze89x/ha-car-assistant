@@ -14,6 +14,10 @@
       form.submit();
     }, function () { me.disabled = false; say(form.getAttribute("data-denied")); }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 });
   });
+  // a filter chip (fuel, radius, order) searches again at once when a search was already made
+  form.addEventListener("change", function (e) {
+    if (e.target && e.target.closest && e.target.closest(".stn-chips") && form.getAttribute("data-searched") === "1") { form.submit(); }
+  });
   // the car button must search around the car: forget a position that came from the phone
   var car = document.getElementById("st-car");
   if (car) { car.addEventListener("click", function () { document.getElementById("st-lat").value = ""; document.getElementById("st-lon").value = ""; }); }

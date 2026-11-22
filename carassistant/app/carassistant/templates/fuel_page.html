@@ -61,10 +61,7 @@
 {% if stn %}{% include "_fuel_settings.html" %}{% endif %}
 {% if stn %}
 <section class="tp-sec" id="stations">
-  <details class="eq" {{ 'open' if stn.searched }}>
-    <summary><span class="mi-ic c6">{{ icon('pin', 19) }}</span><span class="eq-t">{{ _('stn.title') }}</span>{{ icon('chevron-down', 18) }}</summary>
-    {% with inline = true %}{% include "_stations_card.html" %}{% endwith %}
-  </details>
+  {% with inline = true %}{% include "_stations_card.html" %}{% endwith %}
 </section>
 {% endif %}
 
@@ -82,7 +79,6 @@
       <div class="eq-acts fx-acts"><button class="ghost-btn small" formaction="{{ base }}/v/{{ v.slug }}/fuel-export.csv">{{ icon('download', 16) }} <span>CSV</span></button><button class="ghost-btn small" formaction="{{ base }}/v/{{ v.slug }}/fuel-export.pdf">{{ icon('download', 16) }} <span>PDF</span></button></div>
     </form>
   </div>
-  <form method="get" class="eq-searchbox-form"><label class="eq-searchbox"><span class="sb-ic">{{ icon('magnify', 18) }}</span><input type="search" name="q" value="{{ q }}" placeholder="{{ _('fu.search') }}" autocomplete="off" enterkeyhint="search"></label></form>
   {% if fuel_items %}
   <div class="rec-grid fuel-grid">
     {% for head, r in fuel_items %}
