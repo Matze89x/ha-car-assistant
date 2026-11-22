@@ -37,7 +37,7 @@
 <form method="post" action="{{ vurl }}/save" id="tf" class="tire-edit" data-tabs>
   <input type="hidden" name="view" value="{{ tp.season }}" data-view>
   <nav class="seg-tabs tv-tabs" aria-label="{{ _('f.season') }}">
-    {% for sn in tp.seasons %}<a href="{{ vurl }}?edit=1&ps={{ sn }}" class="{{ 'on' if sn == tp.season }}" data-tab="{{ sn }}">{{ _('season.' ~ sn) }}</a>{% endfor %}
+    {% for sn in tp.seasons %}<a href="{{ vurl }}?edit=1&ps={{ sn }}" class="{{ 'on' if sn == tp.season }}" data-tab="{{ sn }}">{{ icon(season_icon.get(sn, 'sync'), 18) }}<span>{{ _('season.' ~ sn) }}</span></a>{% endfor %}
   </nav>
   {% for sn in tp.seasons %}
   {% set pv = tp.every[sn] %}

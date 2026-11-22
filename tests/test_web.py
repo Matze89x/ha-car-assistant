@@ -1201,7 +1201,7 @@ def test_report_period_filter(client):
     page = client.get(base).text
     assert "Months" in page and "Days" in page and "Weeks" in page
     page = client.get(f"{base}?g=week&n=8").text
-    assert 'class="on" aria-current="page">Weeks' in page and '<option value="8" selected>' in page
+    assert 'class="on" aria-current="page"><svg' in page and "<span>Weeks</span>" in page and '<option value="8" selected>' in page
     assert client.get(f"{base}?g=bogus&n=7").status_code == 200  # unknown values fall back to the defaults
 
 

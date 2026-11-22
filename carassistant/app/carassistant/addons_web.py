@@ -20,11 +20,12 @@ def _tabs(base: str, current: str, keys: tuple[tuple[str, str, str], ...]) -> li
     t = i18n.translator(config.language())
     # the Sources tab is the same page for every vehicle: one server-wide list (path None -> /sources)
     return [
-        {"key": k, "href": "/sources" if path is None else f"{base}{path}", "title": t(title), "on": k == current}
+        {"key": k, "href": "/sources" if path is None else f"{base}{path}", "title": t(title), "on": k == current, "icon": TAB_ICON.get(k)}
         for k, path, title in keys
     ]
 
 
+TAB_ICON = {"navigation": "cog", "manage": "cog", "add": "plus", "sources": "database"}  # the symbol in front of each tab
 INT_TABS = (("navigation", "", "int.tab_nav"), ("add", "/add", "int.tab_add"), ("sources", "/sources", "int.tab_sources"))
 PLUG_TABS = (("manage", "", "plug.tab_manage"), ("add", "/add", "int.tab_add"), ("sources", "/sources", "int.tab_sources"))
 

@@ -24,7 +24,7 @@
     <h2>{{ icon('list', 20) }} {{ _('dbg.log') }}</h2>
     {% if lines %}<form method="post" action="{{ base }}/v/{{ v.slug }}/debug/clear" class="inline" data-confirm="{{ _('dbg.confirm_clear') }}"><input type="hidden" name="plugin" value="{{ plugin }}"><button class="danger small">{{ _('dbg.clear') }}</button></form>{% endif %}
   </div>
-  {% if log_plugins %}<p class="seg-tabs" aria-label="{{ _('dbg.filter') }}"><a href="{{ base }}/v/{{ v.slug }}/debug" class="{{ 'on' if not plugin }}">{{ _('dbg.all_plugins') }}</a>{% for p in log_plugins %}<a href="{{ base }}/v/{{ v.slug }}/debug?plugin={{ p.id }}" class="{{ 'on' if p.id == plugin }}">{{ p.name }}</a>{% endfor %}</p>{% endif %}
+  {% if log_plugins %}<p class="seg-tabs" aria-label="{{ _('dbg.filter') }}"><a href="{{ base }}/v/{{ v.slug }}/debug" class="{{ 'on' if not plugin }}">{{ icon('view-dashboard', 18) }}<span>{{ _('dbg.all_plugins') }}</span></a>{% for p in log_plugins %}<a href="{{ base }}/v/{{ v.slug }}/debug?plugin={{ p.id }}" class="{{ 'on' if p.id == plugin }}">{{ icon('plug', 18) }}<span>{{ p.name }}</span></a>{% endfor %}</p>{% endif %}
   {% if lines %}
   <div class="dbg-log">
     {% for l in lines %}<div class="dbg-line lv-{{ l.level }}"><span class="dbg-ts">{{ flog(l.ts) }}</span><span class="dbg-lv">{{ l.level }}</span>{% if not plugin and l.source %}<span class="dbg-lv">{{ l.source }}</span>{% endif %}<span class="dbg-msg">{{ l.message }}</span></div>{% endfor %}

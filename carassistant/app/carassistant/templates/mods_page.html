@@ -15,17 +15,18 @@
   </form>
 {% endmacro %}
 
-{% call page_head(module_icon.get('mods', 'wrench'), _('mods.title')) %}<button class="button primary" form="md-quick" title="{{ _('btn.add') }}" aria-label="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>{% endcall %}
+{% call page_head(module_icon.get('mods', 'wrench'), _('mods.title')) %}<button type="button" class="button primary" data-add-toggle="addcard" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>{% endcall %}
+<p class="hint">{{ _('mods.intro') }}</p>
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
+
+<details class="card add-card add-card-top" id="addcard" {{ 'open' if form }}>
+  <summary><span class="add-ic">{{ icon('plus', 18) }}</span><span>{{ _('btn.add') }}</span></summary>
+  {{ modform(none, mu) }}
+</details>
 
 <section class="tp-sec">
   <div class="vd-group-h eq-head">{{ _('mods.title') }} <span class="eq-total" id="eq-count" data-all="{{ rows_all|length }}">{{ rows_all|length }}</span></div>
-  <form method="post" action="{{ mu }}" class="md-quick" id="md-quick">
-    <input type="hidden" name="date" value="{{ today }}">
-    <input type="text" name="title" maxlength="200" required placeholder="{{ _('mods.quick') }}" aria-label="{{ _('mods.quick') }}">
-  </form>
   {% if rows_all %}
-  <label class="eq-searchbox"><span class="sb-ic">{{ icon('magnify', 18) }}</span><input type="search" id="eq-search" placeholder="{{ _('mods.search') }}" autocomplete="off" enterkeyhint="search"></label>
   <template id="eq-edit-tpl">{{ modform(none, '', true) }}</template>
   <div class="rec-grid md-grid">
     {% for g in year_groups %}

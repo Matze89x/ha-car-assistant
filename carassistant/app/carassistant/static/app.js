@@ -777,9 +777,9 @@ document.addEventListener("click", function (e) {
     if (text) { el.setAttribute("aria-label", text); el.title = text; }
   });
 })();
-
 (function () {
-  /* clicking a tab of a tab bar: the marker slides from the old tab to the new one while the page changes */
+  /* clicking a tab: the marker slides to it. A tab that switches inside the page slides at once; a tab that opens another page remembers where the
+     marker was, and segtabs.js lets it slide from there on the new page (the page is swapped quickly, so sliding on the old one would never be seen) */
   if (window.__segTabs) { return; }
   window.__segTabs = true;
   document.addEventListener("click", function (event) {
@@ -787,10 +787,19 @@ document.addEventListener("click", function (e) {
     if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.button) { return; }
     var bar = link.closest(".seg-tabs"), old = bar.querySelector("a.on");
     if (!old || old === link || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { return; }
-    var ind = document.createElement("i"), box = bar.getBoundingClientRect(), a = old.getBoundingClientRect(), b = link.getBoundingClientRect();
+    var box = bar.getBoundingClientRect(), a = old.getBoundingClientRect(), b = link.getBoundingClientRect();
+    var from = a.left - box.left + bar.scrollLeft - 1;
+    if (!link.hasAttribute("data-tab")) {
+      try {
+        var all = document.querySelectorAll("main .seg-tabs");
+        sessionStorage.setItem("segFrom", JSON.stringify({ i: Array.prototype.indexOf.call(all, bar), n: bar.querySelectorAll("a").length, left: from, w: a.width, t: Date.now() }));
+      } catch (e) { /* no storage: no slide, the page still changes */ }
+      return;
+    }
+    var ind = document.createElement("i");
     ind.className = "seg-ind";
     ind.style.width = a.width + "px";
-    ind.style.transform = "translateX(" + (a.left - box.left + bar.scrollLeft - 1) + "px)";
+    ind.style.transform = "translateX(" + from + "px)";
     bar.classList.add("sliding"); bar.appendChild(ind);
     old.classList.remove("on"); link.classList.add("on");
     requestAnimationFrame(function () { requestAnimationFrame(function () {

@@ -2101,22 +2101,13 @@ def station_context(request: Request, vehicle: sqlite3.Row) -> dict:
         error = "err.number"
     searched = bool(q.get("go"))
     electric = vehicle["fuel_type"] == "electric"
-    fuel = q.get("fuel") if q.get("fuel") in stations.FUELS else ("diesel" if vehicle["fuel_type"] == "diesel" else "e5")
-    sort = q.get("sort") if q.get("sort") in ("price", "distance") else "price"
-    shown_units = units.of(vehicle)
-    try:
-        chosen = stations.default_radius()
-        radius = float(
-            q.get("radius", shown_units.d(chosen) if chosen else ("5" if not shown_units.imperial else "3"))
-        )  # in the distance unit shown
-    except ValueError:
-        radius = 5.0
-    radius_km = shown_units.from_d(radius)
+    fuel = "diesel" if vehicle["fuel_type"] == "diesel" else "e5"  # what the car needs: no question about it
+    sort = "price"
+    radius = 15.0  # kilometres, fixed
+    radius_km = radius
     country = ha.country() if ha.available() else ""
     source_list = stations.sources(country)
-    source = q.get("source")
-    if source not in {s["id"] for s in source_list}:
-        source = stations.default_source(country)
+    source = stations.default_source(country)
     results: list[stations.Station] = []
     if searched and not electric and origin is not None and error is None:
         try:
@@ -2222,7 +2213,8 @@ def settings_page(request: Request):
 def _settings_tabs(current: str) -> list[dict]:
     t = i18n.translator(config.language())
     titles = {"user": t("set.user"), "car": t("set.car"), "system": t("set.system")}
-    return [{"key": k, "href": f"/settings/{k}", "title": titles[k], "on": k == current} for k in SETTINGS_SECTIONS]
+    ic = {"user": "account", "car": "car", "system": "settings"}
+    return [{"key": k, "href": f"/settings/{k}", "title": titles[k], "on": k == current, "icon": ic.get(k)} for k in SETTINGS_SECTIONS]
 
 
 def _settings_section(request: Request, section: str):

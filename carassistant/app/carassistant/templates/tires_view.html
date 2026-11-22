@@ -31,7 +31,7 @@
 {% set sets = rows|selectattr('season', 'equalto', cur)|list %}
 {% set any_mounted = rows|selectattr('mounted')|list|length > 0 %}
 <nav class="seg-tabs tv-tabs" aria-label="{{ _('f.season') }}">
-  {% for sn in tp.seasons %}<a href="{{ vurl }}?ps={{ sn }}" class="{{ 'on' if sn == cur }}">{{ _('season.' ~ sn) }}</a>{% endfor %}
+  {% for sn in tp.seasons %}<a href="{{ vurl }}?ps={{ sn }}" class="{{ 'on' if sn == cur }}">{{ icon(season_icon.get(sn, 'sync'), 18) }}<span>{{ _('season.' ~ sn) }}</span></a>{% endfor %}
 </nav>
 <div class="tire-wrap tv-sets">
   {% for r in sets %}

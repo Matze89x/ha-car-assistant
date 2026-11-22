@@ -67,7 +67,7 @@
 {% set catn = {'commute': _('category.commute'), 'private': _('category.private'), 'business': _('category.business')} %}
 <section class="card ta" id="analysis">
   <h2>{{ icon('chart') }} {{ _('ta.title') }}</h2>
-  <nav class="seg-tabs ta-tabs" aria-label="{{ _('ta.title') }}">{% for p in ta_periods %}<a href="{{ tu }}?ap={{ p }}#analysis" class="{{ 'on' if p == ta_period }}"{% if p == ta_period %} aria-current="page"{% endif %}>{{ pnames[p] }}</a>{% endfor %}</nav>
+  <nav class="seg-tabs ta-tabs" aria-label="{{ _('ta.title') }}">{% for p in ta_periods %}<a href="{{ tu }}?ap={{ p }}#analysis" class="{{ 'on' if p == ta_period }}"{% if p == ta_period %} aria-current="page"{% endif %}>{{ icon({'30': 'timer-outline', '90': 'clock', 'year': 'calendar', 'all': 'chart'}.get(p|string, 'calendar'), 18) }}<span>{{ pnames[p] }}</span></a>{% endfor %}</nav>
   {% if not ta.n %}<p class="muted">{{ _('ta.none') }}</p>{% else %}
   <div class="trip-kpis ta-kpis">
     <div class="tg"><i>{{ _('ta.trips') }}</i><b>{{ ta.n }}</b></div>

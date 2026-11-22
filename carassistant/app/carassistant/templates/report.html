@@ -8,7 +8,7 @@
 {% set kname = {'fuel': _('report.c_fuel'), 'service': _('report.c_service'), 'mods': _('report.c_mods'), 'parts': _('report.c_parts')} %}
 {% set rurl = base ~ '/v/' ~ v.slug ~ '/report' %}
 <form method="get" action="{{ rurl }}" class="rp-bar" data-autosubmit>
-  <nav class="seg-tabs" aria-label="{{ _('report.monthly') }}">{% for g in period_groups %}<a href="{{ rurl }}?g={{ g }}{{ '&c=' ~ kind if kind }}" class="{{ 'on' if g == group }}"{% if g == group %} aria-current="page"{% endif %}>{{ gnames[g] }}</a>{% endfor %}</nav>
+  <nav class="seg-tabs" aria-label="{{ _('report.monthly') }}">{% for g in period_groups %}<a href="{{ rurl }}?g={{ g }}{{ '&c=' ~ kind if kind }}" class="{{ 'on' if g == group }}"{% if g == group %} aria-current="page"{% endif %}>{{ icon({'day': 'calendar-today', 'week': 'calendar', 'month': 'calendar-clock'}.get(g, 'calendar'), 18) }}<span>{{ gnames[g] }}</span></a>{% endfor %}</nav>
   <input type="hidden" name="g" value="{{ group }}">
   {% if kind %}<input type="hidden" name="c" value="{{ kind }}">{% endif %}
   <select name="n" aria-label="{{ _('report.shown') }}">{% for c in counts %}<option value="{{ c }}" {{ 'selected' if c == count }}>{{ c }}</option>{% endfor %}</select>
@@ -47,8 +47,8 @@
 <section class="card" id="rp-list">
   <h2>{{ icon('list') }} {{ _('report.list') }} <small class="muted">{{ _('report.n_entries', n=exp_count) }} · {{ fnum(exp_sum, 2) }} {{ units.cur }}</small></h2>
   <nav class="seg-tabs rp-kinds" aria-label="{{ _('report.list') }}">
-    <a href="{{ rurl }}?g={{ group }}&n={{ count }}#rp-list" class="{{ 'on' if not kind }}">{{ _('report.all') }}</a>
-    {% for k in kinds %}<a href="{{ rurl }}?g={{ group }}&n={{ count }}&c={{ k }}#rp-list" class="{{ 'on' if k == kind }}">{{ kname[k] }}</a>{% endfor %}
+    <a href="{{ rurl }}?g={{ group }}&n={{ count }}#rp-list" class="{{ 'on' if not kind }}">{{ icon('view-dashboard', 18) }}<span>{{ _('report.all') }}</span></a>
+    {% for k in kinds %}<a href="{{ rurl }}?g={{ group }}&n={{ count }}&c={{ k }}#rp-list" class="{{ 'on' if k == kind }}">{{ icon(module_icon.get(k, 'car'), 18) }}<span>{{ kname[k] }}</span></a>{% endfor %}
   </nav>
   {% for m in exp_months %}
   <div class="xr-month"><span>{{ m.key[5:7] }}.{{ m.key[0:4] }}</span><b>{{ fnum(m.sum, 2) }} {{ units.cur }}</b></div>
