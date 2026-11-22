@@ -145,7 +145,7 @@
     <article class="rec trip-card">
       <details class="trip" {{ 'open' if edit_id == r['id'] }}>
         <summary class="trip-sum">
-          <span class="trip-when">{{ fdate(r['date']) }}{% if r['start_time'] %} · {{ r['start_time'] }}{% if r['end_time'] %}–{{ r['end_time'] }}{% endif %}{% endif %}{% if r['id'] in has_points %} {{ icon('map-marker-radius', 13) }}{% endif %}</span>
+          <span class="trip-when">{{ fdate(r['date']) }}{% if r['start_time'] %} · {{ ftime(r['start_time']) }}{% if r['end_time'] %}–{{ ftime(r['end_time']) }}{% endif %}{% endif %}{% if r['id'] in has_points %} {{ icon('map-marker-radius', 13) }}{% endif %}</span>
           <b class="trip-title">{{ r['start_place'] or '–' }} <span class="rec-arrow">→</span> {{ r['end_place'] or '–' }}</b>
           <span class="trip-km">{% if dist is not none %}{{ fnum(units.d(dist), 1) }}<small>{{ units.dist_unit }}</small>{% else %}–{% endif %}</span>
           <span class="trip-chev">{{ icon('chevron-down', 18) }}</span>

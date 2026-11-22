@@ -1,23 +1,39 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head with context %}
+{% from "_macros.html" import icon, page_head, del_form with context %}
 {% block content %}
 {% set cat_icon = {'manual': 'book-open-page', 'invoice': 'file-document-outline', 'insurance': 'shield', 'registration': 'card-text-outline', 'inspection': 'shield-check', 'other': 'docs'} %}
 {% set cat_chip = {'manual': 'c4', 'invoice': 'c3', 'insurance': 'c1', 'registration': 'c2', 'inspection': 'c7', 'other': 'c5'} %}
 {% call page_head('docs', _('tab.docs')) %}<form method="post" enctype="multipart/form-data" action="{{ base }}/v/{{ v.slug }}/docs" class="up-form"><label class="button primary" title="{{ _('docs.upload') }}" aria-label="{{ _('docs.upload') }}">{{ icon('upload', 18) }}<span class="lbl">{{ _('docs.upload') }}</span><input type="file" name="file" required hidden data-send accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.txt,.csv"></label></form>{% endcall %}
 <p class="hint">{{ _('docs.hint') }}</p>
 {% if docs %}
-<section class="card doc-card">
-  <ul class="doc-list" id="doclist">
+<div class="rec-grid doc-grid" id="doclist">
   {% for d in docs %}
     {% set kb = (d.size or 0) / 1024 %}
-    <li class="doc-row">
-      <span class="mi-ic {{ cat_chip.get(d.category, 'c5') }}">{{ icon(cat_icon.get(d.category, 'docs'), 19) }}</span>
-      <a class="doc-t" href="{{ base }}/v/{{ v.slug }}/docs/{{ d.id }}"><b>{{ d.title }}</b><small>{{ _('doccat.' ~ d.category) }} · {{ fdate(d.created_at) }} · {{ (fnum(kb / 1024, 1) ~ ' MB') if kb >= 1024 else (fnum(kb) ~ ' KB') }}</small></a>
-      <form method="post" action="{{ base }}/v/{{ v.id }}/docs/{{ d.id }}/delete" class="eq-x" data-confirm="{{ _('confirm.delete') }}"><button class="eq-i" aria-label="{{ _('btn.delete') }}">{{ icon('delete-outline', 18) }}</button></form>
-    </li>
+    <article class="rec doc-rec" data-rec-edit>
+      <header class="doc-top"><span class="mi-ic {{ cat_chip.get(d.category, 'c5') }}">{{ icon(cat_icon.get(d.category, 'docs'), 19) }}</span>
+        <div class="doc-main"><h3 class="rec-title">{{ d.title }}</h3>
+          <small class="doc-sub">{{ _('doccat.' ~ d.category) }} · {{ (fnum(kb / 1024, 1) ~ ' MB') if kb >= 1024 else (fnum(kb) ~ ' KB') }}</small></div>
+        {% if d.valid_until %}<span class="badge {{ 'overdue' if d.valid_until < today else ('soon' if d.valid_until <= soon else 'ok') }}">{{ _('docs.expired') if d.valid_until < today else _('docs.valid_until_badge', d=fdate(d.valid_until)) }}</span>{% endif %}</header>
+      <dl class="rec-facts">
+        <div><dt>{{ _('docs.doc_date') }}</dt><dd>{{ fdate(d.doc_date) if d.doc_date else fdate(d.created_at) }}</dd></div>
+        {% if d.valid_until %}<div><dt>{{ _('docs.valid_until') }}</dt><dd>{{ fdate(d.valid_until) }}</dd></div>{% endif %}
+      </dl>
+      {% if d.notes %}<p class="md-notes">{{ d.notes }}</p>{% endif %}
+      <div class="rec-actions doc-acts"><a class="ghost-btn small" href="{{ base }}/v/{{ v.slug }}/docs/{{ d.id }}">{{ icon('download', 16) }}<span>{{ _('docs.open') }}</span></a><button type="button" class="ghost-btn small" data-rec-open>{{ icon('pencil', 16) }}<span>{{ _('btn.edit') }}</span></button></div>
+      <div class="rec-inline">
+        <form method="post" action="{{ base }}/v/{{ v.slug }}/docs/{{ d.id }}" class="grid">
+          <label>{{ _('f.title') }}<input type="text" name="title" maxlength="120" required value="{{ d.title }}"></label>
+          <label>{{ _('f.category') }}<select name="category">{% for c in categories %}<option value="{{ c }}" {{ 'selected' if c == d.category }}>{{ _('doccat.' ~ c) }}</option>{% endfor %}</select></label>
+          <label>{{ _('docs.doc_date') }}<input type="date" name="doc_date" value="{{ d.doc_date or '' }}"></label>
+          <label>{{ _('docs.valid_until') }}<input type="date" name="valid_until" value="{{ d.valid_until or '' }}"></label>
+          <label class="wide">{{ _('f.notes') }}<textarea name="notes" rows="2">{{ d.notes or '' }}</textarea></label>
+          <div class="wide"><div class="form-bar"><button type="button" class="ghost-btn small" data-rec-cancel>{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button><button type="submit" form="del-{{ d.id }}" class="danger">{{ icon('delete', 18) }}<span>{{ _('btn.delete') }}</span></button><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div></div>
+        </form>
+        {{ del_form('del-' ~ d.id, base ~ '/v/' ~ v.id ~ '/docs/' ~ d.id ~ '/delete') }}
+      </div>
+    </article>
   {% endfor %}
-  </ul>
-</section>
+</div>
 {% with pager_url=base ~ '/v/' ~ v.slug ~ '/docs', pager_into='#doclist' %}{% include "_pager.html" %}{% endwith %}
 {% else %}<div class="card empty-state">{{ icon('docs', 36) }}<p>{{ _('docs.empty') }}</p></div>{% endif %}
 {% endblock %}

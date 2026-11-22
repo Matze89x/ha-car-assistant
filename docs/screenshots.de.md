@@ -22,11 +22,11 @@ Alle Tankungen nach Monaten mit Verbrauch und Preisen; oben sitzt die Tankstelle
 
 ![Tanken](screenshots/de/fuel.png)
 
-## Auswertung (Kosten)
+## Kostensicht
 
 Was das Auto im gewählten Zeitraum kostet: die Summe, der Anteil von Tanken, Service, Umbauten und Teilen, ein Diagramm je Zeitraum und eine Liste jedes Eintrags mit Preis.
 
-![Auswertung](screenshots/de/report.png)
+![Kostensicht](screenshots/de/report.png)
 
 ## Fahrten und Fahrten-Auswertung
 
@@ -102,8 +102,8 @@ Auf dem Handy wird die Seitenleiste zu einer Leiste unten (Home, bis zu vier Sei
 |---|---|---|
 | <img src="screenshots/de/mobile-dashboard.png" alt="Dashboard" width="260"> | <img src="screenshots/de/mobile-fuel.png" alt="Tanken" width="260"> | <img src="screenshots/de/mobile-trips.png" alt="Fahrten" width="260"> |
 
-| Auswertung | Weiteres | Einstellungen: Auto |
+| Kostensicht | Weiteres | Einstellungen: Auto |
 |---|---|---|
-| <img src="screenshots/de/mobile-report.png" alt="Auswertung" width="260"> | <img src="screenshots/de/mobile-more.png" alt="Weiteres" width="260"> | <img src="screenshots/de/mobile-settings-car.png" alt="Einstellungen: Auto" width="260"> |
+| <img src="screenshots/de/mobile-report.png" alt="Kostensicht" width="260"> | <img src="screenshots/de/mobile-more.png" alt="Weiteres" width="260"> | <img src="screenshots/de/mobile-settings-car.png" alt="Einstellungen: Auto" width="260"> |
 
 Mehr: [Benutzerhandbuch](guide.de.md) · [Installation](install.de.md) · [MCP-Zugriff](mcp.de.md)

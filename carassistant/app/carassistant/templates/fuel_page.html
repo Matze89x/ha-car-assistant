@@ -51,7 +51,7 @@
   <details class="eq">
     <summary><span class="mi-ic c6">{{ icon('plug', 19) }}</span><span class="eq-t">{{ _('fuel.sessions') }}</span>{{ icon('chevron-down', 18) }}</summary>
     <ul class="plain cs-list">
-      {% for s in charge_sessions %}<li><span class="cs-when"><b>{{ fdate(s.date) }}{% if s.fast %} <span class="badge">{{ _('cs.fast') }}</span>{% endif %}</b><small class="muted">{{ _('fuel.sess_line', frm=s.from, to=s.to, min=(s.minutes ~ ' Min.' if s.minutes < 60 else (s.minutes // 60) ~ ' h ' ~ '%02d'|format(s.minutes % 60))) }}</small></span>
+      {% for s in charge_sessions %}<li><span class="cs-when"><b>{{ fdate(s.date) }}{% if s.fast %} <span class="badge">{{ _('cs.fast') }}</span>{% endif %}</b><small class="muted">{{ _('fuel.sess_line', frm=ftime(s.from), to=ftime(s.to), min=(s.minutes ~ ' Min.' if s.minutes < 60 else (s.minutes // 60) ~ ' h ' ~ '%02d'|format(s.minutes % 60))) }}</small></span>
         <span class="cs-pct mono">{{ s.start_pct if s.start_pct is not none else '–' }} → {{ s.end_pct if s.end_pct is not none else '–' }} %</span>
         <span class="cs-meta">{% if s.kwh %}{{ '' if s.kwh_billed else '~' }}{{ s.kwh }} kWh{% endif %}{% if s.cost %} · {{ fnum(s.cost, 2) }} {{ units.cur }}{% endif %}{% if s.max_kw %}{{ ' · ' if (s.kwh or s.cost) }}{{ s.max_kw }} kW{% endif %}</span></li>{% endfor %}
     </ul>

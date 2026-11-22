@@ -6,6 +6,16 @@
       <select name="language">{% for code, meta in languages.items() %}<option value="{{ code }}" {{ 'selected' if lang == code }}>{{ meta.name }}</option>{% endfor %}</select></label>
   </form>
 </section>
+<section class="card" id="datetime">
+  <h2>{{ icon('calendar') }} {{ _('region.datetime_title') }}</h2>
+  <p class="hint">{{ _('region.datetime_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/datetime" data-live>
+    <label class="tf-field"><span class="tf-l">{{ _('region.date_format') }}</span>
+      <select name="date"><option value="" {{ 'selected' if date_key == 'auto' }}>{{ _('region.auto') }} ({{ auto_date }})</option>{% for k, ex in date_examples.items() %}<option value="{{ k }}" {{ 'selected' if date_key == k }}>{{ ex }}</option>{% endfor %}</select></label>
+    <label class="tf-field"><span class="tf-l">{{ _('region.time_format') }}</span>
+      <select name="time"><option value="" {{ 'selected' if time_key == 'auto' }}>{{ _('region.auto') }} ({{ _('region.h24') }})</option><option value="24" {{ 'selected' if time_key == '24' }}>{{ _('region.h24') }} (16:30)</option><option value="12" {{ 'selected' if time_key == '12' }}>{{ _('region.h12') }} (4:30 PM)</option></select></label>
+  </form>
+</section>
 <section class="card" id="units">
   <h2>{{ icon('speedometer') }} {{ _('region.units_title') }}</h2>
   <p class="hint">{{ _('region.units_hint') }}</p>

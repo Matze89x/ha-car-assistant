@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 
-from . import lists
+from . import lists, regional
 
 
 class FormError(ValueError):
@@ -74,7 +74,7 @@ def parse_time(raw: str, label: str) -> str:
 
 def parse_month_or_date(raw: str, label: str) -> tuple[str, bool]:
     """``YYYY-MM`` -> last day of that month (month_only=True); ``YYYY-MM-DD`` -> as is."""
-    raw = raw.strip()
+    raw = regional.to_iso(raw)
     if len(raw) == 7:
         try:
             year, month = int(raw[:4]), int(raw[5:7])
@@ -430,16 +430,27 @@ def group_by_month(rows, date_key: str, lang: str, sum_keys: tuple[str, ...] = (
     return list(groups.values())
 
 
-# ready-made jobs (generic guideline values - check the manufacturer's schedule): (title, note, interval_km, interval_months, keywords, icon)
-TASK_TEMPLATES: tuple[tuple[str, str, int | None, int | None, str, str], ...] = (
-    ("Oil change", "Engine oil and filter", 30000, 12, "oil,ölwechsel", "oil"),
-    ("Brake fluid", "Replace", None, 24, "brake fluid,bremsflüssigkeit", "car-brake-parking"),
-    ("Cabin filter", "Replace", 30000, 24, "cabin,pollen,innenraumfilter", "snowflake"),
-    ("Air filter", "Replace", 60000, 48, "air filter,luftfilter", "engine-outline"),
-    ("Fuel filter", "Replace", 60000, 48, "fuel filter,kraftstofffilter", "gas-station"),
-    ("Spark plugs / glow plugs", "Replace", 60000, 48, "spark,zündkerzen,glühkerzen", "lightning-bolt"),
-    ("Gearbox oil", "Replace", 60000, 60, "gearbox,getriebe,atf,dsg", "car-shift-pattern"),
-    ("Coolant", "Replace", None, 60, "coolant,kühlmittel", "water-percent"),
-    ("Timing belt", "Replace", 120000, 72, "timing belt,zahnriemen", "timer-outline"),
-    ("Tyre rotation", "Swap front and rear", 15000, None, "tyre rotation,reifen tauschen", "tires"),
+# the icon of an extra-work card follows what the job is about (words in English and German; anything else gets the wrench)
+TASK_ICONS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("brake", "brems"), "car-brake-parking"),
+    (("oil", "öl"), "oil"),
+    (("battery", "batterie", "akku"), "battery"),
+    (("tyre", "tire", "reifen"), "tires"),
+    (("filter",), "engine-outline"),
+    (("coolant", "kühl", "antifreeze", "frost"), "water-percent"),
+    (("spark", "glow", "zünd", "glüh", "bulb", "lamp", "light", "licht", "birne"), "lightning-bolt"),
+    (("gearbox", "getriebe", "dsg", "atf", "clutch", "kupplung"), "car-shift-pattern"),
+    (("belt", "riemen"), "timer-outline"),
+    (("fuel", "diesel", "kraftstoff", "tank"), "gas-station"),
+    (("cabin", "pollen", "innenraum", "klima", "air con"), "snowflake"),
+    (("wash", "wasch", "clean", "reinig", "polish", "wax"), "water-percent"),
+    (("inspection", "tüv", "hu ", "service"), "wrench"),
 )
+
+
+def task_icon(title: str, keywords: str = "") -> str:
+    text = f"{title} {keywords}".lower()
+    for words, icon in TASK_ICONS:
+        if any(w in text for w in words):
+            return icon
+    return "wrench"

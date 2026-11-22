@@ -1,0 +1,32 @@
+{% from "_macros.html" import field_input, flabel, del_form, icon, switch_row, disp with context %}
+<div class="rec-grid">
+  {% for head, r in items %}
+  {% if head %}<h3 class="rec-month"><span>{{ head.title }}</span></h3>{% endif %}
+  <article class="rec rcpt{{ ' editing' if edit_id == r['id'] }}" data-rec-edit>
+    <div class="rcpt-head"><span>{{ fdate(r['date']) }}</span><span>{{ r['shop'] or '' }}</span></div>
+    <div class="rcpt-line"><h3>{{ r['name'] }}</h3>{% if r['cost'] is not none %}<span class="rcpt-price">{{ fnum(r['cost'], 2) }} {{ units.cur }}</span>{% endif %}</div>
+    <div class="rcpt-meta">
+      {% if r['part_number'] %}<span>{{ _('f.part_number') }} {{ r['part_number'] }}</span>{% endif %}
+      {% if r['manufacturer'] %}<span>{{ r['manufacturer'] }}</span>{% endif %}
+      {% if r['quantity'] %}<span>{{ _('f.quantity') }} {{ fnum(r['quantity'], 0 if r['quantity'] == r['quantity']|int else 1) }}</span>{% endif %}
+      {% if r['installed'] %}<span class="ok">✓ {{ _('f.installed') }}{% if r['installed_km'] is not none %} · {{ fnum(units.d(r['installed_km']), 0) }} {{ units.dist_unit }}{% endif %}</span>{% endif %}
+    </div>
+    <div class="rcpt-acts"><button type="button" class="ghost-btn small" data-rec-open>{{ icon('pencil', 16) }}<span>{{ _('btn.edit') }}</span></button></div>
+    <div class="rec-inline">
+      <form method="post" action="{{ vurl }}/{{ r['id'] }}" class="grid">
+        {% for f in entity.fields %}
+          {% set own = form if edit_id == r['id'] else none %}
+          {% if own %}{% set val = own.get(f.name) %}
+          {% elif f.dim %}{% set val = disp(f, r[f.name]) %}
+          {% else %}{% set val = r[f.name] %}{% endif %}
+          {% if f.kind == 'bool' %}<div class="wide">{{ switch_row(f.name, _(f.label), val) }}</div>
+          {% else %}<label class="{{ 'wide' if f.kind == 'textarea' }}">{{ flabel(f) }}
+            {{ field_input(f, val, true) }}</label>{% endif %}
+        {% endfor %}
+        <div class="wide"><div class="form-bar"><button type="button" class="ghost-btn small" data-rec-cancel>{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button><button type="submit" form="del-{{ r['id'] }}" class="danger">{{ icon('delete', 18) }}<span>{{ _('btn.delete') }}</span></button><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div></div>
+      </form>
+      {{ del_form('del-' ~ r['id'], vurl ~ '/' ~ r['id'] ~ '/delete') }}
+    </div>
+  </article>
+  {% endfor %}
+</div>

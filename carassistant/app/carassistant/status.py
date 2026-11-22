@@ -16,7 +16,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from urllib.parse import quote
 
-from . import db, units
+from . import db, regional, units
 
 Translator = Callable[..., str]
 Live = dict[str, tuple[str | None, datetime | None]]
@@ -198,7 +198,7 @@ def location(live: Live, t: Translator, now: datetime | None = None) -> dict | N
     chips: list[dict] = []
     if parked:
         since = live["ignition"][1]
-        chips.append({"text": t("loc.parked_since", time=since.astimezone().strftime("%H:%M")) if since else t("loc.parked"), "tone": "ok"})
+        chips.append({"text": t("loc.parked_since", time=regional.ftime(since.astimezone())) if since else t("loc.parked"), "tone": "ok"})
     if updated:
         chips.append({"text": t("loc.last_signal", ago=ago(updated, t, now)), "tone": ""})
     target = f"{lat:.6f},{lon:.6f}"

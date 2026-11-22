@@ -641,7 +641,7 @@ document.addEventListener("click", function (e) {
   if (!t) { return; }
   var open = t.closest("[data-eqe]"), cancel = t.closest("[data-eqe-cancel]");
   if (!open && !cancel) { return; }
-  var li = t.closest("li"); var form = li && li.querySelector(".eq-edit"); var btn = li && li.querySelector("[data-eqe]");
+  var li = t.closest("li, [data-action]"); var form = li && li.querySelector(".eq-edit"); var btn = li && li.querySelector("[data-eqe]");
   if (!form && open && li && (li.hasAttribute("data-id") || li.hasAttribute("data-action"))) {  // the edit form is made when it is first needed (one shared template, not one hidden form per row: a long list stays light)
     var tpl = document.getElementById("eq-edit-tpl"), sec = document.getElementById("equipment");
     if (tpl) {
@@ -655,6 +655,7 @@ document.addEventListener("click", function (e) {
         vals = { title: li.getAttribute("data-title"), code: li.getAttribute("data-code"), status: li.getAttribute("data-status"), category: li.getAttribute("data-cat") };
       }
       Object.keys(vals).forEach(function (k) { if (form.elements[k]) { form.elements[k].value = vals[k] == null ? "" : vals[k]; } });
+      var del = form.querySelector("[data-del]"); if (del && li.getAttribute("data-del-action")) { del.setAttribute("formaction", li.getAttribute("data-del-action")); }
       (li.querySelector(".eq-body") || li).appendChild(form);
     }
   }
@@ -672,6 +673,8 @@ document.addEventListener("input", function (e) {
     Array.prototype.forEach.call(cat.querySelectorAll(".eq-gh"), function (h) { var ul = h.nextElementSibling; h.hidden = !!(ul && !ul.querySelector("li:not([hidden])")); });
     cat.hidden = !!q && !any; if (q && any) { cat.open = true; } shown += any;
   });
+  Array.prototype.forEach.call(document.querySelectorAll("article[data-q]"), function (a) { var hit = !q || a.getAttribute("data-q").indexOf(q) !== -1; a.hidden = !hit; if (hit) { shown++; } });
+  Array.prototype.forEach.call(document.querySelectorAll(".rec-grid > .rec-month"), function (h) { var n = h.nextElementSibling, any = false; while (n && !n.classList.contains("rec-month")) { if (!n.hidden) { any = true; } n = n.nextElementSibling; } h.hidden = !any; });
   var c = document.getElementById("eq-count");
   if (c) { c.textContent = q ? String(shown) : c.getAttribute("data-all") || c.textContent; }
 });
@@ -705,7 +708,7 @@ document.addEventListener("click", function (e) {
   var b = e.target && e.target.closest && e.target.closest("[data-za-edit]");
   if (!b) { return; }
   var card = b.closest(".za-card"), box = card && card.querySelector(".za-edit");
-  if (box) { box.hidden = !box.hidden; }
+  if (box) { box.hidden = !box.hidden; b.setAttribute("aria-expanded", box.hidden ? "false" : "true"); }
 });
 
 /* record cards: a tap opens the card for editing in place; Cancel or Escape closes it */

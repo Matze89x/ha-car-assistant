@@ -1,7 +1,7 @@
 {% from "_macros.html" import icon with context %}
 {# The packages of the sources as tiles: tap one to read about it and install it; the last two tiles add your own file or another source. #}
 <div class="pk-bar">
-  <span class="hint">{{ _('pk.last', when=(fdate(last_read) ~ ' ' ~ last_read[11:16])) if last_read else _('pk.never') }}</span>
+  <span class="hint">{{ _('pk.last', when=(fdate(last_read) ~ ' ' ~ ftime(last_read[11:16]))) if last_read else _('pk.never') }}</span>
 </div>
 <div class="pk-grid">
   {% for p in available %}

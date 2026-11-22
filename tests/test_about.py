@@ -74,4 +74,4 @@ def test_documents_are_paged_too(client):
                 (vid, f"Doc {i}"),
             )
     page = client.get(f"/v/{vid}/docs").text
-    assert page.count('class="doc-row"') == lists.size() and 'data-into="#doclist"' in page
+    assert page.count('class="rec doc-rec"') == lists.size() and 'data-into="#doclist"' in page

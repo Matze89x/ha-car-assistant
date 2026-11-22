@@ -46,6 +46,7 @@ from . import (
     notify,
     plugins,
     push,
+    regional,
     slugs,
     sources,
     stations,
@@ -263,22 +264,11 @@ def _iso(value: date | None) -> str | None:
 
 
 def fdate(value: str | None) -> str:
-    if not value:
-        return ""
-    try:
-        d = date.fromisoformat(value[:10])
-    except ValueError:
-        return value
-    return d.strftime(i18n.LANGUAGES[config.language()]["date"])
+    return regional.fdate(value)
 
 
 def fshort(value) -> str:
-    """Date and time without the year ("13.11. 16:04"), in the local time zone and the date order of the language."""
-    if not value:
-        return ""
-    fmt = i18n.LANGUAGES[config.language()]["date"]
-    fmt = fmt[2:].lstrip(".-/ ") if fmt.startswith("%Y") else fmt[:-2] if fmt.endswith("%Y") else fmt
-    return value.astimezone().strftime(f"{fmt} %H:%M")
+    return regional.fshort(value)
 
 
 def fnum(value, digits: int = 0) -> str:
@@ -456,6 +446,9 @@ def render(request: Request, name: str, status: int = 200, **ctx):
         version=__version__,
         fdate=fdate,
         fshort=fshort,
+        ftime=regional.ftime,
+        field_value=regional.field_value,
+        date_placeholder=regional.placeholder,
         fnum=fnum,
         msg=request.query_params.get("m"),
         icon_base=f"{request.state.base}/v/{ctx['v']['slug'] or ctx['v']['id']}/icon" if ctx.get("v") else f"{request.state.base}/icon",
@@ -1204,6 +1197,18 @@ async def vehicle_icon_reset(request: Request, vid: int):
 # ------------------------------------------------------------------ generic record lists
 
 
+def _year_groups(rows, sum_keys: tuple[str, ...] = ()) -> list[dict]:
+    """Rows (newest first) in one group per year: ``{year, rows, sums}``."""
+    groups: dict[str, dict] = {}
+    for r in rows:
+        year = (r["date"] or "")[:4] or "-"
+        g = groups.setdefault(year, {"year": year, "rows": [], "sums": dict.fromkeys(sum_keys, 0.0)})
+        g["rows"].append(r)
+        for k in sum_keys:
+            g["sums"][k] += r[k] or 0
+    return list(groups.values())
+
+
 def entity_context(
     conn: sqlite3.Connection, vehicle: sqlite3.Row, entity: entities.Entity, page: int = 1, edit_id: int | None = None
 ) -> dict:
@@ -1361,11 +1366,7 @@ def entity_page(request: Request, vid: int, key: str, form: dict | None = None, 
                 odo_row=odo_row,
                 n_ok=sum(1 for c in cards if c["due"].status in ("ok", "unknown")),
                 n_open=sum(1 for c in cards if c["due"].status in ("soon", "overdue")),
-                templates_left=[
-                    t
-                    for t in entities.TASK_TEMPLATES
-                    if not conn.execute("SELECT 1 FROM tasks WHERE vehicle_id = ? AND title = ?", (vid, t[0])).fetchone()
-                ],
+                task_icon=entities.task_icon,
             )
         if key == "mods":
             all_rows = conn.execute("SELECT * FROM mods WHERE vehicle_id = ? ORDER BY date DESC, id DESC LIMIT 2000", (vid,)).fetchall()
@@ -1378,6 +1379,7 @@ def entity_page(request: Request, vid: int, key: str, form: dict | None = None, 
                 edit_id=edit_id,
                 **ctx,
                 rows_all=all_rows,
+                year_groups=_year_groups(all_rows, ("cost",)),
                 today=date.today().isoformat(),
             )
         if key == "fuel":
@@ -1645,21 +1647,6 @@ async def task_done(request: Request, vid: int, row_id: int):
     return go(request, f"/v/{vid}/e/tasks", "saved")
 
 
-@app.post("/v/{vid}/tasks/templates")
-def task_templates(request: Request, vid: int):
-    """Add the ready-made jobs this car does not have yet (generic guideline values)."""
-    with db.tx() as conn:
-        vehicle_or_404(conn, vid)
-        for title, _note, km, months, keywords, _icon in entities.TASK_TEMPLATES:
-            if not conn.execute("SELECT 1 FROM tasks WHERE vehicle_id = ? AND title = ?", (vid, title)).fetchone():
-                conn.execute(
-                    "INSERT INTO tasks(vehicle_id, title, interval_km, interval_months, keywords) VALUES(?,?,?,?,?)",
-                    (vid, title, km, months, keywords),
-                )
-    events.changed()
-    return go(request, f"/v/{vid}/e/tasks", "saved")
-
-
 @app.post("/v/{vid}/e/tires/{row_id}/mount")
 def tire_mount(request: Request, vid: int, row_id: int):
     with db.tx() as conn:
@@ -1901,7 +1888,16 @@ def docs_page(request: Request, vid: int, error: str | None = None):
             (vid, lists.size(), (page - 1) * lists.size()),
         ).fetchall()
         pager = {"page": page, "pages": pages, "total": total, "size": lists.size()}
-        return render(request, "docs.html", **vehicle_ctx(conn, vehicle, "docs"), docs=docs, categories=DOC_CATEGORIES, pager=pager)
+        return render(
+            request,
+            "docs.html",
+            **vehicle_ctx(conn, vehicle, "docs"),
+            docs=docs,
+            categories=DOC_CATEGORIES,
+            pager=pager,
+            today=date.today().isoformat(),
+            soon=(date.today() + timedelta(days=30)).isoformat(),
+        )
 
 
 _DOC_WORDS = (
@@ -1962,6 +1958,37 @@ def docs_download(vid: int, doc_id: int):
         media_type=doc["mime"] or "application/octet-stream",
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(doc['filename'])}"},
     )
+
+
+@app.post("/v/{vid}/docs/{doc_id}")
+async def docs_update(request: Request, vid: int, doc_id: int):
+    form = await form_dict(request)
+
+    def day(key: str) -> str | None:
+        raw = (form.get(key) or "").strip()
+        try:
+            return date.fromisoformat(raw).isoformat() if raw else None
+        except ValueError:
+            return None
+
+    with db.tx() as conn:
+        vehicle_or_404(conn, vid)
+        doc = conn.execute("SELECT * FROM documents WHERE id = ? AND vehicle_id = ?", (doc_id, vid)).fetchone()
+        if doc is None:
+            raise HTTPException(404)
+        category = form.get("category") if form.get("category") in DOC_CATEGORIES else doc["category"]
+        conn.execute(
+            "UPDATE documents SET title = ?, category = ?, doc_date = ?, valid_until = ?, notes = ? WHERE id = ?",
+            (
+                (form.get("title") or "").strip()[:120] or doc["filename"],
+                category,
+                day("doc_date"),
+                day("valid_until"),
+                (form.get("notes") or "").strip()[:2000] or None,
+                doc_id,
+            ),
+        )
+    return go(request, f"/v/{vid}/docs", "saved")
 
 
 @app.post("/v/{vid}/docs/{doc_id}/delete")
@@ -2198,6 +2225,10 @@ def _settings_section(request: Request, section: str):
         unit_systems=units.SYSTEMS,
         currencies=units.CURRENCIES,
         default_units=units.default_system(),
+        date_key=regional.date_key(),
+        time_key=regional.time_key(),
+        date_examples={k: date(2026, 12, 31).strftime(f) for k, f in regional.DATES.items()},
+        auto_date=date(2026, 12, 31).strftime(i18n.LANGUAGES[config.language()]["date"]),
         default_currency=units.default_currency(),
         section=section,
         mqtt_host=integrations.get("mqtt", "host") or "",
@@ -2332,6 +2363,17 @@ async def settings_units(request: Request):
         db.set_setting(conn, "region.units", system if system in units.SYSTEMS and system != units.DEFAULT_SYSTEM else None)
         db.set_setting(conn, "region.currency", currency if currency in units.CURRENCY else None)
     return go(request, "/settings/system#units", "saved")
+
+
+@app.post("/settings/datetime")
+async def settings_datetime(request: Request):
+    form = await form_dict(request)
+    with db.tx() as conn:
+        day, clock = form.get("date", ""), form.get("time", "")
+        db.set_setting(conn, regional.DATE_SETTING, day if day in regional.DATES else None)
+        db.set_setting(conn, regional.TIME_SETTING, clock if clock in regional.TIMES else None)
+    config.forget_settings()
+    return go(request, "/settings/system#datetime", "saved")
 
 
 @app.post("/settings/theme")

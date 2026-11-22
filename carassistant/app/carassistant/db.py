@@ -71,6 +71,7 @@ MIGRATIONS: list[str] = [
     (SCHEMA_DIR / "migrations_52.sql").read_text(encoding="utf-8"),  # notifications: one system per person (matrix of cars and events)
     (SCHEMA_DIR / "migrations_53.sql").read_text(encoding="utf-8"),  # charging sessions noticed from the readings
     (SCHEMA_DIR / "migrations_54.sql").read_text(encoding="utf-8"),  # tyre sets: DOT and rear name move into the notes
+    (SCHEMA_DIR / "migrations_55.sql").read_text(encoding="utf-8"),  # documents: note, document date, valid until
 ]
 
 

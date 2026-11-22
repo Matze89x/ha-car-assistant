@@ -31,7 +31,7 @@
   {%- elif f.kind == 'time' -%}
     <input type="time" name="{{ f.name }}" value="{{ val or '' }}">
   {%- elif f.kind == 'month_or_date' -%}
-    <input type="text" name="{{ f.name }}" value="{{ val or '' }}" placeholder="YYYY-MM  /  YYYY-MM-DD" pattern="\d{4}-\d{2}(-\d{2})?" {{ 'required' if f.required }}>
+    <input type="text" name="{{ f.name }}" value="{{ field_value(val) }}" placeholder="{{ date_placeholder() }}" {{ 'required' if f.required }}>
   {%- elif f.kind == 'int' -%}
     <input type="number" inputmode="numeric" min="0" step="1" name="{{ f.name }}" value="{{ val if val is not none else '' }}">
   {%- elif f.kind == 'float' -%}

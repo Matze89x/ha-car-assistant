@@ -888,22 +888,17 @@ def test_trip_card_stats_and_track_json(client):
     assert '<details class="trip"' in page and f"trips/{tid}/track.json" in page and "static/trips.js" in page
 
 
-def test_extra_work_page_cards_reset_and_templates(client):
+def test_extra_work_page_cards_and_reset(client):
     from carassistant import db
 
     vid = create_vehicle(client)
     base = f"/v/{slug(vid)}"
     page = client.get(f"{base}/e/tasks").text
-    assert "Current odometer" in page and "Add ready-made jobs" in page and "Extra work" in page
-    client.post(f"{base}/tasks/templates")
+    assert "Current odometer" in page and "Extra work" in page
+    client.post(f"{base}/e/tasks", data={"title": "Oil change", "interval_km": "30000", "interval_months": "12", "keywords": "oil"})
     with db.tx() as conn:
-        n = conn.execute("SELECT COUNT(*) FROM tasks WHERE vehicle_id = ?", (vid,)).fetchone()[0]
         oil = conn.execute("SELECT id FROM tasks WHERE vehicle_id = ? AND title = 'Oil change'", (vid,)).fetchone()["id"]
-    assert n >= 8
-    assert "Add ready-made jobs" not in client.get(f"{base}/e/tasks").text  # all added now
-    client.post(f"{base}/tasks/templates")  # twice: no duplicates
-    with db.tx() as conn:
-        assert conn.execute("SELECT COUNT(*) FROM tasks WHERE vehicle_id = ?", (vid,)).fetchone()[0] == n
+    assert "ready-made" not in client.get(f"{base}/e/tasks").text  # no guideline jobs: every car is different
     client.post(f"{base}/e/tasks/{oil}/done", data={"km": "51000"})
     with db.tx() as conn:
         row = conn.execute("SELECT last_km, last_date FROM tasks WHERE id = ?", (oil,)).fetchone()

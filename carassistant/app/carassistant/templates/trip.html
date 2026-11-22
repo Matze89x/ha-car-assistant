@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon,page_head with context %}
 {% block content %}
-{% set trip_title = fdate(trip.date) ~ ' ' ~ (trip.start_time or '') ~ ((' – ' ~ trip.end_time) if trip.end_time else '') %}
+{% set trip_title = fdate(trip.date) ~ ' ' ~ ftime(trip.start_time) ~ ((' – ' ~ ftime(trip.end_time)) if trip.end_time else '') %}
 {% call page_head('route', trip_title) %}
     {% if point_count %}<a class="button" href="{{ base }}/v/{{ v.slug }}/trips/{{ trip.id }}/track.gpx">GPX</a>{% endif %}
     <a class="button" href="{{ base }}/v/{{ v.slug }}/e/trips">{{ _('btn.back') }}</a>

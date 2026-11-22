@@ -1909,9 +1909,6 @@ button.tp-open { display: block; text-align: left; }
 .za-km b { font-size: 32px; letter-spacing: -.02em; }
 .za-km span { color: var(--muted); font-size: 16px; }
 .za-hero small { color: var(--dim); font-size: 12px; }
-.za-tpl { display: flex; align-items: center; margin: 0 6px 10px; }
-.za-tpl .ghost-btn { width: auto; flex: 0 0 auto; white-space: nowrap; }
-.za-tpl small { color: var(--dim); font-size: 12px; min-width: 0; }
 .za-grid { display: grid; gap: var(--sp-col); }
 @media (min-width: 900px) {
   .za-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
@@ -1936,8 +1933,6 @@ button.tp-open { display: block; text-align: left; }
 .za-edit[hidden] { display: none; }
 .za-edit .eq-edit[hidden] { display: grid; }
 .za-foot { margin: 12px 6px 0; font-size: 12px; }
-.za-tpl { flex-wrap: wrap; gap: 4px 10px; }
-.za-tpl small { flex: 1 1 100%; }
 
 /* manual */
 .mn-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 6px 8px; }
@@ -2065,7 +2060,6 @@ mark { background: rgba(var(--soon-rgb), .35); color: inherit; border-radius: va
 .doc-t { flex: 1; min-width: 0; display: grid; gap: 2px; color: var(--text); text-decoration: none; } .doc-t:hover { text-decoration: none; }
 .doc-t b { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .doc-t small { font-size: 12px; color: var(--muted); }
 .doc-row .eq-x { margin: 0; flex: 0 0 auto; }
-.za-editlink { margin-left: auto; width: fit-content; }  /* the Edit button sits on the right edge of its card */
 /* fuel: a heading per month, then the fill-ups as cards in two columns (one on a phone), ten at a time */
 .rec-month { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin: 8px 4px 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 600; } .rec-month:first-child { margin-top: 0; }
 .rec-month small { margin-left: auto; font-size: 12px; letter-spacing: 0; text-transform: none; color: var(--muted); font-weight: 600; }
@@ -2397,18 +2391,12 @@ svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5
 
 /* Extra work card: the odometer field, Reset and Edit in ONE line at the bottom of the tile (Edit is icon-only) */
 .za-acts { display: flex; align-items: center; gap: 8px; }
-.za-acts .za-reset { flex: 1 1 auto; min-width: 0; }
-.za-acts .za-reset input { flex: 1 1 70px; width: auto; min-width: 64px; max-width: 120px; }
-.za-acts .za-reset .ghost-btn { flex: 1 1 auto; justify-content: center; }
-.za-acts .za-editlink { flex: 0 0 auto; margin: 0; width: 40px; height: 40px; padding: 0; }
 .za-grid { grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 900px) { .za-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .za-card { min-width: 0; }
 .za-top { flex-wrap: wrap; row-gap: 6px; }
 .za-top .badge { margin-left: auto; white-space: normal; text-align: right; }
-.za-acts .za-reset .ghost-btn { padding-inline: 10px; }
 .za-card { grid-template-columns: minmax(0, 1fr); } .za-top .badge { flex: 0 1 auto; max-width: 100%; }
-.za-acts .za-reset input { min-width: 84px; padding-inline: 8px; } .za-top .za-title { flex: 1 1 9em; }
 
 /* ---- Dashboard widgets: a tint of the tile's own colour, bigger figures, small charts (sparkline, 7-day bars), countdown, progress */
 .wd { --wc: 162, 169, 181; position: relative; overflow: hidden; gap: 10px; padding: 14px 16px; background: linear-gradient(155deg, rgba(var(--wc), .13), transparent 60%), var(--glass); }
@@ -2724,9 +2712,71 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
   .ap-main { order: 3; flex: 1 0 100%; }
   .ap-side { order: 2; margin-left: auto; }
 }
-/* an extra-work card that is too narrow for the labelled Reset button: icon only (the label stays for screen readers), so the row never overflows */
-.za-card { container-type: inline-size; }
-@container (max-width: 270px) {
-  .za-acts .za-reset .ghost-btn > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .za-acts .za-reset .ghost-btn { flex: 0 0 auto; }
 }
+
+/* The name "Car Assistant" and its slogan are ALWAYS exactly the same width (side bar, About, login): the name decides the width, the slogan is spread over it */
+.side .sb-brand span:has(.sb-slogan) { display: inline-flex; flex-direction: column; width: max-content; }
+.brand-lock { display: inline-flex; flex-direction: column; width: max-content; max-width: 100%; margin: 0 auto; }
+.side .sb-brand .sb-slogan, .about-id .about-slogan, .brand-lock .login-slogan { display: block; width: 0; min-width: 100%; margin-inline: 0; white-space: nowrap; text-align: justify; text-align-last: justify; letter-spacing: 0; }
+.about-id .about-slogan { margin-top: 4px; font-size: 12px; }
+.about-id h2 { text-align: center; }
+.brand-lock .login-slogan { font-size: 11px; }
+/* About: compact and centred */
+.about-page .about-hero { text-align: center; padding: 16px 16px 14px; }
+.about-page .about-hero .about-id { display: inline-flex; flex-direction: column; align-items: stretch; width: max-content; max-width: 100%; gap: 6px; margin: 0 auto; }
+.about-page .about-hero .about-id .about-logo { width: 0; min-width: 100%; height: auto; }
+.about-page .about-hero h2 { font-size: 24px; text-align: center; }
+.about-page .about-hero .about-tag { margin: 10px auto; max-width: 30em; text-align: center; font-size: 14px; }
+.about-page .about-links { justify-content: center; }
+.about-page .mg-head { justify-content: center; text-align: center; }
+.about-page .about-stat { padding: 8px 12px; gap: 10px; }
+.about-page .about-glance { padding: 14px 16px; }
+.about-page .about-glance h2 { margin-bottom: 10px; }
+/* a switch row already ends in a line: the button bar below it gets no second one */
+.wide:has(> .sw-row) + .wide .form-bar, .sw-row + .form-bar, .sw-row + .eq-acts, .wide:has(> .sw-row) + .eq-acts { border-top: 0; padding-top: 0; margin-top: 8px; }
+
+/* extra-work card: the Edit button sits bottom right; the edit panel starts with "done now" (odometer + Reset), then the form */
+.za-acts { display: flex; justify-content: flex-end; gap: 8px; }
+.za-reset { flex-wrap: wrap; padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--glass-b); }
+.za-reset .za-reset-t { flex: 1 1 100%; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.za-reset .ghost-btn { margin-left: auto; }
+.za-edit .eq-acts { justify-content: flex-end; }
+.za-acts .ghost-btn { width: auto; flex: 0 0 auto; }
+
+/* Umbauten: one card per modification, grouped by year with the sum of the year; the Edit button sits bottom right */
+.md-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.md-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.md-main .rec-title { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+.md-sub { font-size: 12px; color: var(--muted); }
+.md-cost { flex: 0 0 auto; font-family: "Space Mono", monospace; font-size: 14px; font-weight: 700; }
+.md-notes { margin: 0; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.md-acts, .rcpt-acts { display: flex; justify-content: flex-end; }
+.md-card .eq-edit { margin-top: 4px; }
+
+/* Parts & purchases: each purchase looks like a till receipt - date and shop on top, the item with its price, a dashed line, the details */
+.rcpt { gap: 0; padding: 14px 16px 12px; }
+.rcpt-head { display: flex; justify-content: space-between; gap: 10px; padding-bottom: 8px; font-family: "Space Mono", monospace; font-size: 12px; color: var(--muted); }
+.rcpt-head span:last-child { text-align: right; overflow-wrap: anywhere; }
+.rcpt-line { display: flex; align-items: baseline; gap: 12px; padding: 10px 0; border-top: 1px dashed var(--glass-b); }
+.rcpt-line h3 { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+.rcpt-price { flex: 0 0 auto; font-family: "Space Mono", monospace; font-size: 15px; font-weight: 700; }
+.rcpt-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 8px 0 10px; border-top: 1px dashed rgba(var(--fg-rgb), .28); font-family: "Space Mono", monospace; font-size: 12px; color: var(--muted); }
+.rcpt-meta:empty { display: none; }
+.rcpt-meta .ok { color: var(--ok); }
+.rcpt-acts { padding-top: 4px; }
+.rcpt .rec-inline { margin-top: 8px; }
+.rec.rcpt.editing > .rcpt-head, .rec.rcpt.editing > .rcpt-line, .rec.rcpt.editing > .rcpt-meta, .rec.rcpt.editing > .rcpt-acts { display: none; }
+/* buttons of an opened form always bottom right */
+.card .form-bar, .add-card .form-bar { justify-content: flex-end; }
+.md-acts .ghost-btn, .rcpt-acts .ghost-btn { width: auto; flex: 0 0 auto; }
+/* Documents: one card per document - icon, title with category and size, validity, and its buttons bottom right */
+.doc-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.doc-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.doc-main .rec-title { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+.doc-sub { font-size: 12px; color: var(--muted); }
+.doc-acts { justify-content: flex-end; }
+.doc-acts .ghost-btn { width: auto; flex: 0 0 auto; }
+.rec.doc-rec.editing > .doc-top, .rec.doc-rec.editing > .rec-facts, .rec.doc-rec.editing > .md-notes, .rec.doc-rec.editing > .doc-acts { display: none; }
+.rec-inline .form-bar { flex-wrap: wrap; }
+.rec-grid.doc-grid { grid-template-columns: minmax(0, 1fr); }
+.about-page .about-hero .about-id .about-logo { width: 112px; min-width: 0; align-self: center; }
