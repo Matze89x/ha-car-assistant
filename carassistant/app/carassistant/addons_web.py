@@ -459,7 +459,8 @@ def _guide_page(
     bundle_rows = [
         {**rows[n], "entries": []} for n in files_step.get("bundles", []) if n in rows
     ]  # the technical list of entries belongs on the info page
-    fields = addon["m"].get("settings", [])
+    only = addons.guide_keys(addon)
+    fields = [f for f in addon["m"].get("settings", []) if only is None or f["key"] in only]  # a package may list the settings per step
     values = shown if shown is not None else addon["vals"]
     return render(
         request,
@@ -547,7 +548,8 @@ async def addon_guide_next(request: Request, vid: int, aid: int):
         addon = addons.get(conn, vid, aid)
         if addon is None or addon["kind"] != "plugin" or not addon["m"].get("setup"):
             return go(request, f"/v/{vid}/plugins", "addon.err_id")
-        errors = addons.check_settings(addon["m"], form, addon["vals"])
+        keys = addons.guide_keys(addon)  # None = the package lists no settings per step: the guide shows (and saves) all of them
+        errors = addons.check_settings(addons.guide_manifest(addon, keys), addons.guide_form(addon, form, keys), addon["vals"])
         if errors:
             return _guide_page(
                 request,
@@ -556,7 +558,7 @@ async def addon_guide_next(request: Request, vid: int, aid: int):
                 2,
                 carried,
                 errors=errors,
-                shown=addons.clean_settings(addon["m"], form, addon["vals"]) | {k: form.get(k, "") for k in errors},
+                shown=addons._guide_values(addon, form, keys) | {k: form.get(k, "") for k in errors},
                 status=400,
             )
         if adopt and not addon.get("token_id"):  # a token that is already on the device: stored as a fingerprint, fixed from now on
@@ -570,7 +572,7 @@ async def addon_guide_next(request: Request, vid: int, aid: int):
                     2,
                     carried,
                     errors={"__token": f"err.{exc.code}"},
-                    shown=addons.clean_settings(addon["m"], form, addon["vals"]),
+                    shown=addons._guide_values(addon, form, keys),
                     status=400,
                 )
             conn.execute(
@@ -593,7 +595,7 @@ async def addon_guide_next(request: Request, vid: int, aid: int):
                 connectors.remember(
                     conn, addon.get("token_id"), have
                 )  # a token that was typed (and fits) is kept from now on, when allowed
-        made = addons.set_up(conn, vid, addon, form)  # saves the settings; a plugin without a token gets one here (shown once)
+        made = addons.set_up(conn, vid, addon, form, keys)  # saves the settings; a plugin without a token gets one here (shown once)
     if made and pluginsvc.service_of(addon):
         pluginsvc.write_token(addon, made)
     if pluginsvc.service_of(addon):

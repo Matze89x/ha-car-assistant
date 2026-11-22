@@ -457,3 +457,39 @@ def test_a_plugin_with_a_guide_offers_set_up_on_its_tile_until_it_is_set_up(clie
     )  # not set up: the main action
     client.post(f"/v/{slug(vid)}/integrations/{aid}/setup", data={"server": "https://car.example.com", "interval": "60", "dns": ""})
     assert f"/integrations/{aid}/guide" not in client.get(f"/v/{slug(vid)}/plugins").text  # set up: the tile has its other actions again
+
+
+def test_a_package_may_list_the_settings_the_guide_shows_and_the_others_keep_their_value(client):
+    from carassistant import config
+
+    vid = create_vehicle(client)
+    steps = [
+        {**SETUP_MANIFEST["setup"]["steps"][0], "settings": ["server", "nonsense", "server"]}
+    ]  # listed: only "server"; unknown keys are dropped
+    manifest = {
+        **SETUP_MANIFEST,
+        "id": "listed",
+        "settings": [*SETUP_MANIFEST["settings"], {"key": "debug", "label": "Debug", "type": "bool", "default": "1"}],
+        "setup": {**SETUP_MANIFEST["setup"], "steps": steps},
+    }
+    parsed = addons.parse_package(json.dumps(manifest).encode())
+    assert parsed["setup"]["steps"][0]["settings"] == ["server"]
+    upload(client, vid, json.dumps(manifest).encode())
+    with db.tx() as conn:
+        aid = addons.list_for(conn, vid)[0]["id"]
+    url = f"/v/{slug(vid)}/integrations/{aid}"
+    client.post(f"/v/{vid}/edit", data={"name": "My Car", "vin": "WV1ZZZ2KZZZ012345", "fuel_type": "diesel"})
+    with db.tx() as conn:
+        db.set_setting(conn, "ext.url", "https://car.example.com")
+    config.forget_external()
+    page = client.get(f"{url}/guide?step=2").text
+    assert 'name="server"' in page and 'name="interval"' not in page and 'name="dns"' not in page and 'name="debug"' not in page
+    token = re.search(r"ca_[A-Za-z0-9_-]{20,}", client.post(f"{url}/guide/token").text).group(0)
+    step3 = client.post(f"{url}/guide/next", data={"server": "https://car.example.com", "token": token})
+    assert step3.status_code == 200
+    with db.tx() as conn:
+        vals = addons.list_for(conn, vid)[0]["vals"]
+    assert vals["server"] == "https://car.example.com" and vals["debug"] == "1"  # a switch that was not in the page is NOT switched off
+    # a package that lists nothing keeps the old behaviour: every setting is in the guide
+    plain = {**SETUP_MANIFEST, "id": "plain-all"}
+    assert "settings" not in addons.parse_package(json.dumps(plain).encode())["setup"]["steps"][0]

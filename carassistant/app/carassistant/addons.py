@@ -573,7 +573,7 @@ def _long(value, limit: int) -> str:
     return re.sub(r"\n{3,}", "\n\n", value.replace("\r", "")).strip()[:limit]
 
 
-def clean_setup(raw, bundles: list[dict], has_file: bool) -> dict | None:
+def clean_setup(raw, bundles: list[dict], has_file: bool, setting_keys: frozenset[str] | set[str] = frozenset()) -> dict | None:
     """The ``setup`` of a manifest: a guide in steps (docs/plugins.md). ``requires`` lists what must be there first (an https address under System,
     a VIN in the vehicle data); a step may offer the token, the connection file and ``bundles`` of the package, and brings its own text."""
     if not isinstance(raw, dict) or not isinstance(raw.get("steps"), list):
@@ -599,6 +599,8 @@ def clean_setup(raw, bundles: list[dict], has_file: bool) -> dict | None:
                 :8
             ],
         }
+        if isinstance(st.get("settings"), list):  # the settings this step shows (opt-in: without it the guide shows all of them, as before)
+            step["settings"] = [k for k in dict.fromkeys(st["settings"]) if isinstance(k, str) and k in setting_keys][:60]
         l10n = {}
         for lang, texts in list((st.get("l10n") if isinstance(st.get("l10n"), dict) else {}).items())[:12]:
             if isinstance(lang, str) and LANG.match(lang) and isinstance(texts, dict):
@@ -755,7 +757,7 @@ def parse_package(raw: bytes) -> dict:
     files = clean_files(data.get("files"))
     bundles = clean_bundles(data.get("bundles"), files)
     downloads = clean_downloads(data.get("downloads"), service)
-    setup = clean_setup(data.get("setup"), bundles, bool(conn_file))
+    setup = clean_setup(data.get("setup"), bundles, bool(conn_file), {f["key"] for f in fields})
     docs = (
         " ".join(str(data["docs"]).split())[:3000] if isinstance(data.get("docs"), str) else ""
     )  # a longer description for the Interfaces page
@@ -1106,7 +1108,37 @@ def _sealed(manifest: dict, values: dict) -> dict:
     return {k: (vault.encrypt(v) if k in secret else v) for k, v in values.items()}
 
 
-def set_up(conn: sqlite3.Connection, vehicle_id: int, addon: dict, form: dict) -> str | None:
+def guide_keys(addon: dict) -> set[str] | None:
+    """The settings the set-up guide shows, when the package lists them per step (``setup.steps[].settings``); None = it lists none: the guide shows all."""
+    steps = ((addon.get("m") or {}).get("setup") or {}).get("steps") or []
+    listed = [s["settings"] for s in steps if s.get("settings") is not None]
+    return {k for keys in listed for k in keys} if listed else None
+
+
+def guide_manifest(addon: dict, keys: set[str] | None) -> dict:
+    """The manifest as the guide sees it: only the listed settings (all when ``keys`` is None)."""
+    m = addon["m"]
+    return m if keys is None else {**m, "settings": [f for f in m.get("settings", []) if f["key"] in keys]}
+
+
+def guide_form(addon: dict, form: dict, keys: set[str] | None) -> dict:
+    """The form as it is judged by ``show_if``: what was typed for the listed settings, the stored value for the others (they are not in the page)."""
+    if keys is None:
+        return form
+    merged = dict(form)
+    for f in addon["m"].get("settings", []):
+        if f["key"] in keys or f["type"] in NO_VALUE:
+            continue
+        stored = addon["vals"].get(f["key"], "")
+        if f["type"] == "bool":
+            if stored == "1":
+                merged[f["key"]] = "1"
+        elif stored not in ("", None):
+            merged[f["key"]] = stored
+    return merged
+
+
+def set_up(conn: sqlite3.Connection, vehicle_id: int, addon: dict, form: dict, only: set[str] | None = None) -> str | None:
     """Mark as configured, save settings; a plugin gets its connection token (returned once)."""
     token = None
     token_id = addon["token_id"]
@@ -1118,9 +1150,16 @@ def set_up(conn: sqlite3.Connection, vehicle_id: int, addon: dict, form: dict) -
             connectors.remember(conn, token_id, token)  # only when the administrator allows it (System > Security)
     conn.execute(
         "UPDATE vehicle_addons SET status = 'configured', settings = ?, token_id = ? WHERE id = ?",
-        (json.dumps(_sealed(addon["m"], clean_settings(addon["m"], form, addon["vals"]))), token_id, addon["id"]),
+        (json.dumps(_sealed(addon["m"], _guide_values(addon, form, only))), token_id, addon["id"]),
     )
     return token
+
+
+def _guide_values(addon: dict, form: dict, only: set[str] | None) -> dict:
+    """The values to store after the guide: all settings as typed, or - when the guide shows only some - those, the others keep their value."""
+    if only is None:
+        return clean_settings(addon["m"], form, addon["vals"])
+    return {**addon["vals"], **clean_settings(guide_manifest(addon, only), form, addon["vals"])}
 
 
 def new_token(conn: sqlite3.Connection, vehicle_id: int, addon: dict) -> str:
