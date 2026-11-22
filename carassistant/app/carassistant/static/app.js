@@ -777,35 +777,3 @@ document.addEventListener("click", function (e) {
     if (text) { el.setAttribute("aria-label", text); el.title = text; }
   });
 })();
-(function () {
-  /* clicking a tab: the marker swipes to it. A tab that switches inside the page swipes at once; a tab that opens another page remembers where the
-     marker was and segtabs.js lets it swipe from there as soon as the new page is there (the old page is gone by then, a swipe on it would never be seen). */
-  if (window.__segTabs) { return; }
-  window.__segTabs = true;
-  document.addEventListener("click", function (event) {
-    var link = event.target.closest && event.target.closest(".seg-tabs a");
-    if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.button) { return; }
-    var bar = link.closest(".seg-tabs"), old = bar.querySelector("a.on");
-    if (!old || old === link || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { return; }
-    var box = bar.getBoundingClientRect(), a = old.getBoundingClientRect(), b = link.getBoundingClientRect();
-    var from = a.left - box.left + bar.scrollLeft - 1, to = b.left - box.left + bar.scrollLeft - 1;
-    if (!link.hasAttribute("data-tab")) {
-      try {
-        var all = document.querySelectorAll("main .seg-tabs");
-        sessionStorage.setItem("segFrom", JSON.stringify({ i: Array.prototype.indexOf.call(all, bar), n: bar.querySelectorAll("a").length, left: from, w: a.width, t: Date.now() }));
-      } catch (e) { /* no storage: the page changes without the swipe */ }
-      return;
-    }
-    var ind = document.createElement("i");
-    ind.className = "seg-ind";
-    ind.style.width = a.width + "px";
-    ind.style.transform = "translateX(" + from + "px)";
-    bar.classList.add("sliding"); bar.appendChild(ind);
-    old.classList.remove("on"); link.classList.add("on");
-    requestAnimationFrame(function () { requestAnimationFrame(function () {
-      ind.style.width = b.width + "px";
-      ind.style.transform = "translateX(" + to + "px)";
-    }); });
-    setTimeout(function () { bar.classList.remove("sliding"); if (ind.parentNode) { ind.parentNode.removeChild(ind); } }, 450);
-  }, true);
-})();
