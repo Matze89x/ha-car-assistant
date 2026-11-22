@@ -187,9 +187,9 @@ html[data-theme="light"][data-map="light"] .pos-map .leaflet-tile-pane, html[dat
 .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 6px 0 var(--sp-head); min-height: calc(var(--head-h) + var(--lab-h)); }
 
 /* ONE header height on every page: the title row and the small line under it (the car's name) - pages without that line keep the room, so nothing jumps between pages */
-.page-head > .back-btn, .page-head > .actions { align-self: flex-start; }
+.page-head > .back-btn { align-self: flex-start; }
 .page-head > .back-btn { margin-top: calc((var(--head-h) - 40px) / 2); }
-.page-head > .actions { height: var(--head-h); align-items: center; }
+.page-head > .actions { min-height: var(--head-h); align-items: center; align-self: center; }  /* centred on the whole header (title + car name) */
 .more-pane .page-head { min-height: var(--head-h); }
 .page-head h1 { margin: 0; min-height: var(--head-h); display: flex; align-items: center; }
 
