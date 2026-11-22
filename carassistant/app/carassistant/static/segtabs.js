@@ -21,6 +21,6 @@
   setTimeout(function () {
     ind.style.width = b.width + "px";
     ind.style.transform = "translateX(" + to + "px)";
-  }, 120);
+  }, 40);
   setTimeout(function () { bar.classList.remove("sliding"); if (ind.parentNode) { ind.parentNode.removeChild(ind); } }, 700);
 })();
