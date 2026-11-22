@@ -114,11 +114,11 @@ People write their own plugins and integrations, so **what works today keeps wor
 - **`/api/v1` is frozen.** Inside `v1` existing fields, their meaning and the answers of existing endpoints do not change in a way that breaks a plugin. Only **additions** happen: new optional request fields, new keys in answers, new endpoints, new allowed values. A plugin must **ignore keys it does not know** in answers.
 - **Look before you send.** `GET /api/v1` returns `version`, `api` and `fields` (what this Car Assistant accepts). An older Car Assistant answers an unknown request field with `422 unknown_field`, so a plugin that wants to use a newer field checks that it is listed in `fields` first (example: `measured_at`).
 - **Nothing is changed or removed silently.** A function that is to change, be replaced or go away is first **announced as deprecated**: in the changelog, in these documents (a *Deprecated* note with the date it will be removed and what to use instead) and - where a request is concerned - with the answer headers `Deprecation: true` and `Sunset: <date>`. The replacement exists **when** the announcement is made.
-- **Notice period.** A deprecated function keeps working, unchanged, for **at least 6 months and 2 releases** after the announcement. Only then may it be removed. Security fixes are the one exception (shorter, with the reason named).
-- **Breaking changes** only come in a **new API version** (`/api/v2`); `v1` then stays available for **at least 12 months** after `v2` is released.
+- **Notice period.** A deprecated function keeps working, unchanged, **for a stated time after the announcement** and is only then removed. **Fixed periods are set with the official release 1.0** (while Car Assistant is in Beta, 0.x, we announce every such change in the changelog and keep the old way working as long as we reasonably can, but we make no fixed promise yet). Security fixes are the one exception (shorter, with the reason named).
+- **Breaking changes** only come in a **new API version** (`/api/v2`); how long `v1` then stays available is set with 1.0, too.
 - **The package file (`plugin.json`)** follows the same rules: new keys are optional, old keys keep working; keys an older Car Assistant does not know are ignored, so one package can serve several versions.
 - **Backups:** every older backup format stays restorable ([backup](backup.md)).
-- **Beta (0.x):** we keep to this already, so that plugins written now do not have to be rewritten at 1.0.
+- **Beta (0.x):** we keep to the principles above already (nothing silent, additions only, announce first), so that plugins written now do not have to be rewritten at 1.0. The fixed periods follow with 1.0.
 
 **Currently deprecated:** nothing.
 
