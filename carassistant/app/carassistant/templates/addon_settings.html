@@ -4,6 +4,12 @@
 {% from "_addon_fields.html" import addon_field with context %}
 {% block content %}
 {{ page_head(addon.m.icon or ('plug' if addon.kind == 'plugin' else 'puzzle'), addon.m.name) }}
+{% if addon.m.settings_page and addon.active %}
+<section class="card addon-token">
+  <h2>{{ icon('settings', 20) }} {{ _('addon.own_settings') }}</h2>
+  <div class="actions"><a class="button primary" href="{{ base }}/v/{{ v.slug }}/m/{{ addon.addon_id }}/{{ addon.m.settings_page }}">{{ icon('chevron', 18) }}<span>{{ _('addon.own_settings_open') }}</span></a></div>
+</section>
+{% endif %}
 {% if addon.m.setup %}
 <section class="card addon-token">
   <h2>{{ icon('play-circle-outline', 20) }} {{ _('addon.guide') }}</h2>

@@ -451,6 +451,19 @@ def _guide_page(
     }
     checks = [{**need[key], "label": tr(names[key][0]), "missing": tr(names[key][1])} for key in setup["requires"]]
     ready = all(c["ok"] for c in checks)
+    extra = [
+        s for s in setup["steps"] if s.get("page") and s["id"] not in ("check", "token", "files")
+    ]  # steps of the plugin: a page of its service
+    extra_steps = [
+        {
+            "id": s["id"],
+            "page": s["page"],
+            "title": (own.get(s["id"], {}).get("title") or s.get("title") or s["id"]),
+            "text": text_of(s["id"]),
+        }
+        for s in extra
+    ]
+    step = min(step, 3 + len(extra_steps))
     if not ready:
         step = 1
     offered = pluginsvc.approved(addon)
@@ -482,6 +495,7 @@ def _guide_page(
         shown=values,
         errors={k: tr(v) for k, v in (errors or {}).items()},
         notice=notice,
+        extra_steps=extra_steps,
         texts={"check": text_of("check"), "token": text_of("token"), "files": text_of("files")},
         bundle_rows=bundle_rows,
         pkg_offered=offered,
@@ -495,7 +509,7 @@ def _guide_page(
 def addon_guide(request: Request, vid: int, aid: int):
     """The set-up guide of a plugin (its manifest's ``setup``), always from step 1 or the one asked for with ``?step=``."""
     try:
-        step = min(3, max(1, int(request.query_params.get("step", "1"))))
+        step = min(12, max(1, int(request.query_params.get("step", "1"))))
     except ValueError:
         step = 1
     return _guide_page(request, vid, aid, step)

@@ -493,3 +493,100 @@ def test_a_package_may_list_the_settings_the_guide_shows_and_the_others_keep_the
     # a package that lists nothing keeps the old behaviour: every setting is in the guide
     plain = {**SETUP_MANIFEST, "id": "plain-all"}
     assert "settings" not in addons.parse_package(json.dumps(plain).encode())["setup"]["steps"][0]
+
+
+def test_a_service_may_read_and_change_only_the_settings_the_package_marks_writable(client):
+    vid = create_vehicle(client)
+    manifest = {
+        "id": "own-settings",
+        "kind": "plugin",
+        "name": "Own settings",
+        "settings": [
+            {
+                "key": "mode",
+                "label": "Mode",
+                "type": "select",
+                "options": [{"value": "eco", "label": "Eco"}, {"value": "fast", "label": "Fast"}],
+                "service_writable": True,
+            },
+            {"key": "interval", "label": "Interval", "type": "number", "min": 5, "max": 600, "service_writable": True},
+            {"key": "debug", "label": "Debug", "type": "bool", "service_writable": True},
+            {"key": "secret", "label": "Secret", "type": "password", "service_writable": True},
+            {"key": "owner_only", "label": "Owner only", "type": "text"},
+            {"key": "status", "label": "Status", "type": "value"},
+        ],
+    }
+    parsed = addons.parse_package(json.dumps(manifest).encode())
+    assert [f["key"] for f in parsed["settings"] if f.get("service_writable")] == ["mode", "interval", "debug", "secret"]
+    upload(client, vid, json.dumps(manifest).encode())
+    with db.tx() as conn:
+        addon = addons.list_for(conn, vid)[0]
+        token = addons.new_token(conn, vid, addon)
+    h = {"Authorization": f"Bearer {token}"}
+    assert client.get("/api/v1", headers=h).json()["features"] == ["measured_at", "plugin-settings"]
+    got = client.get(f"/api/v1/vehicles/{vid}/plugin-settings", headers=h).json()
+    assert got["writable"] == ["debug", "interval", "mode", "secret", "status"] and got["settings"]["owner_only"] == ""
+    put = lambda values: client.put(f"/api/v1/vehicles/{vid}/plugin-settings", headers=h, json={"values": values})  # noqa: E731
+    r = put({"mode": "fast", "interval": 30, "debug": True, "secret": "s3cret", "status": "Running until 14:20"})
+    assert r.status_code == 200 and r.json()["changed"] == ["debug", "interval", "mode", "secret", "status"]
+    got = client.get(f"/api/v1/vehicles/{vid}/plugin-settings", headers=h).json()["settings"]
+    assert got["mode"] == "fast" and got["interval"] == 30 and got["debug"] is True and got["status"] == "Running until 14:20"
+    assert got["secret"] == "***"  # a password is never readable
+    with db.tx() as conn:
+        assert "s3cret" not in json.dumps([dict(r) for r in conn.execute("SELECT settings FROM vehicle_addons")])  # encrypted at rest
+        logs = [x["message"] for x in conn.execute("SELECT message FROM vehicle_logs WHERE vehicle_id = ?", (vid,))]
+    assert any("settings changed by the plugin" in m and "s3cret" not in m for m in logs)  # names in the log, never values
+    refused = put({"owner_only": "x"})
+    assert refused.status_code == 403 and refused.json()["error"] == "not_writable"
+    bad = put({"interval": "abc"})
+    assert bad.status_code == 422 and "interval" in bad.json()["fields"]
+    assert put({"interval": 99999}).status_code == 200  # like the form: a number is held to its bounds
+    assert client.get(f"/api/v1/vehicles/{vid}/plugin-settings", headers=h).json()["settings"]["interval"] == 600
+    put({"interval": 30})
+    assert put({"mode": "nonsense"}).status_code == 422
+    assert (
+        client.get(f"/api/v1/vehicles/{vid}/plugin-settings", headers=h).json()["settings"]["interval"] == 30
+    )  # nothing stored by a wrong call
+    assert put({"mode": "eco", "interval": 20}).status_code == 200
+    # the list of writable keys belongs to what the administrator approves
+    assert addons.approval_fingerprint({**parsed, "service": {"entry": "x"}}) != addons.approval_fingerprint(
+        {
+            **parsed,
+            "service": {"entry": "x"},
+            "settings": [dict(f, service_writable=False) if f["type"] != "value" else f for f in parsed["settings"]],
+        }
+    )
+
+
+def test_a_guide_step_may_open_a_page_of_the_plugins_service(client):
+    manifest = {
+        **SETUP_MANIFEST,
+        "id": "page-step",
+        "service": {"entry": "app.py", "routes": [{"prefix": "/ext/setup/", "public": False}]},
+        "pages": [{"id": "wizard", "kind": "frame", "title": "Wizard", "route": "/ext/setup/"}],
+        "setup": {
+            **SETUP_MANIFEST["setup"],
+            "steps": [
+                SETUP_MANIFEST["setup"]["steps"][0],
+                {"id": "extra", "title": "Pick a mode", "text": "Do this **now**.", "page": "wizard"},
+                {"id": "bad", "title": "unknown page is dropped", "page": "nope"},
+            ],
+        },
+    }
+    parsed = addons.parse_package(json.dumps(manifest).encode())
+    steps = {s["id"]: s for s in parsed["setup"]["steps"]}
+    assert steps["extra"].get("page") == "wizard" and "page" not in steps["bad"]
+
+
+def test_a_package_may_name_one_of_its_frame_pages_as_its_own_settings_page(client):
+    base = {
+        "id": "own-page",
+        "kind": "plugin",
+        "name": "Own page",
+        "service": {"entry": "app.py", "routes": [{"prefix": "/ext/s/", "public": False}]},
+        "pages": [{"id": "cfg", "kind": "frame", "title": "Config", "route": "/ext/s/"}],
+        "settings": [{"key": "mode", "label": "Mode", "type": "text"}],
+    }
+    assert addons.parse_package(json.dumps({**base, "settings_page": "cfg"}).encode())["settings_page"] == "cfg"
+    assert "settings_page" not in addons.parse_package(json.dumps({**base, "settings_page": "nope"}).encode())  # only an own frame page
+    assert "settings_page" not in addons.parse_package(json.dumps(base).encode())

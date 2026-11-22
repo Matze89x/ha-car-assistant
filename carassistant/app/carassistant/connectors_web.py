@@ -120,6 +120,7 @@ def api_root(request: Request):
         "api": 1,
         "connector": request.state.api_token["name"],
         "fields": sorted(connectors.KNOWN),
+        "features": ["measured_at", "plugin-settings"],  # what a plugin can check before it uses it
     }
 
 
@@ -156,6 +157,63 @@ def api_module_rows(request: Request, vehicle_id: int, addon_id: str, page_id: s
                 for r in pagemods.rows(conn, vehicle_id, addon_id, page_id, page.get("order"))
             ],
         }
+
+
+_setting_calls: dict[int, list[float]] = {}
+SETTING_CALLS_PER_MINUTE = 30
+
+
+@app.get("/api/v1/vehicles/{vehicle_id}/plugin-settings")
+def api_plugin_settings(request: Request, vehicle_id: int):
+    """The plugin's own settings for this car, as its service reads them: typed values, passwords never (``***`` when set), and which keys it may change."""
+    from . import addons
+
+    if not _allowed(request, vehicle_id):
+        return _err("forbidden", "This token is not allowed for this vehicle.", 403)
+    with db.tx() as conn:
+        addon = next((a for a in addons.list_for(conn, vehicle_id) if a["token_id"] == request.state.api_token["id"]), None)
+        if addon is None:
+            return _err("no_plugin", "This token does not belong to a plugin of this vehicle.", 404)
+        return {"ok": True, "settings": addons.service_settings(addon), "writable": sorted(addons.writable_keys(addon))}
+
+
+@app.put("/api/v1/vehicles/{vehicle_id}/plugin-settings")
+async def api_plugin_settings_put(request: Request, vehicle_id: int):
+    """The service changes some of ITS OWN settings: ``{"values": {"key": value}}``. Only keys the package marks ``service_writable`` (the administrator
+    approved that list) and ``value`` fields; checked like the form; at most 30 calls a minute; the change is noted in the log (names, never values)."""
+    from . import addons
+
+    if not _allowed(request, vehicle_id):
+        return _err("forbidden", "This token is not allowed for this vehicle.", 403)
+    data, failed = await _json(request, MAX_BODY)
+    if failed:
+        return failed
+    token_id = request.state.api_token["id"]
+    now = time.monotonic()
+    recent = [t for t in _setting_calls.get(token_id, []) if now - t < 60]
+    if len(recent) >= SETTING_CALLS_PER_MINUTE:
+        _setting_calls[token_id] = recent
+        return _err("rate_limited", "Too many calls; at most 30 a minute.", 429)
+    _setting_calls[token_id] = [*recent, now]
+    with db.tx() as conn:
+        addon = next((a for a in addons.list_for(conn, vehicle_id) if a["token_id"] == token_id), None)
+        if addon is None:
+            return _err("no_plugin", "This token does not belong to a plugin of this vehicle.", 404)
+        if not isinstance(data, dict) or not isinstance(data.get("values"), dict):
+            return _err("invalid_body", 'The body must be an object like {"values": {"key": value}}.', 422)
+        try:
+            keys = addons.service_set(conn, addon, data["values"])
+        except addons.SettingError as exc:
+            status = 403 if exc.code == "not_writable" else 422
+            body = {"error": exc.code, "message": str(exc)}
+            if exc.fields:
+                body["fields"] = exc.fields
+            return JSONResponse(body, status_code=status)
+        connectors.write_logs(
+            conn, vehicle_id, addon["addon_id"], [(connectors._now(), "info", "app", f"settings changed by the plugin: {', '.join(keys)}")]
+        )
+    events.changed()
+    return {"ok": True, "changed": keys}
 
 
 @app.post("/api/v1/vehicles/{vehicle_id}/data")

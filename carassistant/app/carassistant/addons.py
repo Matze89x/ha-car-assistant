@@ -34,7 +34,7 @@ MAX_PAGES = 6
 MAX_PAGE_FIELDS = 20
 FIELD_TYPES = (  # what a plugin may ask the user for in its settings page (docs/plugins.md)
     "text", "password", "textarea", "number", "slider", "bool", "select", "radio", "multiselect", "list", "url", "email", "time", "date", "color",
-    "section", "info",
+    "section", "info", "value",
 )  # fmt: skip
 NO_VALUE = ("section", "info")  # headings and texts: nothing to store
 CHOICE = ("select", "radio", "multiselect")
@@ -262,6 +262,9 @@ def approval_fingerprint(manifest: dict) -> str:
         "files": [(f["name"], f["sha256"], f["size"]) for f in manifest.get("files", [])],
         "bundles": manifest.get("bundles", []),
     }
+    writable = sorted(f["key"] for f in manifest.get("settings", []) if f.get("service_writable") or f.get("type") == "value")
+    if writable:  # only then: approvals given before the service could change settings stay valid
+        thing["writable"] = writable
     frames = [(p["id"], p["route"]) for p in manifest.get("pages", []) if p.get("kind") == "frame"]
     if frames:  # only then: approvals given before frames existed stay valid
         thing["frames"] = frames
@@ -573,7 +576,13 @@ def _long(value, limit: int) -> str:
     return re.sub(r"\n{3,}", "\n\n", value.replace("\r", "")).strip()[:limit]
 
 
-def clean_setup(raw, bundles: list[dict], has_file: bool, setting_keys: frozenset[str] | set[str] = frozenset()) -> dict | None:
+def clean_setup(
+    raw,
+    bundles: list[dict],
+    has_file: bool,
+    setting_keys: frozenset[str] | set[str] = frozenset(),
+    frame_ids: frozenset[str] | set[str] = frozenset(),
+) -> dict | None:
     """The ``setup`` of a manifest: a guide in steps (docs/plugins.md). ``requires`` lists what must be there first (an https address under System,
     a VIN in the vehicle data); a step may offer the token, the connection file and ``bundles`` of the package, and brings its own text."""
     if not isinstance(raw, dict) or not isinstance(raw.get("steps"), list):
@@ -599,6 +608,10 @@ def clean_setup(raw, bundles: list[dict], has_file: bool, setting_keys: frozense
                 :8
             ],
         }
+        if (
+            isinstance(st.get("page"), str) and st["page"] in frame_ids
+        ):  # a page (kind frame) of the plugin's own service, opened from this step
+            step["page"] = st["page"]
         if isinstance(st.get("settings"), list):  # the settings this step shows (opt-in: without it the guide shows all of them, as before)
             step["settings"] = [k for k in dict.fromkeys(st["settings"]) if isinstance(k, str) and k in setting_keys][:60]
         l10n = {}
@@ -678,6 +691,8 @@ def clean_setting_fields(raw) -> list[dict]:
             "type": kind,
             "help": _text(f, "help", 300),
         }
+        if f.get("service_writable") is True and kind not in (*NO_VALUE, "list", "multiselect", "value"):
+            field["service_writable"] = True  # the plugin's service may change this setting itself (the administrator approves the list)
         if f.get("advanced") is True and kind not in NO_VALUE:
             field["advanced"] = True  # the set-up guide shows it folded under "Advanced settings"
         if _text(f, "default", 200) and kind not in NO_VALUE:
@@ -757,7 +772,9 @@ def parse_package(raw: bytes) -> dict:
     files = clean_files(data.get("files"))
     bundles = clean_bundles(data.get("bundles"), files)
     downloads = clean_downloads(data.get("downloads"), service)
-    setup = clean_setup(data.get("setup"), bundles, bool(conn_file), {f["key"] for f in fields})
+    setup = clean_setup(
+        data.get("setup"), bundles, bool(conn_file), {f["key"] for f in fields}, {p["id"] for p in pages if p.get("kind") == "frame"}
+    )
     docs = (
         " ".join(str(data["docs"]).split())[:3000] if isinstance(data.get("docs"), str) else ""
     )  # a longer description for the Interfaces page
@@ -775,6 +792,11 @@ def parse_package(raw: bytes) -> dict:
         **({"reminders": reminders} if reminders else {}),
         **({"pages": pages, "nav": data.get("nav") is not False} if pages else {}),
         **({"l10n": _l10n(data.get("l10n"), {"name": 80, "description": 300})} if data.get("l10n") else {}),
+        **(
+            {"settings_page": data["settings_page"]}
+            if isinstance(data.get("settings_page"), str) and data["settings_page"] in {p["id"] for p in pages if p.get("kind") == "frame"}
+            else {}
+        ),  # the plugin's own settings page (a frame); the field list stays as the fallback
         **({"connection_file": conn_file} if conn_file else {}),  # a file the plugin needs, offered for download with the token
         **({"simulation": scenario} if scenario else {}),  # a made-up drive the app may play for a plugin from a source (simulator.py)
         "id": data["id"],
@@ -999,7 +1021,7 @@ def check_settings(manifest: dict, form: dict, old: dict) -> dict[str, str]:
     errors: dict[str, str] = {}
     for f in manifest["settings"]:
         key, kind = f["key"], f["type"]
-        if kind in NO_VALUE or kind in ("bool", "list"):
+        if kind in NO_VALUE or kind in ("bool", "list", "value"):
             continue
         shown = _is_shown(f, manifest, form)
         if not shown:
@@ -1051,7 +1073,9 @@ def clean_settings(manifest: dict, form: dict, old: dict) -> dict:
         if kind in NO_VALUE:
             continue
         raw = (form.get(key) or "").strip()[: 200 if kind != "textarea" else 1000]
-        if kind == "list":
+        if kind == "value":
+            values[key] = old.get(key, "")  # a value shown for information: only the service sets it
+        elif kind == "list":
             values[key] = _list_from_form(key, form)
         elif kind == "bool":
             values[key] = "1" if form.get(key) else "0"
@@ -1153,6 +1177,62 @@ def set_up(conn: sqlite3.Connection, vehicle_id: int, addon: dict, form: dict, o
         (json.dumps(_sealed(addon["m"], _guide_values(addon, form, only))), token_id, addon["id"]),
     )
     return token
+
+
+def writable_keys(addon: dict) -> set[str]:
+    """The settings the plugin's service may change itself: the ones marked ``service_writable`` and every ``value``."""
+    return {f["key"] for f in addon["m"].get("settings", []) if f.get("service_writable") or f["type"] == "value"}
+
+
+def service_settings(addon: dict) -> dict:
+    """The settings as the service reads them over the API: typed, passwords never (``"***"`` when set, "" when not)."""
+    out = typed_settings(addon["m"], addon["vals"])
+    for f in addon["m"].get("settings", []):
+        if f["type"] == "password" and f["key"] in out:
+            out[f["key"]] = "***" if addon["vals"].get(f["key"]) else ""
+    return out
+
+
+class SettingError(ValueError):
+    def __init__(self, code: str, message: str, fields: dict[str, str] | None = None):
+        super().__init__(message)
+        self.code, self.fields = code, fields or {}
+
+
+def service_set(conn: sqlite3.Connection, addon: dict, changes: dict) -> list[str]:
+    """The service changes some of its own settings: only writable keys, checked like the form, nothing is stored when one is wrong. Returns the keys."""
+    if not isinstance(changes, dict) or not changes:
+        raise SettingError("invalid_body", "'values' must be an object with the settings to change.")
+    allowed = writable_keys(addon)
+    refused = sorted(k for k in changes if k not in allowed)
+    if refused:
+        raise SettingError(
+            "not_writable", f"The service may not change: {', '.join(refused)}. Allowed: {', '.join(sorted(allowed)) or 'nothing'}."
+        )
+    fields = {f["key"]: f for f in addon["m"]["settings"]}
+    form: dict[str, str] = {}
+    for key, value in changes.items():
+        kind = fields[key]["type"]
+        if kind == "bool":
+            if value in (True, 1, "1", "true", "yes", "on"):
+                form[key] = "1"
+        elif value is None:
+            form[key] = ""
+        elif isinstance(value, bool) or not isinstance(value, str | int | float):
+            raise SettingError("invalid_value", f"'{key}' must be a text or a number.", {key: "err.choice"})
+        else:
+            form[key] = str(value)
+    only = set(changes)
+    sub = guide_manifest(addon, only)
+    errors = check_settings(sub, guide_form(addon, form, only), addon["vals"])
+    if errors:
+        raise SettingError("invalid_value", "One or more values are not valid.", errors)
+    new = {**addon["vals"], **clean_settings(sub, form, addon["vals"])}
+    for key in changes:
+        if fields[key]["type"] == "value":
+            new[key] = form.get(key, "")[:200]  # the service sets what it shows
+    conn.execute("UPDATE vehicle_addons SET settings = ? WHERE id = ?", (json.dumps(_sealed(addon["m"], new)), addon["id"]))
+    return sorted(changes)
 
 
 def _guide_values(addon: dict, form: dict, only: set[str] | None) -> dict:

@@ -213,6 +213,18 @@ Ein Plugin mit Anbindungsdatei kann eine Anleitung mitbringen, die Car Assistant
 
 Ein Schritt bringt einen optionalen `text` mit (bis 3000 Zeichen; die Schritte `check`, `token` und `files` kennt die Anleitung) und `l10n` je Schritt (`title`, `text`). Der Text ist einfacher Text mit `1. `- / `- `-Listen, `**fett**` und `[Beschriftung](https://...)`-Links (nur https); alles andere erscheint, wie getippt. Die `note` eines Bundles sagt, was es tut (zum Beispiel dass es zuerst den alten Stand sichert).
 
+### Freiraum für das Plugin: eigene Schritte, Einstellungen und Werte
+Alles Folgende ist **optional** und nur eine Ergänzung; die Sicherheit bleibt bei der App (Prüfung von Adresse und VIN, Token, Anbindungsdatei, Pakete, Freigabe durch den Administrator).
+
+- **Schritte mit einer Seite.** Ein Schritt von `setup.steps` darf `"page": "<id einer Frame-Seite des Pakets>"` tragen (dazu `title`, `text`): nach den drei festen Schritten zeigt die Anleitung ihn als weiteren Schritt mit einem Knopf, der diese Seite des eigenen Dienstes öffnet, und *Weiter* / *Zurück* darum. Nur eine `kind: "frame"`-Seite desselben Pakets kann genannt werden (dieselben Absicherungen wie bei jeder Frame-Seite); eine unbekannte id wird verworfen.
+- **Eigene Einstellungsseite.** `"settings_page": "<id einer Frame-Seite>"` benennt eine Seite des Dienstes als Einstellungsseite des Plugins: die Einstellungsseite des Plugins bekommt einen Hauptknopf dorthin. Die Feldliste bleibt als Rückfall.
+- **Feldtyp `value`.** `{"key": "status", "label": "Status", "type": "value"}` zeigt einen Wert, den der Mensch nicht ändert, sondern nur der Dienst des Plugins setzt (zum Beispiel *Betrieb läuft bis 14:20*).
+- **Der Dienst ändert seine eigenen Einstellungen.** Eine Einstellung mit `"service_writable": true` (nicht bei Listen und Mehrfachauswahl) und jedes `value`-Feld darf der Dienst selbst ändern:
+  - `GET /api/v1/vehicles/<id>/plugin-settings` mit dem Token des Plugins -> `{"ok": true, "settings": {...typisiert...}, "writable": [...]}`. Ein Passwort ist nie lesbar (`"***"`, wenn gesetzt).
+  - `PUT /api/v1/vehicles/<id>/plugin-settings` mit `{"values": {"mode": "eco", "interval": 30, "status": "Betrieb läuft bis 14:20"}}` -> `{"ok": true, "changed": [...]}`. Nur schreibbare Schlüssel (sonst `403 not_writable`), geprüft wie das Formular (`422 invalid_value` mit den falschen Schlüsseln - dann wird nichts gespeichert; Zahlen werden in ihre Grenzen gesetzt), höchstens 30 Aufrufe pro Minute (`429`).
+  - **Die Liste der schreibbaren Schlüssel gehört zu dem, was der Administrator freigibt:** eine neue Version, die sie ändert, braucht eine neue Freigabe. Eine Änderung steht im Protokoll des Plugins (die Namen der Schlüssel, nie die Werte).
+- `GET /api/v1` nennt `features` (`measured_at`, `plugin-settings`), damit ein Plugin vor der Nutzung prüfen kann.
+
 ## Plugins mit Dienst
 Manche Plugins brauchen ein eigenes Programm, zum Beispiel um einem Gerät im Auto Seiten oder Daten zu liefern. Sie können es als **Dienst** mitbringen. Er läuft **im Add-on selbst** (nie in einem zweiten Container): Du installierst das Plugin, mehr nicht.
 

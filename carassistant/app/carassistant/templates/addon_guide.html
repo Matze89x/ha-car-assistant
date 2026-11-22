@@ -8,7 +8,8 @@
 <ol class="guide-bar">
   <li class="{{ 'cur' if step == 1 }}{{ ' done' if step > 1 }}"><span class="gnum">1</span><b>{{ _('guide.s1') }}</b></li>
   <li class="{{ 'cur' if step == 2 }}{{ ' done' if step > 2 }}"><span class="gnum">2</span><b>{{ _('guide.s2') }}</b></li>
-  <li class="{{ 'cur' if step == 3 }}"><span class="gnum">3</span><b>{{ _('guide.s3') }}</b></li>
+  <li class="{{ 'cur' if step == 3 }}{{ ' done' if step > 3 }}"><span class="gnum">3</span><b>{{ _('guide.s3') }}</b></li>
+  {% for x in extra_steps %}<li class="{{ 'cur' if step == 4 + loop.index0 }}{{ ' done' if step > 4 + loop.index0 }}"><span class="gnum">{{ 4 + loop.index0 }}</span><b>{{ x.title }}</b></li>{% endfor %}
 </ol>
 {% if errors.get('__token') %}<p class="flash err">{{ errors['__token'] }}</p>{% endif %}
 
@@ -72,7 +73,7 @@
 </form>
 </div>
 
-{% else %}
+{% elif step == 3 %}
 {% set tb = bundle_rows|selectattr('with_token')|list %}
 <section class="card guide-step">
   <h2>{{ _('guide.files_title') }}</h2>
@@ -115,7 +116,15 @@
     {% if tb %}<p class="hint">{{ icon('alert', 14) }} {{ _('guide.bundle_token_hint') }}</p>{% endif %}
   {% endif %}
   {% if texts.files %}<h3 class="guide-h3">{{ _('guide.howto') }}</h3><div class="guide-text">{{ texts.files|safe }}</div>{% endif %}
-  <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step=2">{{ _('btn.back') }}</a><a class="button primary" href="{{ base }}{{ back_to }}">{{ _('guide.finish') }}</a></div>
+  <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step=2">{{ _('btn.back') }}</a>{% if extra_steps %}<a class="button primary" href="{{ base_url }}/guide?step=4">{{ _('guide.next') }}</a>{% else %}<a class="button primary" href="{{ base }}{{ back_to }}">{{ _('guide.finish') }}</a>{% endif %}</div>
+</section>
+{% elif step >= 4 %}
+{% set x = extra_steps[step - 4] %}
+<section class="card guide-step">
+  <h2>{{ icon('puzzle', 20) }} {{ x.title }}</h2>
+  {% if x.text %}<div class="guide-text">{{ x.text|safe }}</div>{% endif %}
+  <p><a class="button" href="{{ base }}/v/{{ v.slug }}/m/{{ addon.addon_id }}/{{ x.page }}">{{ icon('chevron', 18) }}<span>{{ _('guide.open_page') }}</span></a></p>
+  <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step={{ step - 1 }}">{{ _('btn.back') }}</a>{% if step < 3 + extra_steps|length %}<a class="button primary" href="{{ base_url }}/guide?step={{ step + 1 }}">{{ _('guide.next') }}</a>{% else %}<a class="button primary" href="{{ base }}{{ back_to }}">{{ _('guide.finish') }}</a>{% endif %}</div>
 </section>
 {% endif %}
 {% endblock %}

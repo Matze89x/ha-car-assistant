@@ -5,6 +5,8 @@
   <div class="set-sec" data-showif-key="{{ f.show_if.key if f.show_if else '' }}" data-showif-eq="{{ f.show_if.equals if f.show_if else '' }}"><h3>{{ f.label }}</h3>{% if f.help %}<p class="hint">{{ f.help }}</p>{% endif %}</div>
 {% elif f.type == 'info' %}
   <p class="hint set-info" data-showif-key="{{ f.show_if.key if f.show_if else '' }}" data-showif-eq="{{ f.show_if.equals if f.show_if else '' }}">{{ icon('info', 16) }} {% if f.label %}<b>{{ f.label }}</b> {% endif %}{{ f.help }}</p>
+{% elif f.type == 'value' %}
+  <div class="addon-field addon-value" data-showif-key="{{ f.show_if.key if f.show_if else '' }}" data-showif-eq="{{ f.show_if.equals if f.show_if else '' }}"><span class="av-l">{{ f.label }}</span><b class="av-v">{{ val or '–' }}</b>{% if f.help %}<p class="hint addon-help">{{ f.help }}</p>{% endif %}</div>
 {% else %}
 <div class="addon-field{{ ' has-err' if err }}" data-showif-key="{{ f.show_if.key if f.show_if else '' }}" data-showif-eq="{{ f.show_if.equals if f.show_if else '' }}">
   {% if f.type == 'bool' %}{{ switch_row(f.key, f.label, val == '1') }}

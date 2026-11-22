@@ -210,6 +210,18 @@ A plugin with a connection file can bring a guide that Car Assistant shows in **
 
 A step brings an optional `text` (up to 3000 characters; the steps `check`, `token` and `files` are the ones the guide knows) and `l10n` per step (`title`, `text`). The text is plain text with `1. ` / `- ` lists, `**bold**` and `[label](https://...)` links (https only); everything else is shown as typed. The `note` of a bundle says what it does (for example that it saves the old state first).
 
+### Freedom for the plugin: its own steps, settings and values
+Everything below is **optional** and only an addition; the security stays with the app (address and VIN check, the token, the connection file, packages, the administrator's approval).
+
+- **Steps with a page.** A step of `setup.steps` may carry `"page": "<id of a frame page of the package>"` (and a `title`, `text`): after the three fixed steps the guide shows it as a further step with a button that opens that page of the plugin's own service, and *Next* / *Back* around it. Only a `kind: "frame"` page of the same package can be named (the same safeguards as for every frame page); an unknown id is dropped.
+- **Own settings page.** `"settings_page": "<id of a frame page>"` names a page of the service as the plugin's settings page: the settings page of the plugin gets a main button to it. The field list stays as the fallback.
+- **Field type `value`.** `{"key": "status", "label": "Status", "type": "value"}` shows a value that the person cannot edit, only the plugin's service sets (for example *Running until 14:20*).
+- **The service changes its own settings.** A setting marked `"service_writable": true` (not for lists and multiple choice) and every `value` field may be changed by the service itself:
+  - `GET /api/v1/vehicles/<id>/plugin-settings` with the plugin's token -> `{"ok": true, "settings": {...typed...}, "writable": [...]}`. A password is never readable (`"***"` when set).
+  - `PUT /api/v1/vehicles/<id>/plugin-settings` with `{"values": {"mode": "eco", "interval": 30, "status": "Running until 14:20"}}` -> `{"ok": true, "changed": [...]}`. Only writable keys (`403 not_writable` otherwise), checked like the form (`422 invalid_value` with the keys that are wrong - nothing is stored then; numbers are held to their bounds), at most 30 calls a minute (`429`).
+  - **The list of writable keys belongs to what the administrator approves:** a new version that changes it needs a new approval. A change is noted in the plugin's log (the names of the keys, never the values).
+- `GET /api/v1` lists `features` (`measured_at`, `plugin-settings`) so a plugin can check before it uses them.
+
 ## Plugins with a service
 Some plugins need a program of their own, for example to serve pages or data to a device in the car. They can bring one as a **service**. It runs **inside this add-on** (never in a second container): you install the plugin and that is all.
 
