@@ -121,3 +121,18 @@ def test_every_switch_row_has_a_line_above_and_below_and_air_after_it():
     css = (STATIC / "pc-core.css").read_text(encoding="utf-8")
     assert "label.nm-row.sw-row, .card label.nm-row.sw-row, form label.nm-row.sw-row { border-top: 1px solid var(--glass-b); }" in css
     assert ".sw-row + .hint" in css and "form:has(> .sw-row:last-child) + .hint" in css
+
+
+def test_section_labels_share_one_air_above_and_one_distance_to_the_tile_below():
+    """Every section label (vd-group-h, rec-month) takes its margins from the same tokens, no page has its own numbers."""
+    import re
+    from pathlib import Path
+
+    css = (Path(__file__).resolve().parents[1] / "carassistant/app/carassistant/static/pc-core.css").read_text(encoding="utf-8")
+    assert "--sp-label-top: 28px" in css and "--sp-label-bottom: 10px" in css
+    for line in css.splitlines():
+        head = line.split("{")[0]
+        if re.search(r"(^|[ ,>])\.(vd-group-h|rec-month)\b", head) and "margin:" in line and "margin: 0" not in line:
+            if ".card.grid" in head or ".pl-fix" in head:
+                continue
+            assert "var(--sp-label" in line, line

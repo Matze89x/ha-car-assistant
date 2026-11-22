@@ -23,6 +23,7 @@ Wo es liegt: Werte und Grundbausteine in `static/app.css`, die Glas-Schicht und 
 | Kreise | `999px` | **nur** für Icon-Knöpfe, Pillen, Marken, Schalter; die Tab-Leiste folgt `--r-l + 5px` |
 | Abstände | `--sp-edge` `--sp-col` `--sp-top` `--sp-head` `--sp-block` | 14 / 14 / 18 / 16 / 20 px – Rand, Spaltenabstand, erstes Element von oben, unter dem Seitenkopf, zwischen Blöcken |
 | Höhen | `--head-h` `--lab-h` | 44 px Seitenkopf-Zeile, 25 px kleine Gruppenbeschriftung |
+| Abschnittsbeschriftungen | `--sp-label-top` `--sp-label-bottom` `--sp-label-x` | 28 / 10 / 6 px – Luft über einer kleinen Abschnittsbeschriftung (Fahrzeugpass, Tankmonate, Zusatzarbeiten ...), Abstand zur Kachel darunter. Jede Beschriftung nutzt diese Werte, keine Seite hat eigene Zahlen. |
 | Aktionen im Seitenkopf | `.page-head .actions` | auf jedem Bildschirm (Handy, Tablet, Web) nur runde 40-px-Symbolknöpfe ohne Text, mittig zur Titelzeile; der Name steht in `aria-label` / `title`. Kein Zurück-Knopf neben der Mehr-Liste auf breiten Bildschirmen. |
 | Schriften | Space Grotesk, Space Mono | Mono für Kennzeichen, Codes, Größen, Zahlen in Formularen |
 | Icons | nur Material Design Icons | `icons.py`, mit `icon('name', size)`; keine Emojis, keine anderen Sets |

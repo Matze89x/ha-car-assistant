@@ -23,6 +23,7 @@ Where it lives: tokens and base components in `static/app.css`, the glass layer 
 | Circles | `999px` | **only** for icon buttons, pills, badges, switches, the tab bar's outer shape follows `--r-l + 5px` |
 | Spacing | `--sp-edge` `--sp-col` `--sp-top` `--sp-head` `--sp-block` | 14 / 14 / 18 / 16 / 20 px – edge, column gap, first element from the top, below the page header, between blocks |
 | Heights | `--head-h` `--lab-h` | 44 px page header row, 25 px small group label |
+| Section labels | `--sp-label-top` `--sp-label-bottom` `--sp-label-x` | 28 / 10 / 6 px – air above a small section label (vehicle passport, fuel months, tasks ...), how close it sits on the tile below. Every label takes these, no page has its own numbers. |
 | Page header actions | `.page-head .actions` | on every screen (phone, tablet, web) only round 40 px icon buttons without text, centred on the title row; the name is in `aria-label` / `title`. No Back button next to the More list on wide screens. |
 | Fonts | Space Grotesk, Space Mono | Mono for plates, codes, sizes, numbers in forms |
 | Icons | Material Design Icons only | `icons.py`, rendered with `icon('name', size)`; no emojis, no other sets |

@@ -6,6 +6,9 @@
   --sp-head: 16px; /* space under the page header */
   --sp-block: 20px; /* space between two blocks / groups */
   --head-h: 44px; /* height of the page header row */
+  --sp-label-top: 28px;  /* air above a section label ... */
+  --sp-label-bottom: 10px;  /* ... and how close it sits on the tile below */
+  --sp-label-x: 6px;
   --lab-h: 25px; /* height of a small group label ("CURRENT VEHICLE", "VEHICLE" ...) */
   --glass:rgba(var(--fg-rgb),.055); --glass2:rgba(var(--fg-rgb),.055); --glass-b:rgba(var(--fg-rgb),.085); }
 html, body { background:var(--bg); }
@@ -68,7 +71,8 @@ a.ov:hover { background:var(--glass); text-decoration:none; }
   .vd-col { display: block; min-width: 0; }
   .vd-g { order: 0; }
 }
-.vd-group-h { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 600; margin: 16px 6px 8px; }
+.vd-group-h { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 600; margin: var(--sp-label-top) var(--sp-label-x) var(--sp-label-bottom); }
+.page-head + .vd-group-h { margin-top: 0; }
 .vd-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--glass); border: 1px solid var(--glass-b); border-radius: var(--r-l); overflow: hidden; }
 
 /* two tiles per row, also on phones */
@@ -82,7 +86,7 @@ a.ov:hover { background:var(--glass); text-decoration:none; }
 .vd-v .mono { font-size: 14px; }
 .vd-v .pre { white-space: pre-wrap; }
 .vd-extra { margin-top: 12px; }
-.vd-extra .vd-group-h { margin: 0 0 6px; }
+.vd-extra .vd-group-h { margin: 0 0 var(--sp-label-bottom); }
 .vd-extra-t { font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
 .bk-note { font-size: 12px; color: var(--dim); line-height: 1.5; margin: 12px 4px 0; }
 .src { display: inline-block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ok); border: 1px solid rgba(var(--ok-rgb), .3); border-radius: 999px; padding: 1px 6px; margin-left: 6px; vertical-align: 1px; font-family: 'Space Grotesk', sans-serif; }
@@ -1791,18 +1795,18 @@ details.eq > summary, details.eq[open] > summary { margin: 0; }
 
 /* the equipment heading sits like the other group headings, close above its first element */
 .eq-sec { margin-top: 0; gap: 0; display: block; }
-.eq-head.vd-group-h { margin: 16px 6px 8px; }
+.eq-head.vd-group-h { margin: var(--sp-label-top) var(--sp-label-x) var(--sp-label-bottom); }
 .eq-searchbox { margin: 0 0 10px; }
 .eq-wrap { margin: 0; }
 
 /* vehicle passport: ONE rhythm - every block starts 20px under the previous one, every heading is 8px above its content */
 .vd > .vd-hero { margin-bottom: 0; }
-.vd .vd-g > .vd-group-h, .vd .eq-head.vd-group-h { margin: 20px 6px 8px; }
+.vd .vd-g > .vd-group-h, .vd .eq-head.vd-group-h { margin: var(--sp-label-top) var(--sp-label-x) var(--sp-label-bottom); }
 .vd > .vd-extra { margin: 20px 0 0; }
 .vd > .eq-sec { margin: 0; }
 .vd > .bk-note { margin: 20px 0 0; }
 .vd > .vd-notes { margin: 0; }
-.vd .vd-notes > .vd-group-h { margin: 20px 6px 8px; }
+.vd .vd-notes > .vd-group-h { margin: var(--sp-label-top) var(--sp-label-x) var(--sp-label-bottom); }
 .vd .vd-notes .vd-extra { margin: 0; }
 
 /* passport grid lines: below every row except the last one, a divider right of the left tile; a tile alone in its row spans the width */
@@ -2056,7 +2060,7 @@ mark { background: rgba(var(--soon-rgb), .35); color: inherit; border-radius: va
 .doc-t b { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .doc-t small { font-size: 12px; color: var(--muted); }
 .doc-row .eq-x { margin: 0; flex: 0 0 auto; }
 /* fuel: a heading per month, then the fill-ups as cards in two columns (one on a phone), ten at a time */
-.rec-month { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin: 8px 4px 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 600; } .rec-month:first-child { margin-top: 0; }
+.rec-month { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin: calc(var(--sp-label-top) - var(--sp-col)) var(--sp-label-x) calc(var(--sp-label-bottom) - var(--sp-col)); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 600; } .rec-month:first-child { margin-top: 0; }  /* in a grid the gap between rows is added: same air as every other label */
 .rec-month small { margin-left: auto; font-size: 12px; letter-spacing: 0; text-transform: none; color: var(--muted); font-weight: 600; }
 .eq-searchbox-form { margin: 0; } .fx-custom { margin-top: 0; }
 /* a package's page: who/what in chips, the lead sentence, the rest folded; settings and files as readable rows (label on top, help text below); the install button docked right */
