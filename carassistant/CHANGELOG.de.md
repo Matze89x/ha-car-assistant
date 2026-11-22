@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.15 Beta
+- Plugins können Straße und Ort mit der Position senden, die Namen des Autos ersetzen die Adress-Abfrage. Ein Tanken ohne Menge wird ein unfertiger Eintrag mit Push, und ein in kleinen Schritten gefüllter Tank zählt als ein Tanken. Neue Felder für den Ölwechsel, und die Werte des Bordcomputers (Verbrauch, Durchschnittstempo, Dauer) erscheinen an der passenden Fahrt. `GET /api/v1` nennt die neuen Fähigkeiten in `features`.
+
 ## 0.5.14 Beta
 - Einrichtungsanleitung für Anfänger: Schritt 2 hat drei Token-Boxen (gespeichert, vorhanden, neu) mit einer Auswahl und einer Zurück/Weiter-Zeile, ohne Einstellungsblock, wenn das Plugin keine nennt. Schritt 3 zeigt die Pakete des Plugins als gleich große Download-Boxen, ohne eigenen Download der Anbindungsdatei, wenn ein Paket sie enthält.
 

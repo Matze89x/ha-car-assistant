@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.15 Beta
+- Plugins can send street and place with the position, and the car's own names are used instead of an address lookup. A refuel sent without an amount becomes an unfinished entry with the push, and a tank filled in small steps counts as one refuel. New fields for the oil change, and the car's trip computer values (consumption, average speed, duration) are shown on the matching trip. `GET /api/v1` lists the new abilities in `features`.
+
 ## 0.5.14 Beta
 - Setup guide for beginners: step 2 has three token boxes (saved, existing, new) with one choice and one Back/Next row, and no settings block when the plugin lists none. Step 3 shows the plugin's packages as equal download boxes, with no separate connection-file download when a package carries it.
 
