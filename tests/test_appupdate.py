@@ -21,7 +21,9 @@ def test_a_newer_version_shows_up_in_the_side_bar_and_in_the_settings(client, mo
         def __exit__(self, *a):
             return False
 
-    monkeypatch.setattr(appupdate.urllib.request, "urlopen", lambda *a, **k: Answer(json.dumps({"version": "99.0.0", "stage": "Beta"}).encode()))
+    monkeypatch.setattr(
+        appupdate.urllib.request, "urlopen", lambda *a, **k: Answer(json.dumps({"version": "99.0.0", "stage": "Beta"}).encode())
+    )
     client.post("/settings/app-update", data={"check": "1"})
     with db.tx() as conn:
         assert appupdate.enabled(conn) and appupdate.due(conn)  # switched on, never looked: due
