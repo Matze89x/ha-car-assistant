@@ -241,7 +241,8 @@ dialog.vsw::backdrop { background: rgba(5,7,11,.84); -webkit-backdrop-filter: bl
   .more-pane .mi { min-height: 50px; padding: 8px 12px; gap: 12px; }
   .more-pane .mi-t { font-size: 16px; }
   .vpage.with-more .more-pane { display: block; grid-column: 1; grid-row: 1 / span 6; position: sticky; top: 0; max-height: 100vh; overflow-y: auto; scrollbar-width: none; padding: 0 0 24px; }
-  .vpage.with-more .more-pane::-webkit-scrollbar, .vpage.with-more > main > .page-head .back-btn:not(.deep) { display: none; }
+  .vpage.with-more .more-pane::-webkit-scrollbar { display: none; }
+  .vpage.with-more > main > .page-head .back-btn { display: none; }  /* the More list stands next to the page: it is the way back, on every page of it */
 
   /* the More list stands next to the page: no Back to it needed (deeper pages keep theirs) */
   .vpage.with-more > main { grid-column: 2; margin: 0; padding: calc(var(--sp-top) - 6px) 0 32px; }
@@ -2269,10 +2270,13 @@ form.set-form > .form-bar { display: flex; justify-content: space-between; align
 .page-head .actions { display: flex; align-items: center; gap: 8px; }
 .page-head .actions form { margin: 0; display: flex; }
 .page-head .actions .button, .page-head .actions label.button { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; cursor: pointer; }
-@media (max-width: 699px) {
-  .page-head .actions .button, .page-head .actions label.button { width: 40px; height: 40px; min-height: 0; padding: 0; border-radius: 999px; justify-content: center; }
-  .page-head .actions .button .lbl { display: none; }
+/* ... now: on EVERY screen (phone, tablet, web) the actions in the page header are round icons without text, centred on the title row */
+.page-head .actions .button, .page-head .actions label.button, .page-head .actions button:not(.icon-btn) {
+  width: 40px; height: 40px; min-height: 0; padding: 0; border-radius: 999px; justify-content: center; gap: 0; font-size: 0; line-height: 0; flex: 0 0 auto;
 }
+.page-head .actions .button .lbl, .page-head .actions .button > span, .page-head .actions label.button > span { display: none; }
+.page-head .actions .button .ico { width: 18px; height: 18px; }
+.page-head .actions .button input[type="file"] { display: none; }
 details.add-card-top > summary.sr { display: none; }
 
 /* Coding: one column on every width (the information has to be read in order); the chosen byte in one row, like in a diagnostic tool: "Byte N" and its bits in ONE row */

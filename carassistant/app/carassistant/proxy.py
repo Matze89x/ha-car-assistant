@@ -202,7 +202,7 @@ def _with_head(
     theme = next((v for k, v in (p.partition("=")[::2] for p in query.split("&")) if k == "theme"), "")
     theme = theme if theme in themes.available() else themes.DEFAULT
     base = framehead.base_of(next((v.decode("latin-1") for k, v in headers if k == b"x-ingress-path"), None))
-    return framehead.inject(data, framehead.markup(ctx, base), f"{base}/frame-head.css?theme={theme}")
+    return framehead.inject(data, framehead.markup(ctx, base), f"{base}/frame-head.css?theme={theme}", framehead.footer(ctx, base))
 
 
 async def _reply(send, status: int, text: bytes) -> None:

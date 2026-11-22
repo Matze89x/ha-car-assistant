@@ -2,7 +2,7 @@
 {% from "_macros.html" import confirm_form, icon, page_head with context %}
 {% block scripts %}<script src="{{ base }}/static/media.js?v={{ asset_v }}" defer></script>{% endblock %}
 {% block content %}
-{% call page_head('camera', _('media.title'), v.name) %}<a class="button" href="{{ base }}/v/{{ v.slug }}/edit">{{ icon('chevron', 16) }}<span class="lbl">{{ _('btn.back') }}</span></a>{% endcall %}
+{% call page_head('camera', _('media.title'), v.name) %}{% endcall %}
 <p class="hint">{{ _('media.intro', n=keep) }}</p>
 
 {% set media_back = "" %}{% include "_media_panel.html" %}

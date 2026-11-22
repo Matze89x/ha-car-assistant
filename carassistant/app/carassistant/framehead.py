@@ -12,7 +12,7 @@ import json
 import re
 import sqlite3
 
-from . import config, frametheme, i18n, icons
+from . import __version__, config, frametheme, i18n, icons
 
 INGRESS = re.compile(r"^/api/hassio_ingress/[A-Za-z0-9_\-]+$")
 _HEAD = re.compile(rb"<head[^>]*>", re.I)
@@ -52,10 +52,28 @@ def markup(ctx: dict, base: str) -> str:
     )
 
 
-def inject(page: bytes, head_html: str, css_href: str) -> bytes:
-    """The style sheet right after ``<head>`` (so the package's own styles win), the head right after ``<body>``."""
+def footer(ctx: dict, base: str) -> str:
+    """The foot of the page: Back to More on the left, the name and version of Car Assistant on the right. Plain HTML, no script."""
+    t = i18n.translator(ctx["lang"])
+    chevron = f'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{icons.ICONS["chevron-left"]}"></path></svg>'
+    return (
+        f'<footer id="ca-foot"><a class="ca-fback" href="{html.escape(base)}/v/{html.escape(ctx["slug"])}/more">{chevron}<span>{html.escape(t("btn.back"))}</span></a>'
+        f'<span class="ca-fname"><b>Car Assistant</b> · Drive · Log · Go</span><span class="ca-ver">v{html.escape(__version__)}</span></footer>'
+    )
+
+
+_BODY_END = re.compile(rb"</body\s*>", re.I)
+
+
+def inject(page: bytes, head_html: str, css_href: str, foot_html: str = "") -> bytes:
+    """The style sheet right after ``<head>`` (so the package's own styles win), the head right after ``<body>``. With a foot, the page itself
+    sits in a box of the maximum width of Car Assistant and the foot closes the page."""
     link = f'<link rel="stylesheet" href="{html.escape(css_href)}">'.encode()
-    head = head_html.encode()
+    head = head_html.encode() + (b'<div id="ca-wrap">' if foot_html else b"")
+    tail = (b"</div>" + foot_html.encode()) if foot_html else b""
+    ends = list(_BODY_END.finditer(page))
+    if tail:
+        page = page[: ends[-1].start()] + tail + page[ends[-1].start() :] if ends else page + tail
     if _HEAD.search(page):
         page = _HEAD.sub(lambda m: m.group(0) + link, page, count=1)
     else:

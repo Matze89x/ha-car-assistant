@@ -768,3 +768,12 @@ document.addEventListener("click", function (e) {
   });
   sync();
 })();
+
+(function () {
+  /* header actions are round icons without text: the name goes into aria-label / title */
+  document.querySelectorAll(".page-head .actions .button, .page-head .actions button").forEach(function (el) {
+    if (el.getAttribute("aria-label")) { if (!el.title) { el.title = el.getAttribute("aria-label"); } return; }
+    var text = (el.textContent || "").replace(/\s+/g, " ").trim();
+    if (text) { el.setAttribute("aria-label", text); el.title = text; }
+  });
+})();

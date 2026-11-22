@@ -3,8 +3,7 @@
 {% block content %}
 {% set trip_title = fdate(trip.date) ~ ' ' ~ ftime(trip.start_time) ~ ((' – ' ~ ftime(trip.end_time)) if trip.end_time else '') %}
 {% call page_head('route', trip_title) %}
-    {% if point_count %}<a class="button" href="{{ base }}/v/{{ v.slug }}/trips/{{ trip.id }}/track.gpx">GPX</a>{% endif %}
-    <a class="button" href="{{ base }}/v/{{ v.slug }}/e/trips">{{ _('btn.back') }}</a>
+    {% if point_count %}<a class="button" href="{{ base }}/v/{{ v.slug }}/trips/{{ trip.id }}/track.gpx" aria-label="GPX" title="GPX">{{ icon('download', 18) }}<span class="lbl">GPX</span></a>{% endif %}
 {% endcall %}
 <section class="card">
   <dl class="facts">

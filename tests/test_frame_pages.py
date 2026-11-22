@@ -175,3 +175,11 @@ def test_the_head_follows_the_design_and_never_touches_the_page_variables(client
     assert "prefers-color-scheme: light" in framehead.css("auto")
     r = client.get("/frame-head.css?theme=ocean")
     assert r.status_code == 200 and r.headers["content-type"].startswith("text/css") and "#ca-head" in r.text
+
+
+def test_a_page_of_a_package_gets_a_box_of_the_maximum_width_and_a_foot():
+    foot = '<footer id="ca-foot"></footer>'
+    out = framehead.inject(b"<html><head></head><body><h1>x</h1></body></html>", '<header id="ca-head"></header>', "/c.css", foot).decode()
+    assert out.index('<header id="ca-head"></header><div id="ca-wrap"><h1>x</h1></div><footer id="ca-foot">') < out.index("</body>")
+    plain = framehead.inject(b"<p>x</p>", "<header></header>", "/c.css", foot).decode()
+    assert plain.endswith('</div><footer id="ca-foot"></footer>') and 'id="ca-wrap"' in plain
