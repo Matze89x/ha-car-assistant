@@ -2232,6 +2232,7 @@ def _settings_section(request: Request, section: str):
         design_ctx = _design_context(conn)
         sources_auto = db.get_setting(conn, "sources.auto", "") == "1"
         app_update = appupdate.status(conn)
+        token_remember = connectors.remember_enabled(conn)
         log_keep = connectors.log_keep(conn)
         log_days = connectors.log_days(conn)
         log_total = conn.execute("SELECT COUNT(*) FROM vehicle_logs").fetchone()[0]
@@ -2307,6 +2308,7 @@ def _settings_section(request: Request, section: str):
         start_car=start_car,
         sources_auto=sources_auto,
         app_update=app_update,
+        token_remember=token_remember,
         log_keep=log_keep,
         log_days=log_days,
         log_days_choices=connectors.LOG_DAYS_CHOICES,
@@ -2509,6 +2511,25 @@ async def settings_sources_auto(request: Request):
     if form.get("ajax"):
         return Response(status_code=204)
     return go(request, "/settings/system#updates", "saved")
+
+
+@app.post("/settings/token-remember")
+async def settings_token_remember(request: Request):
+    """Administrator only: keep an encrypted copy of the tokens of plugins with a connection file (the set-up guide can then offer them again).
+    Switching it off wipes every kept copy. Default: off."""
+    from .connectors_web import _may_manage
+
+    if not _may_manage(request):
+        return go(request, "/settings/system#security", "acct.need_admin")
+    form = await form_dict(request)
+    on = bool(form.get("remember"))
+    with db.tx() as conn:
+        db.set_setting(conn, connectors.REMEMBER_SETTING, "1" if on else None)
+        if not on:
+            connectors.forget_all(conn)
+    if form.get("ajax"):
+        return Response(status_code=204)
+    return go(request, "/settings/system#security", "saved")
 
 
 @app.post("/settings/app-update")

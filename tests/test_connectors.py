@@ -365,3 +365,28 @@ def test_nothing_is_deprecated_today_and_an_announced_change_is_shown_in_the_ans
     )
     r = api.get("/api/v1/vehicles/1/data", headers=hdr(token))
     assert r.status_code == 200 and r.headers["deprecation"] == "true" and "sunset" not in r.headers
+
+
+def test_plugin_tokens_are_kept_encrypted_only_when_the_administrator_allows_it(api):
+    from carassistant import connectors, db
+
+    token = setup(api)  # a token of a plugin-less setup: made by the integrations page
+    with db.tx() as conn:
+        token_id = conn.execute("SELECT id FROM api_tokens ORDER BY id DESC LIMIT 1").fetchone()["id"]
+        assert not connectors.remember_enabled(conn)
+        assert (
+            connectors.remember(conn, token_id, token) is False and connectors.remembered(conn, token_id) == ""
+        )  # default: nothing is kept
+    api.post("/settings/token-remember", data={"remember": "1"})
+    with db.tx() as conn:
+        assert connectors.remember_enabled(conn)
+        assert connectors.remember(conn, token_id, "ca_" + "x" * 40) is False  # a token that is not the one of this id is refused
+        assert connectors.remember(conn, token_id, token) is True
+        raw = conn.execute("SELECT token_enc FROM api_tokens WHERE id = ?", (token_id,)).fetchone()["token_enc"]
+        assert raw.startswith("enc:v1:") and token not in raw  # encrypted at rest
+        assert connectors.remembered(conn, token_id) == token
+    api.post("/settings/token-remember", data={})  # switched off: every kept copy is wiped
+    with db.tx() as conn:
+        assert connectors.remembered(conn, token_id) == ""
+        assert conn.execute("SELECT token_enc FROM api_tokens WHERE id = ?", (token_id,)).fetchone()["token_enc"] is None
+        assert connectors.verify(conn, token) is not None  # the token itself keeps working

@@ -82,6 +82,45 @@ def token_matches(conn: sqlite3.Connection, token_id: int | None, candidate: str
     return bool(row) and bool(candidate) and hmac.compare_digest(row["token_hash"], _hash(candidate))
 
 
+REMEMBER_SETTING = "tokens.remember"
+
+
+def remember_enabled(conn: sqlite3.Connection) -> bool:
+    return db.get_setting(conn, REMEMBER_SETTING, "") == "1"
+
+
+def remember(conn: sqlite3.Connection, token_id: int | None, token: str | None) -> bool:
+    """Keep an ENCRYPTED copy of a plugin's token (only while the administrator allows it, and only a token that really is the one of ``token_id``).
+    The copy lets the set-up guide offer the token again; it is never part of a backup, a log or a page except that guide for an administrator."""
+    if not token_id or not token or not remember_enabled(conn) or not token_matches(conn, token_id, token):
+        return False
+    from . import vault
+
+    conn.execute("UPDATE api_tokens SET token_enc = ? WHERE id = ?", (vault.encrypt(token), token_id))
+    return True
+
+
+def remembered(conn: sqlite3.Connection, token_id: int | None) -> str:
+    """The kept token of ``token_id`` ('' when none, when remembering is off, or when the copy does not fit the token any more)."""
+    if not token_id or not remember_enabled(conn):
+        return ""
+    row = conn.execute("SELECT token_enc FROM api_tokens WHERE id = ?", (token_id,)).fetchone()
+    if not row or not row["token_enc"]:
+        return ""
+    from . import vault
+
+    try:
+        token = vault.decrypt(row["token_enc"]) or ""
+    except Exception:
+        return ""
+    return token if token_matches(conn, token_id, token) else ""
+
+
+def forget_all(conn: sqlite3.Connection) -> None:
+    """Wipe every kept copy (switching the option off does this)."""
+    conn.execute("UPDATE api_tokens SET token_enc = NULL")
+
+
 def has_live_source(conn: sqlite3.Connection, vehicle_id: int) -> bool:
     """True when this vehicle gets (or can get) live values: it already has some, or a connector token."""
     return (

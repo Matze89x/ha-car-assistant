@@ -104,6 +104,9 @@
     <label>{{ _('sys.lock_after') }}<select name="lock_after">{% for n in (3, 5, 8, 10) %}<option value="{{ n }}" {{ 'selected' if n == lock_after }}>{{ n }}</option>{% endfor %}</select></label>
     <label>{{ _('sys.lock_minutes') }}<select name="lock_minutes">{% for n in (5, 15, 30, 60, 240) %}<option value="{{ n }}" {{ 'selected' if n == lock_minutes }}>{{ n }}</option>{% endfor %}</select></label>
   </form>
+  <form method="post" action="{{ base }}/settings/token-remember" data-live="1">
+    {{ switch_row('remember', _('tok.remember'), token_remember, hint=_('tok.remember_hint')) }}
+  </form>
   <p class="hint"><a href="{{ base }}/settings/user#blocked">{{ _('sys.blocked_link') }}</a></p>
 </section>
 

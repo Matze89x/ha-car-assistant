@@ -430,6 +430,7 @@ def _guide_page(
         ctx = vehicle_ctx(conn, vehicle, "integrations")
         vin = vehicle["vin"] or ""
         fingerprint = connectors.fingerprint(conn, addon.get("token_id"))
+        saved_token = bool(connectors.remembered(conn, addon.get("token_id"))) and _may_manage(request)
     lang = config.language()
     setup = addon["m"]["setup"]
     tr = i18n.translator(lang)
@@ -474,6 +475,7 @@ def _guide_page(
         fresh=fresh,
         has_token=bool(addon.get("token_id")),
         fingerprint=fingerprint,
+        saved_token=saved_token,
         main_fields=[f for f in fields if not f.get("advanced")],
         adv_fields=[f for f in fields if f.get("advanced")],
         shown=values,
@@ -540,6 +542,7 @@ async def addon_guide_next(request: Request, vid: int, aid: int):
     carried = (form.get("token") or "").strip()[:200]
     have = (form.get("have_token") or "").strip()[:200]
     adopt = (form.get("adopt_token") or "").strip()[:200]
+    use_saved = bool(form.get("use_saved"))
     with db.tx() as conn:
         addon = addons.get(conn, vid, aid)
         if addon is None or addon["kind"] != "plugin" or not addon["m"].get("setup"):
@@ -575,13 +578,21 @@ async def addon_guide_next(request: Request, vid: int, aid: int):
             )
             addon = addons.get(conn, vid, aid)
             carried = adopt
+            if addon["m"].get("connection_file"):
+                connectors.remember(conn, addon["token_id"], adopt)
             if pluginsvc.service_of(addon):
                 pluginsvc.write_token(addon, adopt)
+        if use_saved and not have:  # "use the kept token": an administrator only (this route is guarded), only while the option is on
+            have = connectors.remembered(conn, addon.get("token_id"))
         if have:
             bad = _guide_token_ok(conn, aid, addon, have)
             if bad:
                 return _guide_page(request, vid, aid, 2, carried, errors={"__token": bad}, status=429 if bad == "err.token_rate" else 400)
             carried = have
+            if addon["m"].get("connection_file"):
+                connectors.remember(
+                    conn, addon.get("token_id"), have
+                )  # a token that was typed (and fits) is kept from now on, when allowed
         made = addons.set_up(conn, vid, addon, form)  # saves the settings; a plugin without a token gets one here (shown once)
     if made and pluginsvc.service_of(addon):
         pluginsvc.write_token(addon, made)

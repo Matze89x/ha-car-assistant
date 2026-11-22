@@ -39,6 +39,10 @@
   {% else %}
   {% if has_token %}<p class="guide-fp"><b>{{ _('guide.token_have') }}</b> <code>•••• {{ fingerprint }}</code></p>{% endif %}
   <div class="guide-opts">
+    {% if saved_token %}<div class="guide-opt">
+      <h3>{{ _('guide.token_saved') }}</h3>
+      <button type="submit" form="gform" name="use_saved" value="1" class="primary">{{ icon('key-variant', 18) }}<span>{{ _('guide.token_saved_use') }}</span></button>
+    </div>{% endif %}
     <div class="guide-opt">
       <h3>{{ _('guide.token_reuse') if has_token else _('guide.adopt_title') }}</h3>
       <p class="hint">{{ _('guide.token_reuse_hint') if has_token else _('guide.adopt_hint') }}</p>
