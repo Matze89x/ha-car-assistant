@@ -8,7 +8,7 @@ Car Assistant is a logbook and dashboard for your cars. Everything is explained 
 Every setting lives on exactly one level, so you always know where to look. *Settings* has three tabs - the car first, then you, then the whole app:
 - **Car** – only the car shown under the title (switch it with the sign next to its name): its photo, video, design and icon, Home Assistant entities, backup, archive and delete.
 - **User** – you: your login (name, password, passcode, passkeys), your devices and all your notifications (one list for every car), the start car, and the start links for a [web app per car](#a-web-app-per-car).
-- **System** – the whole app, for every car and every person: language, date and time (order of the date, 12 / 24 hours), units and currency, design, map and fuel prices, sensors in Home Assistant, [MCP access](mcp.md), sources and updates (optionally a daily look for a new Car Assistant and for package updates - the dot at the foot of the side bar turns amber when something is new), logs, the address of the app, backup of everything.
+- **System** – the whole app, for every car and every person: one **Region** card: language, date and time (order of the date, 12 / 24 hours), **time zone** (automatic = the one of Home Assistant; summer / winter time follows) and units and currency, design, map and fuel prices, sensors in Home Assistant, [MCP access](mcp.md), sources and updates (optionally a daily look for a new Car Assistant and for package updates - the dot at the foot of the side bar turns amber when something is new), logs, the address of the app, backup of everything.
 
 ## First start
 A short guide asks for a language, then your first car (or a demo car), then which functions you want. You can change all of it later.

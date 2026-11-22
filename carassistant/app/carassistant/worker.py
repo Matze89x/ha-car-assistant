@@ -6,7 +6,7 @@ import logging
 import threading
 import time
 
-from . import appupdate, config, db, events, live, notify, simulator
+from . import appupdate, config, db, events, live, notify, regional, simulator
 from .mqtt_ha import publisher
 
 log = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ def maintain(conn) -> None:
 
 
 def run_once(state: dict[str, float], now: float) -> None:
+    regional.apply()  # the worker follows the system time zone, too
     changed = events.dirty.is_set()
     events.dirty.clear()
     with db.tx() as conn:

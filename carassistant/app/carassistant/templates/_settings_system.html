@@ -1,4 +1,6 @@
 {% from "_macros.html" import icon, switch_row with context %}
+<div class="sys-cols">
+<div class="sys-col">
 <section class="card" id="server">
   <h2>{{ icon('settings') }} {{ _('sys.title') }}</h2>
   <div class="sys-tiles">
@@ -12,8 +14,37 @@
 </section>
 
 {% include "_settings_region.html" %}
+
 {% include "_settings_design.html" %}
 
+<section class="card" id="updates">
+  <h2>{{ icon('refresh') }} {{ _('sys.updates_title') }}</h2>
+  <p class="hint">{{ _('sys.updates_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/sources-auto" data-live="1">
+    {{ switch_row('auto', _('sys.updates_auto'), sources_auto) }}
+  </form>
+  <form method="post" action="{{ base }}/settings/app-update" data-live="1">
+    {{ switch_row('check', _('upd.check_app'), app_update.enabled, hint=_('upd.check_app_hint')) }}
+  </form>
+  <p class="hint upd-line">{% if app_update.latest %}{{ _('upd.latest', v=app_update.latest) }}{% if app_update.newer %} · <b class="upd-new">{{ _('upd.newer') }}</b>{% else %} · {{ _('upd.current') }}{% endif %}{% if app_update.checked %} · {{ _('upd.checked', when=fdate(app_update.checked) ~ ' ' ~ ftime(app_update.checked[11:16])) }}{% endif %}{% else %}{{ _('upd.never') }}{% endif %}{% if app_update.plugins %} · {{ _('upd.plugins') }}: {{ _('upd.n', n=app_update.plugins) }}{% endif %}</p>
+  {% if app_update.packages %}<ul class="upd-list">
+    {% for p in app_update.packages %}<li><a href="{{ base }}/v/{{ p.car_slug }}/plugins"><span class="mi-ic {{ 'c4' if p.kind == 'plugin' else 'c1' }}">{{ icon('plug' if p.kind == 'plugin' else 'puzzle', 18) }}</span><span class="upd-t"><b>{{ p.name }}</b><small>{{ p.car }} · {{ _('addon.kind_plugin') if p.kind == 'plugin' else _('addon.kind_integration') }}</small></span><span class="upd-v">v{{ p.installed }} → v{{ p.latest }}</span></a></li>{% endfor %}
+  </ul>{% endif %}
+  <form method="post" action="{{ base }}/settings/app-update" class="mqtt-bar"><button class="ghost-btn" name="now" value="1">{{ icon('refresh', 18) }}<span>{{ _('upd.now') }}</span></button></form>
+</section>
+
+<section class="card" id="logs">
+  <h2>{{ icon('bug') }} {{ _('sys.logs_title') }}</h2>
+  <p class="hint">{{ _('sys.logs_hint') }}</p>
+  <form method="post" action="{{ base }}/settings/logs" data-live="1">
+    <label>{{ _('sys.logs_days') }}<select name="days">{% for n in log_days_choices %}<option value="{{ n }}" {{ 'selected' if n == log_days }}>{{ _('sys.logs_days_n', n=n) }}</option>{% endfor %}</select></label>
+    <label>{{ _('sys.logs_keep') }}<select name="lines">{% for n in log_choices %}<option value="{{ n }}" {{ 'selected' if n == log_keep }}>{{ n }}</option>{% endfor %}</select></label>
+  </form>
+  <p class="hint">{{ _('sys.logs_total', n=log_total) }}</p>
+  {% if log_total %}<form method="post" action="{{ base }}/settings/logs" class="inline" data-confirm="{{ _('dbg.confirm_clear') }}"><input type="hidden" name="clear" value="1"><button class="danger small">{{ icon('delete', 16) }} {{ _('sys.logs_clear') }}</button></form>{% endif %}
+</section>
+</div>
+<div class="sys-col">
 <section class="card" id="mqtt">
   <h2>{{ icon('mqtt') }} {{ _('mqtt.title') }}</h2>
   <p class="hint">{{ _('mqtt.intro') }}</p>
@@ -46,33 +77,6 @@
 </section>
 
 {% include "_settings_mcp.html" %}
-
-<section class="card" id="updates">
-  <h2>{{ icon('refresh') }} {{ _('sys.updates_title') }}</h2>
-  <p class="hint">{{ _('sys.updates_hint') }}</p>
-  <form method="post" action="{{ base }}/settings/sources-auto" data-live="1">
-    {{ switch_row('auto', _('sys.updates_auto'), sources_auto) }}
-  </form>
-  <form method="post" action="{{ base }}/settings/app-update" data-live="1">
-    {{ switch_row('check', _('upd.check_app'), app_update.enabled, hint=_('upd.check_app_hint')) }}
-  </form>
-  <p class="hint upd-line">{% if app_update.latest %}{{ _('upd.latest', v=app_update.latest) }}{% if app_update.newer %} · <b class="upd-new">{{ _('upd.newer') }}</b>{% else %} · {{ _('upd.current') }}{% endif %}{% if app_update.checked %} · {{ _('upd.checked', when=fdate(app_update.checked) ~ ' ' ~ ftime(app_update.checked[11:16])) }}{% endif %}{% else %}{{ _('upd.never') }}{% endif %}{% if app_update.plugins %} · {{ _('upd.plugins') }}: {{ _('upd.n', n=app_update.plugins) }}{% endif %}</p>
-  {% if app_update.packages %}<ul class="upd-list">
-    {% for p in app_update.packages %}<li><a href="{{ base }}/v/{{ p.car_slug }}/plugins"><span class="mi-ic {{ 'c4' if p.kind == 'plugin' else 'c1' }}">{{ icon('plug' if p.kind == 'plugin' else 'puzzle', 18) }}</span><span class="upd-t"><b>{{ p.name }}</b><small>{{ p.car }} · {{ _('addon.kind_plugin') if p.kind == 'plugin' else _('addon.kind_integration') }}</small></span><span class="upd-v">v{{ p.installed }} → v{{ p.latest }}</span></a></li>{% endfor %}
-  </ul>{% endif %}
-  <form method="post" action="{{ base }}/settings/app-update" class="mqtt-bar"><button class="ghost-btn" name="now" value="1">{{ icon('refresh', 18) }}<span>{{ _('upd.now') }}</span></button></form>
-</section>
-
-<section class="card" id="logs">
-  <h2>{{ icon('bug') }} {{ _('sys.logs_title') }}</h2>
-  <p class="hint">{{ _('sys.logs_hint') }}</p>
-  <form method="post" action="{{ base }}/settings/logs" data-live="1">
-    <label>{{ _('sys.logs_days') }}<select name="days">{% for n in log_days_choices %}<option value="{{ n }}" {{ 'selected' if n == log_days }}>{{ _('sys.logs_days_n', n=n) }}</option>{% endfor %}</select></label>
-    <label>{{ _('sys.logs_keep') }}<select name="lines">{% for n in log_choices %}<option value="{{ n }}" {{ 'selected' if n == log_keep }}>{{ n }}</option>{% endfor %}</select></label>
-  </form>
-  <p class="hint">{{ _('sys.logs_total', n=log_total) }}</p>
-  {% if log_total %}<form method="post" action="{{ base }}/settings/logs" class="inline" data-confirm="{{ _('dbg.confirm_clear') }}"><input type="hidden" name="clear" value="1"><button class="danger small">{{ icon('delete', 16) }} {{ _('sys.logs_clear') }}</button></form>{% endif %}
-</section>
 
 <section class="card" id="external">
   <h2>{{ icon('globe') }} {{ _('sys.ext_title') }}</h2>
@@ -120,7 +124,9 @@
   <p class="hint">{{ _('settings.google_hint') }}</p>
   <p class="hint">{{ icon('gas-station', 14) }} {{ _('settings.fuel_moved') }}</p>
 </section>
-
+</div>
+</div>
+<div class="sys-wide">
 <section class="card" id="backup">
   <h2>{{ icon('download') }} {{ _('settings.backup') }}</h2>
   <p class="hint">{{ _('settings.backup_hint') }}</p>
@@ -142,3 +148,4 @@
     <div class="form-bar"><button class="danger">{{ icon('refresh', 16) }}<span>{{ _('settings.reset_btn') }}</span></button></div>
   </form>
 </section>
+</div>

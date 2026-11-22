@@ -7,7 +7,7 @@ import sqlite3
 from importlib import metadata
 from pathlib import Path
 
-from . import STAGE, __version__, addons, config, integrations
+from . import STAGE, __version__, addons, config, integrations, regional
 
 AUTHOR = "Matze89x"
 AUTHOR_URL = "https://github.com/Matze89x"
@@ -96,7 +96,7 @@ def _vehicle(conn: sqlite3.Connection, row: sqlite3.Row, counts: dict[int, int])
                 "author": m.get("author") or "",
                 "homepage": m.get("homepage") or "",
                 "configured": a["status"] == "configured",
-                "last_used": (used or "")[:16].replace("T", " "),
+                "last_used": regional.fdatetime(used),
             }
         )
     return {

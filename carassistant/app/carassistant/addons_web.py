@@ -7,7 +7,7 @@ import contextlib
 from fastapi import Request
 from fastapi.responses import RedirectResponse, Response
 
-from . import addons, assets, config, connectors, db, events, i18n, interfaces, modules, navigation, pluginsvc, sources
+from . import addons, assets, config, connectors, db, events, i18n, interfaces, modules, navigation, pluginsvc, regional, sources
 from . import icons as icon_set
 from . import nav_web as nav_chips
 from .connectors_web import _may_manage
@@ -102,7 +102,7 @@ def _with_service(items: list[dict]) -> list[dict]:
                 "state": pluginsvc.state(a["id"], a),
                 "approved": pluginsvc.approved(a),
                 "routes": service["routes"],
-                "started": (a.get("svc_started") or "")[:16].replace("T", " "),
+                "started": regional.fdatetime(a.get("svc_started")),
                 "error": a.get("svc_error") or "",
             }
             if service

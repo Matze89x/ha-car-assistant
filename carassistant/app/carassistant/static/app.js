@@ -741,3 +741,14 @@ document.addEventListener("click", function (e) {
     else if (e.key === 'Enter' && e.target === card && !card.classList.contains('editing')) card.classList.add('editing');
   });
 })();
+
+// Region card: how far this device's clock is from the server's (a wrong clock confuses times shown "like on the device")
+(function () {
+  var now = document.querySelector(".rg-now[data-now]");
+  if (!now) { return; }
+  var server = Date.parse(now.getAttribute("data-now")), diff = Math.round(Math.abs(Date.now() - server) / 60000);
+  if (!isNaN(diff) && diff >= 2) {
+    var el = now.querySelector(".rg-skew");
+    if (el) { el.textContent = (now.getAttribute("data-skew") || "").replace("{n}", String(diff)); el.hidden = false; }
+  }
+})();

@@ -315,7 +315,7 @@ def test_the_daily_check_is_opt_in(client):
     client.post("/settings/sources-auto", data={"auto": "1"})
     with db.tx() as conn:
         assert db.get_setting(conn, "sources.auto") == "1"
-    assert "Check the sources for updates once a day" in client.get("/settings/system").text
+    assert "Check the sources once a day" in client.get("/settings/system").text
     client.post("/settings/sources-auto", data={})
     with db.tx() as conn:
         assert db.get_setting(conn, "sources.auto") is None

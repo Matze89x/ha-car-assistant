@@ -7,7 +7,7 @@ from __future__ import annotations
 import re
 import sqlite3
 
-from . import addons, assets, pluginsvc
+from . import addons, assets, pluginsvc, regional
 
 
 def _norm(path: str, vehicle_id: int) -> str:
@@ -39,7 +39,7 @@ def view(conn: sqlite3.Connection, vehicle_id: int, addon: dict, base_url: str) 
         if hit:
             matched.add(key)
         rows[item["direction"]].append(
-            {**item, "declared": True, "seen": hit["last_seen"][:16].replace("T", " ") if hit else "", "hits": hit["hits"] if hit else 0}
+            {**item, "declared": True, "seen": regional.fdatetime(hit["last_seen"]) if hit else "", "hits": hit["hits"] if hit else 0}
         )
     service = m.get("service") or {}
     for route in service.get("routes", []):
@@ -54,7 +54,7 @@ def view(conn: sqlite3.Connection, vehicle_id: int, addon: dict, base_url: str) 
                 "note": "public: reachable without a login (for example by the car)" if route["public"] else "only from Home Assistant",
                 "declared": True,
                 "auto": True,
-                "seen": hit["last_seen"][:16].replace("T", " ") if hit else "",
+                "seen": regional.fdatetime(hit["last_seen"]) if hit else "",
                 "hits": hit["hits"] if hit else 0,
             }
         )
@@ -83,7 +83,7 @@ def view(conn: sqlite3.Connection, vehicle_id: int, addon: dict, base_url: str) 
                 "fields": [x for x in r["fields"].split(", ") if x],
                 "note": "",
                 "declared": False,
-                "seen": r["last_seen"][:16].replace("T", " "),
+                "seen": regional.fdatetime(r["last_seen"]),
                 "hits": r["hits"],
             }
         )

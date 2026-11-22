@@ -121,3 +121,31 @@ def test_what_the_car_reports_is_shown_in_the_chosen_units(client):
     _us(client)
     us = client.get(f"/v/{car['slug']}").text
     assert "62 mph" in us and "68 °F" in us and "psi" in us and "mpg" in us and "100 km/h" not in us
+
+
+def test_the_time_zone_is_a_setting_and_the_whole_process_follows_it(client):
+    import os
+    import time
+
+    from carassistant import regional
+
+    keep = os.environ.get("TZ")
+    try:
+        assert client.post("/settings/timezone", data={"tz": "Asia/Tokyo"}).status_code == 303
+        assert regional.zone_key() == "Asia/Tokyo" and regional.apply() == "Asia/Tokyo"
+        assert time.tzname[0] == "JST" and regional.fdatetime("2026-11-22T10:20:00Z").endswith("19:20")  # +9 h, no summer time
+        assert regional.clock()["offset"] == "UTC+09:00" and regional.clock()["summer"] is False
+        assert client.post("/settings/timezone", data={"tz": "Europe/Berlin"}).status_code == 303
+        assert regional.fdatetime("2026-07-01T10:00:00Z").endswith("12:00")  # summer time: +2 h
+        assert regional.fdatetime("2026-12-01T10:00:00Z").endswith("11:00")  # winter time: +1 h
+        assert client.post("/settings/timezone", data={"tz": "Nowhere/City"}).status_code == 303
+        assert regional.zone_key() == "auto"  # an unknown zone is no choice
+        page = client.get("/settings/system").text
+        assert 'id="timezone"' in page and 'class="rg-now"' in page and page.count('id="region"') == 1
+    finally:
+        if keep is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = keep
+        time.tzset()
+        regional._applied = None

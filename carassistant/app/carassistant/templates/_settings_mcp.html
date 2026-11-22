@@ -14,7 +14,6 @@
       {% for code, label in lv.items() %}<option value="{{ code }}" {{ 'selected' if m.level == code }}>{{ label }}</option>{% endfor %}
     </select></label>
     {{ switch_row('path_key', _('mcp.pathkey'), m.path_key) }}
-    <p class="hint">{{ _('mcp.pathkey_hint') }}</p>
     <div class="form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
   </form>
   </div>
@@ -26,23 +25,15 @@
   <div class="mcp-sec">
     <h3 class="mcp-h">{{ _('mcp.key') }}</h3>
     {% if m.key %}
-    <div class="mcp-key"><span class="mk-n"><b>{{ m.key.prefix }}…</b><small class="muted">{{ _('mcp.used', n=m.key.uses) }}{% if m.key.last_used %} · {{ m.key.last_used[:16]|replace('T', ' ') }}{% endif %}</small></span></div>
-    <p class="hint">{{ _('mcp.key_hint') }}</p>
+    <div class="mcp-key"><span class="mk-n"><b>{{ m.key.prefix }}…</b>{% if m.log %}<small class="muted">{{ _('mcp.last_call') }}: {{ (m.log[0].tool or m.log[0].method) }} · {{ fdatetime(m.log[0].ts) }}</small>{% elif m.key.last_used %}<small class="muted">{{ _('mcp.last_call') }}: {{ fdatetime(m.key.last_used) }}</small>{% else %}<small class="muted">{{ _('mcp.no_call') }}</small>{% endif %}</span></div>
     <div class="mcp-bar">
       <form method="post" action="{{ base }}/settings/mcp/key" class="inline" data-confirm="{{ _('mcp.confirm_renew') }}"><button class="ghost-btn">{{ icon('refresh', 18) }}<span>{{ _('mcp.key_renew') }}</span></button></form>
       <form method="post" action="{{ base }}/settings/mcp/key/delete" class="inline" data-confirm="{{ _('mcp.confirm_delete') }}"><button class="ghost-btn warn">{{ icon('delete-outline', 18) }}<span>{{ _('btn.delete') }}</span></button></form>
     </div>
     {% else %}
-    <p class="hint">{{ _('mcp.no_key') }}</p>
     <form method="post" action="{{ base }}/settings/mcp/key" class="inline"><button class="primary">{{ icon('plus', 18) }}<span>{{ _('mcp.key_create') }}</span></button></form>
     {% endif %}
   </div>
-  {% if m.log %}
-  <div class="mcp-sec">
-    <h3 class="mcp-h">{{ _('mcp.log') }}</h3>
-    <ul class="plain mcp-log">{% for l in m.log %}<li class="{{ '' if l.ok else 'bad' }}"><small class="muted">{{ l.ts[:16]|replace('T', ' ') }}</small> <b>{{ l.key_name }}</b> {{ l.tool or l.method }}{% if not l.ok %} <span class="badge overdue">{{ l.detail or _('mcp.failed') }}</span>{% endif %}</li>{% endfor %}</ul>
-  </div>
-  {% endif %}
   {% endif %}
 </section>
 {% endif %}

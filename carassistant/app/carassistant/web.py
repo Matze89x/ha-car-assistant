@@ -354,6 +354,7 @@ BACK_RULES = (
 
 def render(request: Request, name: str, status: int = 200, **ctx):
     page_lang = ctx.pop("force_lang", None) or config.language()  # the first-start language choice is always English
+    regional.apply()  # the process follows the time zone of the system (summer / winter time included)
     t = i18n.translator(page_lang)
     with db.tx() as conn:
         ctx["global_nav"] = modules.global_nav(conn)
@@ -471,6 +472,8 @@ def render(request: Request, name: str, status: int = 200, **ctx):
         fdate=fdate,
         fshort=fshort,
         ftime=regional.ftime,
+        fdatetime=regional.fdatetime,
+        flog=regional.flog,
         update_pending=appupdate.pending(),
         field_value=regional.field_value,
         date_placeholder=regional.placeholder,
@@ -2253,6 +2256,10 @@ def _settings_section(request: Request, section: str):
         unit_systems=units.SYSTEMS,
         currencies=units.CURRENCIES,
         default_units=units.default_system(),
+        region_clock=regional.clock(),
+        tz_key=regional.zone_key(),
+        tz_auto=regional.automatic_zone(),
+        tz_list=regional.zones(),
         date_key=regional.date_key(),
         time_key=regional.time_key(),
         date_examples={k: date(2026, 12, 31).strftime(f) for k, f in regional.DATES.items()},
@@ -2392,6 +2399,19 @@ async def settings_units(request: Request):
         db.set_setting(conn, "region.units", system if system in units.SYSTEMS and system != units.DEFAULT_SYSTEM else None)
         db.set_setting(conn, "region.currency", currency if currency in units.CURRENCY else None)
     return go(request, "/settings/system#units", "saved")
+
+
+@app.post("/settings/timezone")
+async def settings_timezone(request: Request):
+    form = await form_dict(request)
+    with db.tx() as conn:
+        chosen = form.get("tz", "")
+        db.set_setting(conn, regional.TZ_SETTING, chosen if chosen in regional.zones() else None)
+    config.forget_settings()
+    regional.apply()
+    if form.get("ajax"):
+        return Response(status_code=204)
+    return go(request, "/settings/system#region", "saved")
 
 
 @app.post("/settings/datetime")

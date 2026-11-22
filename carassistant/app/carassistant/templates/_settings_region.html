@@ -1,31 +1,30 @@
 {% from "_macros.html" import icon with context %}
-<section class="card" id="region">
-  <h2>{{ icon('globe') }} {{ _('settings.language') }}</h2>
-  <form method="post" action="{{ base }}/settings/language" data-live data-reload>
-    <label class="tf-field"><span class="tf-l">{{ _('settings.language_hint') }}</span>
-      <select name="language">{% for code, meta in languages.items() %}<option value="{{ code }}" {{ 'selected' if lang == code }}>{{ meta.name }}</option>{% endfor %}</select></label>
+<section class="card rg" id="region">
+  <h2>{{ icon('globe') }} {{ _('region.title') }}</h2>
+  <form class="rg-row" method="post" action="{{ base }}/settings/language" data-live data-reload>
+    <label for="rg-lang">{{ _('settings.language') }}</label>
+    <select id="rg-lang" name="language">{% for code, meta in languages.items() %}<option value="{{ code }}" {{ 'selected' if lang == code }}>{{ meta.name }}</option>{% endfor %}</select>
   </form>
-</section>
-<section class="card" id="datetime">
-  <h2>{{ icon('calendar') }} {{ _('region.datetime_title') }}</h2>
-  <p class="hint">{{ _('region.datetime_hint') }}</p>
-  <form method="post" action="{{ base }}/settings/datetime" data-live>
-    <label class="tf-field"><span class="tf-l">{{ _('region.date_format') }}</span>
-      <select name="date"><option value="" {{ 'selected' if date_key == 'auto' }}>{{ _('region.auto') }} ({{ auto_date }})</option>{% for k, ex in date_examples.items() %}<option value="{{ k }}" {{ 'selected' if date_key == k }}>{{ ex }}</option>{% endfor %}</select></label>
-    <label class="tf-field"><span class="tf-l">{{ _('region.time_format') }}</span>
-      <select name="time"><option value="" {{ 'selected' if time_key == 'auto' }}>{{ _('region.auto') }} ({{ _('region.h24') }})</option><option value="24" {{ 'selected' if time_key == '24' }}>{{ _('region.h24') }} (16:30)</option><option value="12" {{ 'selected' if time_key == '12' }}>{{ _('region.h12') }} (4:30 PM)</option></select></label>
+  <form class="rg-row" id="datetime" method="post" action="{{ base }}/settings/datetime" data-live>
+    <label for="rg-date">{{ _('region.date_format') }}</label>
+    <select id="rg-date" name="date"><option value="" {{ 'selected' if date_key == 'auto' }}>{{ _('region.auto') }} ({{ auto_date }})</option>{% for k, ex in date_examples.items() %}<option value="{{ k }}" {{ 'selected' if date_key == k }}>{{ ex }}</option>{% endfor %}</select>
+    <label for="rg-time">{{ _('region.time_format') }}</label>
+    <select id="rg-time" name="time"><option value="" {{ 'selected' if time_key == 'auto' }}>{{ _('region.auto') }} ({{ _('region.h24') }})</option><option value="24" {{ 'selected' if time_key == '24' }}>{{ _('region.h24') }} (16:30)</option><option value="12" {{ 'selected' if time_key == '12' }}>{{ _('region.h12') }} (4:30 PM)</option></select>
   </form>
-</section>
-<section class="card" id="units">
-  <h2>{{ icon('speedometer') }} {{ _('region.units_title') }}</h2>
-  <p class="hint">{{ _('region.units_hint') }}</p>
-  <form method="post" action="{{ base }}/settings/units" data-live>
+  <form class="rg-row" id="timezone" method="post" action="{{ base }}/settings/timezone" data-live>
+    <label for="rg-tz">{{ _('region.tz') }}</label>
+    <select id="rg-tz" name="tz"><option value="" {{ 'selected' if tz_key == 'auto' }}>{{ _('region.auto') }} ({{ tz_auto }})</option>{% for z in tz_list %}<option value="{{ z }}" {{ 'selected' if tz_key == z }}>{{ z|replace('_', ' ') }}</option>{% endfor %}</select>
+  </form>
+  <p class="rg-now" data-now="{{ region_clock.iso }}" data-skew="{{ _('region.skew') }}">{{ icon('clock', 14) }} <b>{{ region_clock.date }} {{ region_clock.time }}</b> <span>{{ region_clock.abbr }} · {{ region_clock.offset }} · {{ _('region.summer') if region_clock.summer else _('region.winter') }}</span><em class="rg-skew" hidden></em></p>
+  <form class="rg-units" id="units" method="post" action="{{ base }}/settings/units" data-live>
     <div class="season-pick">
       {% for key, name, hint in (('metric', _('region.sys_metric'), 'km · L · °C'), ('us', _('region.sys_us'), 'mi · gal · °F'), ('uk', _('region.sys_uk'), 'mi · gal · °C')) %}
       <label class="sp"><input type="radio" name="units" value="{{ key }}" {{ 'checked' if key == default_units }}><span><b>{{ name }}</b><small>{{ hint }}</small></span></label>
       {% endfor %}
     </div>
-    <label class="tf-field"><span class="tf-l">{{ _('region.currency') }}</span>
-      <select name="currency">{% for code, sym, after in currencies %}<option value="{{ code }}" {{ 'selected' if code == default_currency }}>{{ code }} ({{ sym }})</option>{% endfor %}</select></label>
+    <div class="rg-row">
+      <label for="rg-cur">{{ _('region.currency') }}</label>
+      <select id="rg-cur" name="currency">{% for code, sym, after in currencies %}<option value="{{ code }}" {{ 'selected' if code == default_currency }}>{{ code }} ({{ sym }})</option>{% endfor %}</select>
+    </div>
   </form>
 </section>

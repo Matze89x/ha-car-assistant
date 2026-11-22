@@ -896,9 +896,7 @@ form[action$="/delete"] .round-del:hover { background: rgba(var(--overdue-rgb), 
 
 /* settings: compact system page, rules list, construction pages */
 .sys-grid { display: grid; gap: var(--sp-col); grid-template-columns: 1fr; align-items: start; }
-@media (min-width: 1700px) {
-  .sys-grid { grid-template-columns: 1fr 1fr; }
-}
+
 .sys-grid > .card { margin: 0; }
 .wip { text-align: center; padding: 34px 18px; }
 .wip-ic { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: var(--r-l); background: var(--glass2); color: var(--accent); margin-bottom: 8px; }
@@ -2906,3 +2904,24 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .hero-fresh .live.on i { background: var(--ok); box-shadow: 0 0 8px rgba(var(--ok-rgb), .7); }
 .hero-fresh .live.off i { background: var(--overdue); box-shadow: 0 0 8px rgba(var(--overdue-rgb), .6); }
 .hero-fresh .live.off { color: var(--overdue); }
+
+/* Region: ONE card - language, date, clock, time zone and units as slim rows (label left, choice right), no explanations */
+.rg-row { display: grid; grid-template-columns: 7.2em minmax(0, 1fr); align-items: center; gap: 8px 14px; padding: 8px 0; border-bottom: 1px solid var(--glass-b); margin: 0; }
+.rg-row:first-of-type { border-top: 1px solid var(--glass-b); }
+.rg-row label { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.rg-row select { margin: 0; min-height: 40px; }
+.rg-now { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 8px 0 12px; font-size: 13px; color: var(--muted); }
+.rg-now b { color: var(--text); font-family: "Space Mono", monospace; font-size: 14px; }
+.rg-skew { flex: 1 1 100%; font-style: normal; color: var(--soon); }
+.rg-units .season-pick { margin: 0 0 8px; }
+.rg-units .rg-row { border-top: 0; }
+
+/* System: two fixed columns, each a stack that simply fills down - a card that grows (a folded part opens) never moves into the other column */
+.sys-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-col); align-items: start; }
+.sys-col { display: flex; flex-direction: column; gap: var(--sp-col); min-width: 0; }
+.sys-col > .card, .sys-wide > .card { margin: 0; }
+.sys-wide { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-col); margin-top: var(--sp-col); }
+@media (min-width: 1100px) { .sys-cols, .sys-wide { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.rg-row select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.rg-units .season-pick .sp b { font-size: 12px; overflow-wrap: normal; }
+.rg-units .season-pick .sp { min-width: 0; padding-inline: 6px; }
