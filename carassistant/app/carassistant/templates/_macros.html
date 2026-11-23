@@ -133,9 +133,9 @@
 <div class="odo-flip">
   <small class="odo-cap">{{ icon('counter', 16) }}<span>{{ _('f.odometer') }}</span></small>
   <div class="odo-card3d">
-    <div class="odo-face odo-front">
+    <div class="odo-face odo-front" data-odo-open role="button" tabindex="0" title="{{ _('odo.edit') }}">
       <div class="odo-t">
-        <div class="odo-line" data-odo-open role="button" tabindex="0" title="{{ _('odo.edit') }}">{% if first %}<b class="odo-drum ghost" aria-hidden="true">{% for n in range(6) %}<i>–</i>{% endfor %}</b><span class="unit odo-unit">{{ units.dist_unit }}</span>{% else %}{{ odo_drum() }}{% endif %}</div></div>
+        <div class="odo-line">{% if first %}<b class="odo-drum ghost" aria-hidden="true">{% for n in range(6) %}<i>–</i>{% endfor %}</b><span class="unit odo-unit">{{ units.dist_unit }}</span>{% else %}{{ odo_drum() }}{% endif %}</div></div>
     </div>
     <div class="odo-face odo-back">
       {{ odo_form() }}

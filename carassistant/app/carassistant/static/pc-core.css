@@ -3227,7 +3227,7 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
    number as big digits, the photo button inside it and the enter strip on its right (the contour divides it, like the sort strip) */
 .odo-edit { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 10px 0 0; }
 .odo-line { display: flex; align-items: center; justify-content: center; }
-.odo-line, .odo-line .odo-drum { cursor: pointer; }  /* a tap on the figure opens the editor too */
+.odo-line, .odo-line .odo-drum, .odo-front { cursor: pointer; }  /* a tap on the figure opens the editor too */
 .odo-pencil { flex: 0 0 auto; display: grid; place-items: center; width: 40px; height: 40px; margin-right: 8px; padding: 0; border: 0; border-radius: 999px; background: none; box-shadow: none; color: var(--dim); cursor: pointer; }  /* as wide as the unit on the right: the figure stays centred */
 .odo-pencil:hover, .odo-pencil:focus-visible { color: var(--strong); background: rgba(var(--fg-rgb), .08); }
 .odo-open { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 14px; border-radius: 999px; border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .05); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; }

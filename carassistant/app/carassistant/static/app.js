@@ -677,7 +677,7 @@ document.addEventListener("click", function (event) {
     if (form) { show(scope, scope.classList.contains("odo-flip") ? !scope.classList.contains("open") : form.hidden); }
   });
   document.addEventListener("keydown", function (e) {
-    if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("odo-line")) { e.preventDefault(); e.target.click(); return; }  /* the figure is a button */
+    if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("odo-front")) { e.preventDefault(); e.target.click(); return; }  /* the figure is a button */
     if (e.key !== "Escape") { return; }
     var form = e.target.closest && e.target.closest(".odo-entry");
     if (form) { show(scopeOf(form), false); }
