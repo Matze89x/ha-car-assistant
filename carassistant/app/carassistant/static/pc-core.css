@@ -3223,12 +3223,17 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
    another corner. */
 :is(.card, .tile, .notice, .flash, .seg-tabs, details.eq, .rec, .wd, .wd-row, .vd-group, .status-banner, .vf-hero, .stn-card, .rp-hero, .arch-box, .lm-card) { border-radius: var(--r-surface); }
 
-/* the quick entry under the odometer (dashboard): the number, camera, upload, save - one line, the hint under it */
-.odo-entry { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 0; }
-.odo-entry input[name="odometer"] { flex: 1 1 120px; min-width: 0; margin: 0; }
-.odo-entry .odo-pick { display: contents; }
-.odo-entry .icon-btn { flex: 0 0 auto; }
-.odo-entry .odo-save { color: var(--ok); }
-.odo-entry .scan-note { flex: 1 0 100%; margin: 0; }
+/* the quick entry under the odometer (dashboard): ONE box - the number, the photo button inside it and the enter strip on its right (the contour of the box
+   divides it, like the sort strip); the hint under the box */
+.odo-entry { margin: 12px 0 0; }
+.odo-box { display: flex; align-items: stretch; min-height: 48px; border: 1px solid var(--glass-b); border-radius: var(--r-s); background: rgba(var(--fg-rgb), .06); overflow: hidden; }
+.odo-box:focus-within { border-color: var(--accent); }
+.odo-box input[name="odometer"] { flex: 1 1 auto; min-width: 0; width: auto; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; outline: none; }
+.odo-pick { display: flex; }
+.odo-cam { flex: 0 0 auto; display: grid; place-items: center; width: 44px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--muted); cursor: pointer; }
+.odo-cam:hover { color: var(--strong); }
+.odo-go { flex: 0 0 auto; display: grid; place-items: center; width: 48px; padding: 0; border: 0; border-left: 1px solid var(--glass-b); border-radius: 0; background: rgba(var(--fg-rgb), .05); box-shadow: none; color: var(--muted); cursor: pointer; }
+.odo-go:hover, .odo-go:focus-visible { color: var(--ok); background: rgba(var(--ok-rgb), .12); }
+.odo-entry .scan-note { margin: 6px 2px 0; }
 .odo-entry .scan-note.ok { color: var(--ok); }
 .odo-entry .scan-note.warn { color: var(--warn, #f59e0b); }

@@ -209,7 +209,7 @@ def test_the_dashboard_has_the_quick_entry_and_only_offers_the_photo_when_text_r
         'class="odo-entry"' in page
         and f"/v/{slug(vid)}/odometer/scan" in page
         and "receipt.js" in page
-        and page.count("data-scan-btn") == 2
+        and page.count("data-scan-btn") == 1  # one photo button: the phone offers camera or library
     )
     monkeypatch.setattr(rc, "available", lambda: False)
     page = client.get(f"/v/{slug(vid)}").text
