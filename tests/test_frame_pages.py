@@ -183,3 +183,12 @@ def test_a_page_of_a_package_gets_a_box_of_the_maximum_width_and_a_foot():
     assert out.index('<header id="ca-head"></header><div id="ca-wrap"><h1>x</h1></div><footer id="ca-foot">') < out.index("</body>")
     plain = framehead.inject(b"<p>x</p>", "<header></header>", "/c.css", foot).decode()
     assert plain.endswith('</div><footer id="ca-foot"></footer>') and 'id="ca-wrap"' in plain
+
+
+def test_the_kit_has_the_same_building_blocks_as_the_app():
+    from carassistant import frametheme
+
+    kit = (frametheme.STATIC / "frame-kit.css").read_text(encoding="utf-8")
+    for block in (".label", ".notice.err", ".notice.warn", ".notice.ok", ".seg-tabs", ".seg-icons", ".icon-btn"):
+        assert block in kit, block
+    assert "#" not in kit.split("*/", 1)[1].replace("#fff", ""), "only the variables of the design, no colour of its own"
