@@ -755,6 +755,9 @@ def delete_logs(conn: sqlite3.Connection, vehicle_id: int, addon_id: str, name: 
     )
     for table in ("vehicle_traffic", "plugin_usage"):  # what was watched and what it used goes with it
         conn.execute(f"DELETE FROM {table} WHERE vehicle_id = ? AND addon_id = ?", (vehicle_id, addon_id))
+    from . import linkmap
+
+    linkmap.forget(conn, vehicle_id, addon_id)  # and what the connection map showed of it
 
 
 def snapshot(conn: sqlite3.Connection, vehicle_id: int) -> dict:

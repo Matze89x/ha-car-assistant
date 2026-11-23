@@ -2900,6 +2900,7 @@ from . import (  # noqa: E402,F401
     connectors_web,
     demo_web,
     equipment_web,
+    linkmap_web,
     manual_web,
     map_web,
     mcp_web,

@@ -9,7 +9,7 @@ import zlib
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from . import __version__, auth_web, config, connectors, db, deprecations, events, summary
+from . import __version__, auth_web, config, connectors, db, deprecations, events, linkmap, summary
 from .web import app, form_dict, go, render
 
 MAX_BODY = 20_000
@@ -64,6 +64,7 @@ async def watch_connector_traffic(request: Request, call_next):
             if response.status_code < 400:  # the page *Interfaces* of the plugin shows what it really used (names only)
                 parts = path.split("/")
                 connectors.note_usage(conn, vehicle_id, addon_id, request.method, "/".join(["", *parts[1:4], "{id}", *parts[5:]]), detail)
+                linkmap.record(conn, vehicle_id, addon_id, request.method, parts, getattr(request.state, "api_data", None))
             if connectors.debug_enabled(conn, vehicle_id, addon_id):
                 connectors.record_traffic(
                     conn,
@@ -100,6 +101,7 @@ async def _json(request: Request, limit: int):
     except ValueError:
         return None, _err("invalid_json", "The body is not valid JSON.", 400)
     request.state.traffic_detail = _describe(data)
+    request.state.api_data = data  # the connection map notes the values of a successful call
     return data, None
 
 

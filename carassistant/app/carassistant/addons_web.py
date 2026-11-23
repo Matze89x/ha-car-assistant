@@ -7,7 +7,22 @@ import contextlib
 from fastapi import Request
 from fastapi.responses import RedirectResponse, Response
 
-from . import addons, assets, config, connectors, db, events, i18n, interfaces, modules, navigation, pluginsvc, regional, sources
+from . import (
+    addons,
+    assets,
+    config,
+    connectors,
+    db,
+    events,
+    i18n,
+    interfaces,
+    linkmap_ui,
+    modules,
+    navigation,
+    pluginsvc,
+    regional,
+    sources,
+)
 from . import icons as icon_set
 from . import nav_web as nav_chips
 from .connectors_web import _may_manage
@@ -25,9 +40,20 @@ def _tabs(base: str, current: str, keys: tuple[tuple[str, str, str], ...]) -> li
     ]
 
 
-TAB_ICON = {"navigation": "cog", "manage": "cog", "add": "plus", "sources": "database"}  # the symbol in front of each tab
+TAB_ICON = {
+    "navigation": "cog",
+    "manage": "cog",
+    "links": "sitemap",
+    "add": "plus",
+    "sources": "database",
+}  # the symbol in front of each tab
 INT_TABS = (("navigation", "", "int.tab_nav"), ("add", "/add", "int.tab_add"), ("sources", "/sources", "int.tab_sources"))
-PLUG_TABS = (("manage", "", "plug.tab_manage"), ("add", "/add", "int.tab_add"), ("sources", "/sources", "int.tab_sources"))
+PLUG_TABS = (
+    ("manage", "", "plug.tab_manage"),
+    ("links", "/connections", "plug.tab_links"),
+    ("add", "/add", "int.tab_add"),
+    ("sources", "/sources", "int.tab_sources"),
+)
 
 
 def _functions(conn, vid: int):
@@ -121,6 +147,17 @@ def _with_service(items: list[dict]) -> list[dict]:
 def _plugins_page(request: Request, vid: int, tab: str):
     with db.tx() as conn:
         vehicle = vehicle_or_404(conn, vid)
+        if tab == "links":  # the connection map: its own, light data (no package lists, no sources)
+            return render(
+                request,
+                "vehicle_plugins.html",
+                **vehicle_ctx(conn, vehicle, "plugins"),
+                hide_hero=True,
+                ptab=tab,
+                section_tabs=_tabs(f"/v/{vehicle['slug']}/plugins", tab, PLUG_TABS),
+                lm=linkmap_ui.build(conn, vid),
+                can_raw=_may_manage(request),
+            )
         sortc = _sort_ctx(request, tab == "manage")
         items = _sort_installed(_with_service([a for a in addons.list_for(conn, vid) if a["kind"] == "plugin"]), sortc["sort"])
         return render(
@@ -158,6 +195,11 @@ def integrations_sources(request: Request, vid: int):
 @app.get("/v/{vid}/plugins")
 def plugins_manage(request: Request, vid: int):
     return _plugins_page(request, vid, "manage")
+
+
+@app.get("/v/{vid}/plugins/connections")
+def plugins_connections(request: Request, vid: int):
+    return _plugins_page(request, vid, "links")
 
 
 @app.get("/v/{vid}/plugins/add")

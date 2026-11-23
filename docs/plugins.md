@@ -326,3 +326,11 @@ A package with a `service` may say that it can do something for the **app** besi
 - How the destination reaches the car is the plugin's own business. The app only hands it over, and only after the press of a button, never on its own. It is offered only while the service runs and is approved.
 
 Like everything in the interface this is an addition: a plugin without `capabilities` keeps working exactly as before.
+
+## The connection map (*Plugins → Connections*)
+
+One map of everything the plugins of a car do: **plugins on the left, the Plugin API in the middle, on the right the integrations** (the areas of the app and the installed integrations) where the information lands. Each plugin has its own colour; one line per plugin and area (solid = the plugin **sends**, *set*; dashed = it **reads**, *get*); a green dot means "just now", yellow "a long time ago". Every area carries a short explanation of where the information goes there (and whether it also goes to Home Assistant as sensors).
+
+Click a plugin, an integration or a line: the signals appear below with the **last value, its time and the last ten values**; a click on a signal shows the **raw value**. On a phone the map becomes a list: each plugin names its integrations as chips.
+
+**Where the data comes from - nothing to do for a plugin.** The app notes every successful call of a plugin to the Plugin API *per signal* (a field of `POST /data`, a free signal, an interface such as `track`, `refuel` or a page of an integration): the direction, the area it lands in, the last raw value and time, and a history of the last **10** different values (reads keep only their time). A value is written only when it changed (or after 30 seconds), a plugin may have at most 400 signals per car, a value is cut at 2000 characters, and everything of a plugin is deleted with it. Only administrators see the values; the names and times are visible to everyone who may see the plugin. The values of earlier calls are not available: the map starts to fill when this version runs.

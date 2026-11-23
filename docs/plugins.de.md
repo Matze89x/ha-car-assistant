@@ -329,3 +329,11 @@ Ein Paket mit `service` darf sagen, dass es neben dem Senden von Daten etwas fü
 - Wie das Ziel zum Auto kommt, ist Sache des Plugins. Die App übergibt es nur, und nur nach einem Knopfdruck, nie von selbst. Es wird nur angeboten, solange der Dienst läuft und freigegeben ist.
 
 Wie alles in der Schnittstelle ist das eine Ergänzung: Ein Plugin ohne `capabilities` funktioniert genau wie bisher.
+
+## Die Anbindungskarte (*Plugins → Anbindungen*)
+
+Eine Karte von allem, was die Plugins eines Autos tun: **links die Plugins, in der Mitte die Plugin-API, rechts die Integrationen** (die Bereiche der App und die installierten Integrationen), wohin die Information läuft. Jedes Plugin hat seine eigene Farbe; eine Linie je Plugin und Bereich (durchgezogen = das Plugin **sendet**, *set*; gestrichelt = es **liest**, *get*); ein grüner Punkt heißt „gerade eben“, gelb „lange her“. Jeder Bereich trägt eine kurze Erklärung, wohin die Information dort geht (und ob sie auch als Sensoren an Home Assistant geht).
+
+Klicke ein Plugin, eine Integration oder eine Linie: Darunter erscheinen die Signale mit dem **letzten Wert, seiner Uhrzeit und den letzten zehn Werten**; ein Klick auf ein Signal zeigt den **Rohwert**. Auf dem Handy wird die Karte zur Liste: Jedes Plugin nennt seine Integrationen als Chips.
+
+**Woher die Daten kommen - das Plugin muss nichts tun.** Die App merkt sich jeden erfolgreichen Aufruf eines Plugins an die Plugin-API *je Signal* (ein Feld von `POST /data`, ein freies Signal, eine Schnittstelle wie `track`, `refuel` oder eine Seite einer Integration): die Richtung, den Bereich, in dem es landet, den letzten Rohwert samt Zeit und einen Verlauf der letzten **10** verschiedenen Werte (ein Lesen behält nur seine Zeit). Ein Wert wird nur geschrieben, wenn er sich geändert hat (oder nach 30 Sekunden), ein Plugin darf höchstens 400 Signale je Auto haben, ein Wert wird bei 2000 Zeichen gekürzt, und alles eines Plugins wird mit ihm gelöscht. Die Werte sehen nur Administratoren; die Namen und Zeiten sieht jeder, der das Plugin sehen darf. Die Werte früherer Aufrufe gibt es nicht: Die Karte füllt sich ab dem Moment, in dem diese Version läuft.

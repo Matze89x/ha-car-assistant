@@ -74,6 +74,7 @@ MIGRATIONS: list[str] = [
     (SCHEMA_DIR / "migrations_55.sql").read_text(encoding="utf-8"),  # documents: note, document date, valid until
     (SCHEMA_DIR / "migrations_56.sql").read_text(encoding="utf-8"),  # plugin tokens: optional encrypted copy
     (SCHEMA_DIR / "migrations_57.sql").read_text(encoding="utf-8"),  # trip values of the car's on-board computer
+    (SCHEMA_DIR / "migrations_58.sql").read_text(encoding="utf-8"),  # connection map: signal state and history per plugin
 ]
 
 
