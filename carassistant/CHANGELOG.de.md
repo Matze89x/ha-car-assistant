@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.21 Beta
+- Behoben: Ein Auto ohne Modell (oder Marke) erschien in Home Assistant nie unter MQTT, obwohl seine Nachrichten am Broker ankamen (zum Beispiel im MQTT Explorer): Home Assistant lehnt eine Discovery-Nachricht mit leerem Modell als Ganzes ab. Leere Werte werden jetzt aus jeder Nachricht weggelassen, sodass alle Sensoren und die Position eines solchen Autos erscheinen (ein Update genügt; die Sensoren erneut zu senden ist nicht nötig).
+
 ## 0.5.20 Beta
 - Neu: Beleg scannen beim Anlegen einer Tankung. Ein Foto des Tankbelegs wird auf deinem eigenen Server gelesen (Texterkennung, nichts geht ins Internet, das Foto wird nicht behalten) und füllt Datum, Menge, Preis je Einheit, Betrag, Tankstelle und Kraftstoff aus; die markierten Felder prüfst du, und die App prüft, ob Menge x Preis = Betrag ergibt.
 - Neue Integration **Karte**: eine Karte über die ganze Fläche mit dem Auto und - wenn du es im Browser erlaubst - deinem eigenen Standort, einer Ortssuche und *Navigieren*. Ein Ziel geht an das Plugin des Autos, wenn es Navigation anbietet (neue optionale Plugin-Fähigkeit `navigate`, eine Ergänzung der Schnittstelle, siehe docs/plugins.de.md), sonst an einen Navigationsdienst - standardmäßig Google Maps, oder Apple Karten, Waze, Bing Maps, OpenStreetMap, Mapy.com, HERE WeGo, Yandex, Magic Earth, Sygic oder einen allgemeinen Android-Link (Einstellungen -> System -> Navigation). Bei einem neuen Auto aus.

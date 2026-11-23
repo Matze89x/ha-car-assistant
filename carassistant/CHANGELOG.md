@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.21 Beta
+- Fixed: a car without a model (or make) never appeared in Home Assistant under MQTT, although its messages reached the broker (for example in MQTT Explorer): Home Assistant refuses a discovery message with an empty model as a whole. Empty values are now left out of every message, so all sensors and the position of such a car show up (it is enough to update; sending the sensors again is not needed).
+
 ## 0.5.20 Beta
 - New: Scan receipt when adding a fill-up. A photo of the fuel receipt is read on your own server (text recognition, nothing goes online, the photo is not kept) and fills in the date, amount, price per unit, total, station and fuel; the marked fields are for you to check, and the app checks that amount x price = total.
 - New integration **Map**: one full-area map with the car and - when you allow it in the browser - your own position, a place search and *Navigate*. A destination goes to the plugin of the car when it offers navigation (new optional plugin capability `navigate`, an addition to the interface, see docs/plugins.md), otherwise to a navigation service - Google Maps by default, or Apple Maps, Waze, Bing Maps, OpenStreetMap, Mapy.com, HERE WeGo, Yandex, Magic Earth, Sygic or a generic Android link (Settings -> System -> Navigation). Off by default for a new car.
