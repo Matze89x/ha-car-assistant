@@ -84,30 +84,54 @@ def _plain(secret: str | None) -> str | None:
     return vault.decrypt(secret) or None
 
 
+def _unset(value: str | None) -> str | None:
+    """A text from the add-on configuration: an option that was left empty arrives as the WORD null (bashio), never as nothing."""
+    text = (value or "").strip()
+    return None if text.lower() in ("", "null", "none") else text
+
+
+def clean_broker(host: str | None, port: object = None) -> dict | None:
+    """What somebody typed for the broker -> ``{host, port, tls}``. Understands ``192.168.1.5``, ``192.168.1.5:1883``, ``mqtt://host:1883`` and
+    ``mqtts://host`` (encrypted); a port that is not a number is the usual one (1883, or 8883 when encrypted). None without a host."""
+    text = (_unset(host) or "").strip()
+    scheme = ""
+    if "://" in text:
+        scheme, text = text.split("://", 1)
+    text = text.split("/", 1)[0].strip()
+    typed = None
+    if text.startswith("[") and "]" in text:  # [::1]:1883
+        rest = text[text.index("]") + 1 :]
+        text = text[1 : text.index("]")]
+        typed = rest[1:] if rest.startswith(":") else None
+    elif text.count(":") == 1:
+        text, typed = text.split(":", 1)
+    text = text.strip()
+    if not text:
+        return None
+    tls = scheme.lower() in ("mqtts", "ssl", "tls", "tcps", "mqtt+ssl")
+    chosen = None
+    for candidate in (_unset(str(port)) if port is not None else None, typed):
+        try:
+            number = int(str(candidate).strip())
+        except (TypeError, ValueError):
+            continue
+        if 1 <= number <= 65535:
+            chosen = number
+            break
+    number = chosen or (8883 if tls else 1883)
+    return {"host": text, "port": number, "tls": tls or number == 8883}
+
+
 def mqtt_settings() -> dict | None:
     """Broker credentials. Default: the Home Assistant broker as announced by the Supervisor (no password to enter).
     A manually entered host (Integrations page) overrides it, e.g. for an external broker."""
-    manual = (stored_setting("int.mqtt.host") or "").strip()
+    manual = clean_broker(stored_setting("int.mqtt.host"), stored_setting("int.mqtt.port"))
     if manual:
-        try:
-            port = int(stored_setting("int.mqtt.port") or 1883)
-        except ValueError:
-            port = 1883
-        return {
-            "host": manual,
-            "port": port,
-            "user": stored_setting("int.mqtt.username"),
-            "password": _plain(stored_setting("int.mqtt.password")),
-        }
-    host = os.environ.get("MQTT_HOST", "").strip()
-    if not host:
+        return {**manual, "user": _unset(stored_setting("int.mqtt.username")), "password": _plain(stored_setting("int.mqtt.password"))}
+    given = clean_broker(os.environ.get("MQTT_HOST"), os.environ.get("MQTT_PORT"))
+    if not given:
         return None
-    return {
-        "host": host,
-        "port": int(os.environ.get("MQTT_PORT", "1883") or 1883),
-        "user": os.environ.get("MQTT_USER") or None,
-        "password": os.environ.get("MQTT_PASSWORD") or None,
-    }
+    return {**given, "user": _unset(os.environ.get("MQTT_USER")), "password": _unset(os.environ.get("MQTT_PASSWORD"))}
 
 
 def supervisor_token() -> str:

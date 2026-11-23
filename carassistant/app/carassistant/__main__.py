@@ -13,7 +13,10 @@ def main() -> None:
     log = logging.getLogger("carassistant")
     log.info("Car Assistant %s starting (data: %s)", __version__, config.data_dir())
     db.migrate()
-    publisher.start()
+    try:
+        publisher.start()
+    except Exception:
+        log.exception("MQTT could not be started")
     worker.start()
     pluginsvc.start_supervisor()
     try:

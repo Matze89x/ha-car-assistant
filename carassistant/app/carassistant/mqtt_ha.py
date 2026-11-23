@@ -5,14 +5,17 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import secrets
+import socket
 import sqlite3
 import threading
+import time
 from dataclasses import dataclass
 from datetime import date
 
 import paho.mqtt.client as mqtt
 
-from . import __version__, config, connectors, events, fuelstats, modules, status, summary
+from . import __version__, config, connectors, db, events, fuelstats, modules, status, summary
 
 log = logging.getLogger(__name__)
 
@@ -291,29 +294,87 @@ def wanted_sensors(
     return tuple(out)
 
 
+def diagnose(host: str, port: int) -> str:
+    """Why a broker is not reached, as a short key (see ``mqtt.err_*`` texts): the plain TCP connection tells the cause."""
+    try:
+        with socket.create_connection((host, port), timeout=4):
+            return "protocol"  # the port answers, but the MQTT talk (or its encryption) failed: not a broker, or the wrong port
+    except socket.gaierror:
+        return "dns"
+    except ConnectionRefusedError:
+        return "refused"
+    except TimeoutError:
+        return "timeout"
+    except OSError:
+        return "unreach"
+
+
 class Publisher:
     def __init__(self) -> None:
         self._client: mqtt.Client | None = None
         self._connected = threading.Event()
         self._lock = threading.Lock()
         self._sent: dict[str, str] = {}  # topic -> last payload sent (cleared on every (re)connect)
+        self.last_error = ""  # why the broker is not reached: auth | refused | dns | timeout | unreach | protocol | other
+        self._target: tuple[str, int] | None = None
+        self._last_probe = 0.0
 
     def start(self) -> bool:
+        self.last_error = ""
         settings = config.mqtt_settings()
         if not config.mqtt_discovery_enabled() or not settings:
             log.info("MQTT discovery disabled or no broker available")
             return False
-        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="carassistant")
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=self._client_id())
         if settings["user"]:
             client.username_pw_set(settings["user"], settings["password"])
+        if settings.get("tls"):
+            client.tls_set()  # encrypted: the certificate must come from an authority the system knows
         client.will_set(AVAILABILITY_TOPIC, "offline", retain=True)
         client.on_connect = self._on_connect
         client.on_disconnect = self._on_disconnect
+        client.on_connect_fail = self._on_connect_fail
         client.reconnect_delay_set(min_delay=2, max_delay=60)
-        client.connect_async(settings["host"], settings["port"], keepalive=60)
-        client.loop_start()
+        self._target = (settings["host"], settings["port"])
+        try:
+            client.connect_async(settings["host"], settings["port"], keepalive=60)
+            client.loop_start()
+        except (OSError, ValueError) as exc:  # a broken setting must never stop the app
+            log.warning("MQTT: cannot start (%s)", exc)
+            self.last_error = "other"
+            return False
         self._client = client
+        timer = threading.Timer(8.0, self._still_waiting, args=(client,))  # a broker that never answers: say why after a few seconds
+        timer.daemon = True
+        timer.start()
         return True
+
+    def _still_waiting(self, client) -> None:
+        if self._client is client and not self.connected and not self.last_error:
+            self._last_probe = time.monotonic()
+            self._probe()
+
+    @staticmethod
+    def _client_id() -> str:
+        """One id per installation: two apps (for example the released and the Developer add-on) on the same broker must not throw each other out."""
+        with db.tx() as conn:
+            known = db.get_setting(conn, "mqtt.client_id")
+            if not known:
+                known = "carassistant-" + secrets.token_hex(4)
+                db.set_setting(conn, "mqtt.client_id", known)
+        return known
+
+    def _on_connect_fail(self, client, userdata) -> None:
+        """The TCP connection could not be made (or the answer was no MQTT): find out why, once in a while, and keep the reason for the page."""
+        now = time.monotonic()
+        if now - self._last_probe < 30 or not self._target:
+            return
+        self._last_probe = now
+        threading.Thread(target=self._probe, name="mqtt-probe", daemon=True).start()
+
+    def _probe(self) -> None:
+        self.last_error = diagnose(*self._target)
+        log.warning("MQTT: %s:%s - %s", self._target[0], self._target[1], self.last_error)
 
     def stop(self) -> None:
         if self._client:
@@ -326,12 +387,14 @@ class Publisher:
     def _on_connect(self, client, userdata, flags, reason_code, properties=None) -> None:
         if reason_code == 0 or getattr(reason_code, "is_failure", False) is False:
             log.info("MQTT connected")
+            self.last_error = ""
             client.publish(AVAILABILITY_TOPIC, "online", retain=True)
             self._sent.clear()
             self._connected.set()
             events.changed()  # (re)publish everything after (re)connect
         else:
             log.warning("MQTT connect failed: %s", reason_code)
+            self.last_error = "auth" if "authorized" in str(reason_code).lower() or "password" in str(reason_code).lower() else "other"
 
     def _on_disconnect(self, client, userdata, flags, reason_code, properties=None) -> None:
         self._connected.clear()

@@ -2221,6 +2221,15 @@ async def integrations_save(request: Request, key: str):
 # ------------------------------------------------------------------ settings, backup
 
 
+MQTT_ERRORS = {
+    "auth": "mqtt.err_auth",
+    "refused": "mqtt.err_refused",
+    "dns": "mqtt.err_dns",
+    "timeout": "mqtt.err_timeout",
+    "unreach": "mqtt.err_unreach",
+    "protocol": "mqtt.err_protocol",
+    "other": "mqtt.err_other",
+}  # the reason the broker is not reached -> its text
 SETTINGS_SECTIONS = ("car", "user", "system")  # the tabs, in this order: the car, the person, the whole app
 OLD_SECTIONS = ("design", "region")  # the former tabs now live on the System tab; their addresses still work
 
@@ -2298,6 +2307,7 @@ def _settings_section(request: Request, section: str):
         mqtt_enabled=config.mqtt_discovery_enabled(),
         mqtt_available=config.mqtt_settings() is not None,
         mqtt_connected=publisher.connected,
+        mqtt_error=i18n.translator(config.language())(MQTT_ERRORS[publisher.last_error]) if publisher.last_error in MQTT_ERRORS else "",
         ha_available=ha.available(),
         has_key=bool(config.tankerkoenig_key()),
         external_url=config.external_url(),

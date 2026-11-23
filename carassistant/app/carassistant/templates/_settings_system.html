@@ -53,6 +53,7 @@
     {{ switch_row('enabled', _('mqtt.enable'), mqtt_enabled) }}
   </form>
   <p class="sys-state">{% if mqtt_host %}{{ icon('pencil', 14) }} {{ _('mqtt.status_own') }}: <code>{{ mqtt_host }}{{ ':' ~ mqtt_port if mqtt_port }}</code>{% elif mqtt_auto %}{{ icon('check', 14) }} {{ _('mqtt.status_auto') }}{% else %}<span class="muted">{{ icon('info', 14) }} {{ _('mqtt.status_none') }}</span>{% endif %}</p>
+  {% if mqtt_enabled and mqtt_available and not mqtt_connected and mqtt_error %}<p class="flash warn">{{ mqtt_error }}</p>{% endif %}
   <details class="sys-spoiler"{{ ' open' if mqtt_host }}>
     <summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('mqtt.own_title') }}</span></summary>
     <form method="post" action="{{ base }}/integrations/mqtt" class="acct-form">
@@ -65,6 +66,7 @@
         <label>{{ _('int.mqtt_password') }}<input type="password" name="password" autocomplete="new-password" placeholder="{{ '••••••••' if mqtt_pw_set }}"></label>
       </div>
       <p class="hint">{{ _('mqtt.own_hint') }}</p>
+      <p class="hint">{{ _('mqtt.format_hint') }}</p>
       <div class="nm-actions"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
     </form>
   </details>

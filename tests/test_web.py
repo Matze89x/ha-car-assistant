@@ -318,7 +318,7 @@ def test_mqtt_default_is_broker_from_supervisor_without_password(client, monkeyp
     monkeypatch.setenv("MQTT_HOST", "core-mosquitto")
     assert config.mqtt_settings()["host"] == "core-mosquitto"
     client.post("/integrations/mqtt", data={"enabled": "1", "host": "broker.lan", "port": "1884"}, follow_redirects=False)
-    assert config.mqtt_settings() == {"host": "broker.lan", "port": 1884, "user": None, "password": None}
+    assert config.mqtt_settings() == {"host": "broker.lan", "port": 1884, "tls": False, "user": None, "password": None}
 
 
 def test_first_own_broker_switches_the_sensors_on_and_the_switch_is_always_there(client):
