@@ -3275,7 +3275,7 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 .odo-flip .odo-front .odo-drum { gap: 0; }
 .odo-flip .odo-front .odo-drum i { width: 34px; height: 54px; font-size: 32px; border: 0; border-left: 1px solid var(--glass-b); border-radius: 0; box-shadow: none; background: linear-gradient(180deg, rgba(0, 0, 0, .35), rgba(var(--fg-rgb), .03) 50%, rgba(0, 0, 0, .35)); }  /* like a real counter: the cells fill the box top to bottom, only the dividers run through */
 .odo-flip .odo-front .odo-drum i:last-of-type { border-right: 1px solid var(--glass-b); }
-.odo-flip .odo-front .odo-drum i.last { border-color: rgba(var(--accent-rgb), .6); }
+.odo-flip .odo-front .odo-drum i.last { color: var(--text); border-color: var(--glass-b); background: linear-gradient(180deg, rgba(0, 0, 0, .35), rgba(var(--fg-rgb), .03) 50%, rgba(0, 0, 0, .35)); }  /* the last cell is not marked in colour */
 .odo-flip .odo-front .odo-drum .unit { font-size: 16px; margin-left: 6px; }
 .odo-front .odo-t, .odo-front .odo-line { margin: 0; }
 .odo-front .odo-t b.odo-drum { margin: 0; }
