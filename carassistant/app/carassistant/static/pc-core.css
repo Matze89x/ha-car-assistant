@@ -3267,16 +3267,21 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 
 /* the odometer on the dashboard is a FLIP CARD: a plate with the figure on its front and the box to type the number on its back; the pencil (or a tap on the
    figure) turns it over from top to bottom, with a little overshoot, and the close button (or Escape) turns it back */
-.odo-flip { width: fit-content; max-width: 100%; margin: 6px auto 0; perspective: 1100px; }  /* the plate is exactly as wide as the figure; the box on the back takes that width */
+.odo-flip { width: fit-content; min-width: min(100%, 300px); max-width: 100%; margin: 6px auto 0; transition: margin-bottom .3s; perspective: 1100px; }  /* the plate is exactly as wide as the figure; the box on the back takes that width */
 .odo-card3d { position: relative; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.3, 1.28, .45, 1); }
 .odo-flip.open .odo-card3d { transform: rotateX(180deg); }
 .odo-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid rgba(var(--accent-rgb), .16); background: linear-gradient(rgba(var(--accent-rgb), .07), rgba(var(--accent-rgb), .02)), rgba(var(--fg-rgb), .02); box-shadow: 0 10px 26px rgba(0, 0, 0, .18); }
 .odo-front { position: relative; padding: 8px 10px; }
 .odo-front .odo-t, .odo-front .odo-line { margin: 0; }
 .odo-front .odo-t b.odo-drum { margin: 0; }
-.odo-back { transform: rotateX(180deg); padding: 8px 10px; }
+.odo-front { justify-content: center; }
+.odo-back { transform: rotateX(180deg); padding: 0; align-items: stretch; }  /* the back IS the box: no second frame inside the plate */
+.odo-flip.open { margin-bottom: 30px; }  /* room for the line under the plate (read from a photo / all readings) */
+.odo-back .odo-entry { flex: 1; display: flex; width: 100%; min-height: 0; }
+.odo-back .odo-box { flex: 1; min-height: 0; border: 0; border-radius: var(--r-surface); overflow: hidden; background: none; }
+.odo-back .odo-box input[name="odometer"] { padding-left: 18px; }
 .odo-face .odo-t { margin: 0; }
-.odo-back .odo-entry { width: 100%; }
 .odo-back .scan-note { position: absolute; left: 0; right: 0; top: calc(100% + 6px); margin: 0; text-align: center; }
-.odo-back .odo-all { margin-top: 4px; }
+.odo-back .odo-all { position: absolute; left: 0; right: 0; top: calc(100% + 6px); margin: 0; }
+.odo-back .scan-note:not([hidden]) ~ .odo-all { display: none; }  /* the note takes the place of the link while it has something to say */
 @media (prefers-reduced-motion: reduce) { .odo-card3d { transition: none; } }
