@@ -102,6 +102,12 @@ def odometer_readings(conn: sqlite3.Connection, vehicle_id: int, limit: int = 80
     return list(reversed(rows))
 
 
+def odometer_from_car(conn: sqlite3.Connection, vehicle_id: int) -> bool:
+    """True while the latest odometer reading came from the car (a plugin) and not from a person: then the figure is shown, not edited."""
+    row = conn.execute("SELECT source FROM odometer WHERE vehicle_id = ? ORDER BY date DESC, id DESC LIMIT 1", (vehicle_id,)).fetchone()
+    return bool(row and row["source"] != "manual")
+
+
 def add_odometer(conn: sqlite3.Connection, vehicle_id: int, km: int, when: str | None = None, source: str = "manual") -> None:
     conn.execute(
         "INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES(?, ?, ?, ?)",

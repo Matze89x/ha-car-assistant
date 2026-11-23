@@ -86,6 +86,9 @@ def test_odometer_widget_look_is_saved_per_car(client):
     client.post(f"/v/{vid}/widgets", data={"ajax": "1", "k": ["odometer"], "opt_odometer_design": "nonsense", "on_odometer": "1"})
     with db.tx() as conn:
         assert next(w for w in widgets.layout(conn, vid) if w.key == "odometer").design == "tile"  # an unknown look changes nothing
+    client.post(f"/v/{vid}/widgets", data={"ajax": "1", "k": ["odometer"], "opt_odometer_design": "plate", "on_odometer": "1"})
+    with db.tx() as conn:
+        assert next(w for w in widgets.layout(conn, vid) if w.key == "odometer").design == "plate"  # the third look: the counter box
 
 
 def test_trip_duration_and_widget_extra_lines():

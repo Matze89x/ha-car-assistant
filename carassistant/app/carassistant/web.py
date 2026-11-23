@@ -919,6 +919,7 @@ def vehicle_overview(request: Request, vid: int):
             widgets=home_widgets.layout(conn, vid),
             hero_range=hero,
             odo_scan_on=receipt_available(),
+            odo_from_car=summary.odometer_from_car(conn, vid),
             odo_odd=any(r["odd"] for r in summary.odometer_readings(conn, vid, 400)),
             tank_info=tank_info,
             tank_unit=unit_for(vehicle["fuel_type"]),
@@ -1003,17 +1004,10 @@ async def odometer_quick(request: Request, vid: int):
 
 @app.get("/v/{vid}/odometer")
 def odometer_history(request: Request, vid: int):
-    """Every odometer value of the car in one list (readings, fill-ups, service, modifications, trips): the ones that do not fit are marked and a plain
-    reading can be deleted - the place to put a slip right."""
+    """The list of odometer readings lives in the vehicle passport (a section there), not on a page of its own: old links land on it."""
     with db.tx() as conn:
-        vehicle = vehicle_or_404(conn, vid)
-        return render(
-            request,
-            "odometer_page.html",
-            **vehicle_ctx(conn, vehicle, "overview"),
-            hide_hero=True,
-            readings=summary.odometer_readings(conn, vid),
-        )
+        vehicle_or_404(conn, vid)
+    return go(request, f"/v/{vid}/edit#odo-readings")
 
 
 @app.post("/v/{vid}/odometer/{row_id}/delete")
@@ -1022,7 +1016,7 @@ async def odometer_delete(request: Request, vid: int, row_id: int):
         vehicle_or_404(conn, vid)
         conn.execute("DELETE FROM odometer WHERE id = ? AND vehicle_id = ?", (row_id, vid))
     events.changed()
-    return go(request, f"/v/{vid}/odometer", "deleted")
+    return go(request, f"/v/{vid}/edit#odo-readings", "deleted")
 
 
 @app.get("/v/{vid}/edit")
@@ -1031,7 +1025,7 @@ def vehicle_edit(request: Request, vid: int):
         vehicle = vehicle_or_404(conn, vid)
         if request.query_params.get("mode") == "form":
             return vehicle_form_page(request, vehicle)
-        row = conn.execute("SELECT source FROM odometer WHERE vehicle_id = ? ORDER BY date DESC, id DESC LIMIT 1", (vid,)).fetchone()
+        readings = summary.odometer_readings(conn, vid)
         return render(
             request,
             "vehicle_data.html",
@@ -1039,9 +1033,10 @@ def vehicle_edit(request: Request, vid: int):
             tab="edit",
             hide_hero=True,  # the page has its own hero card
             odometer=summary.current_odometer(conn, vid),
-            odo_from_car=bool(row and row["source"] != "manual"),
+            odo_from_car=summary.odometer_from_car(conn, vid),
             odo_scan_on=receipt_available(),
-            odo_odd=any(r["odd"] for r in summary.odometer_readings(conn, vid, 400)),
+            odo_readings=readings,
+            odo_odd=any(r["odd"] for r in readings),
             vin_year=None if vehicle["year"] else vin_info.model_year(vehicle["vin"]),
             insp_estimate=None if summary.next_inspection(conn, vid) else _iso(summary.inspection_estimate(vehicle["first_reg"])),
             equip=equipment.groups(conn, vid, config.language()),

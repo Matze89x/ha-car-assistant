@@ -53,6 +53,6 @@
   {% endif %}
   {% elif odometer is not none %}
   <div class="hero-chips"><div class="schip"><span>{{ _('f.odometer') }}</span><b>{{ fnum(units.d(odometer)) }} {{ units.dist_unit }}</b></div></div>
-  {{ odo_entry() }}
+  {% if not (odo_from_car is defined and odo_from_car) %}{{ odo_entry() }}{% endif %}
   {% endif %}
 </div>

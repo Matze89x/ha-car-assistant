@@ -92,7 +92,7 @@
 {%- endmacro %}
 
 {# Labels of the widget settings (one entry per option and choice; add the next widget's options here) #}
-{% set WD_LABELS = {'design': _('wd.design'), 'design.drums': _('wd.design_drums'), 'design.tile': _('wd.design_tile')} %}
+{% set WD_LABELS = {'design': _('wd.design'), 'design.drums': _('wd.design_drums'), 'design.tile': _('wd.design_tile'), 'design.plate': _('wd.design_plate')} %}
 
 {# The odometer as drums (one cell per digit, the last in the accent colour); needs `odometer`. #}
 {% macro odo_drum() -%}
@@ -115,7 +115,7 @@
     <button class="odo-go" aria-label="{{ _('btn.save') }}" title="{{ _('btn.save') }}">{{ icon('enter', 18) }}</button>
   </div>
   <p class="hint scan-note" data-scan-note hidden></p>
-  {% if odometer is not none %}<a class="odo-all" href="{{ base }}/v/{{ v.slug }}/odometer">{{ icon('list', 16) }}<span>{{ _('odo.history_link') }}</span></a>{% endif %}
+  {% if odometer is not none %}<a class="odo-all" href="{{ base }}/v/{{ v.slug }}/edit#odo-readings">{{ icon('list', 16) }}<span>{{ _('odo.history_link') }}</span></a>{% endif %}
 </form>
 {%- endmacro %}
 
@@ -124,24 +124,25 @@
 <div class="odo-edit">
   <button type="button" class="odo-open{{ ' first' if first }}" data-odo-open aria-label="{{ _('odo.edit') }}" title="{{ _('odo.edit') }}">{% if first %}<b class="odo-drum ghost" aria-hidden="true">{% for n in range(6) %}<i>–</i>{% endfor %}</b><span class="odo-unit">{{ units.dist_unit }}</span>{% else %}{{ icon('pencil', 14) }}<span>{{ _('odo.edit') }}</span>{% endif %}</button>
   {{ odo_form(true) }}
-  {% if odo_odd %}<a class="odo-all odd" href="{{ base }}/v/{{ v.slug }}/odometer">{{ icon('alert', 14) }}<span>{{ _('odo.odd_link') }}</span></a>{% endif %}
+  {% if odo_odd %}<a class="odo-all odd" href="{{ base }}/v/{{ v.slug }}/edit#odo-readings">{{ icon('alert', 14) }}<span>{{ _('odo.odd_link') }}</span></a>{% endif %}
 </div>
 {%- endmacro %}
 
 {# the dashboard: the odometer is a plate that turns over like a flip card - the figure on the front, the box to type on the back #}
-{% macro odo_plate(first=false) -%}
-<div class="odo-flip">
+{% macro odo_plate(first=false, flip=true) -%}
+{% set fixed = (not flip) or (odo_from_car is defined and odo_from_car) %}  {# a plugin reports the odometer, or this is the widget: a plain plate, nothing to turn over #}
+<div class="odo-flip{{ ' odo-static' if fixed }}">
   <small class="odo-cap">{{ icon('counter', 16) }}<span>{{ _('f.odometer') }}</span></small>
   <div class="odo-card3d">
-    <div class="odo-face odo-front" data-odo-open role="button" tabindex="0" title="{{ _('odo.edit') }}">
+    <div class="odo-face odo-front"{% if not fixed %} data-odo-open role="button" tabindex="0" title="{{ _('odo.edit') }}"{% endif %}>
       <div class="odo-t">
         <div class="odo-line">{% if first %}<b class="odo-drum ghost" aria-hidden="true">{% for n in range(6) %}<i>–</i>{% endfor %}</b><span class="unit odo-unit">{{ units.dist_unit }}</span>{% else %}{{ odo_drum() }}{% endif %}</div></div>
     </div>
-    <div class="odo-face odo-back">
+    {% if not fixed %}<div class="odo-face odo-back" inert>
       {{ odo_form() }}
-    </div>
+    </div>{% endif %}
   </div>
-  {% if odo_odd %}<a class="odo-all odd" href="{{ base }}/v/{{ v.slug }}/odometer">{{ icon('alert', 14) }}<span>{{ _('odo.odd_link') }}</span></a>{% endif %}
+  {% if odo_odd %}<a class="odo-all odd" href="{{ base }}/v/{{ v.slug }}/edit#odo-readings">{{ icon('alert', 14) }}<span>{{ _('odo.odd_link') }}</span></a>{% endif %}
 </div>
 {%- endmacro %}
 

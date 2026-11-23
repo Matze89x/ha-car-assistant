@@ -52,7 +52,7 @@ REGISTRY: tuple[Widget, ...] = (
     Widget("security", "s", "security", "c2", "tab.security", "security"),
     Widget("service", "s", "wrench", "c4", "nav.service", "service"),
     Widget("appointments", "s", "calendar", "c6", "tab.appointments", "appointments"),
-    Widget("odometer", "m", "counter", "c3", "f.odometer", options=(("design", ("drums", "tile")),)),
+    Widget("odometer", "m", "counter", "c3", "f.odometer", options=(("design", ("drums", "tile", "plate")),)),
     Widget("trips", "s", "route", "c7", "tile.last_trip", "trips"),
     Widget("fuel", "s", "fuel", "c1", "nav.fuel", "fuel"),
     Widget("fuel_avg", "s", "chart", "c5", "tile.avg", "fuel"),

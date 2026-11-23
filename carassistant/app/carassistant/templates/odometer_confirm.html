@@ -7,7 +7,7 @@
   <p class="hint">{{ _('odo.confirm_note') }}</p>
   <div class="actions">
     <a class="button" href="{{ base }}/v/{{ v.slug }}">{{ icon('close', 18) }}<span>{{ _('btn.cancel') }}</span></a>
-    <a class="button" href="{{ base }}/v/{{ v.slug }}/odometer">{{ icon('list', 18) }}<span>{{ _('odo.history_link') }}</span></a>
+    <a class="button" href="{{ base }}/v/{{ v.slug }}/edit#odo-readings">{{ icon('list', 18) }}<span>{{ _('odo.history_link') }}</span></a>
     <form method="post" action="{{ base }}/v/{{ v.slug }}/odometer/quick" class="inline"><input type="hidden" name="odometer" value="{{ value }}"><input type="hidden" name="confirm" value="1"><button class="primary">{{ icon('check', 18) }}<span>{{ _('odo.confirm_yes') }}</span></button></form>
   </div>
 </section>

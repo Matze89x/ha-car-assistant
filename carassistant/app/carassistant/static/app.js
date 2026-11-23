@@ -660,6 +660,9 @@ document.addEventListener("click", function (event) {
     if (!form) { return; }
     if (scope.classList.contains("odo-flip")) {  /* the figure is a page: it turns up and away, the box lies underneath */
       scope.classList.toggle("open", on);
+      var front = scope.querySelector(".odo-front"), back = scope.querySelector(".odo-back");  /* the side that is turned away cannot be tabbed to */
+      if (front) { front.inert = on; }
+      if (back) { back.inert = !on; }
       if (on) { var field = form.querySelector("input[name=odometer]"); if (field) { field.focus(); } }
       return;
     }
@@ -684,6 +687,16 @@ document.addEventListener("click", function (event) {
   });
 })();
 
+// The list of odometer readings is a section of the vehicle passport: a link to #odo-readings (the plate, the confirm page, an old address) opens it.
+(function () {
+  function openReadings() {
+    var d = location.hash === "#odo-readings" ? document.getElementById("odo-readings") : null;
+    if (d && d.tagName === "DETAILS") { d.open = true; d.scrollIntoView(); }
+  }
+  openReadings();
+  window.addEventListener("hashchange", openReadings);
+})();
+
 // The odometer plate runs like a real mechanical counter: every cell is a strip of digits that rolls down through the box and stops on its figure (the cells on the
 // right roll longer). Nothing flies in; with reduced motion the figure is simply there.
 (function () {
@@ -703,6 +716,7 @@ document.addEventListener("click", function (event) {
     }
     cell.textContent = "";
     cell.appendChild(strip);
+    strip.addEventListener("animationend", function () { cell.textContent = String(d); });  /* done rolling: back to one plain digit (small DOM, no layer) */
   });
 })();
 

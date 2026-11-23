@@ -366,7 +366,6 @@ dialog.cdlg { width: min(440px, calc(100% - 28px)); }
 
 /* Home hero without a reported range: the odometer in a glass card with an icon chip (and the tank level when known) */
 .odo-card { grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 14px; }
-.odo-t small { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
 .odo-t b { display: block; font: 700 32px/1.1 'Space Grotesk', system-ui, sans-serif; }
 .odo-t .unit { color: var(--muted); letter-spacing: 0; }
 .odo-tank { align-items: center; gap: 6px; font-weight: 600; color: var(--muted); }
@@ -377,7 +376,6 @@ dialog.cdlg { width: min(440px, calc(100% - 28px)); }
 
 /* odometer only: no box - icon + label, the big number below, centred like the car above */
 .odo-card { display: block; padding: 4px 0 0; margin: 6px 0 0; text-align: center; border: 0; border-radius: 0; background: none; }
-.odo-t small { display: inline-flex; align-items: center; gap: 7px; }
 .odo-t b { font-size: 52px; letter-spacing: -.03em; font-weight: 400; }
 .odo-t .unit { font-size: 20px; font-weight: 500; margin-left: 8px; }
 .odo-tank { display: flex; justify-content: center; margin-top: 10px; }
@@ -386,8 +384,6 @@ dialog.cdlg { width: min(440px, calc(100% - 28px)); }
 /* odometer only: docked to the car (the glow under the car overlaps the label) and the same block gap below as everywhere */
 .hero-car-wrap + .odo-card { margin-top: -16px; margin-bottom: calc(var(--sp-block) - 14px); position: relative; z-index: 2; }
 .odo-t b { margin-top: 0; line-height: 1; }
-.odo-t small { margin-bottom: 2px; }
-.odo-t small .ico { color: var(--ok); }
 
 /* ===== Home widgets: one uniform tile, one grid ===== */
 .wgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
@@ -1314,8 +1310,8 @@ dialog.addon-dlg { padding: 14px 12px 16px; }
 .odo-next.over .odo-next-t { color: var(--overdue); }
 
 /* widgets with two looks: the slot's data-d shows one (chosen while editing); the free look has no frame */
-.wd-look-tile, .wd-look-drums { display: contents; }
-.wd-slot[data-opt-design="tile"] .wd-look-drums, .wd-slot[data-opt-design="drums"] .wd-look-tile { display: none; }
+.wd-look-tile, .wd-look-drums, .wd-look-plate { display: none; }
+.wd-slot[data-opt-design="tile"] .wd-look-tile, .wd-slot[data-opt-design="drums"] .wd-look-drums, .wd-slot[data-opt-design="plate"] .wd-look-plate { display: contents; }
 
 /* the drums adapt to the width of their widget (small or wide): sizes follow the slot's own width, capped at the full size */
 .wd-slot[data-opts] { container-type: inline-size; }
@@ -1323,6 +1319,7 @@ dialog.addon-dlg { padding: 14px 12px 16px; }
 
 /* only widgets with settings get the edit button */
 .wd-slot > .wd-look-tile > .wd, .wd-slot > .wd-look-drums > .wd { flex: 1 1 auto; min-width: 0; }
+.wd-slot > .wd-look-plate { flex: 1 1 auto; min-width: 0; }
 
 /* both looks fill the slot like every other tile */
 
@@ -3227,15 +3224,12 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
    number as big digits, the photo button inside it and the enter strip on its right (the contour divides it, like the sort strip) */
 .odo-edit { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 10px 0 0; }
 .odo-line { display: flex; align-items: center; justify-content: center; }
-.odo-line, .odo-line .odo-drum, .odo-front { cursor: pointer; }  /* a tap on the figure opens the editor too */
-.odo-pencil { flex: 0 0 auto; display: grid; place-items: center; width: 40px; height: 40px; margin-right: 8px; padding: 0; border: 0; border-radius: 999px; background: none; box-shadow: none; color: var(--dim); cursor: pointer; }  /* as wide as the unit on the right: the figure stays centred */
-.odo-pencil:hover, .odo-pencil:focus-visible { color: var(--strong); background: rgba(var(--fg-rgb), .08); }
 .odo-open { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 14px; border-radius: 999px; border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .05); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; }
 .odo-open:hover { color: var(--strong); }
 .odo-open.first { gap: 10px; min-height: 0; padding: 0; border: 0; background: none; color: var(--dim); }
 .odo-open.first .odo-unit { font-size: 20px; font-weight: 500; }
 .odo-drum.ghost { opacity: .4; }
-.odo-open[hidden], .odo-entry[hidden], .odo-pencil[hidden] { display: none; }
+.odo-open[hidden], .odo-entry[hidden] { display: none; }
 .odo-entry { width: min(100%, 300px); }
 .odo-box { display: flex; align-items: stretch; min-height: 56px; border: 1px solid var(--glass-b); border-radius: var(--r-s); background: rgba(var(--fg-rgb), .06); overflow: hidden; }
 .odo-box:focus-within { border-color: var(--accent); }
@@ -3265,34 +3259,41 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 .vd-odo { margin: 14px 0 0; }
 .vd-odo .odo-edit { margin: 0; }
 
-/* the odometer on the dashboard is a FLIP CARD: a plate with the figure on its front and the box to type the number on its back; the pencil (or a tap on the
-   figure) turns it over from top to bottom, with a little overshoot, and the close button (or Escape) turns it back */
-.odo-flip { width: fit-content; min-width: min(100%, 300px); max-width: 100%; margin: 6px auto 0; transition: margin-bottom .3s; perspective: 1100px; }  /* the plate is exactly as wide as the figure; the box on the back takes that width */
+/* THE ODOMETER PLATE (dashboard, and as the third look of the odometer widget). A dark box like the instrument cluster; the figure is a mechanical counter
+   whose cells roll down through the box (app.js builds the strips). On the dashboard it is a FLIP CARD: a tap on the front turns it over from top to bottom
+   (a little overshoot) and shows the box to type the number on its back; a tap anywhere else (or Escape) turns it back. With a plugin reporting the
+   odometer, and in the widget, it is a plain plate (.odo-static): nothing to flip. The colours are tokens, so the light theme has its own. */
+:root { --odo-box: rgba(0, 0, 0, .38); --odo-cell: linear-gradient(180deg, rgba(0, 0, 0, .35), rgba(var(--fg-rgb), .03) 50%, rgba(0, 0, 0, .35)); }
+:root[data-theme="light"], :root[data-theme="auto"] { --odo-box: rgba(var(--shade-rgb), .05); --odo-cell: linear-gradient(180deg, rgba(var(--shade-rgb), .07), rgba(var(--panel-rgb), .7) 50%, rgba(var(--shade-rgb), .07)); }
+.odo-flip { width: fit-content; min-width: min(100%, 300px); max-width: 100%; margin: 6px auto 0; perspective: 1100px; transition: margin-bottom .3s; }
+.odo-flip.open { margin-bottom: 30px; }  /* room for the line under the plate (read from a photo / all readings) */
+.odo-cap { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 0 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 600; }  /* the label sits above the plate, outside the box */
+.odo-cap .ico, .odo-all .ico { color: var(--ok); }  /* the icon in the OK colour */
 .odo-card3d { position: relative; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.3, 1.28, .45, 1); }
 .odo-flip.open .odo-card3d { transform: rotateX(180deg); }
-.odo-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid var(--glass-b); background: rgba(0, 0, 0, .38); box-shadow: 0 6px 16px rgba(0, 0, 0, .16); }  /* a dark box like the instrument cluster, as the input was */
-.odo-cap .ico, .odo-all .ico { color: var(--ok); }  /* as the label of the figure has always been: the icon in the OK colour */
-.odo-cap { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 0 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 600; }  /* the label sits above the plate, outside the box */
-.odo-front { position: relative; padding: 0 12px; }
-.odo-flip .odo-front .odo-drum { gap: 0; }
-.odo-flip .odo-front .odo-drum i { width: 34px; height: 54px; font-size: 32px; border: 0; border-left: 1px solid var(--glass-b); border-radius: 0; box-shadow: none; background: linear-gradient(180deg, rgba(0, 0, 0, .35), rgba(var(--fg-rgb), .03) 50%, rgba(0, 0, 0, .35)); }  /* like a real counter: the cells fill the box top to bottom, only the dividers run through */
-.odo-flip .odo-front .odo-drum i { display: block; overflow: hidden; line-height: 54px; text-align: center; animation: none; }
+.odo-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; -webkit-backface-visibility: hidden; backface-visibility: hidden; border: 1px solid var(--glass-b); background: var(--odo-box); box-shadow: 0 6px 16px rgba(var(--shade-rgb), .16); }
+.odo-front { position: relative; padding: 0 12px; cursor: pointer; }  /* in the flow: it gives the plate its size (the back lies exactly on it) */
+.odo-front:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.odo-static .odo-front { cursor: default; }
+.odo-front .odo-t, .odo-front .odo-line { margin: 0; }
+.odo-front .odo-t b.odo-drum { margin: 0; gap: 0; }
+.odo-front .odo-drum i { display: block; width: 34px; height: 54px; overflow: hidden; font-size: 32px; line-height: 54px; text-align: center; border: 0; border-left: 1px solid var(--glass-b); border-radius: 0; box-shadow: none; background: var(--odo-cell); color: var(--text); animation: none; }  /* like a real counter: the cells fill the box top to bottom, only the dividers run through */
+.odo-front .odo-drum i:last-of-type { border-right: 1px solid var(--glass-b); }
+.odo-front .odo-drum i.last, :root[data-theme] .odo-front .odo-drum i.last { color: var(--text); border-color: var(--glass-b); background: var(--odo-cell); }  /* the last cell is not marked in colour (in no theme) */
+.odo-front .odo-drum .unit { font-size: 16px; margin-left: 6px; }
+@media (max-width: 420px) { .odo-front { padding: 0 8px; } .odo-front .odo-drum i { width: 30px; } }  /* seven or eight digits still fit a phone */
 .odo-strip { display: flex; flex-direction: column; animation: odo-run var(--odo-t, 1s) cubic-bezier(.2, .75, .25, 1) both; }
 .odo-strip span { display: block; flex: none; height: 54px; line-height: 54px; }
 @keyframes odo-run { from { transform: translateY(calc(var(--odo-n) * -54px)); } to { transform: none; } }
-.odo-flip .odo-front .odo-drum i:last-of-type { border-right: 1px solid var(--glass-b); }
-.odo-flip .odo-front .odo-drum i.last { color: var(--text); border-color: var(--glass-b); background: linear-gradient(180deg, rgba(0, 0, 0, .35), rgba(var(--fg-rgb), .03) 50%, rgba(0, 0, 0, .35)); }  /* the last cell is not marked in colour */
-.odo-flip .odo-front .odo-drum .unit { font-size: 16px; margin-left: 6px; }
-.odo-front .odo-t, .odo-front .odo-line { margin: 0; }
-.odo-front .odo-t b.odo-drum { margin: 0; }
-.odo-front { justify-content: center; }
 .odo-back { transform: rotateX(180deg); padding: 0; align-items: stretch; }  /* the back IS the box: no second frame inside the plate */
-.odo-flip.open { margin-bottom: 30px; }  /* room for the line under the plate (read from a photo / all readings) */
 .odo-back .odo-entry { flex: 1; display: flex; width: 100%; min-height: 0; }
 .odo-back .odo-box { flex: 1; min-height: 0; border: 0; border-radius: var(--r-surface); overflow: hidden; background: none; }
 .odo-back .odo-box input[name="odometer"] { padding-left: 18px; }
-.odo-face .odo-t { margin: 0; }
 .odo-back .scan-note { position: absolute; left: 0; right: 0; top: calc(100% + 6px); margin: 0; text-align: center; }
 .odo-back .odo-all { position: absolute; left: 0; right: 0; top: calc(100% + 8px); margin: 0; gap: 7px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }  /* the same look as the label above the plate */
 .odo-back .scan-note:not([hidden]) ~ .odo-all { display: none; }  /* the note takes the place of the link while it has something to say */
-@media (prefers-reduced-motion: reduce) { .odo-card3d { transition: none; } }
+/* as the third look of the odometer widget the plate follows the width of its slot (small or wide), the cells shrink with it */
+.wd-look-plate .odo-flip { min-width: 0; }
+.wd-look-plate .odo-front .odo-drum i { width: min(34px, 10.5cqw); }
+.wd-look-plate .odo-front .odo-drum i, .wd-look-plate .odo-strip span { font-size: min(32px, 9.5cqw); }
+@media (prefers-reduced-motion: reduce) { .odo-card3d, .odo-flip { transition: none; } .odo-strip { animation: none; } }

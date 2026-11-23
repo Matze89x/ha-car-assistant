@@ -270,8 +270,12 @@ def test_the_odometer_list_marks_what_does_not_fit_and_a_plain_reading_can_be_de
             "",
         ]  # newest first, only the typo marked
         bad = next(r for r in rows if r["odd"])
-    page = client.get(f"/v/{slug(vid)}/odometer").text
-    assert 'class="odo-hrow odd"' in page and page.count("odo-hrow") == 3 and "notice warn" in page
+    old = client.get(
+        f"/v/{slug(vid)}/odometer", follow_redirects=False
+    )  # no page of its own any more: the old address lands in the passport
+    assert old.status_code == 303 and old.headers["location"].endswith(f"/v/{slug(vid)}/edit#odo-readings")
+    page = client.get(f"/v/{slug(vid)}/edit").text
+    assert 'id="odo-readings"' in page and 'class="odo-hrow odd"' in page and page.count("odo-hrow") == 3 and "notice warn" in page
     assert "odo-all odd" in client.get(f"/v/{slug(vid)}").text  # the dashboard points at it
     assert client.post(f"/v/{slug(vid)}/odometer/{bad['id']}/delete", follow_redirects=False).status_code == 303
     with db.tx() as conn:
@@ -314,3 +318,24 @@ def test_the_odometer_on_the_dashboard_is_a_flip_card_that_shows_the_last_readin
     assert (
         'name="odometer" inputmode="numeric" pattern="[0-9 .,]*" maxlength="9" autocomplete="off" value' not in page
     )  # and nothing is typed for you
+
+
+def test_the_plate_is_fixed_while_a_plugin_reports_the_odometer_and_the_hidden_side_is_inert(client):
+    from tests.test_web import create_vehicle, slug
+
+    from carassistant import db
+
+    vid = create_vehicle(client)
+    with db.tx() as conn:
+        conn.execute("DELETE FROM odometer WHERE vehicle_id = ?", (vid,))
+        conn.execute("INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, '2026-01-01', 12345, 'manual')", (vid,))
+    page = client.get(f"/v/{slug(vid)}").text
+    assert (
+        'class="odo-face odo-back" inert' in page and "odo-static" not in page
+    )  # typed by hand: it turns over, the back is not reachable by Tab
+    with db.tx() as conn:
+        conn.execute("INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, '2026-01-02', 12400, 'plugin')", (vid,))
+    page = client.get(f"/v/{slug(vid)}").text
+    assert (
+        "odo-flip odo-static" in page and "odo-face odo-back" not in page and "data-odo-open" not in page
+    )  # reported by the car: just shown
