@@ -4,6 +4,14 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.20 Beta
+- New: Scan receipt when adding a fill-up. A photo of the fuel receipt is read on your own server (text recognition, nothing goes online, the photo is not kept) and fills in the date, amount, price per unit, total, station and fuel; the marked fields are for you to check, and the app checks that amount x price = total.
+- New integration **Map**: one full-area map with the car and - when you allow it in the browser - your own position, a place search and *Navigate*. A destination goes to the plugin of the car when it offers navigation (new optional plugin capability `navigate`, an addition to the interface, see docs/plugins.md), otherwise to a navigation service - Google Maps by default, or Apple Maps, Waze, Bing Maps, OpenStreetMap, Mapy.com, HERE WeGo, Yandex, Magic Earth, Sygic or a generic Android link (Settings -> System -> Navigation). Off by default for a new car.
+- Home Assistant: every car gets the sensor "Last notification" that shows everything the app announces for it, without anybody having set up notifications, so an automation can pass it on as push or speech (switch in Settings -> System, on by default). The MQTT sensors are now on by default in a NEW installation when a broker is found.
+- Fixed: an own (external) MQTT broker could not be connected - an add-on option left empty arrived as the word "null" and broke the start and the System page; the address may be typed as `192.168.1.5`, `192.168.1.5:1883` or `mqtt://host:1883`, port 8883 or `mqtts://` is encrypted, and every installation has its own client id. The MQTT card now says why the broker is not reached.
+- Plugins: shorter package page ("Approve and install" bottom right), ONE start/stop switch and a highlighted update line on every installed plugin, real tabs on the Info page. A plugin with a set-up guide gets its token ONLY in step 2 (new, existing or kept) and the token can be read again in its settings.
+- Pages: a faint count line at the bottom of pages with many entries, links are never underlined on hover, messages show their text instead of a raw key, cleaner design (two kinds of tab bars, about 9 % less CSS), stricter security headers (also HSTS over https), and the MCP manual says clearly that MQTT is not needed for Claude.
+
 ## 0.5.19 Beta
 - Fuel station search: price and distance sorting is now one small round switch with two symbols in the top right of the card instead of a second tab bar.
 
