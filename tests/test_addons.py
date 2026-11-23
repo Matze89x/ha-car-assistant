@@ -295,7 +295,9 @@ def test_an_existing_token_gets_the_connection_file_again_without_a_new_token(cl
     page = client.get(f"/v/{slug(vid)}/integrations/{item['id']}/settings").text
     assert "I already have the token" in page and "New token" in page  # both ways side by side
     bad = client.post(url, data={"token": "ca_not-the-token"})
-    assert bad.status_code == 400 and "not the token of this plugin" in bad.text and token not in bad.text
+    assert (
+        bad.status_code == 400 and "not the token of this plugin" in bad.text and "ca_not-the-token" not in bad.text
+    )  # the typed value is not echoed (the page itself shows the kept token to the administrator)
     assert client.post(url, data={"token": ""}).status_code == 400
     good = client.post(url, data={"token": token})
     assert (
