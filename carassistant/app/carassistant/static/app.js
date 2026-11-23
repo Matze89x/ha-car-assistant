@@ -668,12 +668,16 @@ document.addEventListener("click", function (event) {
     if (on) { var input = form.querySelector("input[name=odometer]"); if (input) { input.focus(); } }
   }
   document.addEventListener("click", function (e) {
+    Array.prototype.forEach.call(document.querySelectorAll(".odo-flip.open"), function (flip) {  /* a tap anywhere but on the plate turns it back */
+      if (!flip.contains(e.target)) { show(flip, false); }
+    });
     var open = e.target.closest && e.target.closest("[data-odo-open], .odo-line .odo-drum");  /* the figure itself opens it as well */
     if (!open) { return; }
     var scope = scopeOf(open), form = scope.querySelector(".odo-entry");
     if (form) { show(scope, scope.classList.contains("odo-flip") ? !scope.classList.contains("open") : form.hidden); }
   });
   document.addEventListener("keydown", function (e) {
+    if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("odo-line")) { e.preventDefault(); e.target.click(); return; }  /* the figure is a button */
     if (e.key !== "Escape") { return; }
     var form = e.target.closest && e.target.closest(".odo-entry");
     if (form) { show(scopeOf(form), false); }

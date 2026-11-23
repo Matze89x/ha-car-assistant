@@ -133,12 +133,11 @@
 <div class="odo-flip">
   <div class="odo-card3d">
     <div class="odo-face odo-front">
-      <div class="odo-t"><small>{{ icon('counter', 16) }}<span>{{ _('f.odometer') }}</span></small>
-        <div class="odo-line"><button type="button" class="odo-pencil" data-odo-open aria-label="{{ _('odo.edit') }}" title="{{ _('odo.edit') }}">{{ icon('pencil', 18) }}</button>{% if first %}<b class="odo-drum ghost" aria-hidden="true">{% for n in range(6) %}<i>–</i>{% endfor %}</b><span class="unit odo-unit">{{ units.dist_unit }}</span>{% else %}{{ odo_drum() }}{% endif %}</div></div>
+      <div class="odo-t">
+        <div class="odo-line" data-odo-open role="button" tabindex="0" title="{{ _('odo.edit') }}">{% if first %}<b class="odo-drum ghost" aria-hidden="true">{% for n in range(6) %}<i>–</i>{% endfor %}</b><span class="unit odo-unit">{{ units.dist_unit }}</span>{% else %}{{ odo_drum() }}{% endif %}</div></div>
     </div>
     <div class="odo-face odo-back">
       {{ odo_form() }}
-      <button type="button" class="odo-close" data-odo-open aria-label="{{ _('btn.close') }}" title="{{ _('btn.close') }}">{{ icon('close', 16) }}</button>
     </div>
   </div>
   {% if odo_odd %}<a class="odo-all odd" href="{{ base }}/v/{{ v.slug }}/odometer">{{ icon('alert', 14) }}<span>{{ _('odo.odd_link') }}</span></a>{% endif %}

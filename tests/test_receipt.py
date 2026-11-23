@@ -303,11 +303,11 @@ def test_the_odometer_on_the_dashboard_is_a_flip_card_that_shows_the_last_readin
         conn.execute("DELETE FROM odometer WHERE vehicle_id = ?", (vid,))
         conn.execute("INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, '2026-01-01', 12345, 'manual')", (vid,))
     page = client.get(f"/v/{slug(vid)}").text
-    assert 'class="odo-pencil"' in page and 'class="odo-line"' in page  # the pencil sits beside the figure
+    assert 'class="odo-line" data-odo-open role="button"' in page and 'class="odo-pencil"' not in page  # the figure is the button, no icon
     assert (
         'class="odo-flip"' in page and 'class="odo-face odo-front"' in page and 'class="odo-face odo-back"' in page
     )  # figure in front, box behind
-    assert "odo-flip open" not in page and 'class="odo-close"' in page  # shown from the front; the back has its own close
+    assert "odo-flip open" not in page and 'class="odo-close"' not in page  # shown from the front; a tap outside turns it back
     assert 'placeholder="12345"' in page  # the last reading is the hint in the box - not text to delete
     assert (
         'name="odometer" inputmode="numeric" pattern="[0-9 .,]*" maxlength="9" autocomplete="off" value' not in page

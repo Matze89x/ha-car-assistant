@@ -3227,7 +3227,7 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
    number as big digits, the photo button inside it and the enter strip on its right (the contour divides it, like the sort strip) */
 .odo-edit { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 10px 0 0; }
 .odo-line { display: flex; align-items: center; justify-content: center; }
-.odo-line .odo-drum { cursor: pointer; }  /* a tap on the figure opens the editor too */
+.odo-line, .odo-line .odo-drum { cursor: pointer; }  /* a tap on the figure opens the editor too */
 .odo-pencil { flex: 0 0 auto; display: grid; place-items: center; width: 40px; height: 40px; margin-right: 8px; padding: 0; border: 0; border-radius: 999px; background: none; box-shadow: none; color: var(--dim); cursor: pointer; }  /* as wide as the unit on the right: the figure stays centred */
 .odo-pencil:hover, .odo-pencil:focus-visible { color: var(--strong); background: rgba(var(--fg-rgb), .08); }
 .odo-open { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 14px; border-radius: 999px; border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .05); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; }
@@ -3266,15 +3266,16 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 
 /* the odometer on the dashboard is a FLIP CARD: a plate with the figure on its front and the box to type the number on its back; the pencil (or a tap on the
    figure) turns it over from top to bottom, with a little overshoot, and the close button (or Escape) turns it back */
-.odo-flip { width: min(100%, 340px); margin: 10px auto 0; perspective: 1100px; }
-.odo-card3d { position: relative; height: 116px; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.3, 1.28, .45, 1); }
+.odo-flip { width: fit-content; max-width: 100%; margin: 6px auto 0; perspective: 1100px; }  /* the plate is exactly as wide as the figure; the box on the back takes that width */
+.odo-card3d { position: relative; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.3, 1.28, .45, 1); }
 .odo-flip.open .odo-card3d { transform: rotateX(180deg); }
-.odo-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid var(--glass-b); background: linear-gradient(rgba(var(--fg-rgb), .07), rgba(var(--fg-rgb), .03)), var(--card); box-shadow: 0 1px 0 rgba(var(--fg-rgb), .06) inset, 0 14px 30px rgba(0, 0, 0, .32); }
-.odo-back { transform: rotateX(180deg); }
+.odo-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid rgba(var(--accent-rgb), .16); background: linear-gradient(rgba(var(--accent-rgb), .07), rgba(var(--accent-rgb), .02)), rgba(var(--fg-rgb), .02); box-shadow: 0 10px 26px rgba(0, 0, 0, .18); }
+.odo-front { position: relative; padding: 8px 10px; }
+.odo-front .odo-t, .odo-front .odo-line { margin: 0; }
+.odo-front .odo-t b.odo-drum { margin: 0; }
+.odo-back { transform: rotateX(180deg); padding: 8px 10px; }
 .odo-face .odo-t { margin: 0; }
-.odo-back .odo-entry { width: min(100%, 290px); }
+.odo-back .odo-entry { width: 100%; }
 .odo-back .scan-note { position: absolute; left: 0; right: 0; top: calc(100% + 6px); margin: 0; text-align: center; }
-.odo-close { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 999px; background: none; box-shadow: none; color: var(--dim); cursor: pointer; }
-.odo-close:hover, .odo-close:focus-visible { color: var(--strong); background: rgba(var(--fg-rgb), .08); }
 .odo-back .odo-all { margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .odo-card3d { transition: none; } }
