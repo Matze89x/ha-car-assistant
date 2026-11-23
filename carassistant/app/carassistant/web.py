@@ -657,6 +657,10 @@ def parse_vehicle(form: dict[str, str]) -> dict:
     if fuel_type not in entities.FUEL_TYPES:
         raise FormError("err.choice", "f.fuel_type")
     values["fuel_type"] = fuel_type
+    second = form.get("fuel2_type") or ""
+    values["fuel2_type"] = (
+        second if second in entities.SECOND_FUELS and fuel_type in ("petrol", "diesel") else None
+    )  # only a petrol or diesel car is bi-fuel
     tank = (form.get("tank_l") or "").strip()
     values["tank_l"] = entities.parse_float(tank, "f.tank") if tank else None
     kwh = (form.get("battery_kwh") or "").strip()
@@ -771,6 +775,7 @@ def vehicle_form_page(request: Request, vehicle: sqlite3.Row | None, form: dict 
         form=form or (_shown_vehicle(vehicle) if vehicle else {"fuel_type": "petrol"}),
         error=error,
         fuel_types=entities.FUEL_TYPES,
+        second_fuels=entities.SECOND_FUELS,
         drivetrains=entities.DRIVETRAINS,
         transmissions=entities.TRANSMISSIONS,
         body_types=entities.BODY_TYPES,
@@ -1474,6 +1479,10 @@ def entity_page(request: Request, vid: int, key: str, form: dict | None = None, 
             from . import reminders as _rem
 
             extra["receipt_on"] = _receipt.available()  # a photo of the receipt fills in the form (needs text recognition on the server)
+            if vehicle["fuel2_type"]:  # a bi-fuel car: the second fuel has its own unit and its own consumption
+                extra["fuel2"] = vehicle["fuel2_type"]
+                extra["unit2"] = unit_for(vehicle["fuel2_type"])
+                extra["second_stats"] = fuelstats.overall(conn, vid, "second")
             extra["reminders"] = _rem.status(conn, vid)
             ctx.update(fuel_list_context(conn, vid, request))  # replaces the generic list's rows and pager
             return render(request, "fuel_page.html", status=status, form=form or {}, error=error, edit_id=edit_id, **ctx, **extra)

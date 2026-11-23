@@ -1,6 +1,6 @@
 /* Fuel receipt: a photo fills in the form of a new refuel (the server reads it, see receipt.py). Nothing is saved before the person presses save. */
 (function () {
-  var FIELDS = ['date', 'amount', 'price_per_unit', 'price_total', 'station', 'notes', 'odometer'];
+  var FIELDS = ['date', 'amount', 'price_per_unit', 'price_total', 'station', 'notes', 'odometer', 'fuel_kind'];
 
   function shrink(file, done) { /* longest side 2000 px, as JPEG: a small upload; the server cleans it up again */
     var url = URL.createObjectURL(file), img = new Image();

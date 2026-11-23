@@ -658,10 +658,19 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 .notice.err, .flash.err { border-color: rgba(var(--overdue-rgb), .45); background: linear-gradient(var(--overdue-bg), var(--overdue-bg)), var(--glass); }
 .notice.err .ico { color: var(--overdue); }
 .notice.fading { transition: opacity .5s ease, transform .5s ease; opacity: 0; transform: translateY(-4px); }
+/* Home has no header and so no slot: its messages are a toast - a tinted tile that floats in at the top and leaves again by itself (a tap sends it away) */
+.toast-host { position: fixed; z-index: 70; top: calc(env(safe-area-inset-top, 0px) + 14px); left: 50%; transform: translateX(-50%); display: grid; gap: 8px; width: min(520px, calc(100vw - 24px)); pointer-events: none; }
+.toast-host .notice { pointer-events: auto; cursor: pointer; box-shadow: 0 14px 34px rgba(0,0,0,.5); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); animation: toast-in .28s ease-out; }
+.toast-host .notice { background: var(--card); }  /* solid under the tint: what is behind it must not show through */
+.toast-host .notice.ok { background: linear-gradient(var(--ok-bg), var(--ok-bg)), var(--card); }
+.toast-host .notice.warn { background: linear-gradient(rgba(var(--soon-rgb), .14), rgba(var(--soon-rgb), .14)), var(--card); }
+.toast-host .notice.err { background: linear-gradient(var(--overdue-bg), var(--overdue-bg)), var(--card); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .toast-host .notice { animation: none; } }
 .notice.gone { display: none; }
 
 /* until notices.js (loaded right after the page, before the first paint) has moved them into the slot, the old places show nothing: no flash, no jump */
-main:has(> .notice-slot) .flash:not([id]):not(dialog *), main > .notice-slot + p.hint, main > .notice-slot + span.hint, main > .notice-slot + .set-scope, main > .notice-slot + .pk-bar:has(> .hint:only-child) { display: none; }
+main:has(> .notice-slot) .flash:not([id]):not(dialog *), main:not(:has(> .notice-slot)) > .flash:not([id]), main > .notice-slot + p.hint, main > .notice-slot + span.hint, main > .notice-slot + .set-scope, main > .notice-slot + .pk-bar:has(> .hint:only-child) { display: none; }
 .notice .hint, .notice p, .notice.set-scope, .notice.pk-bar { margin: 0; }
 
 /* Page changes keep showing the old page until the new one is ready (no white frame in between inside the Home Assistant app). */

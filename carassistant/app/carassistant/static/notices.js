@@ -2,7 +2,7 @@
   /* ONE place for every notice: the slot under the page header. Page introductions (the hint under the header), "saved" messages, warnings and errors
      all land there in the same tile, with an icon and the tint of their kind. */
   var main = document.querySelector("main"), slot = main && main.querySelector(".notice-slot"), icons = document.getElementById("notice-icons");
-  if (!slot) { return; }
+  if (!main) { return; }
   function icon(kind) { var s = icons && icons.content.querySelector('[data-k="' + kind + '"]'); return s ? s.firstElementChild.cloneNode(true) : null; }
   function tile(kind, nodes, cls) {
     var box = document.createElement("div"), body = document.createElement("span");
@@ -12,6 +12,20 @@
     nodes.forEach(function (n) { body.appendChild(n); });
     box.appendChild(body);
     return box;
+  }
+  if (!slot) {  /* a page without a header (Home): the messages float in as a toast and leave again - they take no room and stick to nothing */
+    var host = null;
+    main.querySelectorAll(".flash").forEach(function (el) {
+      if (el.hidden || el.id || el.closest("dialog")) { return; }
+      var kind = el.classList.contains("err") ? "err" : el.classList.contains("warn") ? "warn" : "ok";
+      var box = tile(kind, Array.prototype.slice.call(el.childNodes), "toast");
+      if (!host) { host = document.createElement("div"); host.className = "toast-host"; document.body.appendChild(host); }
+      host.appendChild(box); el.remove();
+      function leave() { box.classList.add("fading"); setTimeout(function () { box.remove(); }, 600); }
+      box.addEventListener("click", leave);  /* a tap sends it away */
+      setTimeout(leave, kind === "ok" ? 4000 : 9000);
+    });
+    return;
   }
   /* messages: ?m=saved and every old .flash in the page */
   main.querySelectorAll(".flash").forEach(function (el) {

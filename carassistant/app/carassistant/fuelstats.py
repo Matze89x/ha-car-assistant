@@ -27,10 +27,12 @@ class Interval:
         return None if self.cost is None else self.cost / self.km * 100
 
 
-def intervals(conn: sqlite3.Connection, vehicle_id: int) -> list[Interval]:
+def intervals(conn: sqlite3.Connection, vehicle_id: int, kind: str = "main") -> list[Interval]:
+    """The full-tank intervals of ONE fuel (a bi-fuel car has two: ``main`` and ``second``; the fill-ups of the other fuel are not part of it)."""
     rows = conn.execute(
-        "SELECT * FROM fuel WHERE vehicle_id = ? AND odometer_km IS NOT NULL ORDER BY odometer_km ASC, date ASC, id ASC",
-        (vehicle_id,),
+        "SELECT * FROM fuel WHERE vehicle_id = ? AND odometer_km IS NOT NULL AND COALESCE(fuel_kind, 'main') = ?"
+        " ORDER BY odometer_km ASC, date ASC, id ASC",
+        (vehicle_id, kind),
     ).fetchall()
     result: list[Interval] = []
     prev_full = None
@@ -139,14 +141,15 @@ def periods(conn: sqlite3.Connection, vehicle_id: int, group: str, count: int, t
     return sorted(found.values(), key=lambda m: m.month, reverse=True)
 
 
-def overall(conn: sqlite3.Connection, vehicle_id: int) -> dict:
-    ivs = intervals(conn, vehicle_id)
+def overall(conn: sqlite3.Connection, vehicle_id: int, kind: str = "main") -> dict:
+    ivs = intervals(conn, vehicle_id, kind)
     km = sum(i.km for i in ivs)
     amount = sum(i.amount for i in ivs)
     priced = [i for i in ivs if i.cost is not None]
     price_km = sum(i.km for i in priced)
     totals = conn.execute(
-        "SELECT COUNT(*) AS n, SUM(amount) AS amount, SUM(price_total) AS spent FROM fuel WHERE vehicle_id = ?", (vehicle_id,)
+        "SELECT COUNT(*) AS n, SUM(amount) AS amount, SUM(price_total) AS spent FROM fuel WHERE vehicle_id = ? AND COALESCE(fuel_kind, 'main') = ?",
+        (vehicle_id, kind),
     ).fetchone()
     return {
         "fills": totals["n"],

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -46,7 +47,10 @@ async def fuel_scan(request: Request, vid: int):
         result = await asyncio.to_thread(receipt.scan, data)
     except ValueError:
         raise HTTPException(400, "not a photo") from None
-    return JSONResponse(shown(result, units.of(vehicle), base), headers={"Cache-Control": "no-store"})
+    out = shown(result, units.of(vehicle), base)
+    if vehicle["fuel2_type"] == "lpg" and re.search(r"autogas|\blpg\b", result["notes"] or "", re.I):
+        out["fuel_kind"] = "second"  # the receipt says gas and the car has gas as its second fuel: the fill-up is one of that
+    return JSONResponse(out, headers={"Cache-Control": "no-store"})
 
 
 @app.post("/v/{vid}/odometer/scan")

@@ -192,6 +192,7 @@ SEASONS = ("summer", "winter", "allseason")
 TRIP_CATEGORIES = ("private", "business", "commute")
 KINDS = ("inspection", "service", "insurance", "tax", "other")
 FUEL_TYPES = ("petrol", "diesel", "lpg", "cng", "hybrid", "electric")
+SECOND_FUELS = ("lpg", "cng")  # a bi-fuel car (petrol or diesel plus gas) has one of these as its second fuel
 DRIVETRAINS = ("fwd", "rwd", "awd")
 TRANSMISSIONS = ("manual", "automatic", "dct", "cvt")
 BODY_TYPES = ("sedan", "wagon", "hatchback", "suv", "coupe", "convertible", "van", "pickup")
@@ -252,6 +253,7 @@ FUEL = Entity(
         Field("price_per_unit", "float", "f.price_unit", step="0.001", dim="price_vol"),
         Field("price_total", "float", "f.price_total", step="0.01"),
         Field("full_tank", "bool", "f.full_tank", default=1),
+        Field("fuel_kind", "choice", "f.fuel_kind", choices=("main", "second"), default="main", show=False),
         Field("station", "text", "f.station", show=False),
         Field("notes", "textarea", "f.notes", show=False),
     ),

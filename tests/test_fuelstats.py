@@ -134,3 +134,34 @@ def test_expense_list_has_every_priced_entry_newest_first_and_filters_by_kind(co
     assert [(r["kind"], r["cost"]) for r in rows] == [("service", 120.0), ("fuel", 60.0), ("mods", 900.0)]
     assert [r["kind"] for r in fuelstats.expenses(conn, vehicle, "month", 3, "mods", today=today)] == ["mods"]
     assert len(fuelstats.expenses(conn, vehicle, "month", 3, "nonsense", today=today)) == 3
+
+
+def test_a_bi_fuel_car_has_a_consumption_per_fuel_and_the_first_fuel_is_unchanged(client):
+    from tests.test_web import create_vehicle, slug
+
+    from carassistant import db, fuelstats
+
+    vid = create_vehicle(client)
+    client.post(f"/v/{slug(vid)}/edit", data={"name": "Gas car", "fuel_type": "petrol", "fuel2_type": "lpg"})
+    with db.tx() as conn:
+        assert conn.execute("SELECT fuel2_type FROM vehicles WHERE id = ?", (vid,)).fetchone()[0] == "lpg"
+        rows = [  # petrol: 0 -> 500 km uses 40 L; LPG: 100 -> 400 km uses 30 L
+            ("2026-01-01", 1000, 40.0, "main", 1),
+            ("2026-01-10", 1100, 20.0, "second", 1),
+            ("2026-01-20", 1400, 30.0, "second", 1),
+            ("2026-02-01", 1500, 40.0, "main", 1),
+        ]
+        for day, km, amount, kind, full in rows:
+            conn.execute(
+                "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_per_unit, price_total, full_tank, fuel_kind) VALUES (?, ?, ?, ?, 1.0, ?, ?, ?)",
+                (vid, day, km, amount, amount, full, kind),
+            )
+        main = fuelstats.overall(conn, vid)
+        second = fuelstats.overall(conn, vid, "second")
+    assert main["intervals"] == 1 and round(main["avg_per_100"], 1) == 8.0  # 40 L over 500 km - the gas fill-ups are not in it
+    assert second["intervals"] == 1 and round(second["avg_per_100"], 1) == 10.0 and second["fills"] == 2  # 30 L over 300 km
+    page = client.get(f"/v/{slug(vid)}/e/fuel").text
+    assert 'name="fuel_kind"' in page and "LPG" in page and "fuel-second" in page
+    # a car with one fuel has none of this
+    plain = create_vehicle(client)
+    assert 'name="fuel_kind"' not in client.get(f"/v/{slug(plain)}/e/fuel").text

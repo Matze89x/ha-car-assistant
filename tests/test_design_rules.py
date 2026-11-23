@@ -267,3 +267,15 @@ def test_everything_that_stands_on_its_own_on_a_page_has_ONE_corner_defined_in_o
     assert not bad, "a block that stands on its own has another corner than a card: " + "; ".join(bad)
     # the first block of a page starts level with the first card of the More list, also behind the (empty) notice slot
     assert ".page-head + .notice-slot + *" in sheets["pc-core.css"]
+
+
+def test_the_messages_of_a_page_without_a_header_float_as_a_toast_and_do_not_stick_to_the_page():
+    """Home has no header and so no notice slot: its messages are a toast (notices.js), solid under the tint, and are hidden until the script has moved them."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "carassistant/app/carassistant/static"
+    js = (root / "notices.js").read_text(encoding="utf-8")
+    css = (root / "pc-core.css").read_text(encoding="utf-8")
+    assert "toast-host" in js and "toast" in js and "if (!slot)" in js
+    assert ".toast-host" in css and "position: fixed" in css.split(".toast-host {", 1)[1].split("}", 1)[0]
+    assert "main:not(:has(> .notice-slot)) > .flash:not([id])" in css  # no flash of the old place before the toast appears

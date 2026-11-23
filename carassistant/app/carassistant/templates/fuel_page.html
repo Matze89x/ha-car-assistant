@@ -12,6 +12,7 @@
       <p class="hint scan-note" data-scan-note hidden></p>
       <p class="hint">{{ _('fuel.scan_hint') }}</p>
     </div>{% endif %}
+    {% if fuel2 %}<label>{{ _('f.fuel_kind') }}<select name="fuel_kind"><option value="main" {{ 'selected' if not r or (r['fuel_kind'] or 'main') == 'main' }}>{{ _('fuel_type.' ~ v.fuel_type) }}</option><option value="second" {{ 'selected' if r and r['fuel_kind'] == 'second' }}>{{ _('fuel_type.' ~ fuel2) }}</option></select></label>{% endif %}
     <div class="eq-two">{% for name in ('date', 'odometer_km') %}{% set f = entity.fields|selectattr('name', 'equalto', name)|first %}<label>{{ flabel(f) }}{{ field_input(f, disp(f, r[name]) if r else form.get(name), true) }}</label>{% endfor %}</div>
     <div class="eq-two">{% for name in ('amount', 'price_per_unit') %}{% set f = entity.fields|selectattr('name', 'equalto', name)|first %}<label>{{ flabel(f) }}{{ field_input(f, disp(f, r[name]) if r else form.get(name), true) }}</label>{% endfor %}</div>
     <div class="eq-two">{% set f = entity.fields|selectattr('name', 'equalto', 'price_total')|first %}<label>{{ flabel(f) }}{{ field_input(f, r['price_total'] if r else form.get('price_total'), true) }}</label>
@@ -85,19 +86,31 @@
       <div class="eq-acts fx-acts"><button class="ghost-btn small" formaction="{{ base }}/v/{{ v.slug }}/fuel-export.csv">{{ icon('download', 16) }} <span>CSV</span></button><button class="ghost-btn small" formaction="{{ base }}/v/{{ v.slug }}/fuel-export.pdf">{{ icon('download', 16) }} <span>PDF</span></button></div>
     </form>
   </div>
+  {% if fuel2 and second_stats and second_stats.fills %}
+  <section class="card fuel-second">
+    <h2>{{ icon('gas-station') }} {{ _('fuel_type.' ~ fuel2) }}</h2>
+    <dl class="rec-facts">
+      <div><dt>{{ _('fuel2.fills') }}</dt><dd>{{ second_stats.fills }}</dd></div>
+      {% if second_stats.avg_per_100 %}<div><dt>{{ _('fuel2.avg') }}</dt><dd>{{ fnum(units.c(second_stats.avg_per_100, unit2), 1) }} {{ units.consumption_unit(unit2) }}</dd></div>{% endif %}
+      {% if second_stats.cost_per_100 %}<div><dt>{{ _('fuel2.cost100') }}</dt><dd>{{ fnum(second_stats.cost_per_100, 2) }} {{ units.cur }}/100 km</dd></div>{% endif %}
+    </dl>
+    <p class="hint">{{ _('fuel2.note') }}</p>
+  </section>
+  {% endif %}
   {% if fuel_items %}
   <div class="rec-grid fuel-grid">
     {% for head, r in fuel_items %}
     {% if head %}<h3 class="rec-month"><span>{{ head.title }}</span></h3>{% endif %}
+    {% set ru = unit2 if (fuel2 and r['fuel_kind'] == 'second') else unit %}
     <article class="rec">
       <header class="rec-top">
         <div class="rec-main"><span class="rec-lead">{{ fdate(r['date']) }}</span>
-          <h3 class="rec-title">{% if r['amount'] is none and (r['notes'] or '').startswith('auto:') %}{{ _('fuel.todo_charge_title' if (r['notes'] or '').startswith('auto:charge') else 'fuel.todo_title') }}{% else %}{{ fnum(units.v(r['amount'], unit), 1) if r['amount'] is not none else '–' }} {{ units.vol_unit(unit) }}{% endif %}{% if r['station'] %} · {{ r['station'] }}{% endif %}</h3></div>
-        <div class="rec-badges">{% if r['price_total'] is not none %}<span class="badge">{{ fnum(r['price_total'], 2) }} {{ units.cur }}</span>{% endif %}</div>
+          <h3 class="rec-title">{% if r['amount'] is none and (r['notes'] or '').startswith('auto:') %}{{ _('fuel.todo_charge_title' if (r['notes'] or '').startswith('auto:charge') else 'fuel.todo_title') }}{% else %}{{ fnum(units.v(r['amount'], ru), 1) if r['amount'] is not none else '–' }} {{ units.vol_unit(ru) }}{% endif %}{% if r['station'] %} · {{ r['station'] }}{% endif %}</h3></div>
+        <div class="rec-badges">{% if fuel2 and r['fuel_kind'] == 'second' %}<span class="badge">{{ _('fuel_type.' ~ fuel2) }}</span>{% endif %}{% if r['price_total'] is not none %}<span class="badge">{{ fnum(r['price_total'], 2) }} {{ units.cur }}</span>{% endif %}</div>
       </header>
       <dl class="rec-facts">
         {% if r['odometer_km'] is not none %}<div><dt>{{ _('f.odometer') }}</dt><dd>{{ fnum(units.d(r['odometer_km']), 0) }} {{ units.dist_unit }}</dd></div>{% endif %}
-        {% if r['price_per_unit'] is not none %}<div><dt>{{ _('f.price_unit') }}</dt><dd>{{ fnum(units.price_vol(r['price_per_unit'], unit), 3) }} {{ units.cur }}/{{ units.vol_unit(unit) }}</dd></div>{% endif %}
+        {% if r['price_per_unit'] is not none %}<div><dt>{{ _('f.price_unit') }}</dt><dd>{{ fnum(units.price_vol(r['price_per_unit'], ru), 3) }} {{ units.cur }}/{{ units.vol_unit(ru) }}</dd></div>{% endif %}
         <div><dt>{{ _('f.full_tank') }}</dt><dd>{{ '✓' if r['full_tank'] else '–' }}</dd></div>
       </dl>
       <details class="rec-edit" {{ 'open' if edit_id == r['id'] }}>

@@ -70,6 +70,16 @@
         {% endfor %}
       </div>
     </div>
+    <div class="tf-field vf-fuel2"><span class="tf-l">{{ _('f.fuel2_type') }}</span>
+      <div class="season-pick fuel-pick">
+        {% set cur2 = form.get('fuel2_type') or '' %}
+        <label class="sp"><input form="vform" type="radio" name="fuel2_type" value="" {{ 'checked' if not cur2 }}><span>{{ icon('close', 22) }}<b>{{ _('fuel2.none') }}</b></span></label>
+        {% for ft in second_fuels %}
+        <label class="sp"><input form="vform" type="radio" name="fuel2_type" value="{{ ft }}" {{ 'checked' if cur2 == ft }}><span>{{ icon(fuel_icon.get(ft, 'gas-station'), 22) }}<b>{{ _('fuel_type.' ~ ft) }}</b></span></label>
+        {% endfor %}
+      </div>
+      <small class="muted">{{ _('fuel2.hint') }}</small>
+    </div>
     {% if not editing %}<div class="grid">
       <label>{{ _('f.odometer') }} ({{ units.dist_unit }})<input form="vform" name="odometer" inputmode="numeric" class="mono" placeholder="85000" value="{{ form.get('odometer') or '' }}"></label>
       {% if not setup_flow %}<label class="photo-drop">{{ icon('camera', 22) }}<span>{{ _('f.photo') }}</span><input form="vform" type="file" name="photo" accept="image/jpeg,image/png,image/webp"></label>{% endif %}

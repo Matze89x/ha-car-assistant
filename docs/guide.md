@@ -45,6 +45,8 @@ A short guide asks for a language, then your first car (or a demo car), then whi
 
 **Odometer: type it or photograph it.** Under the odometer on the dashboard there is a small entry: type the number, or take a photo of the cluster (camera button) or pick one (upload button). The photo is read on your own server, like a receipt, and never stored. The number it finds is only a suggestion: it is compared with the last reading and a warning appears when it is lower or far higher. Nothing is saved until you press the check mark. On a car without any reading yet the dashboard offers the same entry for the first one.
 
+**Bi-fuel cars (petrol and gas).** In the vehicle data choose a *second fuel* (LPG or CNG). Every fill-up then says which of the two it was (a receipt that names the gas is recognised), the list marks the gas fill-ups with a badge and its own unit, and each fuel gets its own average consumption and cost per 100 km from its own fill-ups - exact when the car ran on that fuel between two full tanks. The consumption of the first fuel is not touched by gas fill-ups. Not covered yet: Home Assistant sensors and the CSV export treat all fill-ups alike.
+
 **Logs** belong to each plugin and integration: *Info* on its card shows its log (the switch for more detail, its lines, the calls it made).
 
 **Home widgets.** *Attention*, *Vehicle data* and *Position* are always one full row; all others can be small or a full row.

@@ -47,6 +47,7 @@
     {% if body_g1|trim %}<div class="vd-g g1"><div class="vd-group-h">{{ _('vd.group_vehicle') }}</div><div class="vd-group">{{ body_g1|safe }}</div></div>{% endif %}  {# a group with nothing in it has no heading either #}
     {% set body_g3 %}
       {{ row('gas-station', _('f.fuel_type'), _('fuel_type.' ~ v.fuel_type)) }}
+      {% if v.fuel2_type %}{{ row('gas-station', _('f.fuel2_type'), _('fuel_type.' ~ v.fuel2_type)) }}{% endif %}
       {% if v.fuel_type != 'electric' %}{{ row('gas-station', _('f.tank').split(' (')[0], (fnum(units.v(v.tank_l), 0) ~ ' ' ~ units.vol_unit()) if v.tank_l else None, True) }}{% endif %}
       {% if v.fuel_type in ('electric', 'hybrid') or v.battery_kwh %}{{ row('battery', _('f.battery_kwh').split(' (')[0], (fnum(v.battery_kwh, 1) ~ ' kWh') if v.battery_kwh else None, True) }}{% endif %}
       {{ row('lightning-bolt', _('f.battery_short'), v.battery) }}
