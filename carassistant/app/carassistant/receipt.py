@@ -38,7 +38,7 @@ BRANDS = (
     ("Shell", r"shell"),
     ("Esso", r"esso"),
     ("JET", r"jet\s*tankstelle|\bjet\b"),
-    ("TotalEnergies", r"total\s*energies|\btotal\b(?!\s*(betrag|summe|amount|eur|:))"),
+    ("TotalEnergies", r"total\s*energies|\btotal\s+(?:tank|station|service|access|marketing)"),
     ("HEM", r"\bhem\b"),
     ("OMV", r"\bomv\b"),
     ("Avia", r"\bavia\b"),
@@ -292,6 +292,10 @@ def _best_triple(amounts: list, prices: list, totals: list):
     return best
 
 
+def _one_digit_apart(a: str, b: str) -> bool:
+    return len(a) == len(b) and sum(x != y for x, y in zip(a, b, strict=True)) == 1
+
+
 def parse(text: str, today: date | None = None) -> dict:
     """The refuel in the text of a receipt: ``date``, ``amount``, ``price_per_unit``, ``price_total`` (numbers), ``station``, ``notes`` (the
     product, for example *Super E10*) and ``found`` - the names of the fields that were found (``derived`` says which of them were calculated from the other two, not read)."""
@@ -327,6 +331,10 @@ def parse(text: str, today: date | None = None) -> dict:
         elif p and t and not a:
             a = round(t / p, 2)
             out["derived"] = ["amount"]
+        if a and p and t and not out["derived"]:
+            calc = round(t / p, 2)
+            if _one_digit_apart(f"{a:.2f}", f"{calc:.2f}"):  # the amount was misread by one digit: price and total agree with each other
+                a, out["derived"] = calc, ["amount"]
         out["amount"], out["price_per_unit"], out["price_total"] = a, p, t
     out["date"] = _dates(lines, today)
     out["station"] = _station(lines)

@@ -122,3 +122,16 @@ def test_the_scan_route_fills_in_the_units_shown(env, monkeypatch):
     assert receipt_web.shown(rc.parse("", TODAY), __import__("carassistant.units", fromlist=["x"]).of(None), "L")["amount"] == ""
     monkeypatch.setattr(rc, "available", lambda: False)
     assert client.post(f"/v/{vid}/fuel/scan", content=b"x").status_code == 501
+
+
+def test_one_misread_digit_of_the_amount_is_corrected_from_price_and_total():
+    r = receipt.parse("Shell\nV-Power Diesel\nMenge 32,18 L\nPreis/Liter 1,659 EUR\nBetrag EUR 86,57\n", TODAY)
+    assert r["amount"] == 52.18 and r["derived"] == ["amount"] and r["price_total"] == 86.57
+    far = receipt.parse("Shell\nMenge 10,00 L\nPreis/Liter 1,659 EUR\nBetrag EUR 86,57\n", TODAY)
+    assert far["amount"] == 10.0 and far["derived"] == []  # not one digit: nothing is guessed
+
+
+def test_the_word_total_before_an_amount_is_no_station():
+    r = receipt.parse("BP Service Station\n12 High Street\nVolume 41.20 L\nPrice 1.589 /L\nTotal 65.47 EUR\n", TODAY)
+    assert r["station"] == "BP" and r["price_total"] == 65.47
+    assert receipt.parse("TotalEnergies Access\nDiesel\n", TODAY)["station"].startswith("TotalEnergies")
