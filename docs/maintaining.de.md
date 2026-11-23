@@ -27,6 +27,15 @@ Wie Meldungen und Beiträge zur nächsten Version werden. Beitragende ändern ni
 - `.github/CODEOWNERS` lässt jeden Pull Request auf den Maintainer warten.
 - `.github/dependabot.yml` schlägt Bibliotheks-Updates vor; `.github/workflows/ci.yml` lässt die Tests bei jedem Push und Pull Request laufen.
 
+## Die Style-Sheets sauber halten
+
+Das Aussehen der App steckt in zwei Dateien (`static/app.css`, darüber `static/pc-core.css`) und einer Regel: **eine Definition je Baustein** (siehe [design.de.md](design.de.md), „Die festen Bausteine“). Zwei kleine Werkzeuge halten sie ordentlich; lass sie ab und zu laufen und sieh danach jede Seite an (`python tools/make_screenshots.py`, vorher und nachher vergleichen):
+
+- `python tools/css_tidy.py <datei.css> [--write]` entfernt Angaben, die eine spätere Regel mit demselben Selektor immer überschreibt.
+- `python tools/css_prune.py <datei.css> [--write] [--list]` entfernt Selektoren, deren Klasse nirgends benutzt wird (Vorlagen, Skripte, Python); aus einem Präfix gebaute Klassen zählen als benutzt.
+
+`tests/test_design_rules.py` bewacht den Rest: ausgeglichene Klammern (ein überzähliges `}` lässt den Browser still die nächste Regel überspringen), die Schriftgrößen-Skala, die Rundungen, eine Knopf-Regel, nur zwei Arten von Tab-Leisten.
+
 ## Einstellungen des Repositorys (einmalig)
 
 Eine kurze Liste steht in der Checkliste des Maintainers: eine Regel für `main` (Pull Request, CI muss grün sein, Code-Owner-Prüfung, kein Force-Push), Freigabe in *Actions* für Erstbeitragende und ein Nur-Lese-Token, *Discussions* an, private Meldung von Sicherheitslücken, Dependabot-Warnungen, Secret Scanning mit Push Protection.

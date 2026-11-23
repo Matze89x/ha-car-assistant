@@ -27,6 +27,15 @@ How reports and contributions become the next version. Contributors never touch 
 - `.github/CODEOWNERS` makes every pull request wait for the maintainer.
 - `.github/dependabot.yml` proposes library updates; `.github/workflows/ci.yml` runs the tests on every push and pull request.
 
+## Keeping the style sheets clean
+
+The look of the app lives in two files (`static/app.css`, then `static/pc-core.css` on top) and one rule: **one definition per component** (see [design.md](design.md), "The fixed building blocks"). Two small tools keep them tidy; run them from time to time and look at every page afterwards (`python tools/make_screenshots.py`, compare before and after):
+
+- `python tools/css_tidy.py <file.css> [--write]` drops declarations that a later rule with the same selector always overrides.
+- `python tools/css_prune.py <file.css> [--write] [--list]` drops selectors whose class is used nowhere (templates, scripts, Python); classes built from a prefix count as used.
+
+`tests/test_design_rules.py` guards the rest: braces balanced (a stray `}` makes the browser skip the next rule silently), the font scale, the radii, one button rule, only two kinds of tab bars.
+
 ## Settings of the repository (once)
 
 A short list lives in the maintainer's checklist: a branch rule for `main` (pull request, CI must pass, code owner review, no force push), *Actions* approval for first-time contributors and a read-only token, *Discussions* on, private vulnerability reporting, Dependabot alerts, secret scanning with push protection.

@@ -204,3 +204,14 @@ def test_there_are_only_two_kinds_of_tab_bars_and_the_navigation():
     assert found <= allowed, f"a new kind of tab bar: {sorted(found - allowed)} - use .seg-tabs or .seg-icons"
     css = (root / "static/pc-core.css").read_text(encoding="utf-8") + (root / "static/app.css").read_text(encoding="utf-8")
     assert not re.search(r"(^|[\s,>])\.tabs\b", css, re.M), "the old .tabs rules are gone"
+
+
+def test_every_style_sheet_is_balanced_and_has_no_dead_selectors_left_over():
+    """A stray closing brace makes the browser drop the next rule without a word: every sheet must have as many { as }."""
+    import re
+    from pathlib import Path
+
+    for name in ("pc-core.css", "app.css", "frame-kit.css", "frame-head.css"):
+        css = (Path(__file__).resolve().parents[1] / "carassistant/app/carassistant/static" / name).read_text(encoding="utf-8")
+        css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+        assert css.count("{") == css.count("}"), f"{name}: unbalanced braces"

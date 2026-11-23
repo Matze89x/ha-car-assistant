@@ -93,6 +93,10 @@ def test_the_trip_card_has_a_legend_a_wide_map_and_driving_style_in_one_column_o
     )  # the colours are explained, the texts are there
     css = (app / "static" / "pc-core.css").read_text()
     assert "aspect-ratio: 16 / 9" in css.split(".tp-map {")[1].split("}")[0]  # the full width, 16:9
-    assert "min-width: 700px) { .tp-tiles { grid-template-columns: minmax(0, 1fr); } }" in css  # one column from a tablet on
+    import re
+
+    assert re.search(
+        r"min-width: 700px\)\s*\{\s*\.tp-tiles \{ grid-template-columns: minmax\(0, 1fr\); \}\s*\}", css
+    )  # one column from a tablet on
     js = (app / "static" / "trips.js").read_text()
     assert "pos-map" in js and "data-map" in js and "fitBounds" in js  # light / dark like the location map, the route in the middle
