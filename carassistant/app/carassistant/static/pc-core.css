@@ -3253,6 +3253,7 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 .odo-all.odd { color: var(--soon); font-weight: 600; }
 /* all readings of the car in one list; the ones that do not fit are marked */
 .odo-hist { padding-block: 4px; }
+.odo-hist ul { max-height: 560px; overflow-y: auto; overscroll-behavior: contain; margin: 0; padding-inline: 0 4px; }  /* ten rows or so are shown, more scroll inside the card */
 .odo-hrow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--glass-b); }
 .odo-hrow:last-child { border-bottom: 0; }
 .odo-hkm { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
