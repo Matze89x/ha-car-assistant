@@ -2984,3 +2984,4 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .stn-sort a { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; color: var(--muted); text-decoration: none; transition: background .18s, color .18s; }
 .stn-sort a:hover { color: var(--text); text-decoration: none; }
 .stn-sort a.on { background: rgba(var(--ok-rgb), .18); color: var(--ok); box-shadow: inset 0 0 0 1px rgba(var(--ok-rgb), .4); }
+.page-head h2 { font-weight: 700; letter-spacing: -.025em; line-height: 1.1; gap: 10px; }  /* the title of the More list (an h2 so a page has one h1) looks exactly like an h1 */
