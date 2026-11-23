@@ -9,7 +9,7 @@ ARG BUILD_VERSION
 ARG BUILD_ARCH
 ARG SOURCE_BRANCH=dev
 
-RUN apk add --no-cache python3 py3-pip tzdata curl \
+RUN apk add --no-cache python3 py3-pip tzdata curl tesseract-ocr tesseract-ocr-data-deu tesseract-ocr-data-eng \
  && python3 -m venv /opt/venv
 
 RUN echo "dev build ${BUILD_VERSION}" \
