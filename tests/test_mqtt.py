@@ -94,3 +94,36 @@ def test_the_switch_is_there_with_and_without_a_broker(client, monkeypatch):
     assert 'name="enabled"' in client.get("/settings/system").text.split('id="mqtt"')[1].split("</section>")[0]
     monkeypatch.setenv("MQTT_HOST", "core-mosquitto")
     assert 'name="enabled"' in client.get("/settings/system").text.split('id="mqtt"')[1].split("</section>")[0]
+
+
+def _has_none(value) -> bool:
+    if isinstance(value, dict):
+        return any(v is None or _has_none(v) for v in value.values())
+    if isinstance(value, list):
+        return any(v is None or _has_none(v) for v in value)
+    return False
+
+
+def test_a_car_without_make_or_model_gives_discovery_messages_without_null(conn):
+    """Home Assistant refuses a discovery message with ``"model": null`` altogether (nothing appears under MQTT): a missing value is left out."""
+    vid = conn.execute("INSERT INTO vehicles(name, fuel_type) VALUES('Plain Car', 'petrol')").lastrowid
+    row = _row(conn, vid)
+    assert row["model"] in (None, "") and row["make"] in (None, "")
+    for sensor in mqtt_ha.SENSORS:
+        payload = mqtt_ha.discovery_payload(row, sensor)
+        assert not _has_none(payload), sensor.key
+        assert json.loads(json.dumps(payload))["device"]["manufacturer"] == "Car Assistant" and "model" not in payload["device"]
+    assert not _has_none(mqtt_ha.tracker_payload(row))
+    pub = _publisher()
+    pub.publish_vehicle(conn, row)
+    for topic, payload in pub._client.sent:
+        if topic.endswith("/config") and payload:
+            assert "null" not in payload, topic  # nothing on the wire has a null either
+
+
+def test_a_car_with_a_model_still_names_it(conn):
+    vid = conn.execute(
+        "INSERT INTO vehicles(name, make, model, variant, fuel_type) VALUES('Car', 'Make', 'Model', '2.0', 'petrol')"
+    ).lastrowid
+    device = mqtt_ha.discovery_payload(_row(conn, vid), mqtt_ha.BY_KEY["odometer"])["device"]
+    assert device["manufacturer"] == "Make" and device["model"] == "Model 2.0"

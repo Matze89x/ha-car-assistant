@@ -227,14 +227,26 @@ def position_attributes(conn: sqlite3.Connection, vehicle: sqlite3.Row) -> dict 
     return attrs
 
 
+def _without_none(value):
+    """Home Assistant checks every discovery message and refuses the WHOLE message for a ``null`` where it expects a text (a car without a model
+    gave ``"model": null``: the broker got everything, Home Assistant created nothing). So a missing value is simply left out."""
+    if isinstance(value, dict):
+        return {k: _without_none(v) for k, v in value.items() if v is not None}
+    if isinstance(value, list):
+        return [_without_none(v) for v in value if v is not None]
+    return value
+
+
 def _device(vehicle: sqlite3.Row) -> dict:
-    return {
-        "identifiers": [f"carassistant_{vehicle['id']}"],
-        "name": vehicle["name"],
-        "manufacturer": vehicle["make"] or "Car Assistant",
-        "model": " ".join(x for x in (vehicle["model"], vehicle["variant"]) if x) or None,
-        "sw_version": __version__,
-    }
+    return _without_none(
+        {
+            "identifiers": [f"carassistant_{vehicle['id']}"],
+            "name": vehicle["name"],
+            "manufacturer": vehicle["make"] or "Car Assistant",
+            "model": " ".join(x for x in (vehicle["model"], vehicle["variant"]) if x) or None,
+            "sw_version": __version__,
+        }
+    )
 
 
 def discovery_topic(vehicle_id: int, sensor: SensorDef) -> str:
@@ -294,22 +306,24 @@ def discovery_payload(vehicle: sqlite3.Row, sensor: SensorDef) -> dict:
         payload.update(payload_on="ON", payload_off="OFF")
     if sensor.attributes:
         payload["json_attributes_topic"] = sensor_attributes_topic(vehicle["id"], sensor.key)
-    return payload
+    return _without_none(payload)
 
 
 def tracker_payload(vehicle: sqlite3.Row) -> dict:
     """The car on the Home Assistant map: a device tracker whose position is read from one JSON attributes topic."""
-    return {
-        "name": display_name("Position"),
-        "unique_id": f"carassistant_{vehicle['id']}_position_tracker",
-        "has_entity_name": True,
-        "json_attributes_topic": attributes_topic(vehicle["id"]),
-        "availability_topic": AVAILABILITY_TOPIC,
-        "source_type": "gps",
-        "icon": "mdi:car",
-        "device": _device(vehicle),
-        "origin": _origin(),
-    }
+    return _without_none(
+        {
+            "name": display_name("Position"),
+            "unique_id": f"carassistant_{vehicle['id']}_position_tracker",
+            "has_entity_name": True,
+            "json_attributes_topic": attributes_topic(vehicle["id"]),
+            "availability_topic": AVAILABILITY_TOPIC,
+            "source_type": "gps",
+            "icon": "mdi:car",
+            "device": _device(vehicle),
+            "origin": _origin(),
+        }
+    )
 
 
 # sensors that belong to a function: when the function is switched off for the car, they are not created (or are taken away again)
