@@ -139,8 +139,18 @@ def clean(data: bytes) -> bytes:
     return out.getvalue()
 
 
-def read_text(data: bytes, psm: int = 6) -> str:
-    """The text Tesseract finds in a cleaned photo ('' when it fails or takes too long)."""
+def inverted(data: bytes) -> bytes:
+    """The same cleaned photo with light and dark swapped (a cluster shows light digits on dark: the recognition prefers dark on light)."""
+    from PIL import Image, ImageOps
+
+    img = ImageOps.invert(Image.open(io.BytesIO(data)).convert("L"))
+    out = io.BytesIO()
+    img.save(out, "PNG")
+    return out.getvalue()
+
+
+def read_text(data: bytes, psm: int = 6, digits: bool = False) -> str:
+    """The text Tesseract finds in a cleaned photo ('' when it fails or takes too long); ``digits`` lets it answer with digits only."""
     with tempfile.TemporaryDirectory(prefix="ca-receipt-") as tmp:
         path = os.path.join(tmp, "r.png")
         with open(path, "wb") as fh:
@@ -148,7 +158,16 @@ def read_text(data: bytes, psm: int = 6) -> str:
         env = {**os.environ, "OMP_THREAD_LIMIT": "1"}
         try:
             run = subprocess.run(  # noqa: S603 (a fixed program, a file of our own and fixed options)
-                [_binary() or "tesseract", path, "stdout", "-l", "+".join(languages()), "--psm", str(psm)],
+                [
+                    _binary() or "tesseract",
+                    path,
+                    "stdout",
+                    "-l",
+                    "+".join(languages()),
+                    "--psm",
+                    str(psm),
+                    *(["-c", "tessedit_char_whitelist=0123456789"] if digits else []),
+                ],
                 capture_output=True,
                 text=True,
                 timeout=TIMEOUT,

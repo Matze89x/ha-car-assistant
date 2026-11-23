@@ -43,6 +43,8 @@ A short guide asks for a language, then your first car (or a demo car), then whi
 
 **Scan a receipt.** When you add a fill-up, *Scan receipt* takes a photo of the fuel receipt (the phone opens its camera). The photo is read **on your own server** (text recognition with Tesseract, nothing goes online) and is thrown away at once; it only fills in the form: date, amount, price per unit, total, station name and the product (for example *Super E10*). The fields it filled are marked; check them and save. The app checks that *amount x price = total*, finds a misread digit that way and calculates one missing value (and tells you when it did). Without the text recognition on the server the button is simply not there.
 
+**Odometer: type it or photograph it.** Under the odometer on the dashboard there is a small entry: type the number, or take a photo of the cluster (camera button) or pick one (upload button). The photo is read on your own server, like a receipt, and never stored. The number it finds is only a suggestion: it is compared with the last reading and a warning appears when it is lower or far higher. Nothing is saved until you press the check mark. On a car without any reading yet the dashboard offers the same entry for the first one.
+
 **Logs** belong to each plugin and integration: *Info* on its card shows its log (the switch for more detail, its lines, the calls it made).
 
 **Home widgets.** *Attention*, *Vehicle data* and *Position* are always one full row; all others can be small or a full row.

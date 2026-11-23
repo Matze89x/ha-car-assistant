@@ -1,6 +1,6 @@
 /* Fuel receipt: a photo fills in the form of a new refuel (the server reads it, see receipt.py). Nothing is saved before the person presses save. */
 (function () {
-  var FIELDS = ['date', 'amount', 'price_per_unit', 'price_total', 'station', 'notes'];
+  var FIELDS = ['date', 'amount', 'price_per_unit', 'price_total', 'station', 'notes', 'odometer'];
 
   function shrink(file, done) { /* longest side 2000 px, as JPEG: a small upload; the server cleans it up again */
     var url = URL.createObjectURL(file), img = new Image();
@@ -47,6 +47,10 @@
             hits++;
           });
           if (!hits) { show(box, t('none'), 'warn'); return; }
+          if ('plausible' in d) { /* the odometer: always to be checked; a warning when it is below the last reading or far above it */
+            show(box, d.plausible ? t('ok') : t('odd').replace('{n}', d.last === null ? '' : String(d.last)), d.plausible ? 'ok' : 'warn');
+            return;
+          }
           show(box, t('ok') + ' ' + (d.amount && d.price_per_unit && d.price_total ? (d.derived && d.derived.length ? t('derived') : (d.checked ? t('fit') : t('nofit'))) : ''), d.checked && !(d.derived && d.derived.length) ? 'ok' : 'warn');
         })
         .catch(function () { show(box, t('err'), 'warn'); })
@@ -57,7 +61,7 @@
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest && e.target.closest('[data-scan-btn]');
     if (!b) return;
-    var f = b.closest('[data-scan]').querySelector('[data-scan-file]');
+    var f = (b.parentNode && b.parentNode.querySelector('[data-scan-file]')) || b.closest('[data-scan]').querySelector('[data-scan-file]');
     if (f) f.click();
   });
 })();

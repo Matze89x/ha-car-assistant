@@ -912,6 +912,7 @@ def vehicle_overview(request: Request, vid: int):
             hero_badges=vehicle_status.hero_badges(live_rows, t),
             widgets=home_widgets.layout(conn, vid),
             hero_range=hero,
+            odo_scan_on=receipt_available(),
             tank_info=tank_info,
             tank_unit=unit_for(vehicle["fuel_type"]),
             hero_media=hero_media,
@@ -937,6 +938,13 @@ def vehicle_overview(request: Request, vid: int):
         )
 
 
+def receipt_available() -> bool:
+    """Text recognition is installed on this server: a photo of the odometer or a receipt can be read."""
+    from . import receipt as _receipt
+
+    return _receipt.available()
+
+
 @app.post("/v/{vid}/odometer")
 async def odometer_add(request: Request, vid: int):
     form = await form_dict(request)
@@ -948,6 +956,24 @@ async def odometer_add(request: Request, vid: int):
     with db.tx() as conn:
         vehicle_or_404(conn, vid)
         summary.add_odometer(conn, vid, km, when)
+    events.changed()
+    return go(request, f"/v/{vid}", "saved")
+
+
+@app.post("/v/{vid}/odometer/quick")
+async def odometer_quick(request: Request, vid: int):
+    """The quick entry under the odometer on the dashboard: the number as the car shows it (miles in a car shown in miles), saved as kilometres."""
+    form = await form_dict(request)
+    try:
+        shown = entities.parse_float((form.get("odometer") or "").replace(" ", ""), "f.odometer")
+    except FormError as exc:
+        return go(request, f"/v/{vid}", exc.args[0])
+    with db.tx() as conn:
+        vehicle = vehicle_or_404(conn, vid)
+        km = round(units.of(vehicle).from_d(shown))
+        if not 0 < km < 10_000_000:
+            return go(request, f"/v/{vid}", "err.number")
+        summary.add_odometer(conn, vid, km)
     events.changed()
     return go(request, f"/v/{vid}", "saved")
 

@@ -135,3 +135,82 @@ def test_the_word_total_before_an_amount_is_no_station():
     r = receipt.parse("BP Service Station\n12 High Street\nVolume 41.20 L\nPrice 1.589 /L\nTotal 65.47 EUR\n", TODAY)
     assert r["station"] == "BP" and r["price_total"] == 65.47
     assert receipt.parse("TotalEnergies Access\nDiesel\n", TODAY)["station"].startswith("TotalEnergies")
+
+
+# ------------------------------------------------------------------ the odometer
+
+
+def test_numbers_of_an_odometer_photo_are_found_split_groups_joined_and_noise_dropped():
+    from carassistant import odometer_scan as o
+
+    assert o.numbers("052340\n12") == [52340]  # leading zeros, a trip counter that is too short
+    assert 52340 in o.numbers("52 340 km")  # a thousands split is read as one number
+    assert o.numbers("1234567890") == []  # more than seven digits is no odometer
+    assert o.numbers("12") == [] and o.numbers("") == []
+
+
+def test_the_most_plausible_number_wins_and_an_odd_one_is_flagged():
+    from carassistant import odometer_scan as o
+
+    assert o.plausible(52500, 52340) and not o.plausible(1200, 52340) and not o.plausible(900_000, 52340)  # below the last: a trip counter
+    assert o.plausible(52340, None) and not o.plausible(12, None)
+    assert o.pick([1234, 52340, 52340, 1234], 52000) == (52340, True)  # the plausible one, not the trip counter seen as often
+    assert o.pick([1234], 52000) == (1234, False)  # only something odd: it is offered, flagged
+    assert o.pick([], 52000) == (None, False)
+    assert o.pick([5000, 51000], None) == (51000, True)  # no last reading: the longer number
+
+
+def test_the_odometer_scan_route_answers_in_the_unit_shown_and_the_quick_save_stores_kilometres(env, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from carassistant import db, odometer_scan, summary, web
+    from carassistant import receipt as rc
+
+    with db.tx() as conn:
+        conn.execute("INSERT INTO vehicles (name, slug, fuel_type) VALUES ('Test', 'test', 'petrol')")
+        vid = conn.execute("SELECT id FROM vehicles").fetchone()["id"]
+        summary.add_odometer(conn, vid, 52000)
+    monkeypatch.setattr(rc, "available", lambda: True)
+    seen = {}
+
+    def fake(data, last=None):
+        seen["last"] = last
+        return {"value": 52340, "plausible": True}
+
+    monkeypatch.setattr(odometer_scan, "read", fake)
+    client = TestClient(web.app, base_url="http://testserver", headers={"Origin": "http://testserver"})
+    r = client.post(f"/v/{vid}/odometer/scan", content=b"\xff\xd8\xff", headers={"Content-Type": "image/jpeg"})
+    assert r.status_code == 200 and r.json() == {"odometer": "52340", "plausible": True, "last": 52000} and seen["last"] == 52000
+    monkeypatch.setattr(odometer_scan, "read", lambda data, last=None: {"value": None, "plausible": False})
+    assert client.post(f"/v/{vid}/odometer/scan", content=b"x").json()["odometer"] == ""
+    monkeypatch.setattr(rc, "available", lambda: False)
+    assert client.post(f"/v/{vid}/odometer/scan", content=b"x").status_code == 501
+    # the quick save: the number as shown (here kilometres), spaces allowed, nonsense refused
+    assert client.post(f"/v/{vid}/odometer/quick", data={"odometer": "52 340"}, follow_redirects=False).status_code == 303
+    with db.tx() as conn:
+        assert summary.current_odometer(conn, vid) == 52340
+    client.post(f"/v/{vid}/odometer/quick", data={"odometer": "abc"})
+    with db.tx() as conn:
+        assert summary.current_odometer(conn, vid) == 52340  # nothing changed
+
+
+def test_the_dashboard_has_the_quick_entry_and_only_offers_the_photo_when_text_recognition_is_there(client, monkeypatch):
+    from tests.test_web import create_vehicle, slug
+
+    from carassistant import db, summary
+    from carassistant import receipt as rc
+
+    vid = create_vehicle(client)
+    with db.tx() as conn:
+        summary.add_odometer(conn, vid, 52000)
+    monkeypatch.setattr(rc, "available", lambda: True)
+    page = client.get(f"/v/{slug(vid)}").text
+    assert (
+        'class="odo-entry"' in page
+        and f"/v/{slug(vid)}/odometer/scan" in page
+        and "receipt.js" in page
+        and page.count("data-scan-btn") == 2
+    )
+    monkeypatch.setattr(rc, "available", lambda: False)
+    page = client.get(f"/v/{slug(vid)}").text
+    assert 'class="odo-entry"' in page and "data-scan-btn" not in page  # typing always works

@@ -1,4 +1,4 @@
-{% from "_macros.html" import widget, odo_drum with context %}
+{% from "_macros.html" import widget, odo_drum, odo_entry with context %}
 {% if odometer is not none and hero_range %}  {# without a reported range the odometer is the big figure under the car #}
 {# two looks inside the same kind of tile, the slot's data-d shows one of them (the choice is made while editing the page) #}
 <div class="wd-look-drums">
@@ -11,4 +11,5 @@
   <div class="wd-v">{{ fnum(units.d(odometer)) }} <small>{{ units.dist_unit }}</small></div>
 {% endcall %}
 </div>
+{{ odo_entry() }}
 {% endif %}

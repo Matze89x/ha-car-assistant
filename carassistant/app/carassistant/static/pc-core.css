@@ -3213,3 +3213,13 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
    inside it (rows, fields, buttons) uses the smaller --r-m / --r-s. tests/test_design_rules.py reads this rule and fails when a block of the list gets
    another corner. */
 :is(.card, .tile, .notice, .flash, .seg-tabs, details.eq, .rec, .wd, .wd-row, .vd-group, .status-banner, .vf-hero, .stn-card, .rp-hero, .arch-box, .lm-card) { border-radius: var(--r-surface); }
+
+/* the quick entry under the odometer (dashboard): the number, camera, upload, save - one line, the hint under it */
+.odo-entry { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 0; }
+.odo-entry input[name="odometer"] { flex: 1 1 120px; min-width: 0; margin: 0; }
+.odo-entry .odo-pick { display: contents; }
+.odo-entry .icon-btn { flex: 0 0 auto; }
+.odo-entry .odo-save { color: var(--ok); }
+.odo-entry .scan-note { flex: 1 0 100%; margin: 0; }
+.odo-entry .scan-note.ok { color: var(--ok); }
+.odo-entry .scan-note.warn { color: var(--warn, #f59e0b); }
