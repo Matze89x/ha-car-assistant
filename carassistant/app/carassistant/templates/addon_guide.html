@@ -50,13 +50,13 @@
       <span class="hint">{{ _('guide.token_have') }} <code>•••• {{ fingerprint }}</code></span>
     </label>{% endif %}
     <label class="guide-opt pick">
+      <span class="pick-h"><input type="radio" name="token_mode" value="new" {{ 'checked' if mode0 == 'new' }}><b>{{ _('guide.token_new') }}</b></span>
+      <span class="hint">{{ _('guide.token_new_hint') if has_token else _('guide.token_none_hint') }}</span>
+    </label>
+    <label class="guide-opt pick">
       <span class="pick-h"><input type="radio" name="token_mode" value="existing" {{ 'checked' if mode0 == 'existing' }}><b>{{ _('guide.token_reuse') }}</b></span>
       <span class="hint">{{ _('guide.token_reuse_hint2') if has_token else _('guide.adopt_hint') }}</span>
       <input type="password" name="{{ 'have_token' if has_token else 'adopt_token' }}" maxlength="200" autocomplete="off" placeholder="ca_..." aria-label="{{ _('addon.token_have_field') }}">
-    </label>
-    <label class="guide-opt pick">
-      <span class="pick-h"><input type="radio" name="token_mode" value="new" {{ 'checked' if mode0 == 'new' }}><b>{{ _('guide.token_new') }}</b></span>
-      <span class="hint">{{ _('guide.token_new_hint') if has_token else _('guide.token_none_hint') }}</span>
     </label>
   </div>
   {% if main_fields or adv_fields %}
