@@ -41,7 +41,7 @@
     <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step=1">{{ _('btn.back') }}</a><button class="primary">{{ _('guide.next') }}</button></div></form>
   {% else %}
   {% set mode0 = 'saved' if saved_token else ('existing' if has_token else 'new') %}
-  <form method="post" action="{{ base_url }}/guide/next" class="guide-stack" id="gform" data-confirm-new="{{ _('addon.confirm_token') if has_token else '' }}">
+  <form method="post" action="{{ base_url }}/guide/next" class="guide-stack" id="gform">
   <input type="hidden" name="token" value="{{ token }}">
   {% if has_token and not saved_token %}<p class="guide-fp"><b>{{ _('guide.token_have') }}</b> <code>•••• {{ fingerprint }}</code></p>{% endif %}
   <div class="guide-opts">

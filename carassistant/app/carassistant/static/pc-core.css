@@ -2985,3 +2985,6 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .seg-icons a:hover { color: var(--text); text-decoration: none; }
 .seg-icons a.on { background: rgba(var(--ok-rgb), .18); color: var(--ok); box-shadow: inset 0 0 0 1px rgba(var(--ok-rgb), .4); }
 .page-head h2 { font-weight: 700; letter-spacing: -.025em; line-height: 1.1; gap: 10px; }  /* the title of the More list (an h2 so a page has one h1) looks exactly like an h1 */
+.guide-opt.dl { display: flex; flex-direction: column; gap: 8px; }  /* both download boxes equally high, the button at the very bottom of each */
+.guide-opt.dl > form, .guide-opt.dl > a.button { margin-top: auto !important; }
+.guide-opt.dl > form button, .guide-opt.dl > a.button { width: 100%; }

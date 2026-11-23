@@ -752,23 +752,6 @@ document.addEventListener("click", function (e) {
     if (el) { el.textContent = (now.getAttribute("data-skew") || "").replace("{n}", String(diff)); el.hidden = false; }
   }
 })();
-
-(function () {
-  var form = document.getElementById("gform");
-  if (!form || !form.hasAttribute("data-confirm-new")) { return; }
-  var ask = form.getAttribute("data-confirm-new");
-  function sync() {
-    var on = form.querySelector('input[name="token_mode"]:checked');
-    if (ask && on && on.value === "new") { form.setAttribute("data-confirm", ask); } else { form.removeAttribute("data-confirm"); }
-  }
-  form.addEventListener("change", sync);
-  form.addEventListener("focusin", function (event) {
-    var box = event.target.closest && event.target.closest(".guide-opt.pick"), radio = box && box.querySelector('input[type="radio"]');
-    if (radio && event.target !== radio && !radio.checked) { radio.checked = true; sync(); }
-  });
-  sync();
-})();
-
 (function () {
   /* header actions are round icons without text: the name goes into aria-label / title */
   document.querySelectorAll(".page-head .actions .button, .page-head .actions button").forEach(function (el) {
