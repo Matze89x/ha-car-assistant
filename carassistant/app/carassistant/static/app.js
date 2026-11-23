@@ -684,6 +684,28 @@ document.addEventListener("click", function (event) {
   });
 })();
 
+// The odometer plate runs like a real mechanical counter: every cell is a strip of digits that rolls down through the box and stops on its figure (the cells on the
+// right roll longer). Nothing flies in; with reduced motion the figure is simply there.
+(function () {
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { return; }
+  var cells = document.querySelectorAll(".odo-flip .odo-front .odo-drum:not(.ghost):not(.still) i");
+  Array.prototype.forEach.call(cells, function (cell, idx) {
+    var d = parseInt(cell.textContent, 10);
+    if (isNaN(d)) { return; }
+    var pos = Array.prototype.indexOf.call(cell.parentNode.querySelectorAll("i"), cell), n = 5 + pos * 3, strip = document.createElement("span");
+    strip.className = "odo-strip";
+    strip.style.setProperty("--odo-n", n);
+    strip.style.setProperty("--odo-t", (0.9 + pos * 0.12) + "s");
+    for (var k = 0; k <= n; k++) {  /* from the top down: the figure, then the ones that came before it */
+      var b = document.createElement("span");
+      b.textContent = String(((d - k) % 10 + 10) % 10);
+      strip.appendChild(b);
+    }
+    cell.textContent = "";
+    cell.appendChild(strip);
+  });
+})();
+
 // A form with data-sort-save sends itself in the background (with ajax=1) whenever one of its sortable lists is put in order, like the old arrows did.
 document.addEventListener("sortchange", function (e) {
   var form = e.target.closest && e.target.closest("form[data-sort-save]");

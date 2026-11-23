@@ -17,6 +17,7 @@
     if (a.outerHTML === b.outerHTML || (a.hasAttribute && a.hasAttribute("data-keep"))) { return; }  // data-keep: the car video runs by itself
     if (a.classList && b.classList && a.classList.contains("odo-drum") && b.classList.contains("odo-drum")) {  // the odometer: the digits just count on, no roll-in
       var ca = a.querySelectorAll("i"), cb = b.querySelectorAll("i");
+      if (ca.length === cb.length && a.getAttribute("data-odo") === b.getAttribute("data-odo")) { return; }  // the same figure: leave the rolled strips alone
       if (ca.length === cb.length) {
         ["data-odo", "aria-label"].forEach(function (n) { a.setAttribute(n, b.getAttribute(n)); });
         for (var k = 0; k < ca.length; k++) { ca[k].textContent = cb[k].textContent; }

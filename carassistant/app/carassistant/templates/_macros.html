@@ -115,7 +115,7 @@
     <button class="odo-go" aria-label="{{ _('btn.save') }}" title="{{ _('btn.save') }}">{{ icon('enter', 18) }}</button>
   </div>
   <p class="hint scan-note" data-scan-note hidden></p>
-  {% if odometer is not none %}<a class="odo-all" href="{{ base }}/v/{{ v.slug }}/odometer">{{ _('odo.history_link') }}</a>{% endif %}
+  {% if odometer is not none %}<a class="odo-all" href="{{ base }}/v/{{ v.slug }}/odometer">{{ icon('list', 16) }}<span>{{ _('odo.history_link') }}</span></a>{% endif %}
 </form>
 {%- endmacro %}
 
@@ -131,6 +131,7 @@
 {# the dashboard: the odometer is a plate that turns over like a flip card - the figure on the front, the box to type on the back #}
 {% macro odo_plate(first=false) -%}
 <div class="odo-flip">
+  <small class="odo-cap">{{ icon('counter', 16) }}<span>{{ _('f.odometer') }}</span></small>
   <div class="odo-card3d">
     <div class="odo-face odo-front">
       <div class="odo-t">

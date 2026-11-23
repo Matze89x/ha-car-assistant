@@ -211,7 +211,7 @@
 
 // The odometer drums: after the roll-in the last three units of distance tick up to the real value (a few text changes, finished with the roll-in).
 (function () {
-  var el = Array.prototype.filter.call(document.querySelectorAll(".odo-drum[data-odo]"), function (d) { return d.offsetParent !== null; })[0];
+  var el = Array.prototype.filter.call(document.querySelectorAll(".odo-drum[data-odo]"), function (d) { return d.offsetParent !== null && !d.closest(".odo-flip"); })[0];  // the plate rolls by itself (app.js)
   if (!el || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) { return; }
   var n = parseInt(el.getAttribute("data-odo"), 10), cells = el.querySelectorAll("i");
   if (isNaN(n) || n < 3 || String(n - 3).length !== cells.length) { return; }
