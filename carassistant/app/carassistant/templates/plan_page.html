@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head with context %}
+{% from "_macros.html" import icon, page_head, page_foot with context %}
 {% block content %}
 {% set pu = base ~ '/v/' ~ v.slug ~ '/reminders/' ~ mod.addon_id ~ '/' ~ page.reminder ~ '/plan' %}
 {{ page_head(mod.icon, page.title) }}
@@ -24,7 +24,7 @@
   <p class="hint">{{ _('plan.fix_hint') }}</p>
 </section>
 
-<div class="vd-group-h eq-head">{{ _('plan.history') }} <span class="eq-total">{{ pl.hist|length }}</span></div>
+<div class="vd-group-h eq-head">{{ _('plan.history') }}</div>
 {% if pl.hist %}
 <div class="card pl-hist">
   {% for h in pl.hist %}
@@ -35,6 +35,7 @@
   </div>
   {% endfor %}
 </div>
+{{ page_foot(pl.hist|length) }}
 {% else %}<p class="hint">{{ _('plan.no_history') }}</p>{% endif %}
 {% endif %}
 {% endblock %}

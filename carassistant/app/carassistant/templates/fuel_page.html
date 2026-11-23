@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, field_input, flabel, disp, switch_row with context %}
+{% from "_macros.html" import icon, page_head, page_foot, field_input, flabel, disp, switch_row with context %}
 {% block scripts %}{% if stn %}<script src="{{ base }}/static/stations.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 {% set vurl = base ~ '/v/' ~ v.id ~ '/e/fuel' %}
@@ -105,5 +105,6 @@
   {% else %}
   <p class="hint">{{ _('fuel.empty') }}</p>
   {% endif %}
+  {{ page_foot(total_rows) }}
 </section>
 {% endblock %}

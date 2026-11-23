@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, del_form with context %}
+{% from "_macros.html" import icon, page_head, page_foot, del_form with context %}
 {% block content %}
 {% set cat_icon = {'manual': 'book-open-page', 'invoice': 'file-document-outline', 'insurance': 'shield', 'registration': 'card-text-outline', 'inspection': 'shield-check', 'other': 'docs'} %}
 {% set cat_chip = {'manual': 'c4', 'invoice': 'c3', 'insurance': 'c1', 'registration': 'c2', 'inspection': 'c7', 'other': 'c5'} %}
@@ -35,5 +35,6 @@
   {% endfor %}
 </div>
 {% with pager_url=base ~ '/v/' ~ v.slug ~ '/docs', pager_into='#doclist' %}{% include "_pager.html" %}{% endwith %}
+{{ page_foot(pager.total) }}
 {% else %}<div class="card empty-state">{{ icon('docs', 36) }}<p>{{ _('docs.empty') }}</p></div>{% endif %}
 {% endblock %}

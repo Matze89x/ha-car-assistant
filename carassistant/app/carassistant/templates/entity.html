@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import badge, field_input, cell, disp, flabel, confirm_form, form_bar, del_form, icon, page_head, switch_row with context %}
+{% from "_macros.html" import badge, field_input, cell, disp, flabel, confirm_form, form_bar, del_form, icon, page_head, page_foot, switch_row with context %}
 {% block content %}
 {% set vurl = base ~ '/v/' ~ v.id ~ '/e/' ~ entity.key %}
 {% set shown = entity.fields|selectattr('show')|list %}
@@ -113,6 +113,7 @@
   {% endfor %}
 </div>{% endif %}
 {% with pager_url=vurl, pager_into='.rec-grid' %}{% include "_pager.html" %}{% endwith %}
+{{ page_foot(pager.total if pager is defined and pager else rows|length) }}
 {% else %}
   <div class="card empty-state">{{ icon(module_icon.get(entity.key, 'car'), 36) }}<p>{{ _(entity.empty_hint) }}</p></div>
 {% endif %}

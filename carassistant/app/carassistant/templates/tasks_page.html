@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, badge, switch_row with context %}
+{% from "_macros.html" import icon, page_head, page_foot, badge, switch_row with context %}
 {% block content %}
 {% set ku = base ~ '/v/' ~ v.id ~ '/e/tasks' %}
 {% set d = units.dist_unit %}
@@ -33,7 +33,6 @@
 
 <div class="eq-panel tp-add" id="task-add" {{ 'hidden' if not (form and not edit_id) }}>{{ taskform(none, ku) }}</div>
 
-<div class="vd-group-h eq-head">{{ _('za.heading') }} <span class="eq-total">{{ cards|length }}</span></div>
 
 <div class="za-grid">
 {% for c in cards %}
@@ -60,5 +59,6 @@
   <div class="card empty-state">{{ icon('wrench', 36) }}<p>{{ _('tasks.empty') }}</p></div>
 {% endfor %}
 </div>
+{{ page_foot(cards|length) }}
 <p class="hint za-foot">{{ _('za.foot') }}</p>
 {% endblock %}

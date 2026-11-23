@@ -3041,3 +3041,7 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 /* both download boxes equally high, the button at the very bottom of each */
 .guide-opt.dl > form, .guide-opt.dl > a.button { margin-top: auto !important; }
 .guide-opt.dl > form button, .guide-opt.dl > a.button { width: 100%; }
+
+/* The count line at the bottom of a data page: faint, centred, one line (macro page_foot) */
+.page-foot { margin: 28px 0 8px; text-align: center; font-size: 12px; letter-spacing: .04em; color: var(--dim); }
+.page-foot:empty { display: none; }

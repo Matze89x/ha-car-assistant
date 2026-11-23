@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head with context %}
+{% from "_macros.html" import icon, page_head, page_foot with context %}
 {% block content %}
 {% set mu = base ~ '/v/' ~ v.id ~ '/e/mods' %}
 {% macro modform(r, url, lazy=false) %}
@@ -42,6 +42,8 @@
     {% endfor %}
     {% endfor %}
   </div>
+  {% set total_cost = year_groups|sum(attribute='sums.cost') %}
+  {{ page_foot(rows_all|length, extra=(fnum(total_cost, 2) ~ ' ' ~ units.cur) if total_cost else '') }}
   {% else %}<p class="hint">{{ _('mods.empty') }}</p>{% endif %}
 </section>
 {% endblock %}

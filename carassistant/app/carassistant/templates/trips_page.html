@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head with context %}
+{% from "_macros.html" import icon, page_head, page_foot with context %}
 {% block head %}{% if map_tiles %}<link rel="stylesheet" href="{{ base }}/static/vendor/leaflet/leaflet.min.css?v=1.9.4">{% endif %}{% endblock %}
 {% block scripts %}{% if map_tiles %}<script src="{{ base }}/static/vendor/leaflet/leaflet.min.js?v=1.9.4" defer></script>{% endif %}<script src="{{ base }}/static/trips.js?v={{ asset_v }}" defer></script>{% endblock %}
 {% block content %}
@@ -133,7 +133,6 @@
 </section>
 
 <section class="tp-sec" id="trips">
-  <div class="vd-group-h eq-head">{{ _('trips.title') }} <span class="eq-total" id="eq-count">{{ total_rows }}</span></div>
   {% if kpis.n %}<div class="trip-kpis"><div class="tg"><i>{{ _('tp.last30') }}</i><b>{{ kpis.n }}</b></div><div class="tg"><i>{{ _('tp.km') }}</i><b>{{ fnum(units.d(kpis.km), 0) }} <small>{{ units.dist_unit }}</small></b></div><div class="tg"><i>{{ _('tp.drivetime') }}</i><b>{{ kpis.minutes // 60 }}:{{ '%02d'|format(kpis.minutes % 60) }} <small>h</small></b></div></div>{% endif %}
   <form method="get" class="eq-searchbox-form"><label class="eq-searchbox"><span class="sb-ic">{{ icon('magnify', 18) }}</span><input type="search" name="q" value="{{ q }}" placeholder="{{ _('tp.search') }}" autocomplete="off" enterkeyhint="search"></label></form>
   {% if trip_items %}
@@ -191,5 +190,6 @@
   {% else %}
   <p class="hint">{{ _('trips.empty') }}</p>
   {% endif %}
+  {{ page_foot(total_rows) }}
 </section>
 {% endblock %}
