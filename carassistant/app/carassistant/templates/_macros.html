@@ -105,21 +105,42 @@
 {%- endmacro %}
 
 {# One Home widget: a uniform tile with an icon chip, a title and a body. `href` makes the whole tile a link; size "m" spans the row. #}
-{# The odometer is edited in place: a small "change" under the figure (or, with no reading yet, a ghost odometer to tap) opens ONE box - the number as
-   big digits, a photo button inside it and an enter strip. Nothing is saved before the enter; a number that does not fit asks first. #}
-{% macro odo_entry(first=false, pill=true, flip=false) -%}
-<div class="odo-edit{{ ' odo-under' if flip }}">
-  {% if first or pill %}<button type="button" class="odo-open{{ ' first' if first }}" data-odo-open aria-label="{{ _('odo.edit') }}" title="{{ _('odo.edit') }}">{% if first %}<b class="odo-drum ghost" aria-hidden="true">{% for n in range(6) %}<i>–</i>{% endfor %}</b><span class="odo-unit">{{ units.dist_unit }}</span>{% else %}{{ icon('pencil', 14) }}<span>{{ _('odo.edit') }}</span>{% endif %}</button>{% endif %}
-  <form class="odo-entry"{{ '' if flip else ' hidden' }} method="post" action="{{ base }}/v/{{ v.slug }}/odometer/quick"{% if odo_scan_on %} data-scan="{{ base }}/v/{{ v.slug }}/odometer/scan" data-t-busy="{{ _('odo.scan_busy') }}" data-t-ok="{{ _('odo.scan_ok') }}" data-t-none="{{ _('odo.scan_none') }}" data-t-err="{{ _('odo.scan_err') }}" data-t-odd="{{ _('odo.scan_odd') }}"{% endif %}>
-    <div class="odo-box">
-      <input type="text" name="odometer" inputmode="numeric" pattern="[0-9 .,]*" maxlength="9" autocomplete="off" placeholder="000000" aria-label="{{ _('f.odometer') }}" required>
-      {% if odo_scan_on %}<span class="odo-pick"><button type="button" class="odo-cam" data-scan-btn aria-label="{{ _('odo.photo') }}" title="{{ _('odo.photo') }}">{{ icon('camera', 20) }}</button><input type="file" accept="image/*" data-scan-file hidden></span>{% endif %}
-      <button class="odo-go" aria-label="{{ _('btn.save') }}" title="{{ _('btn.save') }}">{{ icon('enter', 18) }}</button>
+{# The odometer is edited in place. The box to type the number (one box: the number as big digits, a photo button inside it, an enter strip) shows the
+   LAST reading as its placeholder - something to go by, nothing to delete. Nothing is saved before the enter; a number that does not fit asks first. #}
+{% macro odo_form(hidden=false) -%}
+<form class="odo-entry"{{ ' hidden' if hidden }} method="post" action="{{ base }}/v/{{ v.slug }}/odometer/quick"{% if odo_scan_on %} data-scan="{{ base }}/v/{{ v.slug }}/odometer/scan" data-t-busy="{{ _('odo.scan_busy') }}" data-t-ok="{{ _('odo.scan_ok') }}" data-t-none="{{ _('odo.scan_none') }}" data-t-err="{{ _('odo.scan_err') }}" data-t-odd="{{ _('odo.scan_odd') }}"{% endif %}>
+  <div class="odo-box">
+    <input type="text" name="odometer" inputmode="numeric" pattern="[0-9 .,]*" maxlength="9" autocomplete="off" placeholder="{{ (units.d(odometer)|round|int) if odometer is not none else '000000' }}" aria-label="{{ _('f.odometer') }}" required>
+    {% if odo_scan_on %}<span class="odo-pick"><button type="button" class="odo-cam" data-scan-btn aria-label="{{ _('odo.photo') }}" title="{{ _('odo.photo') }}">{{ icon('camera', 20) }}</button><input type="file" accept="image/*" data-scan-file hidden></span>{% endif %}
+    <button class="odo-go" aria-label="{{ _('btn.save') }}" title="{{ _('btn.save') }}">{{ icon('enter', 18) }}</button>
+  </div>
+  <p class="hint scan-note" data-scan-note hidden></p>
+  {% if odometer is not none %}<a class="odo-all" href="{{ base }}/v/{{ v.slug }}/odometer">{{ _('odo.history_link') }}</a>{% endif %}
+</form>
+{%- endmacro %}
+
+{# passport and widget: a small "change" (or, with no reading yet, a ghost odometer) opens the box below it #}
+{% macro odo_entry(first=false) -%}
+<div class="odo-edit">
+  <button type="button" class="odo-open{{ ' first' if first }}" data-odo-open aria-label="{{ _('odo.edit') }}" title="{{ _('odo.edit') }}">{% if first %}<b class="odo-drum ghost" aria-hidden="true">{% for n in range(6) %}<i>–</i>{% endfor %}</b><span class="odo-unit">{{ units.dist_unit }}</span>{% else %}{{ icon('pencil', 14) }}<span>{{ _('odo.edit') }}</span>{% endif %}</button>
+  {{ odo_form(true) }}
+  {% if odo_odd %}<a class="odo-all odd" href="{{ base }}/v/{{ v.slug }}/odometer">{{ icon('alert', 14) }}<span>{{ _('odo.odd_link') }}</span></a>{% endif %}
+</div>
+{%- endmacro %}
+
+{# the dashboard: the odometer is a plate that turns over like a flip card - the figure on the front, the box to type on the back #}
+{% macro odo_plate(first=false) -%}
+<div class="odo-flip">
+  <div class="odo-card3d">
+    <div class="odo-face odo-front">
+      <div class="odo-t"><small>{{ icon('counter', 16) }}<span>{{ _('f.odometer') }}</span></small>
+        <div class="odo-line"><button type="button" class="odo-pencil" data-odo-open aria-label="{{ _('odo.edit') }}" title="{{ _('odo.edit') }}">{{ icon('pencil', 18) }}</button>{% if first %}<b class="odo-drum ghost" aria-hidden="true">{% for n in range(6) %}<i>–</i>{% endfor %}</b><span class="unit odo-unit">{{ units.dist_unit }}</span>{% else %}{{ odo_drum() }}{% endif %}</div></div>
     </div>
-    <p class="hint scan-note" data-scan-note hidden></p>
-    {% if odometer is not none %}<a class="odo-all" href="{{ base }}/v/{{ v.slug }}/odometer">{{ _('odo.history_link') }}</a>{% endif %}
-  </form>
-  {% if flip %}<button type="button" class="odo-close" data-odo-open aria-label="{{ _('btn.close') }}" title="{{ _('btn.close') }}">{{ icon('close', 16) }}</button>{% endif %}
+    <div class="odo-face odo-back">
+      {{ odo_form() }}
+      <button type="button" class="odo-close" data-odo-open aria-label="{{ _('btn.close') }}" title="{{ _('btn.close') }}">{{ icon('close', 16) }}</button>
+    </div>
+  </div>
   {% if odo_odd %}<a class="odo-all odd" href="{{ base }}/v/{{ v.slug }}/odometer">{{ icon('alert', 14) }}<span>{{ _('odo.odd_link') }}</span></a>{% endif %}
 </div>
 {%- endmacro %}

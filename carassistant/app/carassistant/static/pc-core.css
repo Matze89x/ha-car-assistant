@@ -3221,7 +3221,7 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
    banners - has the corner of a card, defined HERE and nowhere else. A new block of that kind joins this list instead of choosing a radius; what is
    inside it (rows, fields, buttons) uses the smaller --r-m / --r-s. tests/test_design_rules.py reads this rule and fails when a block of the list gets
    another corner. */
-:is(.card, .tile, .notice, .flash, .seg-tabs, details.eq, .rec, .wd, .wd-row, .vd-group, .status-banner, .vf-hero, .stn-card, .rp-hero, .arch-box, .lm-card) { border-radius: var(--r-surface); }
+:is(.card, .tile, .notice, .flash, .seg-tabs, details.eq, .rec, .wd, .wd-row, .vd-group, .status-banner, .vf-hero, .stn-card, .rp-hero, .arch-box, .lm-card, .odo-face) { border-radius: var(--r-surface); }
 
 /* the odometer is edited in place (dashboard): a small "change" under the figure - or a ghost odometer when there is no reading yet - opens ONE box: the
    number as big digits, the photo button inside it and the enter strip on its right (the contour divides it, like the sort strip) */
@@ -3264,13 +3264,17 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 .vd-odo { margin: 14px 0 0; }
 .vd-odo .odo-edit { margin: 0; }
 
-/* the odometer on the dashboard is a page: tapped, it turns up from its top edge and away, and the box to type the number lies underneath, in the same place */
-.odo-flip { position: relative; perspective: 900px; min-height: 124px; }
-.odo-flip .odo-page { position: relative; z-index: 2; transform-origin: 50% 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: transform .65s cubic-bezier(.45, .05, .25, 1); }
-.odo-flip.open .odo-page { transform: rotateX(-178deg); pointer-events: none; }
-.odo-flip .odo-under { position: absolute; inset: 0; z-index: 1; margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-.odo-flip:not(.open) .odo-under { visibility: hidden; transition: visibility 0s .65s; }
-.odo-flip .odo-under .odo-entry { width: min(100%, 300px); }
-.odo-close { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: none; box-shadow: none; color: var(--dim); cursor: pointer; }
+/* the odometer on the dashboard is a FLIP CARD: a plate with the figure on its front and the box to type the number on its back; the pencil (or a tap on the
+   figure) turns it over from top to bottom, with a little overshoot, and the close button (or Escape) turns it back */
+.odo-flip { width: min(100%, 340px); margin: 10px auto 0; perspective: 1100px; }
+.odo-card3d { position: relative; height: 116px; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.3, 1.28, .45, 1); }
+.odo-flip.open .odo-card3d { transform: rotateX(180deg); }
+.odo-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid var(--glass-b); background: linear-gradient(rgba(var(--fg-rgb), .07), rgba(var(--fg-rgb), .03)), var(--card); box-shadow: 0 1px 0 rgba(var(--fg-rgb), .06) inset, 0 14px 30px rgba(0, 0, 0, .32); }
+.odo-back { transform: rotateX(180deg); }
+.odo-face .odo-t { margin: 0; }
+.odo-back .odo-entry { width: min(100%, 290px); }
+.odo-back .scan-note { position: absolute; left: 0; right: 0; top: calc(100% + 6px); margin: 0; text-align: center; }
+.odo-close { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 999px; background: none; box-shadow: none; color: var(--dim); cursor: pointer; }
 .odo-close:hover, .odo-close:focus-visible { color: var(--strong); background: rgba(var(--fg-rgb), .08); }
-@media (prefers-reduced-motion: reduce) { .odo-flip .odo-page, .odo-flip:not(.open) .odo-under { transition: none; } }
+.odo-back .odo-all { margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .odo-card3d { transition: none; } }

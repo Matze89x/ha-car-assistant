@@ -1,4 +1,4 @@
-{% from "_macros.html" import icon, odo_drum, odo_progress, odo_entry with context %}
+{% from "_macros.html" import icon, odo_drum, odo_progress, odo_entry, odo_plate with context %}
 <div class="vehicle-hero">
   {% if v.plate %}<span class="plate">{{ v.plate }}</span>{% endif %}
   <div class="hero-name"><h1>{{ v.name }}</h1>{% if switch_vehicles %}<button type="button" class="cur-switch" data-open="vsw" aria-label="{{ _('nav.change') }}" title="{{ _('nav.change') }}">{{ icon('swap', 20) }}</button>{% endif %}</div>
@@ -41,19 +41,14 @@
   {% elif odometer is not none %}
   {% set ti = tank_info if tank_info is defined else none %}
   <div class="odo-card">
-    <div class="odo-flip">
-      <div class="odo-page odo-t"><small>{{ icon('counter', 16) }}<span>{{ _('f.odometer') }}</span></small>
-        <div class="odo-line"><button type="button" class="odo-pencil" data-odo-open aria-label="{{ _('odo.edit') }}" title="{{ _('odo.edit') }}">{{ icon('pencil', 18) }}</button>{{ odo_drum() }}</div></div>
-      {{ odo_entry(false, false, true) }}
-    </div>
+    {{ odo_plate() }}
     {{ odo_progress() }}
     {% if ti %}<div class="odo-tank{{ ' low' if ti.pct is not none and ti.pct <= 15 }}">{{ icon('plug' if energy_mode == 'charge' else 'gas-station', 17) }}<span>{% if ti.pct is not none %}{{ ti.pct }} %{% endif %}{% if ti.amount %}{{ ' · ' if ti.pct is not none }}{{ fnum(units.v(ti.amount, tank_unit), 1) }} {{ units.vol_unit(tank_unit) }}{% endif %}</span></div>{% endif %}
     {% if ti and ti.pct is not none %}<div class="bar"><i class="bar-fill" style="width: {{ ti.pct }}%"></i></div>{% endif %}
   </div>
   {% else %}
   <div class="odo-card odo-first">
-    <div class="odo-t"><small>{{ icon('counter', 16) }}<span>{{ _('f.odometer') }}</span></small></div>
-    {{ odo_entry(true) }}
+    {{ odo_plate(true) }}
   </div>
   {% endif %}
   {% elif odometer is not none %}

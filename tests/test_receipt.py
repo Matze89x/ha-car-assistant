@@ -293,15 +293,22 @@ def test_the_vehicle_passport_has_the_odometer_entry_when_no_plugin_reports_it(c
     assert 'class="vd-odo"' not in client.get(f"/v/{slug(vid)}/edit").text  # the car reports it: nothing to type
 
 
-def test_the_odometer_figure_on_the_dashboard_has_a_pencil_and_the_editor_is_closed_until_it_is_opened(client):
+def test_the_odometer_on_the_dashboard_is_a_flip_card_that_shows_the_last_reading_in_the_box(client):
     from tests.test_web import create_vehicle, slug
 
+    from carassistant import db
+
     vid = create_vehicle(client)
+    with db.tx() as conn:
+        conn.execute("DELETE FROM odometer WHERE vehicle_id = ?", (vid,))
+        conn.execute("INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, '2026-01-01', 12345, 'manual')", (vid,))
     page = client.get(f"/v/{slug(vid)}").text
     assert 'class="odo-pencil"' in page and 'class="odo-line"' in page  # the pencil sits beside the figure
     assert (
-        'class="odo-flip"' in page and 'class="odo-page odo-t"' in page and 'class="odo-edit odo-under"' in page
-    )  # the figure is a page, the box lies under it
+        'class="odo-flip"' in page and 'class="odo-face odo-front"' in page and 'class="odo-face odo-back"' in page
+    )  # figure in front, box behind
+    assert "odo-flip open" not in page and 'class="odo-close"' in page  # shown from the front; the back has its own close
+    assert 'placeholder="12345"' in page  # the last reading is the hint in the box - not text to delete
     assert (
-        "odo-flip open" not in page and 'class="odo-close"' in page
-    )  # closed until the pencil or the figure is tapped; the box has its own close
+        'name="odometer" inputmode="numeric" pattern="[0-9 .,]*" maxlength="9" autocomplete="off" value' not in page
+    )  # and nothing is typed for you
