@@ -80,6 +80,10 @@ Neben der *Weiteres*-Liste beginnt das erste Element der Seite auf derselben Lin
 | Dialog | `dialog.vsw` (+ `#cdlg` für Rückfragen) | unscharfer Hintergrund, `--r-l`-Karte; zerstörende Aktionen fragen immer (`data-confirm`, `data-confirm-ok`) |
 | 404 / Fehler | `error.html` | große Zahl mit Verlauf, ein Satz, zwei Knöpfe |
 
+## 4a. Farben, die nicht der Akzent sind
+
+Jede Farbe, die nicht die des Designs ist, kommt aus einer Stelle, dem `:root`-Block in `pc-core.css`: die sieben Chip-Farben der Module (`--chip-1` … `--chip-7`), Start und Ziel einer Route (`--map-start`, `--map-end`) und die vierte Diagrammfarbe `--chart-4`. Die letzte folgt dem Design: `themes.accent_css()` wählt aus wenigen Kandidaten den Farbton, der am weitesten vom Akzent, vom Grün für „in Ordnung“ und vom Bernstein für „bald“ entfernt ist, damit ein Diagramm nie zwei ähnliche Farben zeigt. Schreibe keine Hex-Farbe in eine Regel.
+
 ## 4b. Die festen Bausteine (je eine Definition, überall genutzt)
 
 Alles auf jeder Seite besteht aus dieser kurzen Liste. Eine neue Seite nutzt sie; ein neuer Look für etwas Vorhandenes ist eine Änderung der einen Definition, nie eine zweite Klasse.

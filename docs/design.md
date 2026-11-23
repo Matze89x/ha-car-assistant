@@ -80,6 +80,10 @@ Next to the *More* list the first element of the page starts on the same line as
 | Dialog | `dialog.vsw` (+ `#cdlg` for confirmations) | blurred backdrop, `--r-l` card; destructive actions always ask (`data-confirm`, `data-confirm-ok`) |
 | 404 / errors | `error.html` | big gradient number, one sentence, two buttons |
 
+## 4a. Colours that are not the accent
+
+Every colour that is not the design's own comes from one place, the `:root` block of `pc-core.css`: the seven chip colours of the modules (`--chip-1` … `--chip-7`), start and end of a route (`--map-start`, `--map-end`) and the fourth chart colour `--chart-4`. The last one follows the design: `themes.accent_css()` picks, of a few candidates, the hue farthest from the accent, the green of "fine" and the amber of "soon", so a chart never shows two colours that look alike. Do not write a hex colour into a rule.
+
 ## 4b. The fixed building blocks (one definition each, used everywhere)
 
 Everything on every page is built from this short list. A new page uses these; a new look for something that exists is a change of the one definition, never a second class.

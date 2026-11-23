@@ -1,5 +1,8 @@
 /* Transparent glass so the red glow shows through the tiles. Loaded after app.css. */
 :root { /* FIXED SPACING – every page uses these, nothing is hard-coded per page */
+  --chip-1: #4f86ff; --chip-2: #2fbf6a; --chip-3: #ff9a2e; --chip-4: #a36bff; --chip-5: #8d95a3; --chip-6: #ff4d5e; --chip-7: #27b8c8; /* the seven colours of the module icon chips (CHIP in nav_web.py) */
+  --map-start: #2fbf6a; --map-end: #ef4452; /* start and end of a route on the trip map and in its legend */
+  --chart-4: #b583ff; /* the fourth colour of the cost charts (the fallback); themes.accent_css() works out the real one from the colour of the design */
   --sp-edge: 14px; /* distance to the screen / sidebar edge (left and right) */
   --sp-col: 14px; /* gap between two columns (list | page) */
   --sp-top: 18px; /* top edge of the first element of every page */
@@ -1641,13 +1644,13 @@ label.check > input[type=checkbox]:not(.switch input):not(.sw input) { margin: 1
 .cur-top:hover { background: rgba(var(--fg-rgb), .04); }
 
 /* page icons: clear tinted glass - the colour only tints the tile, the symbol carries the colour; works on light and dark */
-.mi-ic.c1, .navrow .iconpick .mi-ic.c1 { --ic: #4f86ff; }
-.mi-ic.c2, .navrow .iconpick .mi-ic.c2 { --ic: #2fbf6a; }
-.mi-ic.c3, .navrow .iconpick .mi-ic.c3 { --ic: #ff9a2e; }
-.mi-ic.c4, .navrow .iconpick .mi-ic.c4 { --ic: #a36bff; }
-.mi-ic.c5, .navrow .iconpick .mi-ic.c5 { --ic: #8d95a3; }
-.mi-ic.c6, .navrow .iconpick .mi-ic.c6 { --ic: #ff4d5e; }
-.mi-ic.c7, .navrow .iconpick .mi-ic.c7 { --ic: #27b8c8; }
+.mi-ic.c1, .navrow .iconpick .mi-ic.c1 { --ic: var(--chip-1); }
+.mi-ic.c2, .navrow .iconpick .mi-ic.c2 { --ic: var(--chip-2); }
+.mi-ic.c3, .navrow .iconpick .mi-ic.c3 { --ic: var(--chip-3); }
+.mi-ic.c4, .navrow .iconpick .mi-ic.c4 { --ic: var(--chip-4); }
+.mi-ic.c5, .navrow .iconpick .mi-ic.c5 { --ic: var(--chip-5); }
+.mi-ic.c6, .navrow .iconpick .mi-ic.c6 { --ic: var(--chip-6); }
+.mi-ic.c7, .navrow .iconpick .mi-ic.c7 { --ic: var(--chip-7); }
 .mi-ic[class*=" c"], .navrow .iconpick .mi-ic[class*=" c"] { background: color-mix(in srgb, var(--ic) 20%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ic) 42%, transparent); color: var(--ic); }
 .mi-ic[class*=" c"] .ico { color: var(--ic); width: 22px; height: 22px; filter: none; }
 .mi-ic::before { content: none; }
@@ -2305,8 +2308,8 @@ form.set-form > .form-bar { display: flex; justify-content: space-between; align
 .tl-pts { display: flex; gap: 16px; color: var(--muted); font-size: 12px; }
 .tl-pts > span { display: inline-flex; align-items: center; gap: 6px; }
 .tl-pts .dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; display: inline-block; }
-.tl-pts .dot.start { background: #2fbf6a; }
-.tl-pts .dot.end { background: #ef4452; }
+.tl-pts .dot.start { background: var(--map-start); }
+.tl-pts .dot.end { background: var(--map-end); }
 .tl-text { margin: 0; }
 
 /* driving style: two by two on a phone, one column on a tablet and on the web */
@@ -2314,8 +2317,8 @@ form.set-form > .form-bar { display: flex; justify-content: space-between; align
   .tp-tiles { grid-template-columns: minmax(0, 1fr); }
 }
 .tp-svg circle { stroke: #fff; stroke-width: 2; }
-.tp-svg circle.p-start { fill: #2fbf6a; }
-.tp-svg circle.p-end { fill: #ef4452; }
+.tp-svg circle.p-start { fill: var(--map-start); }
+.tp-svg circle.p-end { fill: var(--map-end); }
 
 /* the global rule "svg circle" would paint them in the accent colour */
 
@@ -2351,7 +2354,7 @@ form.set-form > .form-bar { display: flex; justify-content: space-between; align
 /* Report: the usual tabs (days / weeks / months) with the number of periods as a select on the right, one row */
 .rp-bar { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 var(--sp-head); }
 .rp-bar .seg-tabs { flex: 1; min-width: 0; margin: 0; }
-.rp-bar select { flex: 0 0 auto; width: auto; min-width: 76px; min-height: 46px; margin: 0; }
+.rp-bar select { flex: 0 0 auto; width: auto; min-width: 76px; min-height: 48px; margin: 0; }
 
 /* Buttons with an icon and a visible text: the icon sits closer to the edge (22px looked too wide on the left). The selectors are weak on purpose
    (the round icon-only buttons of the page header and the narrow layouts set their own padding and must win). */
@@ -2390,7 +2393,7 @@ label.has-gs > .gs:hover { color: var(--text); background: rgba(var(--fg-rgb), .
 svg.bars .b1, .rp-legend i.b1 { fill: var(--accent); background: var(--accent); }
 svg.bars .b2, .rp-legend i.b2 { fill: var(--ok); background: var(--ok); }
 svg.bars .b3, .rp-legend i.b3 { fill: var(--soon); background: var(--soon); }
-svg.bars .b4, .rp-legend i.b4 { fill: #b583ff; background: #b583ff; }
+svg.bars .b4, .rp-legend i.b4 { fill: var(--chart-4); background: var(--chart-4); }
 svg.bars rect { rx: 2; }
 svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5 4; }
 .rp-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12px; color: var(--muted); }
@@ -2505,7 +2508,7 @@ svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5
 .rp-share i.b1, .xr-ic.b1 { background: var(--accent); }
 .rp-share i.b2, .xr-ic.b2 { background: var(--ok); }
 .rp-share i.b3, .xr-ic.b3 { background: var(--soon); }
-.rp-share i.b4, .xr-ic.b4 { background: #b583ff; }
+.rp-share i.b4, .xr-ic.b4 { background: var(--chart-4); }
 .rp-cats, .xr-list { display: grid; gap: 6px; }
 .rp-cat, .xrow { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 10px 12px; border-radius: var(--r-m); background: var(--glass2); border: 1px solid var(--glass-b); color: inherit; text-decoration: none; }
 .rp-cat:hover, .xrow:hover { background: rgba(var(--fg-rgb), .07); text-decoration: none; }
@@ -2848,7 +2851,7 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 .rp-share i.b1, .rp-legend i.b1 { --t: var(--accent); }
 .rp-share i.b2, .rp-legend i.b2 { --t: var(--ok); }
 .rp-share i.b3, .rp-legend i.b3 { --t: var(--soon); }
-.rp-share i.b4, .rp-legend i.b4 { --t: #b583ff; }
+.rp-share i.b4, .rp-legend i.b4 { --t: var(--chart-4); }
 .rp-share i[class], .rp-legend i[class] { background: color-mix(in srgb, var(--t, var(--accent)) 38%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t, var(--accent)) 60%, transparent); }
 .ta-bar .ta-t i { background: color-mix(in srgb, var(--accent) 38%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent); }
 .ta-c.l1 { background: rgba(var(--accent-rgb), .1); }

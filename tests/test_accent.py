@@ -128,3 +128,19 @@ def test_any_colour_stays_visible_and_readable_on_its_design():
             surface = themes.SURFACE[scheme]
             assert themes.contrast(main, surface) >= 2.9, (colour, scheme, main)
             assert themes.contrast(ink, surface) >= 4.4, (colour, scheme, ink)
+
+
+def test_the_fourth_chart_colour_keeps_away_from_the_accent_and_the_state_colours():
+    import colorsys
+
+    from carassistant import themes
+
+    for accent in ("#e2001a", "#2f8cff", "#a855f7", "#3ddc84", "#f59e0b"):
+        for scheme in ("dark", "light"):
+            css = themes.accent_css(accent, scheme)
+            hexa = css.split("--chart-4:")[1].split("}")[0].split(";")[0]
+            h = colorsys.rgb_to_hls(*(int(hexa[i : i + 2], 16) / 255 for i in (1, 3, 5)))[0] * 360
+            acc_h = colorsys.rgb_to_hls(*(int(accent[i : i + 2], 16) / 255 for i in (1, 3, 5)))[0] * 360
+            for other in (acc_h, 145, 38):
+                gap = abs(h - other) % 360
+                assert min(gap, 360 - gap) >= 30, (accent, scheme, hexa)

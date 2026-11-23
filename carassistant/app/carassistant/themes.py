@@ -105,6 +105,19 @@ def _hex(h: float, s: float, light: float) -> str:
     return f"#{round(r * 255):02x}{round(g * 255):02x}{round(b * 255):02x}"
 
 
+CHART_HUES = (270, 190, 320, 215, 100)  # candidates for the fourth chart colour (degrees on the colour wheel)
+
+
+def chart_hue(accent_hue: float) -> int:
+    """The fourth colour of a chart: of a few candidates the one farthest from the accent, the green of "fine" (145) and the amber of "soon" (38)."""
+
+    def apart(a: float, b: float) -> float:
+        d = abs(a - b) % 360
+        return min(d, 360 - d)
+
+    return max(CHART_HUES, key=lambda cand: min(apart(cand, accent_hue), apart(cand, 145), apart(cand, 38)))
+
+
 def accent_css(color: str, scheme: str) -> str:
     """One colour -> the whole accent family of a design (button gradient, hover, light text colour, the text colour on a button).
 
@@ -127,6 +140,7 @@ def accent_css(color: str, scheme: str) -> str:
     ink = _hex(h, s, readable_lightness(h, s, base, scheme, 4.5))  # ... and as text always readable (4.5 : 1)
     top, bot, top_h, bot_h = base + 0.10, base - 0.03, base + 0.14, base
     main = _hex(h, s, base)
+    chart = _hex(chart_hue(h * 360) / 360, 0.85, 0.52 if scheme == "light" else 0.72)  # the fourth colour of the cost charts
     mr, mg, mb = (int(main[i : i + 2], 16) for i in (1, 3, 5))
     # text on a button: white, unless the button is so light that white would be hard to read
     lum = _luminance(*(int(_hex(h, s, base + 0.035)[i : i + 2], 16) / 255 for i in (1, 3, 5)))
@@ -135,7 +149,7 @@ def accent_css(color: str, scheme: str) -> str:
         ":root:root:root{"
         f"--accent:{main};--accent-rgb:{mr}, {mg}, {mb};--accent-hi:{_hex(h, s, hi)};"
         f"--accent-top:{_hex(h, s, top)};--accent-bot:{_hex(h, s, bot)};--accent-top-h:{_hex(h, s, top_h)};--accent-bot-h:{_hex(h, s, bot_h)};"
-        f"--accent-text:{text};--accent-ink:{ink}"
+        f"--accent-text:{text};--accent-ink:{ink};--chart-4:{chart}"
         "}"
     )
 
