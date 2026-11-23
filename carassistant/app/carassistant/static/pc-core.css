@@ -336,8 +336,7 @@ dialog.cdlg { width: min(440px, calc(100% - 28px)); }
 @media (min-width: 1000px) {
   .vpage.vhome { max-width: 1000px; padding: 0 var(--sp-edge); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--sp-col); align-items: start; }
   .vhome .vehicle-hero { grid-column: 1; grid-row: 1 / span 6; position: sticky; top: 0; padding: var(--sp-top) 0 12px; }
-  .vhome .tabs, .vhome main { grid-column: 2; }
-  .vhome .tabs { padding: var(--sp-top) 0 0; margin: 0; box-sizing: border-box; }
+  .vhome main { grid-column: 2; }
   .vhome main { margin: 0; padding: var(--sp-top) 0 32px; }
   .vhome .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -2980,8 +2979,9 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .stn-more[open] > summary { display: none; }
 .stn-more .stn-list { margin-top: 0; }
 .stn-head .stn-ht { flex: 1; min-width: 0; }
-.stn-sort { flex: 0 0 auto; display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .06); }  /* price | distance: one small round switch with two symbols */
-.stn-sort a { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; color: var(--muted); text-decoration: none; transition: background .18s, color .18s; }
-.stn-sort a:hover { color: var(--text); text-decoration: none; }
-.stn-sort a.on { background: rgba(var(--ok-rgb), .18); color: var(--ok); box-shadow: inset 0 0 0 1px rgba(var(--ok-rgb), .4); }
+/* the second tab bar: round, symbols only, two or three options (price | distance ...) - next to .seg-tabs the only one */
+.seg-icons { flex: 0 0 auto; display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .06); }  /* price | distance: one small round switch with two symbols */
+.seg-icons a { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; color: var(--muted); text-decoration: none; transition: background .18s, color .18s; }
+.seg-icons a:hover { color: var(--text); text-decoration: none; }
+.seg-icons a.on { background: rgba(var(--ok-rgb), .18); color: var(--ok); box-shadow: inset 0 0 0 1px rgba(var(--ok-rgb), .4); }
 .page-head h2 { font-weight: 700; letter-spacing: -.025em; line-height: 1.1; gap: 10px; }  /* the title of the More list (an h2 so a page has one h1) looks exactly like an h1 */

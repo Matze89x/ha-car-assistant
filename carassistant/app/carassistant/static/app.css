@@ -150,10 +150,6 @@ fieldset { border-color: var(--glass-b); border-radius: var(--r-m); }
 .hero-car.photo { max-width: 380px; max-height: 240px; object-fit: contain; filter: none; }
 .hero-car { display: block; width: 100%; max-width: 340px; height: auto; filter: drop-shadow(0 18px 24px rgba(var(--accent-rgb), .18)); }
 
-/* module switcher = segmented control */
-.tabs { max-width: 820px; margin: 14px auto 0; padding: 3px 16px; display: block; background: none; overflow: visible; }
-.tabs a { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: var(--r-s); white-space: nowrap; background: none; border: 0; font-weight: 600; font-size: 14px; box-shadow: none; transform: none; transition: background .2s, color .2s; }
-.tabs a:hover { color: var(--text); text-decoration: none; transform: none; }
 
 /* vehicle switcher */
 .switcher { position: relative; }
@@ -225,7 +221,7 @@ fieldset { border-color: var(--glass-b); border-radius: var(--r-m); }
   .tab-ind { height: 50px; transform: translateY(calc(var(--id, var(--i, 0)) * 56px)); }
   .side .sb-foot { justify-content: flex-start; padding-left: 8px; }
   .side .sb-foot .sb-ver { display: inline; }
-  main, .tabs { max-width: 1000px; }
+  main { max-width: 1000px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tab-ind { transition: none; }
@@ -235,9 +231,6 @@ fieldset { border-color: var(--glass-b); border-radius: var(--r-m); }
 /* ================= 0.3.1 – green + red, tinted gradients ================= */
 
 /* segmented control: active = green */
-.tabs a { color: var(--muted); }
-.tabs a.active { color: var(--ok); background: rgba(var(--ok-rgb), .18); border: 1px solid rgba(var(--ok-rgb), .45); box-shadow: none; }
-.tabs a.active .ico { color: var(--ok); }
 
 /* sidebar foot dot */
 .side .sb-foot .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: var(--ok); box-shadow: 0 0 0 3px rgba(var(--ok-rgb), .16); }
@@ -286,7 +279,7 @@ a.ov:active { transform: scale(.965); }
 
 /* two column home on wide screens */
 .vpage { max-width: 1000px; margin: 0 auto; }
-.vpage > .vehicle-hero, .vpage > .tabs, .vpage > main { max-width: none; }
+.vpage > .vehicle-hero, .vpage > main { max-width: none; }
 .vsub .vehicle-hero { padding-bottom: 0; }
 .vsub .vehicle-hero .hero-car { display: none; }
 .vsub .vehicle-hero h1 { font-size: 24px; }
@@ -294,18 +287,14 @@ a.ov:active { transform: scale(.965); }
 @media (min-width: 1100px) {
   .vpage.vhome { max-width: 1240px; display: grid; grid-template-columns: minmax(360px, .85fr) minmax(0, 1.15fr); column-gap: 14px; align-items: start; }
   .vhome .vehicle-hero { grid-column: 1; grid-row: 1 / span 6; position: sticky; top: 0; padding: 24px 12px 12px; }
-  .vhome .tabs, .vhome main { grid-column: 2; }
-  .vhome .tabs { padding-top: 24px; margin-top: 0; }
+  .vhome main { grid-column: 2; }
   .vhome .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .vpage > * { min-width: 0; }
 .vehicle-hero { padding-left: 16px; padding-right: 16px; }
-.vpage > .tabs { margin-left: 0; margin-right: 0; width: auto; }
 @media (min-width: 1100px) {
-  .vhome .tabs { padding-right: 16px; }
 }
 @media (min-width: 1100px) {
-  .vhome .tabs { padding: 24px 16px 0 16px; box-sizing: border-box; }
 }
 .icon-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--glass-b); }
 .icon-row .grow { flex: 1; min-width: 0; }

@@ -5,7 +5,7 @@
   <div class="stn-head">
     <span class="mi-ic c6">{{ icon('gas-station', 20) }}</span>
     <div class="stn-ht"><h2>{{ _('stn.title') }}</h2><small>{{ s.fuel|upper }} · 15 {{ units.dist_unit }}</small></div>
-    {% if s.searched %}<div class="stn-sort" role="group" aria-label="{{ _('stations.sort') }}">
+    {% if s.searched %}<div class="seg-icons" role="group" aria-label="{{ _('stations.sort') }}">
       <a href="{{ vurl }}?go=1&amp;sort=price{{ keep|e }}#stations" class="{{ 'on' if s.sort == 'price' }}" title="{{ _('stations.sort_price') }}" aria-label="{{ _('stations.sort_price') }}">{{ icon('gas-station', 18) }}</a>
       <a href="{{ vurl }}?go=1&amp;sort=distance{{ keep|e }}#stations" class="{{ 'on' if s.sort == 'distance' }}" title="{{ _('stations.sort_distance') }}" aria-label="{{ _('stations.sort_distance') }}">{{ icon('map-marker-radius', 18) }}</a>
     </div>{% endif %}

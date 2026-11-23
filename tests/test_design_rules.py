@@ -177,3 +177,30 @@ def test_every_linked_widget_shows_its_arrow():
 
     css = (Path(__file__).resolve().parents[1] / "carassistant/app/carassistant/static/pc-core.css").read_text(encoding="utf-8")
     assert ".wd.s .wd-h > .ico:last-child { display: none; }" not in css
+
+
+def test_there_are_only_two_kinds_of_tab_bars_and_the_navigation():
+    """ONE tab bar for text and symbol (.seg-tabs) and ONE round symbol switch (.seg-icons); the navigation (.tabbar) is not a tab bar.
+    A new look for 'tabs' is not a new class: use one of these two (docs/design.md, "The fixed building blocks")."""
+    import glob
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "carassistant/app/carassistant"
+    allowed = {
+        "seg-tabs",
+        "seg-icons",
+        "tv-tabs",
+        "ta-tabs",
+        "tabbar",
+        "tab",
+        "tab-ind",
+        "table-wrap",
+    }  # tv-/ta- only add a margin to .seg-tabs
+    found = set()
+    for path in glob.glob(str(root / "templates/**/*.html"), recursive=True) + glob.glob(str(root / "static/*.js")):
+        for m in re.finditer(r'class="([^"{}]*)"', Path(path).read_text(encoding="utf-8")):
+            found.update(tok for tok in m.group(1).split() if "tab" in tok)
+    assert found <= allowed, f"a new kind of tab bar: {sorted(found - allowed)} - use .seg-tabs or .seg-icons"
+    css = (root / "static/pc-core.css").read_text(encoding="utf-8") + (root / "static/app.css").read_text(encoding="utf-8")
+    assert not re.search(r"(^|[\s,>])\.tabs\b", css, re.M), "the old .tabs rules are gone"

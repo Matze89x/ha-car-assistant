@@ -80,6 +80,25 @@ Next to the *More* list the first element of the page starts on the same line as
 | Dialog | `dialog.vsw` (+ `#cdlg` for confirmations) | blurred backdrop, `--r-l` card; destructive actions always ask (`data-confirm`, `data-confirm-ok`) |
 | 404 / errors | `error.html` | big gradient number, one sentence, two buttons |
 
+## 4b. The fixed building blocks (one definition each, used everywhere)
+
+Everything on every page is built from this short list. A new page uses these; a new look for something that exists is a change of the one definition, never a second class.
+
+| Block | Use | Where it is defined |
+|---|---|---|
+| **Page header** | `page_head()`: symbol + title, the car's name below, round icon buttons (no text) at the right, centred on the whole header | `_macros.html`, `.page-head` |
+| **Notice tile** | `.notice` (info / saved / warning / error) in the slot under the header; the page introduction is the first tile | `notices.py` (server), `.notice-slot` |
+| **Tab bar (text + symbol)** | `.seg-tabs`: switch between views or pages (Management / Add / Sources, seasons, periods, ...). A symbol in front of every tab | `.seg-tabs` |
+| **Symbol switch (round)** | `.seg-icons`: two or three options as symbols only (price / distance ...) | `.seg-icons` |
+| **Navigation** | `.tabbar` (bottom bar / side bar) and the *More* list - not a tab bar | `base.html`, `.tabbar`, `.mgroup` |
+| **Section label** | `.vd-group-h`, `.rec-month`: 28 px above, 10 px to the tile below | `--sp-label-*` |
+| **Card / tile** | `.card`, `.wd` (widget, the arrow top right when it is a link), `.rec` (list card) | `.card`, `.wd`, `.rec` |
+| **Buttons** | `.button` (+ `.primary`, `.danger`, `.small`), `.icon-btn` (round); bottom right of a card, one line | `.button`, `.icon-btn` |
+| **Fields / switch** | `input`, `select`, `textarea`, `.switch` rows | `app.css` |
+| **Map** | `.tp-map` / `.pos-map`: full width, 16:9; the tiles come from our own tile address | `.pos-map` |
+
+A test (`tests/test_design_rules.py`) refuses a third kind of tab bar. Plugin pages (`kind: "frame"`) get the same look from the `kit` style sheet (see [plugins](plugins.md)).
+
 ## 5. Behaviour rules
 
 - **Per vehicle.** Anything that belongs to a car lives under that car; only Account, Vehicles, Settings and System services are global. Vehicles are addressed by name (`/v/<name>/…`).

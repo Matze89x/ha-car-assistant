@@ -80,6 +80,25 @@ Neben der *Weiteres*-Liste beginnt das erste Element der Seite auf derselben Lin
 | Dialog | `dialog.vsw` (+ `#cdlg` für Rückfragen) | unscharfer Hintergrund, `--r-l`-Karte; zerstörende Aktionen fragen immer (`data-confirm`, `data-confirm-ok`) |
 | 404 / Fehler | `error.html` | große Zahl mit Verlauf, ein Satz, zwei Knöpfe |
 
+## 4b. Die festen Bausteine (je eine Definition, überall genutzt)
+
+Alles auf jeder Seite besteht aus dieser kurzen Liste. Eine neue Seite nutzt sie; ein neuer Look für etwas Vorhandenes ist eine Änderung der einen Definition, nie eine zweite Klasse.
+
+| Baustein | Einsatz | Definiert in |
+|---|---|---|
+| **Seitenkopf** | `page_head()`: Symbol + Titel, darunter der Name des Autos, rechts runde Symbolknöpfe (ohne Text), mittig zum ganzen Kopf | `_macros.html`, `.page-head` |
+| **Hinweis-Kachel** | `.notice` (Info / Gespeichert / Warnung / Fehler) im Platz unter dem Kopf; die Einleitung der Seite ist die erste Kachel | `notices.py` (Server), `.notice-slot` |
+| **Tab-Leiste (Text + Symbol)** | `.seg-tabs`: zwischen Ansichten oder Seiten wechseln (Verwaltung / Hinzufügen / Quellen, Jahreszeiten, Zeiträume ...). Vor jedem Tab ein Symbol | `.seg-tabs` |
+| **Symbol-Schalter (rund)** | `.seg-icons`: zwei oder drei Optionen nur als Symbole (Preis / Entfernung ...) | `.seg-icons` |
+| **Navigation** | `.tabbar` (untere Leiste / Seitenleiste) und die *Weiteres*-Liste – keine Tab-Leiste | `base.html`, `.tabbar`, `.mgroup` |
+| **Abschnittsbeschriftung** | `.vd-group-h`, `.rec-month`: 28 px darüber, 10 px zur Kachel darunter | `--sp-label-*` |
+| **Karte / Kachel** | `.card`, `.wd` (Widget, Pfeil oben rechts, wenn es ein Link ist), `.rec` (Listenkarte) | `.card`, `.wd`, `.rec` |
+| **Knöpfe** | `.button` (+ `.primary`, `.danger`, `.small`), `.icon-btn` (rund); unten rechts in der Karte, eine Zeile | `.button`, `.icon-btn` |
+| **Felder / Schalter** | `input`, `select`, `textarea`, `.switch`-Zeilen | `app.css` |
+| **Karte (Map)** | `.tp-map` / `.pos-map`: volle Breite, 16:9; die Kacheln kommen von unserer eigenen Kachel-Adresse | `.pos-map` |
+
+Ein Test (`tests/test_design_rules.py`) verweigert eine dritte Art von Tab-Leiste. Plugin-Seiten (`kind: "frame"`) bekommen denselben Look aus dem `kit`-Stylesheet (siehe [Plugins](plugins.de.md)).
+
 ## 5. Verhaltensregeln
 
 - **Pro Fahrzeug.** Alles, was zu einem Auto gehört, liegt unter diesem Auto; nur Konto, Fahrzeuge, Einstellungen und Systemdienste sind global. Fahrzeuge werden über den Namen angesprochen (`/v/<name>/…`).
