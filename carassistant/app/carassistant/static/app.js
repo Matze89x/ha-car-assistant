@@ -651,22 +651,29 @@ document.addEventListener("click", function (event) {
   });
 })();
 
-// The odometer is edited in place: [data-odo-open] (the "change" under the figure, or the ghost odometer of a car without a reading) opens the box; Escape closes it.
-document.addEventListener("click", function (e) {
-  var open = e.target.closest && e.target.closest("[data-odo-open]");
-  if (!open) { return; }
-  var wrap = open.closest(".odo-edit"), form = wrap && wrap.querySelector(".odo-entry");
-  if (!form) { return; }
-  form.hidden = false; open.hidden = true;
-  var input = form.querySelector("input[name=odometer]"); if (input) { input.focus(); }
-});
-document.addEventListener("keydown", function (e) {
-  if (e.key !== "Escape") { return; }
-  var form = e.target.closest && e.target.closest(".odo-entry");
-  if (!form) { return; }
-  var open = form.closest(".odo-edit").querySelector("[data-odo-open]");
-  form.hidden = true; if (open) { open.hidden = false; open.focus(); }
-});
+// The odometer is edited in place: [data-odo-open] (the pencil beside the figure, the "change" under it, or the ghost odometer of a car without a reading)
+// opens the box (a tap on the figure itself does as well) - and closes it again when it is open; Escape closes it too.
+(function () {
+  function scopeOf(el) { return el.closest(".odo-card, .odo-edit, .vd-odo") || document; }
+  function show(scope, on) {
+    var form = scope.querySelector(".odo-entry");
+    if (!form) { return; }
+    form.hidden = !on;
+    Array.prototype.forEach.call(scope.querySelectorAll(".odo-open"), function (b) { b.hidden = on; });
+    if (on) { var input = form.querySelector("input[name=odometer]"); if (input) { input.focus(); } }
+  }
+  document.addEventListener("click", function (e) {
+    var open = e.target.closest && e.target.closest("[data-odo-open], .odo-line .odo-drum");  /* the figure itself opens it as well */
+    if (!open) { return; }
+    var scope = scopeOf(open), form = scope.querySelector(".odo-entry");
+    if (form) { show(scope, form.hidden); }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") { return; }
+    var form = e.target.closest && e.target.closest(".odo-entry");
+    if (form) { show(scopeOf(form), false); }
+  });
+})();
 
 // A form with data-sort-save sends itself in the background (with ajax=1) whenever one of its sortable lists is put in order, like the old arrows did.
 document.addEventListener("sortchange", function (e) {

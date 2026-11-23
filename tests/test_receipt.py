@@ -291,3 +291,12 @@ def test_the_vehicle_passport_has_the_odometer_entry_when_no_plugin_reports_it(c
     with db.tx() as conn:
         conn.execute("UPDATE odometer SET source = 'plugin-x' WHERE vehicle_id = ?", (vid,))
     assert 'class="vd-odo"' not in client.get(f"/v/{slug(vid)}/edit").text  # the car reports it: nothing to type
+
+
+def test_the_odometer_figure_on_the_dashboard_has_a_pencil_and_the_editor_is_closed_until_it_is_opened(client):
+    from tests.test_web import create_vehicle, slug
+
+    vid = create_vehicle(client)
+    page = client.get(f"/v/{slug(vid)}").text
+    assert 'class="odo-pencil"' in page and 'class="odo-line"' in page  # the pencil sits beside the figure
+    assert '<form class="odo-entry" hidden' in page  # the editor is closed until the pencil (or the figure) is tapped

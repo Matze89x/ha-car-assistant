@@ -3226,12 +3226,16 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 /* the odometer is edited in place (dashboard): a small "change" under the figure - or a ghost odometer when there is no reading yet - opens ONE box: the
    number as big digits, the photo button inside it and the enter strip on its right (the contour divides it, like the sort strip) */
 .odo-edit { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 10px 0 0; }
+.odo-line { display: flex; align-items: center; justify-content: center; }
+.odo-line .odo-drum { cursor: pointer; }  /* a tap on the figure opens the editor too */
+.odo-pencil { flex: 0 0 auto; display: grid; place-items: center; width: 40px; height: 40px; margin-right: 8px; padding: 0; border: 0; border-radius: 999px; background: none; box-shadow: none; color: var(--dim); cursor: pointer; }  /* as wide as the unit on the right: the figure stays centred */
+.odo-pencil:hover, .odo-pencil:focus-visible { color: var(--strong); background: rgba(var(--fg-rgb), .08); }
 .odo-open { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 14px; border-radius: 999px; border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .05); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; }
 .odo-open:hover { color: var(--strong); }
 .odo-open.first { gap: 10px; min-height: 0; padding: 0; border: 0; background: none; color: var(--dim); }
 .odo-open.first .odo-unit { font-size: 20px; font-weight: 500; }
 .odo-drum.ghost { opacity: .4; }
-.odo-open[hidden], .odo-entry[hidden] { display: none; }
+.odo-open[hidden], .odo-entry[hidden], .odo-pencil[hidden] { display: none; }
 .odo-entry { width: min(100%, 300px); }
 .odo-box { display: flex; align-items: stretch; min-height: 56px; border: 1px solid var(--glass-b); border-radius: var(--r-s); background: rgba(var(--fg-rgb), .06); overflow: hidden; }
 .odo-box:focus-within { border-color: var(--accent); }
@@ -3245,7 +3249,7 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 .odo-entry .scan-note { margin: 6px 2px 0; }
 .odo-entry .scan-note.ok { color: var(--ok); }
 .odo-entry .scan-note.warn { color: var(--warn, #f59e0b); }
-.odo-all { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--dim); }
+.odo-all { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 6px; font-size: 12px; color: var(--dim); }
 .odo-all.odd { color: var(--soon); font-weight: 600; }
 /* all readings of the car in one list; the ones that do not fit are marked */
 .odo-hist { padding-block: 4px; }

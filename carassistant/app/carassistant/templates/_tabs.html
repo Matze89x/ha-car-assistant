@@ -41,9 +41,10 @@
   {% elif odometer is not none %}
   {% set ti = tank_info if tank_info is defined else none %}
   <div class="odo-card">
-    <div class="odo-t"><small>{{ icon('counter', 16) }}<span>{{ _('f.odometer') }}</span></small>{{ odo_drum() }}</div>
+    <div class="odo-t"><small>{{ icon('counter', 16) }}<span>{{ _('f.odometer') }}</span></small>
+      <div class="odo-line"><button type="button" class="odo-pencil" data-odo-open aria-label="{{ _('odo.edit') }}" title="{{ _('odo.edit') }}">{{ icon('pencil', 18) }}</button>{{ odo_drum() }}</div></div>
     {{ odo_progress() }}
-    {{ odo_entry() }}
+    {{ odo_entry(false, false) }}
     {% if ti %}<div class="odo-tank{{ ' low' if ti.pct is not none and ti.pct <= 15 }}">{{ icon('plug' if energy_mode == 'charge' else 'gas-station', 17) }}<span>{% if ti.pct is not none %}{{ ti.pct }} %{% endif %}{% if ti.amount %}{{ ' · ' if ti.pct is not none }}{{ fnum(units.v(ti.amount, tank_unit), 1) }} {{ units.vol_unit(tank_unit) }}{% endif %}</span></div>{% endif %}
     {% if ti and ti.pct is not none %}<div class="bar"><i class="bar-fill" style="width: {{ ti.pct }}%"></i></div>{% endif %}
   </div>
