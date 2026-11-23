@@ -1162,12 +1162,24 @@ def guide_form(addon: dict, form: dict, keys: set[str] | None) -> dict:
     return merged
 
 
+def token_by_guide(manifest: dict) -> bool:
+    """A plugin with a set-up guide AND a connection file gets its token ONLY by the choice in step 2 (new / existing / kept): nothing makes one before
+    (not the installation, not the start of its service, not saving the settings)."""
+    return bool(manifest.get("setup") and manifest.get("connection_file"))
+
+
 def set_up(conn: sqlite3.Connection, vehicle_id: int, addon: dict, form: dict, only: set[str] | None = None) -> str | None:
     """Mark as configured, save settings; a plugin gets its connection token (returned once)."""
     token = None
     token_id = addon["token_id"]
-    # a plugin gets its token here; a plugin with a service but no connection file lets the service make its own (pluginsvc.py)
-    if addon["kind"] == "plugin" and token_id is None and (not addon["m"].get("service") or addon["m"].get("connection_file")):
+    # a plugin without service and without connection file gets its token here; a plugin with a connection file gets one ONLY by the explicit choice in
+    # step 2 of the guide (new_token / adopt), never by saving settings; a service without connection file makes its own (pluginsvc.py)
+    if (
+        addon["kind"] == "plugin"
+        and token_id is None
+        and not token_by_guide(addon["m"])
+        and (not addon["m"].get("service") or addon["m"].get("connection_file"))
+    ):
         token = connectors.create_token(conn, f"{addon['m']['name']}", vehicle_id)
         token_id = conn.execute("SELECT id FROM api_tokens ORDER BY id DESC LIMIT 1").fetchone()["id"]
         if addon["m"].get("connection_file"):

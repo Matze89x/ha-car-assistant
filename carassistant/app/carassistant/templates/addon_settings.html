@@ -48,6 +48,15 @@
   <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/bar"><button name="way" value="{{ 'out' if in_bar else 'in' }}">{{ icon('menu', 18) }}<span>{{ _('addon.nav_out') if in_bar else _('addon.nav_in') }}</span></button></form>
 </section>
 {% endif %}
+{% if addon.kind == 'plugin' and token_fp %}
+<section class="card addon-token">
+  <h2>{{ icon('lock', 20) }} {{ _('addon.token_show_title') }}</h2>
+  {% if kept_token %}
+  <p class="hint">{{ _('addon.token_show_hint') }}</p>
+  <div class="cp-row"><input readonly data-select value="{{ kept_token }}" aria-label="{{ _('addon.token_show_title') }}"><button type="button" class="ghost-btn small" data-copy="{{ kept_token }}" data-done="{{ _('mcp.copied') }}">{{ icon('content-copy', 16) }}<span>{{ _('mcp.copy') }}</span></button></div>
+  {% else %}<p class="hint">{{ _('addon.token_show_none') }} <code>•••• {{ token_fp }}</code></p>{% endif %}
+</section>
+{% endif %}
 {% if addon.kind == 'plugin' and addon.status == 'configured' and addon.m.connection_file %}
 <section class="card addon-token">
   <h2>{{ icon('download', 20) }} {{ _('addon.token_have_title') }}</h2>

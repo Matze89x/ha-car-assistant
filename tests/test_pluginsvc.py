@@ -821,3 +821,24 @@ def test_a_page_of_an_integration_is_the_whole_window_with_the_head_of_car_assis
     assert (
         "ca-head" not in local.get("/priv/tool/", headers={"Accept": "*/*", "X-Requested-With": "frame"}).text
     )  # a fetch gets the page as it is
+
+
+def test_a_plugin_with_a_guide_gets_no_token_before_step_2_and_the_token_can_be_read_again(client):
+    """The token is chosen IN the set-up guide: neither the installation nor the first start of the service nor saving settings makes one; once chosen it can be
+    read again on the settings page (administrator), so a reinstallation can keep what is in the car."""
+    guided = {
+        **MANIFEST,
+        "connection_file": {"name": "link.cfg", "template": "token={token}\nvehicle={vehicle}"},
+        "setup": {"steps": [{"id": "token", "title": "Token", "token": True}]},
+    }
+    vid, pk = _install(client, manifest=guided)
+    with db.tx() as conn:
+        addon = addons.get(conn, vid, pk)
+        _folder, token = pluginsvc._prepare_run(conn, addon)  # what the first start does
+        assert token == "" and addons.get(conn, vid, pk)["token_id"] is None  # no token was made
+        assert addons.set_up(conn, vid, addons.get(conn, vid, pk), {"greeting": "hi"}) is None  # saving settings makes none either
+        assert addons.get(conn, vid, pk)["token_id"] is None
+        made = addons.new_token(conn, vid, addons.get(conn, vid, pk))  # the explicit choice "make a new token"
+        addons.set_up(conn, vid, addons.get(conn, vid, pk), {"greeting": "hi"})
+    page = client.get(f"/v/{vid}/integrations/{pk}/settings").text
+    assert "Token of this plugin" in page and made in page  # readable again

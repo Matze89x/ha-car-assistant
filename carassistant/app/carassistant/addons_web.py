@@ -386,10 +386,17 @@ def _settings_page(request: Request, vid: int, addon: dict, shown: dict, errors:
         vehicle = vehicle_or_404(conn, vid)
         ctx = vehicle_ctx(conn, vehicle, "integrations")
         in_bar = ("x-" + addon["addon_id"]) in [k for k, _i in navigation.order(conn, vid)[:4]]
+        # the token of a configured plugin can be read again (administrator only): for a new installation that must keep what is in the car
+        kept = connectors.remembered(conn, addon.get("token_id")) if addon["status"] == "configured" and _may_manage(request) else ""
+        fingerprint = (
+            connectors.fingerprint(conn, addon.get("token_id")) if addon.get("token_id") and addon["status"] == "configured" else ""
+        )
     t = i18n.translator(config.language())
     return render(
         request,
         "addon_settings.html",
+        kept_token=kept,
+        token_fp=fingerprint,
         status=status,
         **ctx,
         hide_hero=True,

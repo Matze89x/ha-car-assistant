@@ -401,7 +401,7 @@ def _prepare_run(conn, addon: dict) -> tuple[Path, str]:
     token = token_file.read_text().strip() if token_file.is_file() else ""
     if addon["kind"] == "integration":  # an integration has no token and cannot call the Plugin API: just its own data folder
         token = ""
-    elif not token or not addon.get("token_id"):
+    elif (not token or not addon.get("token_id")) and not addons.token_by_guide(addon["m"]):  # with a guide the token is chosen in step 2
         if addon.get("token_id"):
             connectors.delete_token(conn, addon["token_id"])
         token = connectors.create_token(conn, addon["m"]["name"], addon["vehicle_id"])
@@ -620,6 +620,8 @@ def tick() -> None:
         for r in rows:
             addon = addons.get(conn, r["vehicle_id"], r["id"])
             if addon and service_of(addon) and addon["active"] and approved(addon) and addon.get("pkg_sha") and not addon.get("svc_error"):
+                if addons.token_by_guide(addon["m"]) and addon["status"] != "configured":
+                    continue  # a plugin with a connection file runs only after step 2 of its guide: the token is chosen THERE, never made before
                 want[addon["id"]] = addon
         with _lock:
             for pk in [p for p in _procs if p not in want]:
