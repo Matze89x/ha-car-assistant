@@ -78,6 +78,21 @@ def ha_notice_sensor_enabled() -> bool:
     return stored_setting("int.mqtt.notice_sensor") != "0"
 
 
+HA_GROUPS = ("live", "service", "fuel", "stats", "position")  # what can be sent to Home Assistant, in a few rough groups
+HA_GROUPS_OFF_BY_DEFAULT = ("stats",)  # the extra statistics are there for whoever wants them; everything older stays on
+
+
+def ha_groups_off() -> set[str]:
+    """The groups that are NOT sent to Home Assistant (System -> MQTT)."""
+    off = set()
+    for group in HA_GROUPS:
+        stored = stored_setting(f"int.mqtt.group.{group}")
+        on = stored == "1" if group in HA_GROUPS_OFF_BY_DEFAULT else stored != "0"
+        if not on:
+            off.add(group)
+    return off
+
+
 def tankerkoenig_key() -> str:
     """The user's own Tankerkönig key (Settings -> System). There is no built-in key and no add-on option: everyone gets their own."""
     return (stored_setting("int.tankerkoenig.api_key") or "").strip()

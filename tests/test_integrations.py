@@ -147,15 +147,18 @@ def test_a_function_that_is_switched_off_raises_nothing(conn, vehicle):
     from carassistant import modules
 
     conn.execute("INSERT INTO appointments(vehicle_id, title, due_date, kind) VALUES(?, 'HU', '2000-01-01', 'inspection')", (vehicle,))
+    summary.add_odometer(conn, vehicle, 1000)
     row = conn.execute("SELECT * FROM vehicles").fetchone()
     assert summary.attention_items(conn, vehicle) and summary.next_inspection(conn, vehicle)
-    keys = {s.key for s in mqtt_ha.wanted_sensors(row, off=modules.disabled(conn, vehicle))}
-    assert "inspection_days" in keys
+
+    def keys():
+        return {s.key for s in mqtt_ha.wanted_sensors(row, mqtt_ha.compute_values(conn, row), modules.disabled(conn, vehicle))}
+
+    assert "inspection_days" in keys()
     modules.set_vehicle_enabled(conn, vehicle, "appointments", False)
     assert summary.attention_items(conn, vehicle) == [] and summary.next_inspection(conn, vehicle) is None
     assert summary.vehicle_summary(conn, row)["inspection"] is None
-    keys = {s.key for s in mqtt_ha.wanted_sensors(row, off=modules.disabled(conn, vehicle))}
-    assert "inspection_days" not in keys and "inspection_date" not in keys and "odometer" in keys
+    assert "inspection_days" not in keys() and "inspection_date" not in keys() and "odometer" in keys()
 
 
 def test_the_mqtt_switch_alone_keeps_the_own_broker(client):

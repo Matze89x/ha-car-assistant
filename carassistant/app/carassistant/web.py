@@ -37,6 +37,7 @@ from . import (
     events,
     fuelstats,
     ha,
+    hacheck,
     i18n,
     integrations,
     lists,
@@ -987,11 +988,14 @@ async def vehicle_update(request: Request, vid: int):
             )  # another VIN: the car has not confirmed it yet
             sets = ", ".join(f"{k} = ?" for k in values)
             conn.execute(f"UPDATE vehicles SET {sets} WHERE id = ?", [*values.values(), vid])
+            renamed = values["name"] != vehicle["name"]
             new_slug = slugs.unique(conn, values["name"], vid)
             conn.execute("UPDATE vehicles SET slug = ? WHERE id = ?", (new_slug, vid))
             await save_photo(conn, vid, raw.get("photo"))
         except FormError as exc:
             return vehicle_form_page(request, vehicle, form, exc.args, 400)
+    if renamed:
+        publisher.rebuild([vid])  # Home Assistant builds an entity ID from the name only once: a renamed car gets its entities anew
     events.changed()
     return go(
         request, f"/v/{new_slug}/edit", "saved"
@@ -2246,6 +2250,16 @@ def _settings_tabs(current: str) -> list[dict]:
     return [{"key": k, "href": f"/settings/{k}", "title": titles[k], "on": k == current, "icon": ic.get(k)} for k in SETTINGS_SECTIONS]
 
 
+def _ha_check_text(step: dict) -> str:
+    """One line of the Home Assistant check, in the language of the app."""
+    t = i18n.translator(config.language())
+    extra = {k: v for k, v in step.items() if k not in ("ok", "key", "reason")}
+    if step["key"] == "mqtt_down":
+        reason = MQTT_ERRORS.get(step.get("reason", ""), "mqtt.err_other")
+        return t("check.mqtt_down", reason=t(reason))
+    return t("check." + step["key"], **extra)
+
+
 def _settings_section(request: Request, section: str):
     with db.tx() as conn:
         account = auth_web.account_context(request, conn)
@@ -2308,6 +2322,9 @@ def _settings_section(request: Request, section: str):
         mqtt_available=config.mqtt_settings() is not None,
         mqtt_connected=publisher.connected,
         mqtt_notice_sensor=config.ha_notice_sensor_enabled(),
+        ha_check=hacheck.last,
+        ha_check_text=_ha_check_text,
+        ha_groups_off=config.ha_groups_off(),
         mqtt_error=i18n.translator(config.language())(MQTT_ERRORS[publisher.last_error]) if publisher.last_error in MQTT_ERRORS else "",
         ha_available=ha.available(),
         has_key=bool(config.tankerkoenig_key()),
@@ -2648,6 +2665,19 @@ async def settings_navigation(request: Request):
     return go(request, "/settings/system#navigation", "saved")
 
 
+@app.post("/settings/mqtt-groups")
+async def settings_mqtt_groups(request: Request):
+    """Which rough groups of data go to Home Assistant (a switch that is off takes its sensors out of Home Assistant again)."""
+    form = await form_dict(request)
+    with db.tx() as conn:
+        for group in config.HA_GROUPS:
+            db.set_setting(conn, f"int.mqtt.group.{group}", "1" if form.get(f"g_{group}") else "0")
+    config.forget_settings()
+    publisher.resend()
+    events.changed()
+    return go(request, "/settings/system#mqtt", "saved")
+
+
 @app.post("/settings/mqtt-notices")
 async def settings_mqtt_notices(request: Request):
     """Switch the sensor *Last notification* in Home Assistant on or off (server-wide; on by default)."""
@@ -2776,6 +2806,26 @@ async def settings_notifications_test(request: Request):
             return go(request, back, "err.required")
         ok, _error = notify._deliver(conn, me["id"], service, "Car Assistant", t("notify.test"), "")
     return go(request, back, "notify_ok" if ok else "notify_fail")
+
+
+@app.post("/settings/mqtt-rebuild")
+def settings_mqtt_rebuild(request: Request):
+    """Take every car's sensors out of Home Assistant and put them back: new entity IDs from the names as they are now (and the language now)."""
+    with db.tx() as conn:
+        ids = [r["id"] for r in conn.execute("SELECT id FROM vehicles WHERE archived = 0")]
+    ok = publisher.rebuild(ids)
+    return go(request, "/settings/system#mqtt", "mqtt_rebuilt" if ok else "err.mqtt_not_connected")
+
+
+@app.post("/settings/mqtt-check")
+def settings_mqtt_check(request: Request):
+    """*Check Home Assistant*: a test message through the whole way (like the test push) and the entity IDs Home Assistant gave the sensors."""
+    hacheck.run()
+    return go(
+        request,
+        "/settings/system#mqtt-check",
+        "saved" if all(s["ok"] is not False for s in hacheck.last["steps"]) else "mqtt_check_problem",
+    )
 
 
 @app.post("/settings/republish")

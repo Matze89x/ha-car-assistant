@@ -2575,6 +2575,12 @@ svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5
 .mqtt-what { margin: 6px 0; }
 .mqtt-bar { display: flex; flex-wrap: nowrap; gap: 8px; margin-top: 10px; }
 .mqtt-bar > button { flex: 1 1 0; min-width: 0; width: auto; padding-inline: 10px; white-space: nowrap; justify-content: center; }
+/* four actions never fit in one line with their words on a phone: then all four are symbols only (the hints above name them; a tooltip too) */
+@media (max-width: 640px) { .mqtt-bar.icons4 > button { gap: 0; font-size: 0; line-height: 0; } .mqtt-bar.icons4 > button .ico { width: 22px; height: 22px; } }
+.ha-check { margin-top: 12px; }
+.ha-check li { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; }
+.ha-check li.ok .ico { color: var(--ok); }
+.ha-check li.bad .ico { color: var(--overdue); }
 
 /* the three choices of the video background: the explanation wraps inside its tile instead of running out of it */
 .mbox .season-pick .sp small { white-space: normal; text-align: center; overflow-wrap: anywhere; }

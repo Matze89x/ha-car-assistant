@@ -31,6 +31,13 @@ def _row(conn, vehicle):
 def test_live_sensors_appear_only_when_the_car_delivers_them(conn, vehicle):
     row = _row(conn, vehicle)
     keys = {s.key for s in mqtt_ha.wanted_sensors(row, mqtt_ha.compute_values(conn, row))}
+    assert (
+        "odometer" not in keys and "ignition" not in keys and keys <= {"attention", "attention_count", "last_notification"}
+    )  # nothing known: no empty entity
+    from carassistant import summary
+
+    summary.add_odometer(conn, vehicle, 12345)
+    keys = {s.key for s in mqtt_ha.wanted_sensors(row, mqtt_ha.compute_values(conn, row))}
     assert "odometer" in keys and "ignition" not in keys and "tyre_fl" not in keys and "doors" not in keys
     connectors.ingest(
         conn,

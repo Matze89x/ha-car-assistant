@@ -15,7 +15,7 @@ from datetime import date, datetime
 
 import paho.mqtt.client as mqtt
 
-from . import __version__, config, connectors, db, events, fuelstats, modules, status, summary
+from . import __version__, config, connectors, db, events, fuelstats, modules, status, summary, units
 
 log = logging.getLogger(__name__)
 
@@ -53,13 +53,13 @@ TYRES = (("fl", "front left"), ("fr", "front right"), ("rl", "rear left"), ("rr"
 # One curated list. The first block exists for every car; the rest ("live") appears by itself as soon as a plugin or a bound
 # Home Assistant entity delivers that value. Less useful values are created switched off (enabled=False) or as diagnostics.
 SENSORS: tuple[SensorDef, ...] = (
-    _s("odometer", "Odometer", unit="km", device_class="distance", state_class="total_increasing", icon="mdi:counter", precision=0),
-    _s("inspection_days", "Days until inspection", unit="d", state_class="measurement", icon="mdi:calendar-clock"),
-    _s("inspection_date", "Next inspection", device_class="date", icon="mdi:calendar-check"),
+    _s("odometer", "Odometer", unit="km", device_class="distance", state_class="total_increasing", icon="mdi:counter", precision=0, live=True),
+    _s("inspection_days", "Days until inspection", unit="d", state_class="measurement", icon="mdi:calendar-clock", live=True),
+    _s("inspection_date", "Next inspection", device_class="date", icon="mdi:calendar-check", live=True),
     _s("attention_count", "Items needing attention", state_class="measurement", icon="mdi:alert-circle-outline"),
     _b("attention", "Attention", "problem"),
-    _s("avg_consumption", "Average consumption", state_class="measurement", icon="mdi:gas-station", precision=1),
-    _s("fuel_spent_month", "Fuel cost this month", state_class="measurement", icon="mdi:cash", precision=2),
+    _s("avg_consumption", "Average consumption", state_class="measurement", icon="mdi:gas-station", precision=1, live=True),
+    _s("fuel_spent_month", "Fuel cost this month", state_class="measurement", icon="mdi:cash", precision=2, live=True),
     _s("fuel_level", "Fuel level", unit="%", state_class="measurement", icon="mdi:gauge", precision=0),
     _s("range_km", "Range", unit="km", device_class="distance", state_class="measurement", icon="mdi:map-marker-distance", precision=0),
     _s("battery_pct", "Battery", unit="%", device_class="battery", state_class="measurement", live=True),
@@ -84,12 +84,27 @@ SENSORS: tuple[SensorDef, ...] = (
     _b("oil_warning", "Oil warning", "problem", live=True),
     _s("adblue_level_pct", "AdBlue level", unit="%", state_class="measurement", icon="mdi:water-percent", live=True),
     _s("adblue_range_km", "AdBlue range", unit="km", device_class="distance", state_class="measurement", icon="mdi:water-percent", live=True, precision=0),
-    _s("service_due_days", "Service in", unit="d", state_class="measurement", icon="mdi:wrench-clock", live=True),
-    _s("oil_change_due_days", "Oil change in", unit="d", state_class="measurement", icon="mdi:oil", live=True),
-    _s("oil_change_due_km", "Oil change in", unit="km", device_class="distance", state_class="measurement", icon="mdi:oil", live=True, precision=0),
-    _s("service_due_km", "Service in", unit="km", device_class="distance", state_class="measurement", icon="mdi:wrench", live=True, precision=0),
+    _s("service_due_days", "Days until service", unit="d", state_class="measurement", icon="mdi:wrench-clock", live=True),
+    _s("oil_change_due_days", "Days until oil change", unit="d", state_class="measurement", icon="mdi:oil", live=True),
+    _s("oil_change_due_km", "Distance to oil change", unit="km", device_class="distance", state_class="measurement", icon="mdi:oil", live=True, precision=0),
+    _s("service_due_km", "Distance to service", unit="km", device_class="distance", state_class="measurement", icon="mdi:wrench", live=True, precision=0),
     _s("warnings", "Warnings", state_class="measurement", icon="mdi:alert-outline", live=True),
     SensorDef("last_notification", "Last notification", icon="mdi:bell-outline", attributes=True),
+    # computed by the app from its own records (the fuel log, tasks, appointments, trips, tyres): they exist as soon as there is something to show
+    _s("last_fill_date", "Last fill-up", device_class="date", icon="mdi:gas-station", live=True),
+    _s("last_fill_amount", "Last fill-up amount", state_class="measurement", icon="mdi:gas-station", live=True, precision=1),
+    _s("last_fill_price", "Last price per unit", state_class="measurement", icon="mdi:cash", live=True, precision=3),
+    _s("last_consumption", "Last consumption", state_class="measurement", icon="mdi:gauge", live=True, precision=1),
+    _s("cost_per_100km", "Cost per 100 km", state_class="measurement", icon="mdi:cash-multiple", live=True, precision=2),
+    _s("fuel_spent_total", "Fuel cost total", state_class="total", icon="mdi:cash", live=True, precision=2),
+    _s("costs_year", "Costs this year", state_class="total", icon="mdi:cash-register", live=True, precision=2),
+    _s("km_month", "Distance this month", unit="km", device_class="distance", state_class="measurement", icon="mdi:map-marker-distance", live=True, precision=0),
+    _s("km_year", "Distance this year", unit="km", device_class="distance", state_class="measurement", icon="mdi:map-marker-distance", live=True, precision=0),
+    _s("next_task_days", "Days until next task", unit="d", state_class="measurement", icon="mdi:wrench-clock", live=True, attributes=True),
+    _s("next_task_km", "Distance to next task", unit="km", device_class="distance", state_class="measurement", icon="mdi:wrench", live=True, precision=0, attributes=True),
+    _s("next_appointment_days", "Days until next appointment", unit="d", state_class="measurement", icon="mdi:calendar-clock", live=True, attributes=True),
+    _s("last_trip_km", "Last trip distance", unit="km", device_class="distance", state_class="measurement", icon="mdi:map-marker-path", live=True, precision=1, attributes=True),
+    _s("tires_mounted", "Mounted tyres", icon="mdi:tire", live=True),
     *(
         _s(f"tyre_{k}", f"Tyre pressure {label}", unit="bar", device_class="pressure", state_class="measurement", live=True, precision=1)
         for k, label in TYRES
@@ -108,7 +123,13 @@ NAMES_DE = {
     "Speed": "Geschwindigkeit", "Outside temperature": "Außentemperatur", "Cabin temperature": "Innentemperatur",
     "12 V battery": "12-V-Batterie", "Coolant temperature": "Kühlmitteltemperatur", "Oil temperature": "Öltemperatur",
     "Oil level": "Ölstand", "Oil warning": "Ölwarnung", "AdBlue level": "AdBlue-Stand", "AdBlue range": "AdBlue-Reichweite",
-    "Service in": "Service in", "Warnings": "Warnungen", "Position": "Position", "Last notification": "Letzte Benachrichtigung",
+    "Last fill-up": "Letzte Tankung", "Last fill-up amount": "Menge der letzten Tankung", "Last price per unit": "Letzter Preis je Einheit",
+    "Last consumption": "Letzter Verbrauch", "Cost per 100 km": "Kosten je 100 km", "Fuel cost total": "Tankkosten gesamt",
+    "Costs this year": "Kosten dieses Jahr", "Distance this month": "Strecke diesen Monat", "Distance this year": "Strecke dieses Jahr",
+    "Days until next task": "Tage bis zur nächsten Aufgabe", "Distance to next task": "Strecke bis zur nächsten Aufgabe",
+    "Days until next appointment": "Tage bis zum nächsten Termin",     "Last trip distance": "Strecke der letzten Fahrt", "Mounted tyres": "Montierte Reifen",
+    "Days until service": "Tage bis zum Service", "Distance to service": "Strecke bis zum Service",
+    "Days until oil change": "Tage bis zum Ölwechsel", "Distance to oil change": "Strecke bis zum Ölwechsel", "Warnings": "Warnungen", "Position": "Position", "Last notification": "Letzte Benachrichtigung",
     "Tyre pressure front left": "Reifendruck vorne links", "Tyre pressure front right": "Reifendruck vorne rechts",
     "Tyre pressure rear left": "Reifendruck hinten links", "Tyre pressure rear right": "Reifendruck hinten rechts",
 }  # fmt: skip
@@ -147,7 +168,7 @@ def compute_values(conn: sqlite3.Connection, vehicle: sqlite3.Row, ref: date | N
         "attention_count": str(len(s["attention"])),
         "attention": "ON" if s["overdue"] else "OFF",
         "avg_consumption": fmt(stats["avg_per_100"]),
-        "fuel_spent_month": fmt(fuelstats.month_spent(conn, vehicle["id"], ref.strftime("%Y-%m")), 2),
+        "fuel_spent_month": fmt(fuelstats.month_spent(conn, vehicle["id"], ref.strftime("%Y-%m")), 2) if stats["fills"] else None,
         "fuel_level": live.get("fuel_level"),
         "range_km": live.get("range_km"),
         "ignition": None if live.get("ignition") not in ("on", "off") else ("ON" if live["ignition"] == "on" else "OFF"),
@@ -162,6 +183,7 @@ def compute_values(conn: sqlite3.Connection, vehicle: sqlite3.Row, ref: date | N
             values[live_key] = live.get(live_key)
     notice = notice_record(conn, vehicle["id"])
     values["last_notification"] = notice["text"] if notice else None
+    values.update(_computed_values(conn, vehicle, s, stats, ref))
     values["speed_kmh"] = live.get("speed_kmh")
     values["warnings"] = str(len(status.parse_warnings(live["warnings"]))) if live.get("warnings") else None
     tyres = status.parse_numbers(live.get("tyre_pressure_bar"))
@@ -170,6 +192,7 @@ def compute_values(conn: sqlite3.Connection, vehicle: sqlite3.Row, ref: date | N
     return values
 
 
+REBUILD_WAIT = 6.0  # seconds Home Assistant gets to forget the removed entities before they come back
 NOTICE_HISTORY = 10
 NOTICE_STATE_MAX = 250  # a Home Assistant state is at most 255 characters
 
@@ -200,6 +223,50 @@ def add_notice(conn: sqlite3.Connection, vehicle_id: int, lines: list[str], now:
     return record
 
 
+def sensor_attributes(conn: sqlite3.Connection, vehicle: sqlite3.Row, key: str) -> dict | None:
+    """The attributes a sensor carries besides its value (None: nothing to publish, the sensor stays without a value)."""
+    ref = date.today()
+    vid = vehicle["id"]
+    if key == "last_notification":
+        record = notice_record(conn, vid)
+        return notice_attributes(record) if record else None
+    if key in ("next_task_days", "next_task_km"):
+        task = next_task(conn, vid, summary.current_odometer(conn, vid), ref)
+        if not task:
+            return None
+        info = task["info"]
+        return {
+            "task": task["title"],
+            "due_date": info.due_date.isoformat() if info.due_date else None,
+            "due_km": info.due_km,
+            "status": info.status,
+        }
+    if key == "next_appointment_days":
+        appointment = next_appointment(conn, vid, ref)
+        if not appointment:
+            return None
+        info = appointment["info"]
+        return {"title": appointment["title"], "kind": appointment["kind"], "date": info.due_date.isoformat(), "status": info.status}
+    if key == "last_trip_km":
+        trip = conn.execute(
+            "SELECT date, start_time, end_time, start_place, end_place, avg_kmh, consumption_l100 FROM trips WHERE vehicle_id = ? AND distance_km IS NOT NULL ORDER BY date DESC, id DESC LIMIT 1",
+            (vid,),
+        ).fetchone()
+        if not trip:
+            return None
+        names = {
+            "date": "date",
+            "start_time": "start",
+            "end_time": "end",
+            "start_place": "from",
+            "end_place": "to",
+            "avg_kmh": "average_speed_kmh",
+            "consumption_l100": "consumption",
+        }
+        return {names[k]: trip[k] for k in names if trip[k] not in (None, "")}
+    return None
+
+
 def notice_attributes(record: dict) -> dict:
     return {
         "message": "\n".join(record["lines"]),
@@ -208,6 +275,76 @@ def notice_attributes(record: dict) -> dict:
         "count": record["n"],
         "history": record["history"],
     }
+
+
+def _computed_values(conn: sqlite3.Connection, vehicle: sqlite3.Row, s: dict, stats: dict, ref: date) -> dict[str, str | None]:
+    """What the app works out from its own records (not from the car): the last fill-up, the costs, the next task and appointment, the last trip, the
+    mounted tyres. A value is None when there is nothing to say - the sensor is then not created."""
+    vid = vehicle["id"]
+    off = modules.disabled(conn, vid)
+    out: dict[str, str | None] = {}
+
+    def num(value, digits: int = 1) -> str | None:
+        return None if value is None else f"{value:.{digits}f}"
+
+    if "fuel" not in off:
+        last = conn.execute(
+            "SELECT date, amount, price_per_unit FROM fuel WHERE vehicle_id = ? AND amount IS NOT NULL ORDER BY date DESC, COALESCE(odometer_km, 0) DESC, id DESC LIMIT 1",
+            (vid,),
+        ).fetchone()
+        out["last_fill_date"] = last["date"][:10] if last else None
+        out["last_fill_amount"] = num(last["amount"], 2) if last else None
+        out["last_fill_price"] = num(last["price_per_unit"], 3) if last and last["price_per_unit"] else None
+        out["last_consumption"] = num(stats["last_per_100"])
+        out["cost_per_100km"] = num(stats["cost_per_100"], 2)
+        out["fuel_spent_total"] = num(stats["total_spent"], 2) if stats["total_spent"] else None
+    if "report" not in off:
+        months = fuelstats.costs(conn, vid, "month", ref.month, ref)
+        total = sum(m["fuel"] + m["service"] + m["mods"] + m["parts"] for m in months)
+        out["costs_year"] = num(total, 2) if total else None
+    if "trips" not in off:
+        month = fuelstats.kilometres(conn, vid, "month", 1, ref)
+        year = [k for _p, k in fuelstats.kilometres(conn, vid, "month", ref.month, ref) if k is not None]
+        out["km_month"] = None if not month or month[0][1] is None else f"{month[0][1]:.0f}"
+        out["km_year"] = f"{sum(year):.0f}" if year else None
+        trip = conn.execute(
+            "SELECT distance_km FROM trips WHERE vehicle_id = ? AND distance_km IS NOT NULL ORDER BY date DESC, id DESC LIMIT 1", (vid,)
+        ).fetchone()
+        out["last_trip_km"] = num(trip["distance_km"]) if trip else None
+    task = next_task(conn, vid, s["odometer"], ref) if "tasks" not in off else None
+    out["next_task_days"] = None if not task or task["info"].days_left is None else str(task["info"].days_left)
+    out["next_task_km"] = None if not task or task["info"].km_left is None else str(task["info"].km_left)
+    appointment = next_appointment(conn, vid, ref) if "appointments" not in off else None
+    out["next_appointment_days"] = None if not appointment else str(appointment["info"].days_left)
+    mounted = s.get("tires")
+    out["tires_mounted"] = " ".join(x for x in (mounted["name"], mounted["size"]) if x)[:120] or None if mounted else None
+    return out
+
+
+def next_task(conn: sqlite3.Connection, vehicle_id: int, odometer: int | None, ref: date) -> dict | None:
+    """The task that comes due first (by date, else by distance), also when it is not due soon: ``{title, info}``."""
+    index = summary.service_index(conn, vehicle_id)
+    best = None
+    for task in conn.execute("SELECT * FROM tasks WHERE vehicle_id = ? AND muted = 0", (vehicle_id,)):
+        info = summary.task_due(conn, vehicle_id, task, odometer, ref, index)
+        if info.days_left is None and info.km_left is None:
+            continue
+        rank = info.days_left if info.days_left is not None else 10**6 + (info.km_left or 0) // 20
+        if best is None or rank < best[0]:
+            best = (rank, {"title": task["title"], "info": info})
+    return best[1] if best else None
+
+
+def next_appointment(conn: sqlite3.Connection, vehicle_id: int, ref: date) -> dict | None:
+    row = conn.execute(
+        "SELECT * FROM appointments WHERE vehicle_id = ? AND done = 0 AND due_date IS NOT NULL ORDER BY due_date LIMIT 1", (vehicle_id,)
+    ).fetchone()
+    if row is None:
+        return None
+    try:
+        return {"title": row["title"], "kind": row["kind"], "info": summary.appointment_due(row, ref)}
+    except ValueError:
+        return None
 
 
 def position_attributes(conn: sqlite3.Connection, vehicle: sqlite3.Row) -> dict | None:
@@ -284,8 +421,16 @@ def discovery_payload(vehicle: sqlite3.Row, sensor: SensorDef) -> dict:
         "origin": _origin(),
     }
     unit = sensor.unit
-    if sensor.key == "avg_consumption":
+    if sensor.key in ("avg_consumption", "last_consumption"):
         unit = consumption_unit(vehicle["fuel_type"])
+    elif sensor.key in ("fuel_spent_month", "fuel_spent_total", "costs_year"):
+        unit = units.default_currency()
+    elif sensor.key == "last_fill_amount":
+        unit = {"electric": "kWh", "cng": "kg"}.get(vehicle["fuel_type"], "L")
+    elif sensor.key == "last_fill_price":
+        unit = f"{units.default_currency()}/{ {'electric': 'kWh', 'cng': 'kg'}.get(vehicle['fuel_type'], 'L') }"
+    elif sensor.key == "cost_per_100km":
+        unit = f"{units.default_currency()}/100 km"
     if unit == "d" and config.language() == "de":
         unit = "Tage"  # Home Assistant would show its own English "days" for "d"
     if unit:
@@ -326,12 +471,67 @@ def tracker_payload(vehicle: sqlite3.Row) -> dict:
     )
 
 
+# the rough groups under System -> MQTT; a sensor that is in no group (the odometer, the notification sensor) is always sent
+GROUP_OF = {
+    **dict.fromkeys(
+        (
+            "inspection_days",
+            "inspection_date",
+            "attention",
+            "attention_count",
+            "next_task_days",
+            "next_task_km",
+            "next_appointment_days",
+            "tires_mounted",
+        ),
+        "service",
+    ),
+    **dict.fromkeys(("avg_consumption", "fuel_spent_month"), "fuel"),
+    **dict.fromkeys(
+        (
+            "last_fill_date",
+            "last_fill_amount",
+            "last_fill_price",
+            "last_consumption",
+            "cost_per_100km",
+            "fuel_spent_total",
+            "costs_year",
+            "km_month",
+            "km_year",
+            "last_trip_km",
+        ),
+        "stats",
+    ),
+}
+
+
+def group_of(sensor: SensorDef) -> str | None:
+    """The group a sensor is switched with: what the car (a plugin) delivers is ``live``; the app's own records are ``service``, ``fuel`` or ``stats``."""
+    if sensor.key in ("odometer", "last_notification"):
+        return None
+    return GROUP_OF.get(sensor.key) or ("live" if sensor.key in ("fuel_level", "range_km") or sensor.live else None)
+
+
 # sensors that belong to a function: when the function is switched off for the car, they are not created (or are taken away again)
 BELONGS_TO = {
     "inspection_days": "appointments",
     "inspection_date": "appointments",
     "avg_consumption": "fuel",
     "fuel_spent_month": "fuel",
+    "last_fill_date": "fuel",
+    "last_fill_amount": "fuel",
+    "last_fill_price": "fuel",
+    "last_consumption": "fuel",
+    "cost_per_100km": "fuel",
+    "fuel_spent_total": "fuel",
+    "costs_year": "report",
+    "km_month": "trips",
+    "km_year": "trips",
+    "last_trip_km": "trips",
+    "next_task_days": "tasks",
+    "next_task_km": "tasks",
+    "next_appointment_days": "appointments",
+    "tires_mounted": "tires",
 }
 
 
@@ -340,8 +540,9 @@ def wanted_sensors(
 ) -> tuple[SensorDef, ...]:
     """Fuel level / range exist when an entity is bound or a value arrived; every other live sensor only once it has a value."""
     out = []
+    groups_off = config.ha_groups_off()
     for s in SENSORS:
-        if BELONGS_TO.get(s.key) in off:
+        if BELONGS_TO.get(s.key) in off or group_of(s) in groups_off:
             continue
         if s.key in ("attention", "attention_count") and {"appointments", "tasks"} <= set(off):
             continue
@@ -384,6 +585,7 @@ class Publisher:
         self.last_error = ""  # why the broker is not reached: auth | refused | dns | timeout | unreach | protocol | other
         self._target: tuple[str, int] | None = None
         self._last_probe = 0.0
+        self._paused_until = 0.0  # while entities are taken out of Home Assistant and put back, nothing is published (see rebuild)
 
     def start(self) -> bool:
         self.last_error = ""
@@ -470,6 +672,35 @@ class Publisher:
     def connected(self) -> bool:
         return self._connected.is_set()
 
+    def _force(self, topic: str, payload: str) -> None:
+        """Publish now, even when the same payload was sent before (and forget it, so the next round may send the topic again)."""
+        if self._client:
+            self._client.publish(topic, payload, retain=True)
+        self._sent.pop(topic, None)
+
+    def rebuild(self, vehicle_ids: list[int], wait: float = REBUILD_WAIT) -> bool:
+        """Take the entities of these cars out of Home Assistant and put them back after a few seconds. Home Assistant gives an entity its ID (for
+        example ``sensor.my_car_odometer``) ONCE, when it first creates it - from the name of the car and the sensor, in the language of that
+        moment - and never changes it. Only an entity that was really removed gets a new ID, from the names as they are now. The history of the
+        old entities is gone. False when no broker is connected."""
+        if not self._client or not self.connected or not vehicle_ids:
+            return False
+        with self._lock:
+            for vid in vehicle_ids:
+                for sensor in SENSORS:
+                    self._force(discovery_topic(vid, sensor), "")
+                self._force(tracker_topic(vid), "")
+            self._paused_until = time.monotonic() + wait
+        timer = threading.Timer(wait, self._after_rebuild)
+        timer.daemon = True
+        timer.start()
+        return True
+
+    def _after_rebuild(self) -> None:
+        self._paused_until = 0.0
+        self._sent.clear()
+        events.changed()  # everything is published again, with the names as they are now
+
     def resend(self) -> None:
         """Forget what was sent, so the next round publishes everything again (the *Send sensors again* button)."""
         self._sent.clear()
@@ -482,7 +713,7 @@ class Publisher:
         self._sent[topic] = payload
 
     def publish_vehicle(self, conn: sqlite3.Connection, vehicle: sqlite3.Row) -> None:
-        if not self._client or not self.connected:
+        if not self._client or not self.connected or time.monotonic() < self._paused_until:
             return
         values = compute_values(conn, vehicle)
         attrs = position_attributes(conn, vehicle)
@@ -496,15 +727,15 @@ class Publisher:
                 self._send(topic, json.dumps(discovery_payload(vehicle, sensor), sort_keys=True))
                 value = values.get(sensor.key)
                 if sensor.attributes:
-                    record = notice_record(conn, vehicle["id"])
-                    if record is None:
+                    extra = sensor_attributes(conn, vehicle, sensor.key)
+                    if extra is None and sensor.key == "last_notification":
                         continue  # nothing was announced yet: the entity exists and is still "unknown"
                     self._send(
                         sensor_attributes_topic(vehicle["id"], sensor.key),
-                        json.dumps(notice_attributes(record), sort_keys=True, ensure_ascii=False),
+                        json.dumps(_without_none(extra or {}), sort_keys=True, ensure_ascii=False),
                     )
                 self._send(state_topic(vehicle["id"], sensor.key), "None" if value is None else value)
-            if attrs:
+            if attrs and "position" not in config.ha_groups_off():
                 self._send(tracker_topic(vehicle["id"]), json.dumps(tracker_payload(vehicle), sort_keys=True))
                 self._send(attributes_topic(vehicle["id"]), json.dumps(attrs, sort_keys=True))
             else:
