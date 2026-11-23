@@ -6,6 +6,7 @@ Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it be
 
 ## 0.5.21 Beta
 - Fixed: a car without a model (or make) never appeared in Home Assistant under MQTT, although its messages reached the broker (for example in MQTT Explorer): Home Assistant refuses a discovery message with an empty model as a whole. Empty values are now left out of every message, so all sensors and the position of such a car show up (it is enough to update; sending the sensors again is not needed).
+- Fixed: the new Map page showed the raw text "tab.map" instead of its name in the navigation settings; it is called "Map" / "Karte" everywhere now, and a test makes sure every page has its names in both languages.
 
 ## 0.5.20 Beta
 - New: Scan receipt when adding a fill-up. A photo of the fuel receipt is read on your own server (text recognition, nothing goes online, the photo is not kept) and fills in the date, amount, price per unit, total, station and fuel; the marked fields are for you to check, and the app checks that amount x price = total.

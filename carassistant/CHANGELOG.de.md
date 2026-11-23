@@ -6,6 +6,7 @@ Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie
 
 ## 0.5.21 Beta
 - Behoben: Ein Auto ohne Modell (oder Marke) erschien in Home Assistant nie unter MQTT, obwohl seine Nachrichten am Broker ankamen (zum Beispiel im MQTT Explorer): Home Assistant lehnt eine Discovery-Nachricht mit leerem Modell als Ganzes ab. Leere Werte werden jetzt aus jeder Nachricht weggelassen, sodass alle Sensoren und die Position eines solchen Autos erscheinen (ein Update genügt; die Sensoren erneut zu senden ist nicht nötig).
+- Behoben: Die neue Karten-Seite zeigte in den Navigations-Einstellungen den rohen Text „tab.map“ statt ihres Namens; sie heißt jetzt überall „Karte“ / „Map“, und ein Test stellt sicher, dass jede Seite ihre Namen in beiden Sprachen hat.
 
 ## 0.5.20 Beta
 - Neu: Beleg scannen beim Anlegen einer Tankung. Ein Foto des Tankbelegs wird auf deinem eigenen Server gelesen (Texterkennung, nichts geht ins Internet, das Foto wird nicht behalten) und füllt Datum, Menge, Preis je Einheit, Betrag, Tankstelle und Kraftstoff aus; die markierten Felder prüfst du, und die App prüft, ob Menge x Preis = Betrag ergibt.
