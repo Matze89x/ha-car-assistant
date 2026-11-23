@@ -3263,3 +3263,14 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 .odo-hrow.odd .odo-hkm { color: var(--overdue); }
 .vd-odo { margin: 14px 0 0; }
 .vd-odo .odo-edit { margin: 0; }
+
+/* the odometer on the dashboard is a page: tapped, it turns up from its top edge and away, and the box to type the number lies underneath, in the same place */
+.odo-flip { position: relative; perspective: 900px; min-height: 124px; }
+.odo-flip .odo-page { position: relative; z-index: 2; transform-origin: 50% 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: transform .65s cubic-bezier(.45, .05, .25, 1); }
+.odo-flip.open .odo-page { transform: rotateX(-178deg); pointer-events: none; }
+.odo-flip .odo-under { position: absolute; inset: 0; z-index: 1; margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.odo-flip:not(.open) .odo-under { visibility: hidden; transition: visibility 0s .65s; }
+.odo-flip .odo-under .odo-entry { width: min(100%, 300px); }
+.odo-close { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: none; box-shadow: none; color: var(--dim); cursor: pointer; }
+.odo-close:hover, .odo-close:focus-visible { color: var(--strong); background: rgba(var(--fg-rgb), .08); }
+@media (prefers-reduced-motion: reduce) { .odo-flip .odo-page, .odo-flip:not(.open) .odo-under { transition: none; } }

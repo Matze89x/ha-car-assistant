@@ -299,4 +299,9 @@ def test_the_odometer_figure_on_the_dashboard_has_a_pencil_and_the_editor_is_clo
     vid = create_vehicle(client)
     page = client.get(f"/v/{slug(vid)}").text
     assert 'class="odo-pencil"' in page and 'class="odo-line"' in page  # the pencil sits beside the figure
-    assert '<form class="odo-entry" hidden' in page  # the editor is closed until the pencil (or the figure) is tapped
+    assert (
+        'class="odo-flip"' in page and 'class="odo-page odo-t"' in page and 'class="odo-edit odo-under"' in page
+    )  # the figure is a page, the box lies under it
+    assert (
+        "odo-flip open" not in page and 'class="odo-close"' in page
+    )  # closed until the pencil or the figure is tapped; the box has its own close

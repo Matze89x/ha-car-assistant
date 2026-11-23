@@ -654,10 +654,15 @@ document.addEventListener("click", function (event) {
 // The odometer is edited in place: [data-odo-open] (the pencil beside the figure, the "change" under it, or the ghost odometer of a car without a reading)
 // opens the box (a tap on the figure itself does as well) - and closes it again when it is open; Escape closes it too.
 (function () {
-  function scopeOf(el) { return el.closest(".odo-card, .odo-edit, .vd-odo") || document; }
+  function scopeOf(el) { return el.closest(".odo-flip") || el.closest(".odo-card, .odo-edit, .vd-odo") || document; }  /* the flip first: it holds the figure and the box */
   function show(scope, on) {
     var form = scope.querySelector(".odo-entry");
     if (!form) { return; }
+    if (scope.classList.contains("odo-flip")) {  /* the figure is a page: it turns up and away, the box lies underneath */
+      scope.classList.toggle("open", on);
+      if (on) { var field = form.querySelector("input[name=odometer]"); if (field) { field.focus(); } }
+      return;
+    }
     form.hidden = !on;
     Array.prototype.forEach.call(scope.querySelectorAll(".odo-open"), function (b) { b.hidden = on; });
     if (on) { var input = form.querySelector("input[name=odometer]"); if (input) { input.focus(); } }
@@ -666,7 +671,7 @@ document.addEventListener("click", function (event) {
     var open = e.target.closest && e.target.closest("[data-odo-open], .odo-line .odo-drum");  /* the figure itself opens it as well */
     if (!open) { return; }
     var scope = scopeOf(open), form = scope.querySelector(".odo-entry");
-    if (form) { show(scope, form.hidden); }
+    if (form) { show(scope, scope.classList.contains("odo-flip") ? !scope.classList.contains("open") : form.hidden); }
   });
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") { return; }
