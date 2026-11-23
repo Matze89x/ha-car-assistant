@@ -3272,8 +3272,8 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 .odo-flip.open .odo-card3d { transform: rotateX(180deg); }
 .odo-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid var(--glass-b); background: rgba(0, 0, 0, .38); box-shadow: 0 6px 16px rgba(0, 0, 0, .16); }  /* a dark box like the instrument cluster, as the input was */
 .odo-front { position: relative; padding: 5px 12px; }
-.odo-flip .odo-front .odo-drum { gap: 4px; }
-.odo-flip .odo-front .odo-drum i { width: 30px; height: 44px; font-size: 30px; }
+.odo-flip .odo-front .odo-drum { gap: 3px; }
+.odo-flip .odo-front .odo-drum i { width: 32px; height: 44px; font-size: 32px; }
 .odo-flip .odo-front .odo-drum .unit { font-size: 16px; margin-left: 6px; }
 .odo-front .odo-t, .odo-front .odo-line { margin: 0; }
 .odo-front .odo-t b.odo-drum { margin: 0; }
