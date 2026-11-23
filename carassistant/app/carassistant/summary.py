@@ -45,6 +45,63 @@ def current_odometer(conn: sqlite3.Connection, vehicle_id: int) -> int | None:
     return int(row["km"]) if row and row["km"] is not None else None
 
 
+MAX_JUMP_KM = 100_000  # since the last reading a car does not drive more than this
+
+
+def outliers(values: list[int]) -> set[int]:
+    """The indexes of the values that break an otherwise rising order (``values`` oldest first): everything that is not part of the longest
+    non-decreasing run. Where several runs are equally long the most compact one is kept (the smallest span from its first to its last value, then the
+    lower numbers), so the typo is found and only the typo: 52000, 520000, 52500 flags the 520000, 52000, 5200, 52500 flags the 5200, and of two
+    readings that contradict each other (4300 followed by 4100) the higher is the odd one - it is the one that does harm, it would stay the highest."""
+    n = len(values)
+    best_len = [1] * n
+    best_start = list(values)
+    parent = [-1] * n
+    for i in range(n):
+        for j in range(i):
+            if values[j] <= values[i]:
+                cand = (best_len[j] + 1, best_start[j])
+                if cand > (best_len[i], best_start[i]) or (best_len[i] == 1 and parent[i] == -1 and cand[0] > 1):
+                    best_len[i], best_start[i], parent[i] = cand[0], cand[1], j
+    if not n:
+        return set()
+    top = max(best_len)
+    end = min((i for i in range(n) if best_len[i] == top), key=lambda i: (values[i] - best_start[i], values[i], -i))
+    keep: set[int] = set()
+    while end != -1:
+        keep.add(end)
+        end = parent[end]
+    return set(range(n)) - keep
+
+
+ODOMETER_SOURCES = (
+    ("odometer", "SELECT id, date, odometer_km AS km, source FROM odometer WHERE vehicle_id = ?"),
+    ("fuel", "SELECT id, date, odometer_km AS km, NULL AS source FROM fuel WHERE vehicle_id = ? AND odometer_km IS NOT NULL"),
+    ("service", "SELECT id, date, odometer_km AS km, NULL AS source FROM service WHERE vehicle_id = ? AND odometer_km IS NOT NULL"),
+    ("mods", "SELECT id, date, odometer_km AS km, NULL AS source FROM mods WHERE vehicle_id = ? AND odometer_km IS NOT NULL"),
+    ("trips", "SELECT id, date, end_km AS km, source FROM trips WHERE vehicle_id = ? AND end_km IS NOT NULL"),
+)
+
+
+def odometer_readings(conn: sqlite3.Connection, vehicle_id: int, limit: int = 800) -> list[dict]:
+    """Every odometer value of the car in one list, newest first: the plain readings and the ones inside fill-ups, service entries, modifications and
+    trips. A reading that does not fit the order of the others (a typo, a click on the wrong number) carries ``odd``: ``lower`` or ``higher``
+    than the readings around it."""
+    rows: list[dict] = []
+    for kind, sql in ODOMETER_SOURCES:
+        for r in conn.execute(sql, (vehicle_id,)):
+            rows.append({"kind": kind, "id": r["id"], "date": r["date"], "km": int(r["km"]), "source": r["source"]})
+    rows.sort(key=lambda r: (r["date"], r["km"]))
+    rows = rows[-limit:]
+    bad = outliers([r["km"] for r in rows])
+    for i, r in enumerate(rows):
+        r["odd"] = ""
+        if i in bad:
+            before = [x["km"] for j, x in enumerate(rows[:i]) if j not in bad]
+            r["odd"] = "lower" if before and r["km"] < max(before) else "higher"
+    return list(reversed(rows))
+
+
 def add_odometer(conn: sqlite3.Connection, vehicle_id: int, km: int, when: str | None = None, source: str = "manual") -> None:
     conn.execute(
         "INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES(?, ?, ?, ?)",

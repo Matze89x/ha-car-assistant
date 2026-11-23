@@ -214,3 +214,80 @@ def test_the_dashboard_has_the_quick_entry_and_only_offers_the_photo_when_text_r
     monkeypatch.setattr(rc, "available", lambda: False)
     page = client.get(f"/v/{slug(vid)}").text
     assert 'class="odo-entry"' in page and "data-scan-btn" not in page  # typing always works
+
+
+# ------------------------------------------------------------------ an odometer that runs backwards
+
+
+def test_outliers_are_the_readings_that_break_the_rising_order_and_of_two_that_contradict_the_higher_is_odd():
+    from carassistant.summary import outliers
+
+    assert outliers([4300, 4100]) == {0}  # two that contradict each other: the higher is the odd one (it would stay the highest for good)
+    assert outliers([52000, 520000, 52500, 53000]) == {1}  # a typo that is too high: only the typo
+    assert outliers([52000, 5200, 52500]) == {1}  # a typo that is too low
+    assert outliers([1, 2, 2, 3]) == set() and outliers([]) == set() and outliers([7]) == set()
+
+
+def test_a_lower_or_far_higher_number_asks_first_and_is_saved_only_when_confirmed(client):
+    from tests.test_web import create_vehicle, slug
+
+    from carassistant import db, summary
+
+    vid = create_vehicle(client)
+    with db.tx() as conn:
+        conn.execute("DELETE FROM odometer WHERE vehicle_id = ?", (vid,))  # the car starts without a reading
+        summary.add_odometer(conn, vid, 4300)
+    url = f"/v/{slug(vid)}/odometer/quick"
+    page = client.post(url, data={"odometer": "4100"})  # lower than the last reading
+    assert page.status_code == 200 and 'name="confirm"' in page.text and 'value="4100"' in page.text  # the question, not the saving
+    with db.tx() as conn:
+        assert (
+            summary.current_odometer(conn, vid) == 4300 and conn.execute("SELECT COUNT(*) FROM odometer").fetchone()[0] == 1
+        )  # nothing saved yet
+    far = client.post(url, data={"odometer": "430000"})
+    assert far.status_code == 200 and 'name="confirm"' in far.text
+    assert client.post(url, data={"odometer": "4500"}, follow_redirects=False).status_code == 303  # a normal step: saved at once
+    ok = client.post(url, data={"odometer": "4100", "confirm": "1"}, follow_redirects=False)  # confirmed: saved
+    assert ok.status_code == 303
+    with db.tx() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM odometer").fetchone()[0] == 3
+
+
+def test_the_odometer_list_marks_what_does_not_fit_and_a_plain_reading_can_be_deleted(client):
+    from tests.test_web import create_vehicle, slug
+
+    from carassistant import db, summary
+
+    vid = create_vehicle(client)
+    with db.tx() as conn:
+        conn.execute("DELETE FROM odometer WHERE vehicle_id = ?", (vid,))
+        for day, km in (("2026-01-01", 52000), ("2026-02-01", 520000), ("2026-03-01", 52500)):
+            conn.execute("INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, ?, ?, 'manual')", (vid, day, km))
+        rows = summary.odometer_readings(conn, vid)
+        assert [r["km"] for r in rows] == [52500, 520000, 52000] and [r["odd"] for r in rows] == [
+            "",
+            "higher",
+            "",
+        ]  # newest first, only the typo marked
+        bad = next(r for r in rows if r["odd"])
+    page = client.get(f"/v/{slug(vid)}/odometer").text
+    assert 'class="odo-hrow odd"' in page and page.count("odo-hrow") == 3 and "notice warn" in page
+    assert "odo-all odd" in client.get(f"/v/{slug(vid)}").text  # the dashboard points at it
+    assert client.post(f"/v/{slug(vid)}/odometer/{bad['id']}/delete", follow_redirects=False).status_code == 303
+    with db.tx() as conn:
+        assert [r["odd"] for r in summary.odometer_readings(conn, vid)] == ["", ""]
+
+
+def test_the_vehicle_passport_has_the_odometer_entry_when_no_plugin_reports_it(client):
+    from tests.test_web import create_vehicle, slug
+
+    from carassistant import db
+
+    vid = create_vehicle(client)
+    page = client.get(f"/v/{slug(vid)}/edit").text
+    assert (
+        'class="vd-odo"' in page and "data-odo-open" in page and f"/v/{slug(vid)}/odometer/quick" in page
+    )  # typed by hand: the entry sits under the hero card
+    with db.tx() as conn:
+        conn.execute("UPDATE odometer SET source = 'plugin-x' WHERE vehicle_id = ?", (vid,))
+    assert 'class="vd-odo"' not in client.get(f"/v/{slug(vid)}/edit").text  # the car reports it: nothing to type

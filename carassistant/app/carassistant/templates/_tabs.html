@@ -50,7 +50,7 @@
   {% else %}
   <div class="odo-card odo-first">
     <div class="odo-t"><small>{{ icon('counter', 16) }}<span>{{ _('f.odometer') }}</span></small></div>
-    {{ odo_entry() }}
+    {{ odo_entry(true) }}
   </div>
   {% endif %}
   {% elif odometer is not none %}

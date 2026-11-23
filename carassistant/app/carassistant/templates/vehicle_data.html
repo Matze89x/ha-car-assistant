@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head with context %}
+{% from "_macros.html" import icon, page_head, odo_entry with context %}
+{% block scripts %}{% if odo_scan_on %}<script src="{{ base }}/static/receipt.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 {# The passport grid: two tiles per row. Each tile knows its column (l / r), a lone tile is paired with an empty filler, so the divider line is always right #}
 {% set vd = namespace(col=0) %}
@@ -34,6 +35,7 @@
       <div class="vin-slot"><code id="vin-val" class="vin-engraved" aria-label="{{ v.vin }}">{{ v.vin }}</code>
       <button type="button" class="icon-btn vin-copy" data-copy="{{ v.vin }}" data-done="{{ _('btn.copied') }}" aria-label="{{ _('btn.copy') }}">{{ icon('content-copy', 16) }}</button></div></div>{% endif %}
   </div>
+  {% if not odo_from_car %}<div class="vd-odo">{{ odo_entry(odometer is none) }}</div>{% endif %}  {# no plugin reports the odometer: it is typed (or read from a photo) right here, as on the dashboard #}
   <div class="vd-groups">
     <div class="vd-col">
     {% set body_g1 %}

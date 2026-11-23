@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{{ page_head('speedometer', _('odo.history_title'), v.name) }}
+<p class="hint">{{ _('odo.history_intro') }}</p>
+{% if readings %}
+{% set n_odd = readings|selectattr('odd')|list|length %}
+{% if n_odd %}<p class="flash warn">{{ _('odo.history_odd', n=n_odd) }}</p>{% endif %}
+<section class="card odo-hist">
+  <ul class="plain">
+  {% for r in readings %}
+    <li class="odo-hrow{{ ' odd' if r.odd }}">
+      <span class="odo-hkm">{{ fnum(units.d(r.km)) }} <small>{{ units.dist_unit }}</small></span>
+      <span class="odo-hmeta">{{ fdate(r.date) }} · {% if r.kind == 'odometer' %}{{ _('odo.src_manual') if r.source == 'manual' else _('odo.src_auto') }}{% elif r.kind == 'fuel' %}{{ _('odo.src_fuel') }}{% elif r.kind == 'service' %}{{ _('odo.src_service') }}{% elif r.kind == 'mods' %}{{ _('odo.src_mods') }}{% else %}{{ _('odo.src_trips') }}{% endif %}</span>
+      {% if r.odd %}<span class="badge overdue">{{ _('odo.flag_lower') if r.odd == 'lower' else _('odo.flag_higher') }}</span>{% endif %}
+      <span class="odo-hact">{% if r.kind == 'odometer' %}<button class="ghost-btn small warn ib" form="odel-{{ r.id }}" aria-label="{{ _('btn.delete') }}" title="{{ _('btn.delete') }}">{{ icon('delete-outline', 16) }}</button>
+        {% else %}<a class="ghost-btn small ib" href="{{ base }}/v/{{ v.slug }}/e/{{ r.kind }}" aria-label="{{ _('odo.open_entry') }}" title="{{ _('odo.open_entry') }}">{{ icon('pencil', 16) }}</a>{% endif %}</span>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% for r in readings if r.kind == 'odometer' %}<form method="post" action="{{ base }}/v/{{ v.slug }}/odometer/{{ r.id }}/delete" id="odel-{{ r.id }}" data-confirm="{{ _('odo.confirm_delete') }}" hidden></form>{% endfor %}
+{% else %}
+<div class="card empty-state">{{ icon('speedometer', 36) }}<p>{{ _('odo.history_empty') }}</p></div>
+{% endif %}
+{% endblock %}

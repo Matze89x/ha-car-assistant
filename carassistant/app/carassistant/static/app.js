@@ -651,6 +651,23 @@ document.addEventListener("click", function (event) {
   });
 })();
 
+// The odometer is edited in place: [data-odo-open] (the "change" under the figure, or the ghost odometer of a car without a reading) opens the box; Escape closes it.
+document.addEventListener("click", function (e) {
+  var open = e.target.closest && e.target.closest("[data-odo-open]");
+  if (!open) { return; }
+  var wrap = open.closest(".odo-edit"), form = wrap && wrap.querySelector(".odo-entry");
+  if (!form) { return; }
+  form.hidden = false; open.hidden = true;
+  var input = form.querySelector("input[name=odometer]"); if (input) { input.focus(); }
+});
+document.addEventListener("keydown", function (e) {
+  if (e.key !== "Escape") { return; }
+  var form = e.target.closest && e.target.closest(".odo-entry");
+  if (!form) { return; }
+  var open = form.closest(".odo-edit").querySelector("[data-odo-open]");
+  form.hidden = true; if (open) { open.hidden = false; open.focus(); }
+});
+
 // A form with data-sort-save sends itself in the background (with ajax=1) whenever one of its sortable lists is put in order, like the old arrows did.
 document.addEventListener("sortchange", function (e) {
   var form = e.target.closest && e.target.closest("form[data-sort-save]");

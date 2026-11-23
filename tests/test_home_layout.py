@@ -104,7 +104,7 @@ def test_the_start_page_with_several_cars_preselects_no_car(client):
     assert (
         'class="sb-car"' not in page and "Drive · Log · Go" in page
     )  # the side bar names no car (name and slogan then sit centred next to the logo)
-    assert "/e/fuel" not in page.split('id="tabbar"')[1].split("</nav>")[0]  # and the bar holds no page of a car
+    assert 'id="tabbar"' not in page and "/e/fuel" not in page.split("<main", 1)[0]  # choosing a car: no navigation at all, only the logo
 
 
 def test_a_car_can_have_its_own_design(client):

@@ -73,7 +73,7 @@ def active_tabs(html: str) -> list[str]:
 def test_start_page_marks_home_not_more(client):
     """The start page is Home – also while there is no vehicle yet. Other pages without a vehicle stay under More."""
     html = client.get("/").text
-    assert active_tabs(html) == ["/"] and 'class="back-btn"' not in html
+    assert active_tabs(html) == ["/"] and 'class="back-btn"' not in html  # no vehicle yet: the welcome page keeps its navigation
     for path in ("/settings/design", "/vehicles", "/more"):
         page = client.get(path).text
         assert active_tabs(page) == ["/more"], path
@@ -84,7 +84,7 @@ def test_start_page_with_several_vehicles_marks_home(client):
     first = create_vehicle(client, "A Car")
     create_vehicle(client, "B Car")
     html = client.get("/").text  # more than one vehicle: the list is shown at "/"
-    assert active_tabs(html) == ["/"] and 'class="back-btn"' not in html  # Home is marked, but no car is preselected
+    assert 'id="tabbar"' not in html and 'class="back-btn"' not in html  # choosing a car: only the logo, no navigation
     assert active_tabs(client.get("/vehicles").text) == [f"/v/{slug(first)}/more"]
 
 
@@ -254,3 +254,22 @@ def test_a_page_that_goes_away_leaves_the_saved_order_and_the_others_keep_their_
         assert [d["m"] for d in saved] == ["fuel", "service"]  # no hole, the others unchanged
         navigation.forget(conn, 1, "x-demo")  # a second time changes nothing
         assert [d["m"] for d in json.loads(db.get_setting(conn, navigation._key(1), ""))] == ["fuel", "service"]
+
+
+def test_choosing_a_car_shows_only_the_logo_no_navigation(client):
+    from tests.test_web import create_vehicle, slug
+
+    first = create_vehicle(client)
+    second = create_vehicle(client)
+    assert first != second
+    page = client.get("/", follow_redirects=False)
+    assert page.status_code == 200  # two cars: the list to choose from
+    assert (
+        'class="sb-brand"' in page.text and 'id="tabbar"' not in page.text and 'class="tab ' not in page.text
+    )  # the logo, nothing to navigate to
+    assert (
+        'href="/"' not in page.text.split('class="sb-brand"', 1)[0][-80:] and 'class="sb-brand" href' not in page.text
+    )  # and the logo is no link here
+    car = client.get(f"/v/{slug(first)}")
+    assert 'id="tabbar"' in car.text and 'class="sb-brand" href' in car.text  # a car page keeps its navigation
+    assert 'id="tabbar"' in client.get("/vehicles").text  # the management page under More keeps it as well
