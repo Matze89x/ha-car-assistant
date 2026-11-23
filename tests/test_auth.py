@@ -389,6 +389,9 @@ def test_even_the_refusals_carry_the_security_headers(client):
         assert r.headers["x-content-type-options"] == "nosniff"
         assert r.headers["referrer-policy"] == "same-origin"
         assert "default-src 'self'" in r.headers["content-security-policy"]
+        assert "object-src 'none'" in r.headers["content-security-policy"] and "base-uri 'self'" in r.headers["content-security-policy"]
+        assert "camera=()" in r.headers["permissions-policy"]
+        assert "strict-transport-security" not in r.headers  # plain http: no HSTS
 
 
 def test_a_device_can_be_registered_for_web_push_over_the_port(ing, ext, monkeypatch):

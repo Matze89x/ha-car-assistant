@@ -236,7 +236,9 @@ async def guard(request: Request, call_next):
     response = await call_next(request)
     last = shown and not shown.group(1).isdigit() and request.method == "GET" and response.status_code < 400
     if last and request.cookies.get(LAST_CAR) != shown.group(1):  # the car chosen last: the Car tab of the settings is about this one
-        response.set_cookie(LAST_CAR, shown.group(1), max_age=365 * 86400, httponly=True, samesite="lax", path="/")
+        response.set_cookie(
+            LAST_CAR, shown.group(1), max_age=365 * 86400, httponly=True, samesite="lax", secure=request.url.scheme == "https", path="/"
+        )
     if request.url.path.startswith("/static/") and request.query_params.get("v"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"  # the address carries the app version
     elif request.url.path.startswith("/static/fonts/"):
@@ -253,8 +255,12 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault("Referrer-Policy", "same-origin")
     response.headers.setdefault(  # nothing is loaded from other hosts: map tiles come through this app (tiles.py)
         "Content-Security-Policy",
-        "default-src 'self'; img-src 'self' data:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; frame-ancestors 'self'; form-action 'self'",
+        "default-src 'self'; img-src 'self' data:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; frame-ancestors 'self'; form-action 'self'; "
+        "object-src 'none'; base-uri 'self'",
     )
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), payment=(), usb=(), bluetooth=(), serial=()")
+    if request.url.scheme == "https":  # only where the address really is https: the browser then never goes back to plain http
+        response.headers.setdefault("Strict-Transport-Security", "max-age=15552000")
     return response
 
 
