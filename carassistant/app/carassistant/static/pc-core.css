@@ -102,7 +102,7 @@ a.ov:hover { background:var(--glass); text-decoration:none; }
 .navlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; position: relative; counter-reset: navn; }
 .navrow { padding: 6px 8px; border-radius: var(--r-m); background: rgba(var(--fg-rgb),.04); border: 1px solid var(--glass-b); }
 .navrow .nt { flex: 1; min-width: 0; font-weight: 600; }
-.navrow.inmore { opacity: .62; border-style: dashed; }
+/* a page in "More" looks like every other page of the list - only a page that is switched off (.off-row) is dimmed; the divider tells the zones apart */
 .navrow.fixed .grip { visibility: hidden; }
 .grip { place-items: center; width: 28px; height: 40px; color: var(--dim); cursor: grab; touch-action: none; flex-shrink: 0; user-select: none; -webkit-user-select: none; }
 .grip:active { cursor: grabbing; }
@@ -1594,7 +1594,7 @@ label.check > input[type=checkbox]:not(.switch input):not(.sw input) { margin: 1
 
 /* the page icons: coloured glass tiles, the same in the bar editor and in More */
 .navrow .switch { flex: 0 0 auto; margin: 0 4px; }
-.navrow.off-row { opacity: .6; border-style: dashed; }
+.navrow.off-row, .navrow:has(.switch input:not(:checked)) { opacity: .6; border-style: dashed; }
 .navrow .nt small { display: block; margin-top: 2px; font-weight: 400; color: var(--dim); font-size: 12px; }
 
 /* the first, fixed card of a car: its name with the switch on top, the passport as a row like all the others underneath */
@@ -3067,15 +3067,17 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .map-canvas .leaflet-tile-pane { filter: grayscale(1) invert(1) contrast(.95) sepia(.3) hue-rotate(185deg); }
 html[data-map="light"] .map-canvas .leaflet-tile-pane { filter: saturate(.92); }
 html[data-theme="light"][data-map="light"] .map-canvas .leaflet-tile-pane, html[data-theme="auto"][data-map="light"] .map-canvas .leaflet-tile-pane { filter: saturate(.85) contrast(.98); }
-.map-top { position: absolute; z-index: 800; top: 10px; left: 10px; right: 10px; pointer-events: none; }
+.map-top { position: absolute; z-index: 800; top: 12px; left: 14px; right: 14px; pointer-events: none; }
+@media (max-width: 999px) { .map-top { left: 26px; right: 26px; } }  /* the same side distance as the bar below */
 .map-top > * { pointer-events: auto; }
-.map-stage .map-top .icon-btn { background: rgba(var(--panel-rgb), .78); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 .icon-btn[data-map-act].on { color: var(--accent-text); background: var(--accent); border-color: var(--accent); }
-.map-search { min-width: 0; display: flex; align-items: center; gap: 6px; max-width: 460px; }
-.map-stage .map-search input { flex: 1 1 auto; min-width: 0; height: 40px !important; min-height: 0 !important; border-radius: 999px !important; border: 1px solid var(--btn-edge) !important; padding: 0 16px; margin: 0; -webkit-appearance: none; appearance: none; background: rgba(var(--panel-rgb), .78); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
-.map-note { position: absolute; z-index: 800; left: 50%; top: 58px; transform: translateX(-50%); max-width: calc(100% - 24px); padding: 8px 14px; border-radius: var(--r-m); font-size: 13px; text-align: center; background: rgba(var(--panel-rgb), .92); border: 1px solid var(--glass-b); }
+/* the search is the same glass bar as the navigation bar at the bottom: same height, radius, blur, border and shadow (and the same tokens in every design) */
+.map-search { box-sizing: border-box; height: var(--tabh); padding: 5px; min-width: 0; display: flex; align-items: center; gap: 4px; max-width: 460px; border-radius: calc(var(--r-l) + 5px); isolation: isolate; background: rgba(var(--panel-rgb),.56); -webkit-backdrop-filter: blur(28px) saturate(185%); backdrop-filter: blur(28px) saturate(185%); border: 1px solid rgba(var(--fg-rgb),.11); box-shadow: 0 16px 38px rgba(0,0,0,.52), inset 0 1px 0 rgba(var(--fg-rgb),.16), inset 0 -1px 0 rgba(0,0,0,.28); }
+.map-stage .map-search input { flex: 1 1 auto; min-width: 0; height: 100% !important; min-height: 0 !important; border: 0 !important; border-radius: var(--r-l) !important; background: transparent !important; box-shadow: none !important; padding: 0 14px; margin: 0; font-size: 16px; -webkit-appearance: none; appearance: none; }
+.map-search .icon-btn { width: calc(var(--tabh) - 12px); height: calc(var(--tabh) - 12px); border-radius: var(--r-l); }
+.map-note { position: absolute; z-index: 800; left: 50%; top: 82px; transform: translateX(-50%); max-width: calc(100% - 24px); padding: 8px 14px; border-radius: var(--r-m); font-size: 13px; text-align: center; background: rgba(var(--panel-rgb), .92); border: 1px solid var(--glass-b); }
 .map-note[hidden], .map-results[hidden], .map-sheet[hidden] { display: none; }
-.map-results { position: absolute; z-index: 800; top: 58px; left: 10px; width: min(460px, calc(100% - 20px)); max-height: 46%; overflow: auto; margin: 0; padding: 4px; list-style: none; border-radius: var(--r-m); background: rgba(var(--panel-rgb), .94); border: 1px solid var(--glass-b); }
+.map-results { position: absolute; z-index: 800; top: 82px; left: 10px; width: min(460px, calc(100% - 20px)); max-height: 46%; overflow: auto; margin: 0; padding: 4px; list-style: none; border-radius: var(--r-m); background: rgba(var(--panel-rgb), .94); border: 1px solid var(--glass-b); }
 .map-results li { margin: 0; }
 .map-results button { display: block; width: 100%; text-align: left; padding: 9px 10px; border: 0; border-radius: var(--r-s); background: none; color: var(--text); font: inherit; cursor: pointer; }
 .map-results button:hover { background: var(--glass2); }

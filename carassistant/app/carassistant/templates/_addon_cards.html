@@ -9,7 +9,7 @@
       <small>{{ _('addon.kind_plugin') if plugin else _('addon.kind_integration') }}{% if a.m.version %} · v{{ a.m.version }}{% endif %}{% if a.m.author %} · {{ a.m.author }}{% endif %}</small>
     </a>
     {% if a.missing %}<span class="run-pill need"><i></i>{{ _('addon.needs') }}</span>
-    {% elif plugin %}<span class="addon-sw"><span class="addon-st{{ ' on' if a.active }}">{{ _('addon.running') if a.active else _('addon.stopped') }}</span><label class="switch" aria-label="{{ _('addon.stop') if a.active else _('addon.start') }}"><input type="checkbox" data-fn="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/active" {{ 'checked' if a.active }}><span></span></label></span>{% endif %}
+    {% else %}<span class="addon-sw"><span class="addon-st{{ ' on' if a.active }}">{{ (_('addon.running') if a.active else _('addon.stopped')) if plugin else (_('addon.on') if a.active else _('addon.off')) }}</span><label class="switch" aria-label="{{ (_('addon.stop') if a.active else _('addon.start')) if plugin else (_('addon.switch_off') if a.active else _('addon.switch_on')) }}"><input type="checkbox" data-fn="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/active" {{ 'checked' if a.active }}><span></span></label></span>{% endif %}
   </div>
   {% if a.has_update and not a.missing %}<p class="addon-status upd">{{ icon('refresh', 16) }}<span>{{ _('addon.update_to', v=a.latest) }}</span></p>{% endif %}
   {% if a.m.description %}<p class="addon-d">{{ a.m.description }}</p>{% endif %}
@@ -38,7 +38,7 @@
       {% if need_review %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/service">{{ icon('shield', 18) }}<span>{{ _('svc.review') }}</span></a>
       {% elif a.has_update %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/update"><button class="primary">{{ icon('refresh', 18) }}<span>{{ _('addon.update') }}</span></button></form>
       {% elif a.m.setup and a.status != 'configured' %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ _('addon.setup') }}</span></a>
-      {% elif (a.active or not plugin) and a.m.pages %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/m/{{ a.addon_id }}">{{ icon('chevron', 18) }}<span>{{ _('addon.open') }}</span></a>{% endif %}
+      {% elif a.active and a.m.pages %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/m/{{ a.addon_id }}">{{ icon('chevron', 18) }}<span>{{ _('addon.open') }}</span></a>{% endif %}
     </div>
 
       {% endif %}
