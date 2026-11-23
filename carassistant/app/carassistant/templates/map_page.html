@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block head %}{% if map_tiles %}<link rel="stylesheet" href="{{ base }}/static/vendor/leaflet/leaflet.min.css?v=1.9.4">{% endif %}{% endblock %}
+{% block scripts %}{% if map_tiles %}<script src="{{ base }}/static/vendor/leaflet/leaflet.min.js?v=1.9.4"></script><script src="{{ base }}/static/map_full.js?v={{ asset_v }}"></script>{% endif %}{% endblock %}
+{% block content %}
+{% if not map_tiles %}
+{{ page_head('map-marker-radius', _('mod.map.name')) }}
+<section class="card">
+  <p class="hint">{{ icon('info', 14) }} {{ _('map.off') }}</p>
+  <div class="pkg-foot"><a class="button primary" href="{{ base }}/settings/system#online">{{ icon('settings', 16) }}<span>{{ _('map.open_settings') }}</span></a></div>
+</section>
+{% else %}
+{% call page_head('map-marker-radius', _('mod.map.name')) %}
+  <button type="button" class="icon-btn" data-map-act="me" aria-pressed="false" aria-label="{{ _('map.my_pos') }}" title="{{ _('map.my_pos') }}">{{ icon('map-marker-radius', 18) }}</button>
+  {% if place %}<button type="button" class="icon-btn" data-map-act="car" aria-label="{{ _('loc.pin') }}" title="{{ _('loc.pin') }}">{{ icon('car', 18) }}</button>{% endif %}
+  <button type="button" class="icon-btn" data-map-act="theme" aria-label="{{ _('map.dark') }}" title="{{ _('map.dark') }}">{{ icon('weather-night', 18) }}</button>
+{% endcall %}
+<div class="map-stage" id="mapstage" data-tiles="{{ base }}/tiles" data-car="{{ base }}/v/{{ v.id }}/map/car.json" data-search="{{ base }}/v/{{ v.id }}/map/search" data-send="{{ base }}/v/{{ v.id }}/map/send"
+  {% if place %}data-lat="{{ place.lat }}" data-lon="{{ place.lon }}" data-car-title="{{ place.title }}"{% endif %}
+  data-first="{{ provider_first }}" data-providers='{{ providers|tojson }}'
+  data-light="{{ _('map.light') }}" data-dark="{{ _('map.dark') }}"
+  data-t-hint="{{ _('map.hint') }}" data-t-pin="{{ _('map.pin') }}" data-t-car="{{ _('loc.pin') }}" data-t-searching="{{ _('map.searching') }}" data-t-none="{{ _('map.no_result') }}" data-t-err="{{ _('map.search_err') }}"
+  data-t-search-at="{{ _('map.search_at') }}" data-t-sent="{{ _('map.sent') }}" data-t-send-err="{{ _('map.send_err') }}" data-t-nogeo="{{ _('map.nogeo') }}" data-t-denied="{{ _('map.geo_denied') }}">
+  <div id="fullmap" class="map-canvas"></div>
+  <div class="map-top">
+    <form class="map-search" role="search" autocomplete="off"><input type="search" name="q" maxlength="120" placeholder="{{ _('map.search') }}" aria-label="{{ _('map.search') }}" enterkeyhint="search"><button class="icon-btn" aria-label="{{ _('map.search_btn') }}" title="{{ _('map.search_btn') }}">{{ icon('magnify', 20) }}</button></form>
+  </div>
+  <div class="map-note" role="status" hidden></div>
+  <ul class="map-results" hidden></ul>
+  <section class="map-sheet" hidden>
+    <div class="ms-t"></div>
+    <div class="ms-a"></div>
+    <label class="ms-via">{{ _('map.provider') }}<select class="ms-select" aria-label="{{ _('map.provider') }}"></select></label>
+    <div class="ms-acts"><button type="button" class="button small" data-map-act="close">{{ _('map.close') }}</button><button type="button" class="button primary small" data-map-act="go">{{ icon('map-marker-radius', 16) }}<span>{{ _('map.navigate') }}</span></button></div>
+  </section>
+</div>
+{% endif %}
+{% endblock %}

@@ -28,6 +28,7 @@ CHIP = {
     "report": "c7",
     "security": "c2",
     "stations": "c1",
+    "map": "c7",
     "integrations": "c4",
     "vehicles": "c2",
     "account": "c5",

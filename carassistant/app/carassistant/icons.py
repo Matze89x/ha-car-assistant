@@ -201,6 +201,7 @@ MODULE_ICON = {
     "edit": "car-front",
     "stations": "pin",
     "security": "security",
+    "map": "map-marker-radius",
 }
 
 INTEGRATION_ICON = {"homeassistant": "home", "mqtt": "mqtt", "notifications": "bell"}

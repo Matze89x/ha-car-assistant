@@ -245,3 +245,61 @@ def set_given(conn, lat: float, lon: float, town: str, road: str) -> None:
     )
     if town:  # the places of trips use the same name
         conn.execute("INSERT OR REPLACE INTO place_names(key, name, created_at) VALUES(?,?,?)", (_key(lat, lon, lang), town, now))
+
+
+# ------------------------------------------------------------------ search a place (the map's search field)
+
+_search_cache: dict[tuple, tuple[float, list[dict]]] = {}
+_search_gate = threading.Lock()
+_search_last = 0.0
+SEARCH_KEEP = 3600  # an answer is kept for an hour (the public service asks for as few requests as possible)
+
+
+def search_url() -> str:
+    """The search address of the Nominatim-compatible service: the one set under System -> Map info (its ``/reverse`` becomes ``/search``), else the public one."""
+    base = source_url().rstrip("/")
+    return base[: -len("/reverse")] + "/search" if base.endswith("/reverse") else base + "/search"
+
+
+def search(query: str, lang: str, bbox: tuple[float, float, float, float] | None = None) -> list[dict] | None:
+    """Places for a typed text: ``[{name, address, lat, lon}]`` (at most six), the area of the map first. None when the service did not answer.
+    One request a second at most and only on an explicit search (never while typing): the usage policy of the public service."""
+    global _search_last
+    query = " ".join(query.split())[:120]
+    if len(query) < 3:
+        return []
+    key = (query.lower(), lang, tuple(round(v, 1) for v in bbox) if bbox else None)
+    now = time.monotonic()
+    hit = _search_cache.get(key)
+    if hit and now - hit[0] < SEARCH_KEEP:
+        return hit[1]
+    params = {"q": query, "format": "jsonv2", "limit": 6, "accept-language": lang, "addressdetails": 0}
+    if bbox:
+        south, west, north, east = bbox
+        params["viewbox"] = f"{west:.5f},{north:.5f},{east:.5f},{south:.5f}"
+    with _search_gate:
+        wait = GAP - (time.monotonic() - _search_last)
+        if wait > 0:
+            time.sleep(wait)
+        _search_last = time.monotonic()
+        try:
+            r = requests.get(search_url(), params=params, headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT)
+            data = r.json() if r.status_code == 200 else None
+        except (requests.RequestException, ValueError):
+            return None
+    if not isinstance(data, list):
+        return None
+    out = []
+    for item in data[:6]:
+        try:
+            lat, lon = float(item["lat"]), float(item["lon"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        shown = str(item.get("display_name") or "")
+        name = str(item.get("name") or "") or shown.split(",")[0].strip()
+        if -90 <= lat <= 90 and -180 <= lon <= 180 and name:
+            out.append({"name": name[:120], "address": shown[:240], "lat": round(lat, 6), "lon": round(lon, 6)})
+    if len(_search_cache) > 200:
+        _search_cache.clear()
+    _search_cache[key] = (now, out)
+    return out

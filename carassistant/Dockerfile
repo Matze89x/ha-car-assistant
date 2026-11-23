@@ -5,7 +5,7 @@ FROM ${BUILD_FROM}
 ARG BUILD_VERSION
 ARG BUILD_ARCH
 
-RUN apk add --no-cache python3 py3-pip tzdata \
+RUN apk add --no-cache python3 py3-pip tzdata tesseract-ocr tesseract-ocr-data-deu tesseract-ocr-data-eng \
  && python3 -m venv /opt/venv
 
 COPY requirements.txt /tmp/requirements.txt

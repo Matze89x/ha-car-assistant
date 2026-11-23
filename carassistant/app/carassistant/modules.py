@@ -40,12 +40,13 @@ MODULES: tuple[Module, ...] = (
     Module("manual", "vehicle", "/manual"),
     Module("edit", "vehicle", "/edit", core=True),
     Module("stations", "vehicle", "/stations"),
+    Module("map", "vehicle", "/map"),
 )
 BY_KEY = {m.key: m for m in MODULES}
 
 # What most people need from day one (switched on for a new car, in this order) and what is added when needed (switched off at first).
 RECOMMENDED = ("service", "appointments", "fuel", "docs", "security", "report")
-ON_REQUEST = ("tasks", "tires", "mods", "parts", "counters", "trips", "manual", "stations")
+ON_REQUEST = ("tasks", "tires", "mods", "parts", "counters", "trips", "manual", "stations", "map")
 
 
 def apply_recommended(conn: sqlite3.Connection, vehicle_id: int) -> None:
@@ -62,6 +63,7 @@ _ROUTES: tuple[tuple[re.Pattern[str], str | None], ...] = (
     (re.compile(r"^/v/\d+/(manual)"), None),
     (re.compile(r"^/v/\d+/(security)"), None),
     (re.compile(r"^/v/\d+/(stations)"), None),
+    (re.compile(r"^/v/\d+/(map)(?:/|$)"), None),
     (re.compile(r"^(?:/v/\d+)?/calendar\.ics"), "appointments"),
 )
 

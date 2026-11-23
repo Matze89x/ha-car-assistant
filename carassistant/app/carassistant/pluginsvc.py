@@ -548,6 +548,39 @@ def running(pk: int) -> bool:
         return bool(info and info["proc"].poll() is None)
 
 
+def call(pk: int, path: str, payload: dict, vehicle_id: int, user: str = "ha", timeout: float = 10.0) -> tuple[bool, str]:
+    """The APP asks a running service for something it offers (a capability, for example ``navigate``): ``POST <path>`` with a JSON body.
+    ``(True, message)`` when the service answers 2xx, else ``(False, reason)``. The service gets the same two identity headers as for a page."""
+    with _lock:
+        info = _procs.get(pk)
+        port = info["port"] if info and info["proc"].poll() is None else None
+    if not port:
+        return False, "not running"
+    body = json.dumps(payload).encode()
+    import http.client
+
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=timeout)
+    try:
+        conn.request(
+            "POST",
+            path,
+            body,
+            {"Content-Type": "application/json", "X-CA-Vehicle": str(vehicle_id), "X-CA-User": user, "Content-Length": str(len(body))},
+        )
+        response = conn.getresponse()
+        raw = response.read(8192)
+    except (OSError, http.client.HTTPException):
+        return False, "no answer"
+    finally:
+        conn.close()
+    try:
+        data = json.loads(raw.decode("utf-8", "replace") or "{}")
+    except ValueError:
+        data = {}
+    text = str(data.get("message") or data.get("error") or "")[:200] if isinstance(data, dict) else ""
+    return (200 <= response.status < 300 and (not isinstance(data, dict) or data.get("ok") is not False)), text
+
+
 def state(pk: int, addon: dict) -> str:
     """installing | stopped | waiting (not approved) | running | restarting | error"""
     if not service_of(addon):

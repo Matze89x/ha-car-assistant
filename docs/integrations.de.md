@@ -6,7 +6,7 @@ Eine **Integration** ist ein Zusatz, der *dem System hinzugefügt wird*: Seiten,
 
 **Eine Integration hat keine API und kein Token.** Sie spricht weder mit einem Auto noch mit der Außenwelt und ruft die [Plugin-API](api.de.md) nie auf. Alles, was etwas von außen anbindet (ein Auto, die Cloud eines Herstellers, einen Webdienst, ein Gerät), ist ein **[Plugin](plugins.de.md)**; nur ein Plugin schickt Werte über die Plugin-API. Eine Integration darf später ein Plugin um Informationen bitten (das Plugin bietet die Schnittstelle), nie umgekehrt.
 
-Heute eingebaut: Home Assistant (Entitäten-Bindungen), MQTT-Discovery, Benachrichtigungen.
+Heute eingebaut: Home Assistant (Entitäten-Bindungen), MQTT-Discovery, Benachrichtigungen, die **Karte** (siehe unten).
 
 **Selber bauen:** Jeder kann eine Integration schreiben - sie ist eine Beschreibung, es ist also kein Code nötig (siehe unten). Nur wenn eine Integration eine eigene Seite als Werkzeug im Add-on braucht (`kind: "frame"`), darf sie einen [Dienst](plugins.de.md#plugins-mit-dienst) tragen. Teile sie mit der Community auf GitHub ([Quellen](sources.de.md)).
 
@@ -96,3 +96,12 @@ Eine Erinnerung kann einen **`plan`** tragen: einen kurzen Wechsel, der mit **je
 - Die Seite der Art **`plan`** braucht keine Felder; sie verweist mit `reminder` auf die Erinnerung.
 
 **Regel:** Eine Integration darf einen `service` nur tragen, wenn sie ihn für eine eigene Seite in der App braucht (ein Werkzeug im Add-on, `kind: "frame"` in [Plugins](plugins.de.md)), nie um ein Gerät oder Auto anzubinden – das bleibt ein Plugin. Sie bekommt kein Token und keine Plugin-API.
+
+## Karte
+
+Die *Karte* ist eine eingebaute Seite jedes Autos (unter *Weiteres -> Integrationen* einzuschalten; bei einem neuen Auto ist sie aus). Sie ist eine Karte über die ganze Fläche im Inhaltsbereich (auf dem Handy bis zum Bildschirmrand) mit dem Zurück-Knopf oben links, den Knöpfen *Mein Standort*, *Auto* und *Helle / dunkle Karte* oben rechts und der Suche darunter (mit genug Platz alles in einer Zeile).
+
+- **Standardmäßig wird nichts geladen:** Die Karte braucht *Einstellungen -> System -> Online -> Karte*, dann zeigt sie OpenStreetMap über diese App (dieselben Kacheln wie das Standort-Widget).
+- **Das Auto** steht an seiner letzten Position und bewegt sich, solange die Seite offen ist. **Dein eigener Standort** wird nur gezeichnet, wenn du den Knopf drückst und es im Browser erlaubst (es braucht https); er bleibt in deinem Browser und wird nie an den Server gesendet.
+- **Suche:** Ort oder Adresse eintippen und Suchen drücken (nie schon beim Tippen: der öffentliche Dienst erlaubt das nicht). Die Wörter gehen zusammen mit dem Kartenausschnitt an den Nominatim-Dienst unter *System -> Karten-Info* (standardmäßig der öffentliche von OpenStreetMap). Findet er nichts, kann dieselbe Suche beim gewählten Navigationsdienst gemacht werden. Langes Drücken auf die Karte setzt einen Punkt.
+- **Navigieren:** Ein gewählter Ort oder das Auto öffnet ein Blatt mit der Liste *Navigieren mit*. Zuerst stehen **Plugins des Autos, die `navigate` anbieten** (siehe [Fähigkeiten](plugins.de.md#fähigkeiten-capabilities-was-ein-plugin-für-die-app-tun-kann)); dann die Navigationsdienste - Google Maps, Apple Karten, Waze, Bing Maps, OpenStreetMap, Mapy.com, HERE WeGo, Yandex Maps / Navigator, Magic Earth, Sygic und ein allgemeiner Android-Geo-Link. Ein Dienst ist nur ein **Link** mit dem Ziel darin: Das Handy öffnet seine App (oder die Webseite); der Server schickt nichts dorthin. *Einstellungen -> System -> Navigation* legt den Standard für die ganze App fest; *Automatisch* heißt: das Plugin des Autos, wenn es eins gibt, sonst Google Maps.

@@ -308,3 +308,24 @@ Ein Paket mit Dienst kann eine Seite seines eigenen Dienstes als **eigene Seite*
 **Karten:** Die App hat eine eigene Kachel-Adresse für OpenStreetMap, `tiles` + `/{z}/{x}/{y}.png`, dieselbe wie die Standortkarte und die Fahrtenkarten: gleiche Herkunft, nur für angemeldete Personen, zwischengespeichert, und nur, solange die Person Karten eingeschaltet hat (*Einstellungen → System*, standardmäßig aus – sonst antwortet sie mit `404`). Bring dein eigenes Karten-Skript mit (zum Beispiel Leaflet) und richte dessen Kachelebene dorthin aus; deine Seite lädt nichts aus dem Internet.
 
 **Regel:** Eine Integration darf einen Dienst nur für eine eigene Seite in der App tragen (ein Werkzeug im Add-on); um ein Gerät oder Auto anzubinden, bleibt es ein Plugin.
+
+## Fähigkeiten (`capabilities`): was ein Plugin für die App tun kann
+
+Ein Paket mit `service` darf sagen, dass es neben dem Senden von Daten etwas für die **App** tun kann. Der Schlüssel ist optional; ohne ihn ändert sich nichts. Heute gibt es eine Fähigkeit, **`navigate`**: Das Plugin nimmt ein Ziel entgegen und gibt es an sein Auto weiter.
+
+```json
+"capabilities": { "navigate": { "path": "/mycar/navigate", "label": "An mein Auto senden" } }
+```
+
+- **`path`** ist eine Route des eigenen Dienstes und muss unter einer Route liegen, die **nicht** `public` ist (so kann niemand von außen sie aufrufen); sonst wird die Fähigkeit ignoriert. `label` (optional, bis 40 Zeichen) ist der Name in der Liste der Seite *Karte*; ohne ihn gilt der Paketname.
+- Die Seite **Karte** nennt jedes laufende Plugin des Autos, das `navigate` anbietet, **als Erstes**, vor den Navigationsdiensten, und es ist zunächst gewählt, außer unter *Einstellungen -> System -> Navigation* wurde ein Dienst bestimmt.
+- Drückt jemand *Navigieren*, schickt die App `POST <path>` an den Dienst (auf `127.0.0.1`, mit den zwei Kennungs-Kopfzeilen `X-CA-Vehicle` und `X-CA-User`) und einen JSON-Körper:
+
+```json
+{ "vehicle": 3, "name": "Brandenburger Tor", "address": "Pariser Platz, Berlin", "lat": 52.516275, "lon": 13.377704, "language": "de" }
+```
+
+- Der Dienst antwortet innerhalb von 10 Sekunden: **2xx** (auf Wunsch `{"ok": true, "message": "Text für die Person"}`), wenn er das Ziel angenommen hat, sonst etwas anderes - oder `{"ok": false, "message": "..."}`; die Nachricht erscheint auf der Karte.
+- Wie das Ziel zum Auto kommt, ist Sache des Plugins. Die App übergibt es nur, und nur nach einem Knopfdruck, nie von selbst. Es wird nur angeboten, solange der Dienst läuft und freigegeben ist.
+
+Wie alles in der Schnittstelle ist das eine Ergänzung: Ein Plugin ohne `capabilities` funktioniert genau wie bisher.

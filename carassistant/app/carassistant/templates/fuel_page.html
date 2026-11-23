@@ -1,11 +1,17 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, page_head, page_foot, field_input, flabel, disp, switch_row with context %}
-{% block scripts %}{% if stn %}<script src="{{ base }}/static/stations.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
+{% block scripts %}{% if stn %}<script src="{{ base }}/static/stations.js?v={{ asset_v }}" defer></script>{% endif %}{% if receipt_on %}<script src="{{ base }}/static/receipt.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 {% set vurl = base ~ '/v/' ~ v.id ~ '/e/fuel' %}
 {% set fu = vurl %}
 {% macro fuelform(r, url, inline=false) %}
   <form class="eq-edit tp-form" method="post" action="{{ url }}" {{ 'hidden' if r and not inline else '' }}>
+    {% if receipt_on and not r %}<div class="fuel-scan" data-scan="{{ base }}/v/{{ v.id }}/fuel/scan" data-t-busy="{{ _('fuel.scan_busy') }}" data-t-ok="{{ _('fuel.scan_ok') }}" data-t-fit="{{ _('fuel.scan_fit') }}" data-t-nofit="{{ _('fuel.scan_nofit') }}" data-t-derived="{{ _('fuel.scan_derived') }}" data-t-none="{{ _('fuel.scan_none') }}" data-t-err="{{ _('fuel.scan_err') }}">
+      <button type="button" class="button small" data-scan-btn>{{ icon('camera', 16) }}<span>{{ _('fuel.scan') }}</span></button>
+      <input type="file" accept="image/*" capture="environment" data-scan-file hidden>
+      <p class="hint scan-note" data-scan-note hidden></p>
+      <p class="hint">{{ _('fuel.scan_hint') }}</p>
+    </div>{% endif %}
     <div class="eq-two">{% for name in ('date', 'odometer_km') %}{% set f = entity.fields|selectattr('name', 'equalto', name)|first %}<label>{{ flabel(f) }}{{ field_input(f, disp(f, r[name]) if r else form.get(name), true) }}</label>{% endfor %}</div>
     <div class="eq-two">{% for name in ('amount', 'price_per_unit') %}{% set f = entity.fields|selectattr('name', 'equalto', name)|first %}<label>{{ flabel(f) }}{{ field_input(f, disp(f, r[name]) if r else form.get(name), true) }}</label>{% endfor %}</div>
     <div class="eq-two">{% set f = entity.fields|selectattr('name', 'equalto', 'price_total')|first %}<label>{{ flabel(f) }}{{ field_input(f, r['price_total'] if r else form.get('price_total'), true) }}</label>

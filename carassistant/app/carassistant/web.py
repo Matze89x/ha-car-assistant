@@ -45,6 +45,7 @@ from . import (
     media,
     modules,
     navigation,
+    navproviders,
     notices,
     notify,
     plugins,
@@ -1439,8 +1440,10 @@ def entity_page(request: Request, vid: int, key: str, form: dict | None = None, 
             if vehicle["fuel_type"] != "electric":
                 extra["stn"] = station_context(request, vehicle)  # the fuel stations are part of this page now
                 extra["fs_pref"] = stations.preferred_source()
+            from . import receipt as _receipt
             from . import reminders as _rem
 
+            extra["receipt_on"] = _receipt.available()  # a photo of the receipt fills in the form (needs text recognition on the server)
             extra["reminders"] = _rem.status(conn, vid)
             ctx.update(fuel_list_context(conn, vid, request))  # replaces the generic list's rows and pager
             return render(request, "fuel_page.html", status=status, form=form or {}, error=error, edit_id=edit_id, **ctx, **extra)
@@ -2304,6 +2307,8 @@ def _settings_section(request: Request, section: str):
         log_rows=log_rows,
         vehicle_rows=vehicle_rows,
         map_tiles=map_tiles,
+        nav_providers=[(k, n) for k, n, _t in navproviders.PROVIDERS],
+        nav_chosen=config.stored_setting(navproviders.SETTING) or "",
         geocoder_url=config.stored_setting("map.geocoder_url") or "",
         server=server,
         lock_after=auth_web.lock_after(),
@@ -2622,6 +2627,16 @@ async def settings_map(request: Request):
     return go(request, "/settings/system#online", "saved")
 
 
+@app.post("/settings/navigation")
+async def settings_navigation(request: Request):
+    """Where a destination from the map goes: '' = automatic (the plugin of the car, else Google Maps), or one navigation service (server-wide)."""
+    form = await form_dict(request)
+    with db.tx() as conn:
+        navproviders.set_chosen(conn, form.get("provider") or "")
+    config.forget_settings()
+    return go(request, "/settings/system#navigation", "saved")
+
+
 @app.post("/settings/geocoder")
 async def settings_geocoder(request: Request):
     """The address used for place names (a Nominatim-compatible server); empty = the public OpenStreetMap service. https only."""
@@ -2794,11 +2809,13 @@ from . import (  # noqa: E402,F401
     demo_web,
     equipment_web,
     manual_web,
+    map_web,
     mcp_web,
     media_web,
     nav_web,
     pagemods_web,
     push_web,
+    receipt_web,
     sources_web,
     tiles_web,
     vehiclebackup_web,

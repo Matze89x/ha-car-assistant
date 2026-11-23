@@ -107,6 +107,14 @@
   <p class="hint"><a href="{{ base }}/settings/user#blocked">{{ _('sys.blocked_link') }}</a></p>
 </section>
 
+<section class="card" id="navigation">
+  <h2>{{ icon('map-marker-radius') }} {{ _('nav.set_title') }}</h2>
+  <form method="post" action="{{ base }}/settings/navigation" data-live id="navprov">
+    <label>{{ _('nav.set_label') }}<select name="provider"><option value="">{{ _('nav.set_auto') }}</option>{% for k, n in nav_providers %}<option value="{{ k }}" {{ 'selected' if nav_chosen == k }}>{{ n }}</option>{% endfor %}</select></label>
+  </form>
+  <p class="hint">{{ _('nav.set_hint') }}</p>
+</section>
+
 <section class="card" id="online">
   <h2>{{ icon('map-marker-radius') }} {{ _('sys.online') }}</h2>
   <p class="hint">{{ _('sys.online_hint') }}</p>

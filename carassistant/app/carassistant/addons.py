@@ -136,6 +136,21 @@ def clean_downloads(raw, service: dict | None) -> list[dict]:
     return out
 
 
+CAPABILITY_PATH = re.compile(r"/[A-Za-z0-9_./~%+-]{1,150}")
+
+
+def clean_capabilities(raw, service: dict | None) -> dict:
+    """What a plugin offers the APP besides the data it sends (docs/plugins.md, "Capabilities"): so far ``navigate`` - the plugin can take a
+    destination and pass it on to its car. The ``path`` is a route of the plugin's own service that is NOT public; anything else is dropped."""
+    out: dict = {}
+    nav = raw.get("navigate") if isinstance(raw, dict) else None
+    path = nav.get("path") if isinstance(nav, dict) else None
+    prefixes = [r["prefix"] for r in (service or {}).get("routes", []) if not r.get("public")]
+    if isinstance(path, str) and CAPABILITY_PATH.fullmatch(path) and ".." not in path and any(path.startswith(p) for p in prefixes):
+        out["navigate"] = {"path": path, "label": _text(nav, "label", 40)}
+    return out
+
+
 # ---- files a package brings for download ("assets"): checked binaries the app hands out itself, never runs (docs/plugins.md)
 FILE_EXTENSIONS = (".jar", ".zip", ".bin", ".json", ".txt", ".md", ".pdf")  # a fixed list - nothing that could be run
 FILE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}")
@@ -772,6 +787,7 @@ def parse_package(raw: bytes) -> dict:
     files = clean_files(data.get("files"))
     bundles = clean_bundles(data.get("bundles"), files)
     downloads = clean_downloads(data.get("downloads"), service)
+    capabilities = clean_capabilities(data.get("capabilities"), service)
     setup = clean_setup(
         data.get("setup"), bundles, bool(conn_file), {f["key"] for f in fields}, {p["id"] for p in pages if p.get("kind") == "frame"}
     )
@@ -785,6 +801,7 @@ def parse_package(raw: bytes) -> dict:
         **({"interfaces": interfaces} if interfaces else {}),
         **({"tiles": tiles} if tiles else {}),
         **({"downloads": downloads} if downloads else {}),
+        **({"capabilities": capabilities} if capabilities else {}),
         **({"files": files} if files else {}),
         **({"bundles": bundles} if bundles else {}),
         **({"setup": setup} if setup else {}),

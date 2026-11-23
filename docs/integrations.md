@@ -6,7 +6,7 @@ An **integration** is an extra that is *added to the system*: pages, reminders, 
 
 **An integration has no API and no token.** It does not talk to a car or to the outside, and it does not call the [Plugin API](api.md). Everything that connects something outside (a car, a manufacturer's cloud, a web service, a device) is a **[plugin](plugins.md)**; only a plugin sends values through the Plugin API. An integration may later ask a plugin for information (the plugin offers the interface), never the other way round.
 
-Built in today: Home Assistant (entity bindings), MQTT discovery, notifications.
+Built in today: Home Assistant (entity bindings), MQTT discovery, notifications, the **Map** (see below).
 
 **Build your own:** anyone can write an integration - it is a description, so no code is needed (see below). Only when an integration needs a page of its own as a tool inside the add-on (`kind: "frame"`) may it carry a [service](plugins.md#plugins-with-a-service). Share it with the community on GitHub ([Sources](sources.md)).
 
@@ -96,3 +96,12 @@ A reminder may carry a **`plan`**: a short rotation that moves on with **every r
 - The page of kind **`plan`** needs no fields; it points to the reminder with `reminder`.
 
 **Rule:** an integration may carry a `service` only when it needs it for a page of its own inside the app (a tool in the add-on, `kind: "frame"` in [plugins](plugins.md)), never to connect a device or a car - that stays a plugin. It gets no token and no Plugin API.
+
+## Map
+
+*Map* is a built-in page of every car (switch it on under *More -> Integrations*; it is off for a new car). It is one full-area map inside the content area (on a phone down to the screen edge) with a back button at the top left, the buttons *My position*, *Car* and *Light / dark map* at the top right and the search below them.
+
+- **Nothing is loaded by default:** the map needs *Settings -> System -> Online -> Map*, then it shows OpenStreetMap through this app (the same tiles as the location widget).
+- **The car** is drawn at its last position and moves while the page is open. **Your own position** is drawn only after you press the button and allow it in the browser (it needs https); it stays in your browser and is never sent to the server.
+- **Search:** type a place or address and press search (never while typing: the public service does not allow that). The words go to the Nominatim service set under *System -> Map info* (the public OpenStreetMap one by default), together with the area of the map. When it gives nothing, the same words can be searched at the chosen navigation service. A long press on the map drops a point.
+- **Navigate:** a chosen place or the car opens a sheet with the list *Navigate with*. The first entries are **plugins of the car that offer `navigate`** (see [Capabilities](plugins.md#capabilities-capabilities-what-a-plugin-can-do-for-the-app)); then come the navigation services - Google Maps, Apple Maps, Waze, Bing Maps, OpenStreetMap, Mapy.com, HERE WeGo, Yandex Maps / Navigator, Magic Earth, Sygic and a generic Android geo link. A service is only a **link** with the destination in it: the phone opens its app (or the website); nothing is sent from the server to it. *Settings -> System -> Navigation* sets the default for the whole app; *Automatic* means the plugin of the car if there is one, else Google Maps.

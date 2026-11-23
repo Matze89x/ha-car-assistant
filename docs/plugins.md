@@ -305,3 +305,24 @@ A package with a service can show a page of its own service as a **page of its o
 **Maps:** the app has its own tile address for OpenStreetMap, `tiles` + `/{z}/{x}/{y}.png`, the same one the location map and the trip maps use: same origin, only for signed-in people, cached, and only while the person switched maps on (*Settings → System*, off by default - then it answers `404`). Bring your own map script (for example Leaflet) and point its tile layer there; nothing is loaded from the internet by your page.
 
 **Rule:** an integration may carry a service only for a page of its own inside the app (a tool in the add-on); to connect a device or a car it stays a plugin.
+
+## Capabilities (`capabilities`): what a plugin can do for the app
+
+A package with a `service` may say that it can do something for the **app** besides sending data. The key is optional; without it nothing changes. Today there is one capability, **`navigate`**: the plugin takes a destination and passes it on to its car.
+
+```json
+"capabilities": { "navigate": { "path": "/mycar/navigate", "label": "Send to my car" } }
+```
+
+- **`path`** is a route of the plugin's own service and must lie under a route that is **not** `public` (so nobody from outside can call it); otherwise the capability is ignored. `label` (optional, up to 40 characters) is the name in the list of the *Map* page; without it the package name is used.
+- The **Map** page lists every running plugin of the car that offers `navigate` **first**, before the navigation services, and it is chosen at first unless a service was picked under *Settings -> System -> Navigation*.
+- When a person presses *Navigate*, the app sends `POST <path>` to the service (on `127.0.0.1`, with the two identity headers `X-CA-Vehicle` and `X-CA-User`) and a JSON body:
+
+```json
+{ "vehicle": 3, "name": "Brandenburger Tor", "address": "Pariser Platz, Berlin", "lat": 52.516275, "lon": 13.377704, "language": "en" }
+```
+
+- The service answers within 10 seconds: **2xx** (optionally `{"ok": true, "message": "text for the person"}`) when it took the destination, anything else - or `{"ok": false, "message": "..."}` - when it did not; the message is shown on the map.
+- How the destination reaches the car is the plugin's own business. The app only hands it over, and only after the press of a button, never on its own. It is offered only while the service runs and is approved.
+
+Like everything in the interface this is an addition: a plugin without `capabilities` keeps working exactly as before.
