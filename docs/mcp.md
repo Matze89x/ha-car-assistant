@@ -14,6 +14,8 @@ MCP can be switched on only when all three things are in place (the settings car
 2. **Your external https address** is saved (Settings → System → address of this app).
 3. **The port of the app is open** (Home Assistant: the app's *Network* tab).
 
+**You do not need MQTT.** The *Sensors in Home Assistant (MQTT)* switch only creates the cars as devices in Home Assistant and has nothing to do with Claude; leave it as it is. Nothing else needs to be set in the app's configuration in Home Assistant.
+
 If one of them goes away later (address removed, port closed), MCP is off again at once.
 
 ## Switch it on

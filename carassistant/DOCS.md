@@ -20,7 +20,7 @@ More cars: *Settings → Vehicles → Add vehicle*; a **Switch vehicle** menu th
 - **Units and currency:** one choice for the whole app under *Settings → System → Region* (km / miles, litres / gallons, mpg, psi, any currency). Everything is stored in base units, so you can switch back and forth.
 - **Languages:** English and German built in; more languages are plain files.
 - **Notifications and web apps per car:** *Settings → Car* turns notifications on for the device you use; *Settings → User* has a start link per car for a home screen web app.
-- **MCP access for Claude:** *Settings → System → MCP access* (off by default) lets Claude read and, if you allow it, correct your records. How to set it up: https://github.com/Matze89x/ha-car-assistant/blob/main/docs/mcp.md
+- **MCP access for Claude:** *Settings → System → MCP access* (off by default) lets Claude read and, if you allow it, correct your records. It needs a user, your external https address and the open port of the app - not MQTT. How to set it up: https://github.com/Matze89x/ha-car-assistant/blob/main/docs/mcp.md
 - **Backup:** one car or the whole system, each on its own.
 
 ## Configuration

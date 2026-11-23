@@ -14,6 +14,8 @@ MCP lässt sich nur einschalten, wenn alle drei Dinge da sind (die Karte in den 
 2. Deine **externe https-Adresse** ist gespeichert (Einstellungen → System → Adresse dieser App).
 3. Der **Port der App ist offen** (Home Assistant: Reiter *Netzwerk* der App).
 
+**MQTT brauchst du nicht.** Der Schalter *Sensoren in Home Assistant (MQTT)* legt nur die Autos als Geräte in Home Assistant an und hat mit Claude nichts zu tun; lass ihn, wie er ist. In der Konfiguration der App in Home Assistant muss sonst nichts eingestellt werden.
+
 Fällt später eines davon weg (Adresse entfernt, Port geschlossen), ist MCP sofort wieder aus.
 
 ## Einschalten
