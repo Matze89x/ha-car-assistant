@@ -59,6 +59,21 @@ Die Seitenleiste zeigt Name und Slogan als eine Einheit (gleich breit, die Grö�
 ## Benachrichtigungen
 Benachrichtigungen sind **ein System pro Person** unter *Einstellungen → Benutzer* – unter *Auto* oder *System* wird dazu nichts eingestellt. Dort schaltest du sie auf dem iPhone, iPad oder Computer ein, den du gerade benutzt (oder trägst den Namen deines Home-Assistant-Benachrichtigungsdienstes ein, wenn kein Port gesetzt ist) und siehst deine Geräte. Darunter **wählst du ein Auto** und schaltest jede Art von Meldung mit runden Schaltern ein oder aus (*Ja* / *Nein*); die Auswahl *Neue Autos* ist das, womit ein später hinzugefügtes Auto startet. Ein neues Auto erscheint von selbst in der Liste, ein entferntes verschwindet. *Allgemein* enthält Meldungen, die nicht zu einem Auto gehören (zum Beispiel eine neue Version eines installierten Plugins). Dieselben Worte gehen an eine Person nur einmal, und gleiche Meldungen ersetzen sich auf einem Gerät.
 
+**Ohne Push, über Home Assistant.** Sind die MQTT-Sensoren an, hat jedes Auto in Home Assistant auch den Sensor **Letzte Benachrichtigung** (*Einstellungen → System*, standardmäßig an). Er zeigt, was die App für das Auto meldet - immer, ohne dass jemand Benachrichtigungen eingerichtet haben muss - und eine Automation dort kann es weitergeben, zum Beispiel:
+
+```yaml
+triggers:
+  - trigger: state
+    entity_id: sensor.mein_auto_letzte_benachrichtigung
+actions:
+  - action: notify.mobile_app_mein_handy
+    data:
+      title: Mein Auto
+      message: "{{ state_attr('sensor.mein_auto_letzte_benachrichtigung', 'message') }}"
+```
+
+Der Name der Entität hängt vom Namen deines Autos ab (suche unter Entwicklerwerkzeuge → Zustände nach *Letzte Benachrichtigung*).
+
 ## Eine Web-App je Auto
 *Einstellungen → Benutzer → Web-App für ein Auto* listet je Auto einen Startlink. Öffne den Link eines Autos in Safari, tippe auf *Teilen* und *Zum Home-Bildschirm*: Die App öffnet direkt dieses Auto und zeigt nur dieses - ohne Fahrzeugwechsel und ohne Liste der anderen. Sie braucht deine eigene https-Adresse (*Einstellungen → System*).
 

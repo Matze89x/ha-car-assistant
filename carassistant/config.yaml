@@ -28,7 +28,7 @@ map:
   - type: share
 options:
   log_level: error
-  mqtt_sensors: false
+  mqtt_sensors: true
 schema:
   log_level: list(debug|info|warning|error)
   mqtt_sensors: bool

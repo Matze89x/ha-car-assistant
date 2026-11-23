@@ -2307,6 +2307,7 @@ def _settings_section(request: Request, section: str):
         mqtt_enabled=config.mqtt_discovery_enabled(),
         mqtt_available=config.mqtt_settings() is not None,
         mqtt_connected=publisher.connected,
+        mqtt_notice_sensor=config.ha_notice_sensor_enabled(),
         mqtt_error=i18n.translator(config.language())(MQTT_ERRORS[publisher.last_error]) if publisher.last_error in MQTT_ERRORS else "",
         ha_available=ha.available(),
         has_key=bool(config.tankerkoenig_key()),
@@ -2645,6 +2646,18 @@ async def settings_navigation(request: Request):
         navproviders.set_chosen(conn, form.get("provider") or "")
     config.forget_settings()
     return go(request, "/settings/system#navigation", "saved")
+
+
+@app.post("/settings/mqtt-notices")
+async def settings_mqtt_notices(request: Request):
+    """Switch the sensor *Last notification* in Home Assistant on or off (server-wide; on by default)."""
+    form = await form_dict(request)
+    with db.tx() as conn:
+        db.set_setting(conn, "int.mqtt.notice_sensor", "1" if form.get("enabled") else "0")
+    config.forget_settings()
+    publisher.resend()  # the entity appears (or is taken away) at the next round
+    events.changed()
+    return go(request, "/settings/system#mqtt", "saved")
 
 
 @app.post("/settings/geocoder")

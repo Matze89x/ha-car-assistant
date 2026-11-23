@@ -11,7 +11,7 @@ import sqlite3
 import threading
 import time
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 import paho.mqtt.client as mqtt
 
@@ -37,6 +37,7 @@ class SensorDef:
     enabled: bool = True  # False: the entity exists but is switched off in Home Assistant until the owner enables it
     precision: int | None = None
     live: bool = False  # only created once the car (a plugin) has delivered a value; never an empty "unknown" entity
+    attributes: bool = False  # the sensor also publishes a JSON object of attributes (``json_attributes_topic``)
 
 
 def _s(key, name, **kw) -> SensorDef:
@@ -88,6 +89,7 @@ SENSORS: tuple[SensorDef, ...] = (
     _s("oil_change_due_km", "Oil change in", unit="km", device_class="distance", state_class="measurement", icon="mdi:oil", live=True, precision=0),
     _s("service_due_km", "Service in", unit="km", device_class="distance", state_class="measurement", icon="mdi:wrench", live=True, precision=0),
     _s("warnings", "Warnings", state_class="measurement", icon="mdi:alert-outline", live=True),
+    SensorDef("last_notification", "Last notification", icon="mdi:bell-outline", attributes=True),
     *(
         _s(f"tyre_{k}", f"Tyre pressure {label}", unit="bar", device_class="pressure", state_class="measurement", live=True, precision=1)
         for k, label in TYRES
@@ -106,7 +108,7 @@ NAMES_DE = {
     "Speed": "Geschwindigkeit", "Outside temperature": "Außentemperatur", "Cabin temperature": "Innentemperatur",
     "12 V battery": "12-V-Batterie", "Coolant temperature": "Kühlmitteltemperatur", "Oil temperature": "Öltemperatur",
     "Oil level": "Ölstand", "Oil warning": "Ölwarnung", "AdBlue level": "AdBlue-Stand", "AdBlue range": "AdBlue-Reichweite",
-    "Service in": "Service in", "Warnings": "Warnungen", "Position": "Position",
+    "Service in": "Service in", "Warnings": "Warnungen", "Position": "Position", "Last notification": "Letzte Benachrichtigung",
     "Tyre pressure front left": "Reifendruck vorne links", "Tyre pressure front right": "Reifendruck vorne rechts",
     "Tyre pressure rear left": "Reifendruck hinten links", "Tyre pressure rear right": "Reifendruck hinten rechts",
 }  # fmt: skip
@@ -158,12 +160,54 @@ def compute_values(conn: sqlite3.Connection, vehicle: sqlite3.Row, ref: date | N
     for _api, (live_key, _lo, _hi) in connectors.NUMBERS.items():
         if live_key in BY_KEY and live_key not in values:
             values[live_key] = live.get(live_key)
+    notice = notice_record(conn, vehicle["id"])
+    values["last_notification"] = notice["text"] if notice else None
     values["speed_kmh"] = live.get("speed_kmh")
     values["warnings"] = str(len(status.parse_warnings(live["warnings"]))) if live.get("warnings") else None
     tyres = status.parse_numbers(live.get("tyre_pressure_bar"))
     for k, _label in TYRES:
         values[f"tyre_{k}"] = None if k not in tyres else f"{tyres[k]:.2f}"
     return values
+
+
+NOTICE_HISTORY = 10
+NOTICE_STATE_MAX = 250  # a Home Assistant state is at most 255 characters
+
+
+def notice_record(conn: sqlite3.Connection, vehicle_id: int) -> dict | None:
+    """The notifications of a car as the Home Assistant sensor shows them: ``{n, time, text, lines, history}`` (None before the first one)."""
+    raw = db.get_setting(conn, f"mqtt.notice.{vehicle_id}", "") or ""
+    try:
+        data = json.loads(raw) if raw else None
+    except ValueError:
+        return None
+    return data if isinstance(data, dict) and data.get("text") else None
+
+
+def add_notice(conn: sqlite3.Connection, vehicle_id: int, lines: list[str], now: datetime) -> dict:
+    """Remember what the car's notification sensor says now (kept, so it is still there after a restart) and keep the last few as history."""
+    old = notice_record(conn, vehicle_id) or {"n": 0, "history": []}
+    text = " · ".join(lines)
+    record = {
+        "n": int(old.get("n") or 0) + 1,
+        "time": now.isoformat(timespec="seconds"),
+        "text": text[:NOTICE_STATE_MAX],
+        "lines": lines[:20],
+        "history": ([{"time": old["time"], "text": old["text"]}] if old.get("time") else []) + list(old.get("history") or []),
+    }
+    record["history"] = record["history"][: NOTICE_HISTORY - 1]
+    db.set_setting(conn, f"mqtt.notice.{vehicle_id}", json.dumps(record, ensure_ascii=False))
+    return record
+
+
+def notice_attributes(record: dict) -> dict:
+    return {
+        "message": "\n".join(record["lines"]),
+        "lines": record["lines"],
+        "time": record["time"],
+        "count": record["n"],
+        "history": record["history"],
+    }
 
 
 def position_attributes(conn: sqlite3.Connection, vehicle: sqlite3.Row) -> dict | None:
@@ -209,6 +253,10 @@ def attributes_topic(vehicle_id: int) -> str:
     return f"{STATE_PREFIX}/{vehicle_id}/{TRACKER_KEY}/attributes"
 
 
+def sensor_attributes_topic(vehicle_id: int, key: str) -> str:
+    return f"{STATE_PREFIX}/{vehicle_id}/{key}/attributes"
+
+
 def _origin() -> dict:
     return {"name": "Car Assistant", "sw_version": __version__, "url": "https://github.com/Matze89x/ha-car-assistant"}
 
@@ -244,6 +292,8 @@ def discovery_payload(vehicle: sqlite3.Row, sensor: SensorDef) -> dict:
         payload["enabled_by_default"] = False
     if sensor.component == "binary_sensor":
         payload.update(payload_on="ON", payload_off="OFF")
+    if sensor.attributes:
+        payload["json_attributes_topic"] = sensor_attributes_topic(vehicle["id"], sensor.key)
     return payload
 
 
@@ -281,6 +331,8 @@ def wanted_sensors(
             continue
         if s.key in ("attention", "attention_count") and {"appointments", "tasks"} <= set(off):
             continue
+        if s.key == "last_notification" and not config.ha_notice_sensor_enabled():
+            continue  # switched off (System tab): no entity in Home Assistant
         if s.key == "fuel_level":
             ok = bool(vehicle["bind_fuel_level"]) or bool(values and values.get(s.key) is not None)
         elif s.key == "range_km":
@@ -429,6 +481,14 @@ class Publisher:
                     continue
                 self._send(topic, json.dumps(discovery_payload(vehicle, sensor), sort_keys=True))
                 value = values.get(sensor.key)
+                if sensor.attributes:
+                    record = notice_record(conn, vehicle["id"])
+                    if record is None:
+                        continue  # nothing was announced yet: the entity exists and is still "unknown"
+                    self._send(
+                        sensor_attributes_topic(vehicle["id"], sensor.key),
+                        json.dumps(notice_attributes(record), sort_keys=True, ensure_ascii=False),
+                    )
                 self._send(state_topic(vehicle["id"], sensor.key), "None" if value is None else value)
             if attrs:
                 self._send(tracker_topic(vehicle["id"]), json.dumps(tracker_payload(vehicle), sort_keys=True))

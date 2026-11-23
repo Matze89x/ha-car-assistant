@@ -59,6 +59,21 @@ The side bar shows the name and slogan as one unit (same width, size follows the
 ## Notifications
 Notifications are **one system per person**, under *Settings → User* – nothing about them is set under *Car* or *System*. There you switch them on for the iPhone, iPad or computer you are using (or give the name of your Home Assistant notify service when no port is set) and see your devices. Below, **choose a car** and switch every kind of message on or off with round switches (*Yes* / *No*); the choice *New cars* is what a car you add later starts with. A car you add appears in the list by itself, a removed one disappears. *General* holds messages that are not about one car (for example a new version of an installed plugin). The same words go to a person only once, and identical messages replace each other on a device.
 
+**Without a push, through Home Assistant.** With the MQTT sensors on, every car also has the sensor **Last notification** in Home Assistant (*Settings → System*, on by default). It shows what the app announces for the car - always, without anybody having set up notifications - so an automation there can pass it on, for example:
+
+```yaml
+triggers:
+  - trigger: state
+    entity_id: sensor.my_car_last_notification
+actions:
+  - action: notify.mobile_app_my_phone
+    data:
+      title: My car
+      message: "{{ state_attr('sensor.my_car_last_notification', 'message') }}"
+```
+
+The entity name depends on the name of your car (look for *last notification* under Developer tools → States).
+
 ## A web app per car
 *Settings → User → Web app for one car* lists a start link per car. Open the link of a car in Safari, tap *Share* and *Add to Home Screen*: the app opens straight on that car and shows only that car - no car switch, no list of the others. It needs your own https address (*Settings → System*).
 

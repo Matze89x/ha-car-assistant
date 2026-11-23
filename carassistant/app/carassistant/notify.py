@@ -377,6 +377,28 @@ def _check_users(conn: sqlite3.Connection, now: datetime | None, only: set[str] 
                 if ok:
                     sent += 1
                     _remember(conn, [k for k, _n, _v in fresh], now)
+    sent += _feed_home_assistant(conn, now, t, only)
+    return sent
+
+
+def _feed_home_assistant(conn: sqlite3.Connection, now: datetime, t, only: set[str] | None) -> int:
+    """Home Assistant is one more recipient that needs no person to sign up: whatever the app announces for a car - every kind of message - is put
+    on the car's sensor *Last notification* (MQTT), so an automation there can pass it on. Nothing is remembered while MQTT is not connected: the
+    messages wait and are put on the sensor at the next check."""
+    from . import mqtt_ha
+
+    if not config.ha_notice_sensor_enabled() or not config.mqtt_discovery_enabled() or not mqtt_ha.publisher.connected:
+        return 0
+    wanted = set(EVENTS) if only is None else set(EVENTS) & only
+    sent = 0
+    for vehicle in conn.execute("SELECT * FROM vehicles WHERE archived = 0").fetchall():
+        lines, keys, _pages = _lines_for(conn, vehicle, wanted, now, "ha", t)
+        if not lines:
+            continue
+        mqtt_ha.add_notice(conn, vehicle["id"], lines, now)
+        _remember(conn, keys, now)
+        mqtt_ha.publisher.publish_vehicle(conn, vehicle)
+        sent += 1
     return sent
 
 

@@ -53,6 +53,10 @@
     {{ switch_row('enabled', _('mqtt.enable'), mqtt_enabled) }}
   </form>
   <p class="sys-state">{% if mqtt_host %}{{ icon('pencil', 14) }} {{ _('mqtt.status_own') }}: <code>{{ mqtt_host }}{{ ':' ~ mqtt_port if mqtt_port }}</code>{% elif mqtt_auto %}{{ icon('check', 14) }} {{ _('mqtt.status_auto') }}{% else %}<span class="muted">{{ icon('info', 14) }} {{ _('mqtt.status_none') }}</span>{% endif %}</p>
+  <form method="post" action="{{ base }}/settings/mqtt-notices" data-live id="mqtt-notices">
+    {{ switch_row('enabled', _('mqtt.notice_switch'), mqtt_notice_sensor) }}
+  </form>
+  <p class="hint">{{ _('mqtt.notice_hint') }}</p>
   {% if mqtt_enabled and mqtt_available and not mqtt_connected and mqtt_error %}<p class="flash warn">{{ mqtt_error }}</p>{% endif %}
   <details class="sys-spoiler"{{ ' open' if mqtt_host }}>
     <summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('mqtt.own_title') }}</span></summary>

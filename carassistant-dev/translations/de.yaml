@@ -4,7 +4,7 @@ configuration:
     description: "Wie viel die App in ihr Protokoll schreibt. error = nur Probleme (Standard). info oder debug nur, um ein Problem zu finden."
   mqtt_sensors:
     name: Sensoren in Home Assistant (MQTT)
-    description: "Legt jedes Auto als Gerät mit Sensoren in Home Assistant an (Kilometerstand, Termine, Türen, Reifen, GPS-Position ...). Braucht einen MQTT-Broker, zum Beispiel die Mosquitto-App - sie wird automatisch gefunden. Lässt sich auch in der App schalten (Einstellungen > System); was du dort einstellst, gilt."
+    description: "Legt jedes Auto als Gerät mit Sensoren in Home Assistant an (Kilometerstand, Termine, Türen, Reifen, GPS-Position ...). Braucht einen MQTT-Broker, zum Beispiel die Mosquitto-App - sie wird automatisch gefunden. In einer neuen Installation standardmäßig an, wenn ein Broker gefunden wird. Lässt sich auch in der App schalten (Einstellungen > System); was du dort einstellst, gilt."
   mqtt_host:
     name: Eigener MQTT-Broker - Adresse
     description: "Nur wenn du die Mosquitto-App nicht nutzt: Adresse deines eigenen Brokers. Leer lassen = Broker von Home Assistant."

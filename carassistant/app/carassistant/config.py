@@ -73,6 +73,11 @@ def mqtt_discovery_enabled() -> bool:
     return os.environ.get("MQTT_SENSORS") == "1"  # off until it is switched on - here or in the add-on configuration
 
 
+def ha_notice_sensor_enabled() -> bool:
+    """The sensor *Last notification* of every car in Home Assistant (needs MQTT too): on unless somebody switched it off (System tab)."""
+    return stored_setting("int.mqtt.notice_sensor") != "0"
+
+
 def tankerkoenig_key() -> str:
     """The user's own Tankerkönig key (Settings -> System). There is no built-in key and no add-on option: everyone gets their own."""
     return (stored_setting("int.tankerkoenig.api_key") or "").strip()
