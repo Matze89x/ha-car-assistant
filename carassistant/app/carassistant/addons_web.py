@@ -430,8 +430,11 @@ def _guide_page(
             return go(request, f"/v/{vid}/plugins", "addon.err_id")
         ctx = vehicle_ctx(conn, vehicle, "integrations")
         vin = vehicle["vin"] or ""
-        fingerprint = connectors.fingerprint(conn, addon.get("token_id"))
-        saved_token = bool(connectors.remembered(conn, addon.get("token_id"))) and _may_manage(request)
+        # a token the service made by itself when it first started (the plugin was never set up) is nobody's token yet: the guide offers no
+        # "existing token" for it - step 2 starts as if there were none
+        known = addon.get("token_id") if addon["status"] == "configured" else None
+        fingerprint = connectors.fingerprint(conn, known)
+        saved_token = bool(connectors.remembered(conn, known)) and _may_manage(request)
     lang = config.language()
     setup = addon["m"]["setup"]
     tr = i18n.translator(lang)
@@ -488,7 +491,7 @@ def _guide_page(
         ready=ready,
         token=token,
         fresh=fresh,
-        has_token=bool(addon.get("token_id")),
+        has_token=bool(known),
         fingerprint=fingerprint,
         saved_token=saved_token,
         main_fields=[f for f in fields if not f.get("advanced")],
@@ -581,6 +584,12 @@ async def addon_guide_next(request: Request, vid: int, aid: int):
                 shown=addons._guide_values(addon, form, keys) | {k: form.get(k, "") for k in errors},
                 status=400,
             )
+        if (
+            adopt and addon.get("token_id") and addon["status"] != "configured"
+        ):  # the service's own start-up token: nobody has it, it makes way
+            connectors.delete_token(conn, addon["token_id"])
+            conn.execute("UPDATE vehicle_addons SET token_id = NULL WHERE id = ?", (addon["id"],))
+            addon = addons.get(conn, vid, aid)
         if adopt and not addon.get("token_id"):  # a token that is already on the device: stored as a fingerprint, fixed from now on
             try:
                 connectors.adopt_token(conn, addon["m"]["name"], vid, adopt)
@@ -725,10 +734,24 @@ def addon_info(request: Request, vid: int, aid: int):
         "error": "svc.state_error",
     }
     svc = with_svc.get("svc")
+    info_tab = request.query_params.get("tab", "overview")
+    if info_tab not in ("overview", "interfaces", "logs"):
+        info_tab = "overview"
+    info_base = f"/v/{ctx['v']['slug']}/integrations/{aid}/info"
+    info_tabs = [
+        {"key": k, "href": info_base if k == "overview" else f"{info_base}?tab={k}", "title": t_(title), "on": k == info_tab, "icon": ic}
+        for k, title, ic in (
+            ("overview", "info.overview", "info"),
+            ("interfaces", "ifc.title", "swap-vertical"),
+            ("logs", "addon.logs", "list"),
+        )
+    ]
     return render(
         request,
         "addon_info.html",
         **ctx,
+        section_tabs=info_tabs,
+        info_tab=info_tab,
         hide_hero=True,
         addon=addon,
         data=data,
@@ -746,7 +769,7 @@ def addon_info(request: Request, vid: int, aid: int):
 @app.get("/v/{vid}/integrations/{aid}/interfaces")
 def addon_interfaces(request: Request, vid: int, aid: int):
     """The old address: interfaces now sit on the Info page."""
-    return RedirectResponse(f"{request.state.base}/v/{vid}/integrations/{aid}/info#interfaces", status_code=303)
+    return RedirectResponse(f"{request.state.base}/v/{vid}/integrations/{aid}/info?tab=interfaces", status_code=303)
 
 
 @app.get("/v/{vid}/integrations/{aid}/settings")
@@ -1001,7 +1024,7 @@ def debug_page(request: Request, vid: int):
         plugin = request.query_params.get("plugin", "")
         pk = next((a["id"] for a in addons.list_for(conn, vid) if a["addon_id"] == plugin), None) if plugin else None
         if pk:  # the log of one plugin has its own page
-            return RedirectResponse(f"{request.state.base}/v/{vehicle['slug']}/integrations/{pk}/info#logs", status_code=303)
+            return RedirectResponse(f"{request.state.base}/v/{vehicle['slug']}/integrations/{pk}/info?tab=logs", status_code=303)
         lines = conn.execute(
             "SELECT ts, level, source, message FROM vehicle_logs WHERE vehicle_id = ?"
             + (" AND addon_id = ?" if plugin else "")
@@ -1039,7 +1062,7 @@ def debug_page(request: Request, vid: int):
 @app.get("/v/{vid}/addons/{aid}/log")
 def addon_log_page(request: Request, vid: int, aid: int):
     """The old address: the log now sits on the Info page."""
-    return RedirectResponse(f"{request.state.base}/v/{vid}/integrations/{aid}/info#logs", status_code=303)
+    return RedirectResponse(f"{request.state.base}/v/{vid}/integrations/{aid}/info?tab=logs", status_code=303)
 
 
 @app.post("/v/{vid}/debug")

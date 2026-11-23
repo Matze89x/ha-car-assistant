@@ -206,7 +206,7 @@ def test_debug_button_of_one_plugin_and_retention_by_days(client):
     with db.tx() as conn:
         seen = {r["addon_id"] for r in conn.execute("SELECT addon_id FROM vehicle_traffic")}
     assert seen == {"alpha-plug"}  # only the plugin with its button on is watched
-    info = client.get(f"/v/{vid}/integrations/{pks['alpha']}/info").text  # the switch sits with the log on the Info page
+    info = client.get(f"/v/{vid}/integrations/{pks['alpha']}/info?tab=logs").text  # the switch sits with the log on the Info page
     assert 'aria-pressed="true"' in info and "Debug is on" in info
     assert f"/integrations/{pks['alpha']}/info" in client.get(f"/v/{vid}/plugins").text  # the tile points to it under More
     assert client.get(f"/v/{vid}/addons/{pks['alpha']}/log").status_code == 303  # the old address leads there

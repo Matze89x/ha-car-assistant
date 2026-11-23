@@ -5,7 +5,11 @@
 {% set sentences = desc.split('. ') %}
 {% set lead = sentences[0] ~ ('.' if sentences|length > 1 and not sentences[0].endswith('.') else '') %}
 {% set rest = (sentences[1:]|join('. ')) if sentences|length > 1 else '' %}
+{% set n_set = (manifest.settings or [])|rejectattr('type', 'in', ['section', 'info'])|list|length if manifest else 0 %}
+{% set n_files = ((manifest.files or [])|length + (manifest.bundles or [])|length) if manifest else 0 %}
 {{ page_head('download', entry.name) }}
+{% if needs_review %}<p class="flash warn">{{ _('svc.warning') if service else _('fil.warning') }}</p>{% endif %}
+{% if problem %}<p class="flash err">{{ _(problem) }}</p>{% endif %}
 
 <section class="card pkg-about">
   <div class="pkg-meta">
@@ -21,48 +25,52 @@
   {% if manifest and manifest.homepage %}<p class="pkg-link"><a href="{{ manifest.homepage }}" target="_blank" rel="noopener noreferrer">{{ icon('globe', 14) }} {{ manifest.homepage }}</a></p>{% endif %}
 </section>
 
-{% if manifest and manifest.settings %}
-<section class="card pkg-block">
-  <h2>{{ icon('settings') }} {{ _('addon.settings_after') }}</h2>
-  <ul class="pkg-rows">
+{% if needs_review %}
+<details class="card fgroup pkg-fold" open>
+  <summary><span class="mi-ic c3">{{ icon('shield', 17) }}</span><span class="fg-t">{{ _('pkg.review_title') }}</span>{{ icon('chevron-down', 20) }}</summary>
+  <div class="pkg-body">
+    {% set m = manifest %}{% set f_source = entry.source_name %}{% set f_version = manifest.version %}{% set f_sha = None %}{% set f_compact = True %}
+    {% include "_service_facts.html" %}
+    <details class="pkg-more"><summary>{{ _('pkg.rights_title') }}</summary>{% if service and service.requirements %}<p>{{ _('svc.internet') }}</p>{% endif %}{% if service and service.connects %}<p>{{ _('svc.connects_hint') }}</p>{% endif %}<p>{{ _('svc.rights') if service else _('fil.rights') }}</p></details>
+  </div>
+</details>
+{% endif %}
+
+{% if n_set %}
+<details class="card fgroup pkg-fold">
+  <summary><span class="mi-ic c2">{{ icon('settings', 17) }}</span><span class="fg-t">{{ _('addon.settings_after') }}</span><span class="badge">{{ n_set }}</span>{{ icon('chevron-down', 20) }}</summary>
+  <ul class="pkg-rows pkg-body">
   {% for f in manifest.settings %}
     {% if f.type == 'section' %}<li class="pkg-sec"><b>{{ f.label }}</b>{% if f.help %}<small>{{ f.help }}</small>{% endif %}</li>
     {% elif f.type == 'info' %}<li class="pkg-note">{{ icon('info', 14) }}<span>{{ f.label }}{% if f.help %} {{ f.help }}{% endif %}</span></li>
     {% else %}<li class="pkg-row"><b>{{ f.label }}</b>{% if f.help %}<small>{{ f.help }}</small>{% endif %}</li>{% endif %}
   {% endfor %}
   </ul>
-</section>
+</details>
 {% endif %}
 
-{% if manifest and (manifest.files or manifest.bundles) %}
-<section class="card pkg-block">
-  <h2>{{ icon('database') }} {{ _('fil.title') }}</h2>
-  <p class="hint">{{ _('fil.install_hint') }}</p>
-  <ul class="pkg-rows">
-  {% for f in manifest.files or [] %}<li class="pkg-row"><b>{{ f.label }}</b><small><code>{{ f.name }}</code> · {{ f.size|filesizeformat }} · sha256 <code>{{ f.sha256[:12] }}…</code></small></li>{% endfor %}
-  {% for b in manifest.bundles or [] %}<li class="pkg-row"><b>{{ b.label }}</b><small><code>{{ b.name }}</code> · {{ _('fil.bundle') }} · {{ b.entries|length }}</small></li>{% endfor %}
-  </ul>
-</section>
+{% if n_files %}
+<details class="card fgroup pkg-fold">
+  <summary><span class="mi-ic c1">{{ icon('database', 17) }}</span><span class="fg-t">{{ _('fil.title') }}</span><span class="badge">{{ n_files }}</span>{{ icon('chevron-down', 20) }}</summary>
+  <div class="pkg-body">
+    <p class="hint">{{ _('fil.install_hint') }}</p>
+    <ul class="pkg-rows">
+    {% for f in manifest.files or [] %}<li class="pkg-row"><b>{{ f.label }}</b><small><code>{{ f.name }}</code> · {{ f.size|filesizeformat }} · sha256 <code>{{ f.sha256[:12] }}…</code></small></li>{% endfor %}
+    {% for b in manifest.bundles or [] %}<li class="pkg-row"><b>{{ b.label }}</b><small><code>{{ b.name }}</code> · {{ _('fil.bundle') }} · {{ b.entries|length }}</small></li>{% endfor %}
+    </ul>
+  </div>
+</details>
 {% endif %}
 
-{% if problem %}<p class="hint">{{ _(problem) }}</p>{% endif %}
-{% if needs_review %}
-<section class="card pkg-block">
-  <h2>{{ icon('alert') }} {{ _('pkg.review_title') }}</h2>
-  <p class="flash err">{{ _('svc.warning') if service else _('fil.warning') }}</p>
-  {% set m = manifest %}{% set f_source = entry.source_name %}{% set f_version = manifest.version %}{% set f_sha = None %}
-  {% include "_service_facts.html" %}
-  {% if service %}<p class="hint">{{ _('svc.rights') }}</p>{% else %}<p class="hint">{{ _('fil.rights') }}</p>{% endif %}
-</section>
-{% endif %}
+{% if installed %}<div class="pkg-foot"><span class="badge ok">{{ icon('check', 14) }} {{ _('addon.installed_badge') }}</span></div>
+{% elif needs_review and not may %}<p class="hint">{{ _('acct.need_admin') }}</p>
+{% else %}
+{% if not needs_review %}<p class="hint">{{ _('addon.safe_note') }}</p>{% endif %}
 <div class="pkg-foot">
-  {% if not needs_review %}<p class="hint">{{ icon('info', 14) }} {{ _('addon.safe_note') }}</p>{% endif %}
-  {% if installed %}<span class="badge ok">{{ _('addon.installed_badge') }}</span>
-  {% elif needs_review and not may %}<p class="hint">{{ _('acct.need_admin') }}</p>
-  {% else %}
+  <a class="button" href="{{ base }}/v/{{ v.slug }}/{{ kind }}s/add">{{ _('btn.cancel') }}</a>
   <form method="post" action="{{ base }}/v/{{ v.slug }}/packages/{{ entry.source_id }}/{{ kind }}/{{ entry.pkg_id }}/install{{ '?approve=1' if needs_review else '' }}">
-    <button class="primary" {{ 'disabled' if problem }}>{{ icon('check' if needs_review else 'download', 18) }}<span>{{ _('svc.approve') if needs_review else _('addon.install') }}</span></button>
+    <button class="primary" {{ 'disabled' if problem }}>{{ icon('check' if needs_review else 'download', 18) }}<span>{{ _('pkg.approve_install') if needs_review else _('addon.install') }}</span></button>
   </form>
-  {% endif %}
 </div>
+{% endif %}
 {% endblock %}

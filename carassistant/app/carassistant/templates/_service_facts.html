@@ -1,10 +1,21 @@
 {# What a package will do, read from its description: shown before it is installed and on the review page. Needs: m (the manifest), service,
    f_source, f_version, f_sha (optional) #}
   {% set frames = (m.pages or [])|selectattr('kind', 'equalto', 'frame')|list %}
-  {% if frames %}<p class="flash err">{{ icon('alert', 16) }} {{ _('svc.frame_note') }}<br><small>{% for p in frames %}<code>{{ p.route }}</code> {% endfor %}</small></p>{% endif %}
+  {% if frames %}<p class="hint pkg-frame">{{ icon('alert', 14) }}<span>{{ _('svc.frame_note') }} {% for p in frames %}<code>{{ p.route }}</code> {% endfor %}</span></p>{% endif %}
+  {% if f_compact %}
+  <div class="rv">
+    {% if service %}
+    <p><span class="rv-l">{{ _('svc.entry') }}</span><code>{{ service.entry }}</code>{% if service.python %} · Python {{ service.python }}{% endif %}</p>
+    {% if service.requirements %}<p><span class="rv-l">{{ _('svc.requirements') }}</span>{% for r in service.requirements %}<code>{{ r }}</code> {% endfor %}</p>{% endif %}
+    <p><span class="rv-l">{{ _('svc.routes') }}</span>{% if service.routes %}{% for r in service.routes %}<code>{{ r.prefix }}</code> {{ _('svc.public') if r.public else _('svc.local') }}{{ ' · ' if not loop.last }}{% endfor %}{% else %}{{ _('svc.none') }}{% endif %}</p>
+    <p><span class="rv-l">{{ _('svc.connects') }}</span>{% if service.connects %}{% for h in service.connects %}<code>{{ h }}</code> {% endfor %}{% else %}{{ _('svc.connects_none') }}{% endif %}</p>
+    {% if service.env %}<p><span class="rv-l">{{ _('svc.env') }}</span>{% for k, val in service.env.items() %}<code>{{ k }}={{ val }}</code> {% endfor %}</p>{% endif %}
+    {% endif %}
+  </div>
+  {% else %}
   <dl class="facts">
-    <dt>{{ _('svc.source') }}</dt><dd>{{ f_source }}</dd>
-    <dt>{{ _('svc.version') }}</dt><dd>{{ f_version or '–' }}</dd>
+    {% if not f_compact %}<dt>{{ _('svc.source') }}</dt><dd>{{ f_source }}</dd>
+    <dt>{{ _('svc.version') }}</dt><dd>{{ f_version or '–' }}</dd>{% endif %}
     {% if f_sha %}<dt>{{ _('svc.sha') }}</dt><dd><code>{{ f_sha }}</code></dd>{% endif %}
     {% if service %}<dt>{{ _('svc.entry') }}</dt><dd><code>{{ service.entry }}</code>{% if service.python %} · Python {{ service.python }}{% endif %}</dd>
     <dt>{{ _('svc.requirements') }}</dt><dd>{% if service.requirements %}{% for r in service.requirements %}<code>{{ r }}</code> {% endfor %}<br><small>{{ _('svc.internet') }}</small>{% else %}{{ _('svc.none') }}{% endif %}</dd>
@@ -13,3 +24,4 @@
     <dt>{{ _('svc.env') }}</dt><dd>{% if service.env %}{% for k, val in service.env.items() %}<code>{{ k }}={{ val }}</code> {% endfor %}{% else %}{{ _('svc.none') }}{% endif %}</dd>
     {% endif %}
   </dl>
+  {% endif %}

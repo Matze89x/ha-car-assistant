@@ -79,7 +79,7 @@
     <main>
       {% if msg %}
         <div class="flash {{ 'err' if msg.startswith('err.') or msg.startswith('acct.') or '.err_' in msg or msg == 'notify_fail' else 'ok' }}" role="status">
-          {{ _(msg) if (msg.startswith('err.') or msg.startswith('acct.') or msg.startswith('addon.')) else _('msg.' ~ msg) }}
+          {% set own = _('msg.' ~ msg) %}{{ _(msg) if (msg.startswith('err.') or msg.startswith('acct.') or msg.startswith('addon.') or own == 'msg.' ~ msg) else own }}
         </div>
       {% endif %}
       {% block content %}{% endblock %}

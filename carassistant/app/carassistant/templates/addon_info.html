@@ -2,19 +2,27 @@
 {% from "_macros.html" import icon, page_head with context %}
 {% block content %}
 {{ page_head(addon.m.icon or ('plug' if addon.kind == 'plugin' else 'puzzle'), addon.m.name) }}
-<nav class="info-jump" aria-label="{{ _('info.title') }}"><a href="#overview">{{ _('info.overview') }}</a><a href="#interfaces">{{ _('ifc.title') }}</a><a href="#logs">{{ _('addon.logs') }}</a></nav>
-<section class="card info-overview" id="overview">
-  <h2>{{ icon('info', 20) }} {{ _('info.overview') }}</h2>
-  {% if addon.m.description %}<p>{{ addon.m.description }}</p>{% endif %}
-  <dl class="facts">
-    <dt>{{ _('addon.kind_plugin') if addon.kind == 'plugin' else _('addon.kind_integration') }}</dt><dd>{{ addon.m.name }}{% if addon.m.version %} · v{{ addon.m.version }}{% endif %}</dd>
-    {% if addon.m.author %}<dt>{{ _('info.author') }}</dt><dd>{{ addon.m.author }}</dd>{% endif %}
-    {% if addon.m.homepage %}<dt>{{ _('info.homepage') }}</dt><dd><a href="{{ addon.m.homepage }}" target="_blank" rel="noopener noreferrer">{{ addon.m.homepage }}</a></dd>{% endif %}
-    <dt>{{ _('info.state') }}</dt><dd><span class="badge {{ 'ok' if addon.active }}">{{ (_('addon.running') if addon.active else _('addon.stopped')) if addon.kind == 'plugin' else (_('addon.on_state') if addon.active else _('addon.off_state')) }}</span></dd>
-    {% if svc %}<dt>{{ _('info.service') }}</dt><dd>{{ svc_state }} · <a href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service">{{ _('svc.details') }}</a></dd>{% endif %}
-  </dl>
-  {% if addon.m.docs %}<p class="hint">{{ addon.m.docs }}</p>{% endif %}
+{% if info_tab == 'overview' %}
+{% set desc = addon.m.description or '' %}
+{% set sentences = desc.split('. ') %}
+{% set lead = sentences[0] ~ ('.' if sentences|length > 1 and not sentences[0].endswith('.') else '') %}
+{% set rest = (sentences[1:]|join('. ')) if sentences|length > 1 else '' %}
+<section class="card pkg-about">
+  <div class="pkg-meta">
+    <span class="chip">{{ _('addon.kind_plugin') if addon.kind == 'plugin' else _('addon.kind_integration') }}</span>
+    {% if addon.m.version %}<span class="chip">v{{ addon.m.version }}</span>{% endif %}
+    {% if addon.m.author %}<span class="chip">{{ icon('account', 14) }} {{ addon.m.author }}</span>{% endif %}
+    <span class="chip">{{ (_('addon.running') if addon.active else _('addon.stopped')) if addon.kind == 'plugin' else (_('addon.on_state') if addon.active else _('addon.off_state')) }}</span>
+    {% if svc %}<a class="chip" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service">{{ icon('shield', 14) }} {{ svc_state }}</a>{% endif %}
+  </div>
+  {% if desc %}<p class="pkg-lead">{{ lead }}</p>
+  {% if rest %}<details class="pkg-more"><summary>{{ _('pkg.more') }}</summary><p>{{ rest }}</p></details>{% endif %}{% endif %}
+  {% if addon.m.docs %}<details class="pkg-more"><summary>{{ _('info.docs') }}</summary><p>{{ addon.m.docs }}</p></details>{% endif %}
+  {% if addon.m.homepage %}<p class="pkg-link"><a href="{{ addon.m.homepage }}" target="_blank" rel="noopener noreferrer">{{ icon('globe', 14) }} {{ addon.m.homepage }}</a></p>{% endif %}
 </section>
-<div id="interfaces">{% include "_addon_ifc.html" %}</div>
-<div id="logs">{% include "_addon_log.html" %}</div>
+{% elif info_tab == 'interfaces' %}
+{% include "_addon_ifc.html" %}
+{% else %}
+{% include "_addon_log.html" %}
+{% endif %}
 {% endblock %}

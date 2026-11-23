@@ -6,7 +6,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; font: 15px/1.45 "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); -webkit-text-size-adjust: 100%; min-height: 100vh; }
 a { color: var(--text); text-decoration: none; }
-a:hover { text-decoration: underline; }
+a:hover { text-decoration: none; }
 main { margin: 0 auto; }
 h3 { margin: .8rem 0 .4rem; }
 small { font-weight: 400; color: var(--muted); }

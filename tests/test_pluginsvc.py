@@ -341,7 +341,7 @@ def test_one_click_reads_trusts_and_installs_a_package_with_a_service(client, mo
     with db.tx() as conn:
         sources.refresh_all(conn, "plugin")  # the source's list is read (the package page shows what the index and the manifest say)
     page = client.get(f"/v/{vid}/packages/{sid}/plugin/echo-svc").text
-    assert "What this package will do" in page and "I trust it - approve and install" in page and "install?approve=1" in page
+    assert "What this package will do" in page and "Approve and install" in page and "install?approve=1" in page
     assert "service/main.py" in page and "/svc/" in page  # what it runs and where it answers: read BEFORE anything is installed
     client.post(f"/v/{vid}/packages/{sid}/plugin/echo-svc/install?approve=1")
     with db.tx() as conn:
@@ -538,7 +538,7 @@ def test_the_interfaces_page_shows_declared_and_really_used_interfaces(client):
         token = connectors.create_token(conn, "ifc", vid)
         conn.execute("UPDATE vehicle_addons SET token_id = (SELECT id FROM api_tokens ORDER BY id DESC LIMIT 1) WHERE id = ?", (pk,))
     head = {"Authorization": f"Bearer {token}"}
-    page = client.get(f"/v/{vid}/integrations/{pk}/info").text
+    page = client.get(f"/v/{vid}/integrations/{pk}/info?tab=interfaces").text
     assert "Vehicle data" in page and "not seen yet" in page and "ignored" not in page  # declared, not used yet
     assert "/svc/" in page and "reachable without a login" in page and "Delivers the car" in page  # the service routes and the text
     client.post(f"/api/v1/vehicles/{vid}/data", headers=head, json={"odometer_km": 5, "speed_kmh": 40})
@@ -550,7 +550,7 @@ def test_the_interfaces_page_shows_declared_and_really_used_interfaces(client):
         "fields"
     ] == "odometer_km, speed_kmh"  # names, no values
     assert "40" not in rows[("POST", "/api/v1/vehicles/{id}/data")]["fields"]
-    page = client.get(f"/v/{vid}/integrations/{pk}/info").text
+    page = client.get(f"/v/{vid}/integrations/{pk}/info?tab=interfaces").text
     assert "seen " in page and "not declared by the package" in page  # the signals call was used but not declared; the data call was both
     assert "odometer_km" in page and "speed_kmh" in page and 'class="back-btn' in page
     client.post(f"/v/{vid}/integrations/{pk}/delete")

@@ -155,13 +155,17 @@ def test_start_stop_on_the_plugin_card_parks_the_car(client, standard_source):
         _, data = simulator.step(conn, vid, scn)
     assert client.post(f"/api/v1/vehicles/{vid}/data", json=data or {"speed_kmh": 0}, headers=h).status_code == 200
     page = client.get(f"/v/{vid}/plugins").text
-    assert "Running" in page and 'name="active" value="0"' in page  # it runs: the state says so and the button stops it
+    assert (
+        "Running" in page and f'/integrations/{row["id"]}/active" checked' in page
+    )  # it runs: the state says so and the switch (on) stops it
     client.post(f"/v/{vid}/integrations/{row['id']}/active", data={})  # Stop
     with db.tx() as conn:
         assert simulator.playing(conn) == []
     assert client.post(f"/api/v1/vehicles/{vid}/data", json={"speed_kmh": 5}, headers=h).status_code == 401  # a stopped plugin is refused
     page = client.get(f"/v/{vid}/plugins").text
-    assert "Stopped" in page and 'name="active" value="1"' in page  # stopped: the car stands still, the button starts it again
+    assert (
+        "Stopped" in page and f'/integrations/{row["id"]}/active" checked' not in page
+    )  # stopped: the car stands still, the switch (off) starts it again
     client.post(f"/v/{vid}/integrations/{row['id']}/active", data={"active": "1"})  # Start
     assert client.post(f"/api/v1/vehicles/{vid}/data", json={"speed_kmh": 5}, headers=h).status_code == 200
 

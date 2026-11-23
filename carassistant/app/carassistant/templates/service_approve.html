@@ -5,7 +5,7 @@
 {{ page_head('shield', _('svc.title')) }}
 <section class="card">
   <h2>{{ icon('alert') }} {{ addon.m.name }}</h2>
-  <p class="flash err">{{ _('svc.warning') if service else _('fil.warning') }}</p>
+  <p class="flash warn">{{ _('svc.warning') if service else _('fil.warning') }}</p>
   {% set m = addon.m %}{% set f_source = addon.source_name %}{% set f_version = addon.m.version %}{% set f_sha = addon.pkg_sha %}
   {% include "_service_facts.html" %}
   {% if service %}<p class="hint">{{ _('svc.rights') }}</p>{% else %}<p class="hint">{{ _('fil.rights') }}</p>{% endif %}
