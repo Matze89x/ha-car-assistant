@@ -3270,8 +3270,11 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 .odo-flip { width: fit-content; min-width: min(100%, 300px); max-width: 100%; margin: 6px auto 0; transition: margin-bottom .3s; perspective: 1100px; }  /* the plate is exactly as wide as the figure; the box on the back takes that width */
 .odo-card3d { position: relative; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.3, 1.28, .45, 1); }
 .odo-flip.open .odo-card3d { transform: rotateX(180deg); }
-.odo-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid rgba(var(--accent-rgb), .16); background: linear-gradient(rgba(var(--accent-rgb), .07), rgba(var(--accent-rgb), .02)), rgba(var(--fg-rgb), .02); box-shadow: 0 10px 26px rgba(0, 0, 0, .18); }
-.odo-front { position: relative; padding: 8px 10px; }
+.odo-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid var(--glass-b); background: rgba(0, 0, 0, .38); box-shadow: 0 6px 16px rgba(0, 0, 0, .16); }  /* a dark box like the instrument cluster, as the input was */
+.odo-front { position: relative; padding: 5px 12px; }
+.odo-flip .odo-front .odo-drum { gap: 4px; }
+.odo-flip .odo-front .odo-drum i { width: 30px; height: 44px; font-size: 30px; }
+.odo-flip .odo-front .odo-drum .unit { font-size: 16px; margin-left: 6px; }
 .odo-front .odo-t, .odo-front .odo-line { margin: 0; }
 .odo-front .odo-t b.odo-drum { margin: 0; }
 .odo-front { justify-content: center; }
