@@ -2215,6 +2215,11 @@ async def integrations_save(request: Request, key: str):
         if was_on and not form.get("enabled"):
             publisher.remove_all(conn)  # switched off: the cars' entities leave Home Assistant again
         integrations.save(conn, key, form)
+        if key == "mqtt" and not form.get(
+            "toggle_only"
+        ):  # a broker typed in is the one to use; an empty address goes back to the broker of Home Assistant
+            db.set_setting(conn, "int.mqtt.use_ha", "0" if (form.get("host") or "").strip() else "1")
+    config.forget_settings()
     if key == "mqtt":
         publisher.stop()  # reconnect with the new settings (manual broker or the Home Assistant default)
         publisher.start()
@@ -2322,6 +2327,7 @@ def _settings_section(request: Request, section: str):
         mqtt_available=config.mqtt_settings() is not None,
         mqtt_connected=publisher.connected,
         mqtt_notice_sensor=config.ha_notice_sensor_enabled(),
+        mqtt_use_ha=config.mqtt_use_ha_broker(),
         ha_check=hacheck.last,
         ha_check_text=_ha_check_text,
         ha_groups_off=config.ha_groups_off(),
@@ -2674,6 +2680,19 @@ async def settings_mqtt_groups(request: Request):
             db.set_setting(conn, f"int.mqtt.group.{group}", "1" if form.get(f"g_{group}") else "0")
     config.forget_settings()
     publisher.resend()
+    events.changed()
+    return go(request, "/settings/system#mqtt", "saved")
+
+
+@app.post("/settings/mqtt-source")
+async def settings_mqtt_source(request: Request):
+    """Use the broker of Home Assistant (on: nothing to enter) or an own broker (off: host, port and login appear)."""
+    form = await form_dict(request)
+    with db.tx() as conn:
+        db.set_setting(conn, "int.mqtt.use_ha", "1" if form.get("enabled") else "0")
+    config.forget_settings()
+    publisher.stop()  # connect again with the broker that is meant now
+    publisher.start()
     events.changed()
     return go(request, "/settings/system#mqtt", "saved")
 

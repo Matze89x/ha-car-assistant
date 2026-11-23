@@ -143,15 +143,24 @@ def clean_broker(host: str | None, port: object = None) -> dict | None:
     return {"host": text, "port": number, "tls": tls or number == 8883}
 
 
+def mqtt_use_ha_broker() -> bool:
+    """Use the broker Home Assistant announces (the default, nothing to enter) - or an own one (System -> MQTT). Without a choice: the own broker only
+    when one was entered before (so an installation that already uses one keeps it)."""
+    stored = stored_setting("int.mqtt.use_ha")
+    if stored is not None:
+        return stored != "0"
+    return not (stored_setting("int.mqtt.host") or "").strip()
+
+
 def mqtt_settings() -> dict | None:
     """Broker credentials. Default: the Home Assistant broker as announced by the Supervisor (no password to enter).
-    A manually entered host (Integrations page) overrides it, e.g. for an external broker."""
-    manual = clean_broker(stored_setting("int.mqtt.host"), stored_setting("int.mqtt.port"))
+    An own broker (System -> MQTT, when "use the MQTT of Home Assistant" is off) overrides it, e.g. for an external broker."""
+    manual = None if mqtt_use_ha_broker() else clean_broker(stored_setting("int.mqtt.host"), stored_setting("int.mqtt.port"))
     if manual:
         return {**manual, "user": _unset(stored_setting("int.mqtt.username")), "password": _plain(stored_setting("int.mqtt.password"))}
     given = clean_broker(os.environ.get("MQTT_HOST"), os.environ.get("MQTT_PORT"))
-    if not given:
-        return None
+    if not given or not mqtt_use_ha_broker():
+        return None  # an own broker was asked for but none is entered: nothing to connect to
     return {**given, "user": _unset(os.environ.get("MQTT_USER")), "password": _unset(os.environ.get("MQTT_PASSWORD"))}
 
 

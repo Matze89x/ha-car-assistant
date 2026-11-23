@@ -105,3 +105,56 @@ def test_each_installation_has_one_stable_client_id(env):
     first = mqtt_ha.Publisher._client_id()
     assert first.startswith("carassistant-") and len(first) > len("carassistant-")
     assert mqtt_ha.Publisher._client_id() == first  # the same one after a restart: nothing is re-created
+
+
+def test_the_broker_of_home_assistant_is_the_default_and_an_entered_one_is_used_only_when_asked_for(env, monkeypatch):
+    from carassistant import db
+
+    monkeypatch.setenv("MQTT_HOST", "core-mosquitto")
+    assert config.mqtt_use_ha_broker() is True and config.mqtt_settings()["host"] == "core-mosquitto"
+    with db.tx() as conn:
+        db.set_setting(
+            conn, "int.mqtt.host", "192.168.1.5"
+        )  # an own broker was typed in earlier (an installation that already uses one) ...
+    config.forget_settings()
+    assert config.mqtt_use_ha_broker() is False and config.mqtt_settings()["host"] == "192.168.1.5"  # ... keeps it
+    with db.tx() as conn:
+        db.set_setting(
+            conn, "int.mqtt.use_ha", "1"
+        )  # the switch "use the MQTT of Home Assistant" is on: the typed address stays but is not used
+    config.forget_settings()
+    assert config.mqtt_settings()["host"] == "core-mosquitto"
+    monkeypatch.delenv("MQTT_HOST")
+    with db.tx() as conn:
+        db.set_setting(conn, "int.mqtt.use_ha", "0")
+        db.set_setting(conn, "int.mqtt.host", None)
+    config.forget_settings()
+    assert config.mqtt_settings() is None  # an own broker is asked for but none entered: nothing to connect to
+
+
+def test_the_switch_and_the_form_keep_use_ha_in_step(env, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from carassistant import db, mqtt_ha, web
+
+    monkeypatch.setattr(mqtt_ha.publisher, "start", lambda: True)
+    monkeypatch.setattr(mqtt_ha.publisher, "stop", lambda: None)
+    with db.tx() as conn:
+        db.set_setting(conn, "setup.language", "1")
+    client = TestClient(web.app, base_url="http://testserver", headers={"Origin": "http://testserver"})
+    page = client.get("/settings/system").text
+    assert (
+        'id="mqtt-source"' in page
+        and 'data-hide-with="#mqtt-source input[name=enabled]"' in page
+        and 'data-show-with="#mqtt-toggle input[name=enabled]"' in page
+    )
+    client.post("/integrations/mqtt", data={"host": "192.168.1.5", "enabled": "1", "back": "system"})  # a typed broker is the one to use
+    assert config.mqtt_use_ha_broker() is False
+    client.post("/settings/mqtt-source", data={"enabled": "1"})  # the switch: back to the broker of Home Assistant
+    assert config.mqtt_use_ha_broker() is True
+    client.post("/integrations/mqtt", data={"host": "", "enabled": "1", "back": "system"})  # an empty address means the same
+    assert config.mqtt_use_ha_broker() is True
+    client.post("/settings/mqtt-source", data={})  # the switch off: own broker
+    assert config.mqtt_use_ha_broker() is False
+    client.post("/integrations/mqtt", data={"toggle_only": "1", "back": "system"})  # the main switch alone changes nothing about the source
+    assert config.mqtt_use_ha_broker() is False
