@@ -29,7 +29,7 @@ Open the app (*Settings → Apps → Car Assistant*) and its *Configuration* tab
 | Option | Meaning |
 |---|---|
 | `log_level` | How much the app writes to its log. `error` = only problems (default). Use `info` or `debug` only to find a problem. |
-| `mqtt_sensors` | Create every car as a device with sensors in Home Assistant (MQTT). Can also be switched in the app (*Settings → System*); what you set there wins. |
+| `mqtt_sensors` | No longer needed - kept only so that existing configurations stay valid. The sensors in Home Assistant (MQTT) are on by default whenever a broker is found and are switched in the app (*Settings → System*). |
 | `mqtt_host`, `mqtt_port`, `mqtt_user`, `mqtt_password` | Only for your own broker. Empty = the broker of Home Assistant (for example the Mosquitto app), found automatically. |
 
 Everything else (language, units, notifications, the external address, fuel prices) is set inside the app under *Settings*.
@@ -46,7 +46,7 @@ If a browser fills the *user name* field with an old login, empty it before savi
 - The public routes of a plugin's service (for devices without a login) are not covered by this: they are public on purpose.
 
 ## Sensors in Home Assistant (MQTT)
-On by default in a new installation **when a broker is found** (for example the Mosquitto app); without a broker nothing happens and *Settings → System* says so. An installation that was updated keeps what it had. When on, every car becomes a device in Home Assistant: odometer, range, appointments and - as soon as a plugin delivers them - ignition, locking, doors, windows, tyre pressures, battery, charging and more. The **GPS position** shows up as a device tracker on the Home Assistant map. Only values that exist are created; rarely useful ones start switched off, technical ones are diagnostics. Switching the sensors off removes them from Home Assistant again.
+On by default **when a broker is found** (for example the Mosquitto app); without a broker nothing happens and *Settings → System* says so. There is ONE place to switch it: the app. When on, every car becomes a device in Home Assistant: odometer, range, appointments and - as soon as a plugin delivers them - ignition, locking, doors, windows, tyre pressures, battery, charging and more. The **GPS position** shows up as a device tracker on the Home Assistant map. Only values that exist are created; rarely useful ones start switched off, technical ones are diagnostics. Switching the sensors off removes them from Home Assistant again.
 
 **Entity names.** Home Assistant builds an entity ID such as `sensor.my_car_odometer` from the name of the car and of the sensor **once, when it first creates the entity**, and never changes it afterwards. So that the IDs follow the names, Car Assistant **rebuilds the sensors of a car by itself when the car is renamed**, and *Settings → System → Rebuild sensors* does it for all cars (for example after you changed the language: with German the sensors are called *Kilometerstand* and the IDs become `sensor.my_car_kilometerstand`). Rebuilding takes the entities out of Home Assistant and puts them back a few seconds later: their history and automations that use the old IDs are lost.
 

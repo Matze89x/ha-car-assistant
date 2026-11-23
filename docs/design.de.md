@@ -70,7 +70,7 @@ Neben der *Weiteres*-Liste beginnt das erste Element der Seite auf derselben Lin
 | Leerzustand | `.card.empty-state` | Icon, ein Satz, der sagt, was zu tun ist |
 | Felder | `input`, `select`, `textarea`, `.tf-field` / `.tf-l` | Beschriftung 11 px Großbuchstaben darüber, 48-px-Felder, Beispielwerte als Platzhalter (neutral, nie eine Marke) |
 | Auswahl-Kacheln | `.season-pick` / `.sp` | große wählbare Kacheln mit Icon statt Dropdown bei 2–4 Optionen |
-| Schalter | `.switch`, Makro `switch_row()` | an = Akzent; jede An/Aus-Einstellung ist eine Schalter-Zeile mit Linie oben und unten (zwei Zeilen teilen sich eine Linie; nie eine zweite Linie über einer Button-Leiste) |
+| Schalter | `.switch`, Makro `switch_row()` | an = Akzent; jede An/Aus-Einstellung ist eine Schalter-Zeile mit Linie oben und unten (zwei Zeilen teilen sich eine Linie; nie eine zweite Linie über einer Button-Leiste) Eine Schalter-Zeile hat keinen äußeren Abstand: Eine Regel für untereinander stehende Beschriftungen muss `.sw-row` ausnehmen (ein Test prüft das), damit jede Zeile mittig zwischen ihren zwei Linien steht. |
 | Name + Slogan | `.brand-lock`, `.sb-brand`, `.about-id` | immer EINE Einheit: Slogan halb so groß, exakt so breit wie der Name (Seitenleiste: füllt die Leiste), überall gleicher Abstand |
 | Datum und Uhrzeit | `regional.py` | angezeigt wie unter Einstellungen → System → Datum & Uhrzeit; gespeichert ISO / 24 h |
 | Chips / Marken | `.badge`, `.pos-chip`, `.schip` | Pillen (`999px`), nur Statusfarben |

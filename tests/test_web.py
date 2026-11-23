@@ -325,7 +325,7 @@ def test_first_own_broker_switches_the_sensors_on_and_the_switch_is_always_there
     from carassistant import config
 
     assert 'name="enabled"' in client.get("/settings/system").text  # also without a broker, so nobody has to save twice
-    assert not config.mqtt_discovery_enabled()
+    assert config.mqtt_discovery_enabled()  # on by default (no broker: nothing happens)
     client.post("/integrations/mqtt", data={"host": "broker.lan"}, follow_redirects=False)
     assert config.mqtt_discovery_enabled()
     client.post("/integrations/mqtt", data={"host": "broker.lan"}, follow_redirects=False)  # an explicit off stays off

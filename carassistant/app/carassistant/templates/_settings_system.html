@@ -53,20 +53,24 @@
     {{ switch_row('enabled', _('mqtt.enable'), mqtt_enabled) }}
   </form>
   <p class="sys-state">{% if mqtt_host %}{{ icon('pencil', 14) }} {{ _('mqtt.status_own') }}: <code>{{ mqtt_host }}{{ ':' ~ mqtt_port if mqtt_port }}</code>{% elif mqtt_auto %}{{ icon('check', 14) }} {{ _('mqtt.status_auto') }}{% else %}<span class="muted">{{ icon('info', 14) }} {{ _('mqtt.status_none') }}</span>{% endif %}</p>
+  <div class="fold" data-show-with="#mqtt-toggle input[name=enabled]"{{ ' hidden' if not mqtt_enabled }}>
+  {% if mqtt_available and not mqtt_connected and mqtt_error %}<p class="flash warn">{{ mqtt_error }}</p>{% endif %}
   <form method="post" action="{{ base }}/settings/mqtt-notices" data-live id="mqtt-notices">
     {{ switch_row('enabled', _('mqtt.notice_switch'), mqtt_notice_sensor) }}
   </form>
   <p class="hint">{{ _('mqtt.notice_hint') }}</p>
-  <h3 class="sys-sub">{{ _('mqtt.groups_title') }}</h3>
-  <form method="post" action="{{ base }}/settings/mqtt-groups" data-live id="mqtt-groups">
-    {{ switch_row('g_live', _('mqtt.g_live'), 'live' not in ha_groups_off) }}
-    {{ switch_row('g_service', _('mqtt.g_service'), 'service' not in ha_groups_off) }}
-    {{ switch_row('g_fuel', _('mqtt.g_fuel'), 'fuel' not in ha_groups_off) }}
-    {{ switch_row('g_stats', _('mqtt.g_stats'), 'stats' not in ha_groups_off) }}
-    {{ switch_row('g_position', _('mqtt.g_position'), 'position' not in ha_groups_off) }}
-  </form>
-  <p class="hint">{{ _('mqtt.groups_hint') }}</p>
-  {% if mqtt_enabled and mqtt_available and not mqtt_connected and mqtt_error %}<p class="flash warn">{{ mqtt_error }}</p>{% endif %}
+  <details class="sys-spoiler">
+    <summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('mqtt.groups_short') }}</span></summary>
+    <form method="post" action="{{ base }}/settings/mqtt-groups" data-live id="mqtt-groups">
+      {{ switch_row('g_live', _('mqtt.g_live'), 'live' not in ha_groups_off) }}
+      {{ switch_row('g_service', _('mqtt.g_service'), 'service' not in ha_groups_off) }}
+      {{ switch_row('g_fuel', _('mqtt.g_fuel'), 'fuel' not in ha_groups_off) }}
+      {{ switch_row('g_stats', _('mqtt.g_stats'), 'stats' not in ha_groups_off) }}
+      {{ switch_row('g_position', _('mqtt.g_position'), 'position' not in ha_groups_off) }}
+    </form>
+    <p class="hint">{{ _('mqtt.groups_hint') }}</p>
+  </details>
+  </div>
   <details class="sys-spoiler"{{ ' open' if mqtt_host }}>
     <summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('mqtt.own_title') }}</span></summary>
     <form method="post" action="{{ base }}/integrations/mqtt" class="acct-form">
@@ -83,22 +87,27 @@
       <div class="nm-actions"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
     </form>
   </details>
-  <p class="hint mqtt-what"><b>{{ _('sys.btn_read') }}:</b> {{ _('sys.sync_live_hint') }}</p>
-  <p class="hint mqtt-what"><b>{{ _('sys.btn_send') }}:</b> {{ _('sys.sync_mqtt_hint') }}</p>
-  <p class="hint mqtt-what"><b>{{ _('sys.btn_check') }}:</b> {{ _('sys.check_hint') }}</p>
-  <p class="hint mqtt-what"><b>{{ _('sys.btn_rebuild') }}:</b> {{ _('sys.rebuild_hint') }}</p>
-  {% if ha_check %}<div class="ha-check" id="mqtt-check">
-    <p class="hint">{{ _('check.last', time=ha_check.time.replace('T', ' ')) }}</p>
-    <ul class="plain">{% for st in ha_check.steps %}<li class="{{ 'ok' if st.ok else ('bad' if st.ok is false else '') }}">{{ icon('check' if st.ok else ('close' if st.ok is false else 'info'), 16) }} <span>{{ ha_check_text(st) }}</span></li>{% endfor %}
-    {% for c in ha_check.cars %}<li class="{{ 'ok' if c.ok else 'bad' }}">{{ icon('check' if c.ok else 'close', 16) }} <span>{% if c.ok %}{{ _('check.car_ok', car=c.name, n=c.found, total=c.total) }}{% if c.entity %} <code>{{ c.entity }}</code>{% endif %}{% else %}{{ _('check.car_no', car=c.name) }}{% endif %}</span></li>{% endfor %}</ul>
-    {% for c in ha_check.cars if c.entities %}<details class="sys-spoiler"><summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('check.entities', car=c.name, n=c.entities|length) }}</span></summary><p class="hint"><code>{{ c.entities|join('</code> <code>') }}</code></p></details>{% endfor %}
-  </div>{% endif %}
+  <div class="fold" data-show-with="#mqtt-toggle input[name=enabled]"{{ ' hidden' if not mqtt_enabled }}>
   <form method="post" class="mqtt-bar icons4">
     <button type="submit" formaction="{{ base }}/settings/refresh-live" class="ghost-btn" title="{{ _('sys.btn_read') }}">{{ icon('download', 18) }}<span>{{ _('sys.btn_read') }}</span></button>
     <button type="submit" formaction="{{ base }}/settings/republish" class="ghost-btn" title="{{ _('sys.btn_send') }}" {{ 'disabled' if not mqtt_enabled }}>{{ icon('upload', 18) }}<span>{{ _('sys.btn_send') }}</span></button>
     <button type="submit" formaction="{{ base }}/settings/mqtt-check" class="ghost-btn" title="{{ _('sys.btn_check') }}" {{ 'disabled' if not mqtt_enabled }}>{{ icon('check', 18) }}<span>{{ _('sys.btn_check') }}</span></button>
     <button type="submit" formaction="{{ base }}/settings/mqtt-rebuild" class="ghost-btn" title="{{ _('sys.btn_rebuild') }}" data-confirm="{{ _('sys.rebuild_confirm') }}" {{ 'disabled' if not mqtt_enabled }}>{{ icon('refresh', 18) }}<span>{{ _('sys.btn_rebuild') }}</span></button>
   </form>
+  <details class="sys-spoiler">
+    <summary class="button">{{ icon('info', 18) }}<span>{{ _('sys.buttons_help') }}</span></summary>
+    <p class="hint mqtt-what"><b>{{ _('sys.btn_read') }}:</b> {{ _('sys.sync_live_hint') }}</p>
+    <p class="hint mqtt-what"><b>{{ _('sys.btn_send') }}:</b> {{ _('sys.sync_mqtt_hint') }}</p>
+    <p class="hint mqtt-what"><b>{{ _('sys.btn_check') }}:</b> {{ _('sys.check_hint') }}</p>
+    <p class="hint mqtt-what"><b>{{ _('sys.btn_rebuild') }}:</b> {{ _('sys.rebuild_hint') }}</p>
+  </details>
+  {% if ha_check %}<div class="ha-check" id="mqtt-check">
+    <p class="hint">{{ _('check.last', time=ha_check.time.replace('T', ' ')) }}</p>
+    <ul class="plain">{% for st in ha_check.steps %}<li class="{{ 'ok' if st.ok else ('bad' if st.ok is false else '') }}">{{ icon('check' if st.ok else ('close' if st.ok is false else 'info'), 16) }} <span>{{ ha_check_text(st) }}</span></li>{% endfor %}
+    {% for c in ha_check.cars %}<li class="{{ 'ok' if c.ok else 'bad' }}">{{ icon('check' if c.ok else 'close', 16) }} <span>{% if c.ok %}{{ _('check.car_ok', car=c.name, n=c.found, total=c.total) }}{% if c.entity %} <code>{{ c.entity }}</code>{% endif %}{% else %}{{ _('check.car_no', car=c.name) }}{% endif %}</span></li>{% endfor %}</ul>
+    {% for c in ha_check.cars if c.entities %}<details class="sys-spoiler"><summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('check.entities', car=c.name, n=c.entities|length) }}</span></summary><p class="hint"><code>{{ c.entities|join('</code> <code>') }}</code></p></details>{% endfor %}
+  </div>{% endif %}
+  </div>
 </section>
 
 {% include "_settings_mcp.html" %}

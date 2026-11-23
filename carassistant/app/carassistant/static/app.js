@@ -760,3 +760,17 @@ document.addEventListener("click", function (e) {
     if (text) { el.setAttribute("aria-label", text); el.title = text; }
   });
 })();
+
+
+// [data-show-with="<selector of a switch>"]: this part is shown only while that switch is on - what depends on a switch folds away (and comes back) at
+// once, the page shows only what is in use.
+(function () {
+  function sync(root) {
+    Array.prototype.forEach.call((root || document).querySelectorAll("[data-show-with]"), function (el) {
+      var sw = document.querySelector(el.getAttribute("data-show-with"));
+      if (sw && sw.type === "checkbox") { el.hidden = !sw.checked; }
+    });
+  }
+  document.addEventListener("change", function (e) { if (e.target && e.target.type === "checkbox") { sync(); } });
+  sync();
+})();

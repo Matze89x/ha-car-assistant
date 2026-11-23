@@ -27,7 +27,7 @@ Weitere Autos: *Einstellungen → Fahrzeuge → Fahrzeug hinzufügen*; oben ersc
 | Option | Bedeutung |
 |---|---|
 | `log_level` | Wie viel die App in ihr Protokoll schreibt. `error` = nur Probleme (Standard). `info` oder `debug` nur, um ein Problem zu finden. |
-| `mqtt_sensors` | Jedes Auto als Gerät mit Sensoren in Home Assistant anlegen (MQTT). Lässt sich auch in der App schalten (*Einstellungen → System*); was dort eingestellt ist, gilt. |
+| `mqtt_sensors` | Nicht mehr nötig - bleibt nur, damit bestehende Konfigurationen gültig bleiben. Die Sensoren in Home Assistant (MQTT) sind standardmäßig an, sobald ein Broker gefunden wird, und werden in der App geschaltet (*Einstellungen → System*). |
 | `mqtt_host`, `mqtt_port`, `mqtt_user`, `mqtt_password` | Nur für einen eigenen Broker. Leer = der Broker von Home Assistant (zum Beispiel die Mosquitto-App), wird automatisch gefunden. |
 
 Alles andere (Sprache, Einheiten, Benachrichtigungen, die externe Adresse, Spritpreise) stellst du in der App unter *Einstellungen* ein.
@@ -44,7 +44,7 @@ Wenn der Browser das Feld *Benutzername* mit einem alten Login füllt, leere es 
 - Die öffentlichen Adressen des Dienstes eines Plugins (für Geräte ohne Anmeldung) fallen nicht darunter: Sie sind absichtlich öffentlich.
 
 ## Sensoren in Home Assistant (MQTT)
-In einer neuen Installation standardmäßig an, **wenn ein Broker gefunden wird** (zum Beispiel die Mosquitto-App); ohne Broker passiert nichts, und *Einstellungen → System* sagt es. Eine aktualisierte Installation behält, was sie hatte. Wenn an, wird jedes Auto zu einem Gerät in Home Assistant: Kilometerstand, Reichweite, Termine und - sobald ein Plugin sie liefert - Zündung, Verriegelung, Türen, Fenster, Reifendruck, Batterie, Laden und mehr. Die **GPS-Position** erscheint als Geräte-Tracker auf der Home-Assistant-Karte. Es werden nur Werte angelegt, die es gibt; selten nützliche starten ausgeschaltet, technische sind Diagnose. Schaltest du die Sensoren aus, verschwinden sie wieder aus Home Assistant.
+Standardmäßig an, **wenn ein Broker gefunden wird** (zum Beispiel die Mosquitto-App); ohne Broker passiert nichts, und *Einstellungen → System* sagt es. Es gibt EINE Stelle zum Schalten: die App. Wenn an, wird jedes Auto zu einem Gerät in Home Assistant: Kilometerstand, Reichweite, Termine und - sobald ein Plugin sie liefert - Zündung, Verriegelung, Türen, Fenster, Reifendruck, Batterie, Laden und mehr. Die **GPS-Position** erscheint als Geräte-Tracker auf der Home-Assistant-Karte. Es werden nur Werte angelegt, die es gibt; selten nützliche starten ausgeschaltet, technische sind Diagnose. Schaltest du die Sensoren aus, verschwinden sie wieder aus Home Assistant.
 
 **Namen der Entitäten.** Home Assistant bildet eine Entitäts-ID wie `sensor.mein_auto_kilometerstand` aus dem Namen des Autos und des Sensors **einmal, wenn es die Entität zum ersten Mal anlegt**, und ändert sie danach nie mehr. Damit die IDs den Namen folgen, **baut Car Assistant die Sensoren eines Autos von selbst neu auf, wenn das Auto umbenannt wird**, und *Einstellungen → System → Sensoren neu aufbauen* macht es für alle Autos (zum Beispiel nach einem Sprachwechsel: auf Deutsch heißen die Sensoren *Kilometerstand*, und die IDs werden `sensor.mein_auto_kilometerstand`). Das Neuaufbauen nimmt die Entitäten aus Home Assistant und legt sie ein paar Sekunden später neu an: ihr Verlauf und Automationen mit den alten IDs gehen verloren.
 

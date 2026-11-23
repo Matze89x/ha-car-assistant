@@ -70,7 +70,7 @@ Next to the *More* list the first element of the page starts on the same line as
 | Empty state | `.card.empty-state` | icon, one sentence that says what to do |
 | Fields | `input`, `select`, `textarea`, `.tf-field` / `.tf-l` | uppercase 11 px label above, 48 px fields, example values as placeholders (neutral, never a brand) |
 | Choice tiles | `.season-pick` / `.sp` | big selectable tiles with an icon instead of a drop-down for 2–4 options |
-| Switch | `.switch`, `switch_row()` macro | on = accent; every on/off setting is a switch row with a line above and below (two rows share one line; never a second line above a button bar) |
+| Switch | `.switch`, `switch_row()` macro | on = accent; every on/off setting is a switch row with a line above and below (two rows share one line; never a second line above a button bar) A switch row has no outer gap: a rule for stacked labels must exclude `.sw-row` (a test guards it), so every row is centred between its two lines. |
 | Name + slogan | `.brand-lock`, `.sb-brand`, `.about-id` | always ONE unit: slogan half the size, exactly as wide as the name (side bar: fills the bar), same gap everywhere |
 | Dates and times | `regional.py` | shown as set under Settings → System → Date & time; stored ISO / 24 h |
 | Chips / badges | `.badge`, `.pos-chip`, `.schip` | pills (`999px`), status colours only |

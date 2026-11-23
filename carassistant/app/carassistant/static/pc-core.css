@@ -1560,7 +1560,8 @@ input[type=checkbox]:not(.switch input):not(.sw input):focus-visible { outline: 
 input[type=checkbox]:not(.switch input):not(.sw input):disabled { opacity: .45; cursor: not-allowed; }
 
 /* Two fields one under the other in a plain form: a clear gap between them */
-form:not(.grid):not(.inline):not(.sys-ext) > label:not(.check) + label:not(.check) { margin-top: 14px; }
+/* stacked input labels get a gap; a switch row (.sw-row) never does: it has its own height and divider and centres its content, a gap outside would make it look off-centre */
+form:not(.grid):not(.inline):not(.sys-ext) > label:not(.check):not(.sw-row) + label:not(.check):not(.sw-row) { margin-top: 14px; }
 
 /* Tick boxes: each row is box + text, the box level with the FIRST line of the text, rows of one height rhythm, no glow ring around a ticked box */
 label.check, .grid label.check { display: flex; flex-direction: row; align-items: flex-start; gap: 12px; min-height: 44px; padding: 10px 0; line-height: 1.4; cursor: pointer; }
@@ -3104,3 +3105,5 @@ path.me-ring { stroke: #3b82f6; fill: #3b82f6; fill-opacity: .12; stroke-width: 
 .map-stage .leaflet-control-zoom { margin-bottom: 12px; margin-right: 10px; }
 .map-stage:has(.map-sheet:not([hidden])) .leaflet-control-zoom { display: none; }
 @media (max-width: 600px) { .map-search { max-width: none; } }
+
+.fold[hidden] { display: none; }

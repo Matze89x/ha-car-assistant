@@ -239,9 +239,14 @@ def test_the_check_says_when_nothing_arrived(ha_world, monkeypatch):
 def test_the_check_says_where_it_stops(env, monkeypatch):
     monkeypatch.setattr(hacheck.ha, "available", lambda: False)
     steps = hacheck.run(wait=1)["steps"]
-    assert steps[0] == {"ok": False, "key": "api_no"} and steps[1]["key"] == "mqtt_off"
-    monkeypatch.setenv("MQTT_SENSORS", "1")
-    assert hacheck.run(wait=1)["steps"][1]["key"] == "mqtt_nobroker"
+    assert steps[0] == {"ok": False, "key": "api_no"} and steps[1]["key"] == "mqtt_nobroker"  # on by default, but no broker was found
+    with db.tx() as c:
+        db.set_setting(c, "int.mqtt.enabled", "0")
+    config.forget_settings()
+    assert hacheck.run(wait=1)["steps"][1]["key"] == "mqtt_off"
+    with db.tx() as c:
+        db.set_setting(c, "int.mqtt.enabled", "1")
+    config.forget_settings()
     monkeypatch.setenv("MQTT_HOST", "broker.lan")
     pub = mqtt_ha.Publisher()
     pub.last_error = "auth"

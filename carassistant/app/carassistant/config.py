@@ -68,9 +68,10 @@ def log_level() -> str:
 
 
 def mqtt_discovery_enabled() -> bool:
-    if stored_setting("int.mqtt.enabled") is not None:
-        return stored_setting("int.mqtt.enabled") == "1"
-    return os.environ.get("MQTT_SENSORS") == "1"  # off until it is switched on - here or in the add-on configuration
+    """The sensors in Home Assistant (MQTT): on unless somebody switched them off in the app (Settings -> System). Without a broker nothing happens and
+    the System page says so; the add-on option ``mqtt_sensors`` is kept only so that old configurations stay valid - one place decides: the app."""
+    stored = stored_setting("int.mqtt.enabled")
+    return stored != "0" if stored is not None else True
 
 
 def ha_notice_sensor_enabled() -> bool:

@@ -31,10 +31,15 @@ def test_run_sh_never_reads_an_unset_variable():
         assert default or name in exported_always, f"{name} may be unset when run.sh reads it - use ${{{name}:-...}}"
 
 
-def test_mqtt_sensors_are_off_until_switched_on(env, monkeypatch):
+def test_mqtt_sensors_are_on_until_switched_off_in_the_app(env, monkeypatch):
     from carassistant import config, db
 
-    assert config.mqtt_discovery_enabled() is False  # nothing is published by default
+    assert config.mqtt_discovery_enabled() is True  # on by default: without a broker nothing happens, the System page says so
+    monkeypatch.delenv("MQTT_HOST", raising=False)
+    assert config.mqtt_settings() is None  # ... and that is no problem
+    with db.tx() as conn:
+        db.set_setting(conn, "int.mqtt.enabled", "0")
+    assert config.mqtt_discovery_enabled() is False
     with db.tx() as conn:
         db.set_setting(conn, "int.mqtt.enabled", "1")
     assert config.mqtt_discovery_enabled() is True
