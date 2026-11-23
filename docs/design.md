@@ -19,7 +19,7 @@ Where it lives: tokens and base components in `static/app.css`, the glass layer 
 | Glass | `--glass` `--glass2` `--glass-b` | transparent surfaces and their 1 px border |
 | Button highlight | `--btn-hi` (`--hi-rgb`) | the light top edge inside every glass button; a theme file may set it (optional, has a default) |
 | Overlays on glass | `--fg-rgb` `--panel-rgb` `--panel-deep-rgb` `--strong` | `rgba(var(--fg-rgb), .07)` instead of white/black; light themes flip them (a light theme starts with `/* scheme: light */`) |
-| Radius | `--r-s` `--r-m` `--r-l` | 8 / 12 / 16 px – small (inputs inside cards, chips), medium (buttons, tiles, fields), large (cards, lists) |
+| Radius | `--r-s` `--r-m` `--r-l`, `--r-surface` (= `--r-l`) | 8 / 12 / 16 px – small (inputs inside cards, chips), medium (buttons, fields, rows inside a card), **large (everything that stands on its own on a page: cards, lists, notices, tab bars, folding groups)** - neighbours on a page always share one corner |
 | Circles | `999px` | **only** for icon buttons, pills, badges, switches, the tab bar's outer shape follows `--r-l + 5px` |
 | Spacing | `--sp-edge` `--sp-col` `--sp-top` `--sp-head` `--sp-block` | 14 / 14 / 18 / 16 / 20 px – edge, column gap, first element from the top, below the page header, between blocks |
 | Heights | `--head-h` `--lab-h` | 44 px page header row, 25 px small group label |
@@ -94,6 +94,7 @@ Everything on every page is built from this short list. A new page uses these; a
 | **Notice tile** | `.notice` (info / saved / warning / error) in the slot under the header; the page introduction is the first tile | `notices.py` (server), `.notice-slot` |
 | **Tab bar (text + symbol)** | `.seg-tabs`: switch between views or pages (Management / Add / Sources, seasons, periods, ...). A symbol in front of every tab | `.seg-tabs` |
 | **Symbol switch (round)** | `.seg-icons`: two or three options as symbols only (price / distance ...) | `.seg-icons` |
+| **Sort handle** | `.grip`: a strip on the left of a row, as high as the row, with the same contour and the dots in it. Rows that a person may put in order sit in a `[data-sortable]` container as `[data-sort-item]`; drag the strip (mouse or finger) or press the arrow keys on it. Optional `data-sort-post="<url>"` sends `order=<data-sort-id>,...`; the event `sortchange` tells the page. Rows that cannot move carry the same strip without dots (a lock when they are fixed), so the left edge is the same on every row. **Up / down arrow buttons are never used for sorting.** | `.grip`, `[data-sort-item]`, `app.js` (SORTING) |
 | **Navigation** | `.tabbar` (bottom bar / side bar) and the *More* list - not a tab bar | `base.html`, `.tabbar`, `.mgroup` |
 | **Section label** | `.vd-group-h`, `.rec-month`: 28 px above, 10 px to the tile below | `--sp-label-*` |
 | **Card / tile** | `.card`, `.wd` (widget, the arrow top right when it is a link), `.rec` (list card) | `.card`, `.wd`, `.rec` |
@@ -116,9 +117,9 @@ A test (`tests/test_design_rules.py`) refuses a third kind of tab bar. Plugin pa
 ## 6. Checklist for a new page or component
 
 1. Is there already a component for it? Use it.
-2. Tokens only – no hard-coded colours, radii or spacing.
+2. Tokens only – no hard-coded colours, radii or spacing. A block that stands on its own on a page takes the ONE corner `--r-surface` by being added to the list in the single rule at the end of `pc-core.css` (no radius of its own); a test fails otherwise. Its first block starts level with the first card of the *More* list.
 3. `page_head`, correct spacing, works at 375 / 800 / 1100 / 1280 px.
-4. Empty state, one item, many items, very long text.
+4. Empty state (the card with the symbol and one helpful sentence: `.card.empty-state`, never a bare line of text), one item, many items, very long text.
 5. EN and DE texts; icon from `icons.py`.
 6. A test (`tests/`) for the behaviour, a line in both changelogs, version up.
 

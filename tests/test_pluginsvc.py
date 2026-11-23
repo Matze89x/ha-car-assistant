@@ -630,8 +630,12 @@ HTTPServer(("127.0.0.1", int(os.environ["CA_PORT"])), H).serve_forever()
     pluginsvc._install(pk)
     pluginsvc.tick()
     assert _wait(lambda: pluginsvc.running(pk))
-    page = client.get(f"/v/{vid}/integrations/{pk}/settings").text
-    assert "SD card package" in page and 'href="/priv/pack.zip"' in page and "for the head unit" in page  # a button in the app
+    for where in ("settings", "info"):  # downloads are not on the settings or the info page any more ...
+        assert 'href="/priv/pack.zip"' not in client.get(f"/v/{vid}/integrations/{pk}/{where}").text
+    tile = client.get(f"/v/{vid}/plugins").text
+    assert (
+        'href="/priv/pack.zip"' in tile and "SD card package" in tile and "for the head unit" in tile
+    )  # ... they are a button on the plugin's tile
     outside = TestClient(PluginProxy(web.app), client=("8.8.8.8", 1))
     assert outside.get("/priv/pack.zip").status_code == 404  # not public: not for anybody from outside
     assert _wait(lambda: outside.get("/priv/pack.zip", cookies={auth_web.COOKIE: session}).status_code == 200)
@@ -656,9 +660,7 @@ def test_a_plugin_with_a_service_and_a_connection_file_has_one_token_for_both(cl
     with db.tx() as conn:
         assert connectors.token_matches(conn, item["token_id"], token)
     page = client.get(f"/v/{vid}/integrations/{pk}/settings").text
-    assert "I already have the token" in page and "New token" in page
-    got = client.post(f"/v/{vid}/integrations/{pk}/token/verify", data={"token": token})
-    assert got.status_code == 200 and f"token={token}" in got.text
+    assert "I already have the token" not in page and "New token" in page  # no download card on the settings page any more
     renewed = client.post(f"/v/{vid}/integrations/{pk}/token")
     assert renewed.status_code == 200
     new = pluginsvc.run_dir("echo-svc", vid) / ".token"

@@ -55,7 +55,7 @@ document.addEventListener("change", function (event) {
   ind.style.transition = ""; bar.style.setProperty("--i", cur); bar.style.setProperty("--id", bar.getAttribute("data-d") || cur);
 })();
 
-// Settings: sortable navigation. Drag the handle or use the arrows; the first four rows are the bar, the rest moves to More.
+// Settings: sortable navigation. Drag the handle (or use the arrow keys); the first four rows are the bar, the rest moves to More.
 (function () {
   var list = document.getElementById("navlist");
   if (!list) { return; }
@@ -73,15 +73,7 @@ document.addEventListener("change", function (event) {
     var pass = list.querySelector(".navpass");  /* the vehicle passport is always the FIRST entry of More, fixed */
     if (pass) { if (div.parentNode) { div.parentNode.insertBefore(pass, div.nextSibling); } else { list.appendChild(pass); } }
   }
-  list.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest(".mvb");
-    if (!b) { return; }
-    var row = b.closest(".navrow");
-    var all = rows(), i = all.indexOf(row);
-    if (b.classList.contains("up") && i > 0) { list.insertBefore(row, all[i - 1]); }
-    if (b.classList.contains("down") && i < all.length - 1) { list.insertBefore(all[i + 1], row); }
-    refresh();
-  });
+  list.addEventListener("sortchange", refresh);  // the handle (SORTING above) moved a row: the first four are the bar, the rest is More
   // the icon choices are cloned from one shared template when a picker is opened (11 rows x 40 icons were a heavy page)
   list.addEventListener("toggle", function (e) {
     var d = e.target, g = d.querySelector && d.querySelector(".pickgrid"), tpl = document.getElementById("pk-tpl");
@@ -102,7 +94,6 @@ document.addEventListener("change", function (event) {
       var d = r.querySelector("details"); if (d) { d.open = false; }
     }
   });
-  // no dragging any more: the arrows move an entry up and down
   refresh();
 })();
 
@@ -165,9 +156,8 @@ document.addEventListener("change", function (event) {
         post(navset.getAttribute("action"), fd).then(function () { refreshBar(true); });
       }, 300);
     };
-    navset.addEventListener("click", function (e) { if (e.target.closest && e.target.closest(".mvb")) { setTimeout(save, 0); } });
+    navset.addEventListener("sortchange", function () { setTimeout(save, 0); });
     navset.addEventListener("change", function () { setTimeout(save, 0); });
-    document.addEventListener("pointerup", function () { if (navset.querySelector(".dragging") === null) { setTimeout(save, 50); } }, true);
     var lastKeys = "";
     setInterval(function () {
       var keys = Array.prototype.map.call(navset.querySelectorAll(".navrow[data-key] input[name=m]"), function (i) { return i.value; }).join(",");
@@ -578,30 +568,125 @@ document.addEventListener("click", function (event) {
 
 
 
-// Settings of a plugin with a list (rows of a name and a value): the plus adds a row, the cross removes one. The rows are numbered when the form is sent.
-document.addEventListener("click", function (event) {
-  var add = event.target.closest && event.target.closest(".lf-add");
-  var del = event.target.closest && event.target.closest(".lf-del");
-  if (add) {
-    var box = add.closest("[data-lf]"), n = parseInt(add.getAttribute("data-n"), 10) || 0, key = box.getAttribute("data-lf");
-    if (box.querySelectorAll(".lf-row").length >= 30) { return; }
-    var row = document.createElement("div");
-    row.className = "lf-row";
-    [["n", add.getAttribute("data-name")], ["v", add.getAttribute("data-value")]].forEach(function (p) {
-      var input = document.createElement("input");
-      input.type = "text"; input.name = key + "__" + n + p[0]; input.maxLength = p[0] === "n" ? 80 : 200; input.placeholder = p[1]; input.autocomplete = "off";
-      row.appendChild(input);
-    });
-    var x = document.createElement("button");
-    x.type = "button"; x.className = "lf-del icon-only"; x.textContent = "×"; x.setAttribute("aria-label", add.getAttribute("data-del"));
-    row.appendChild(x);
-    box.insertBefore(row, add);
-    add.setAttribute("data-n", String(n + 1));
-    row.querySelector("input").focus();
-  } else if (del) {
-    del.closest(".lf-row").remove();
+// SORTING - ONE handle for every list a person may put in order (docs/design.md, "The sort handle"). A container [data-sortable] holds items
+// [data-sort-item]; each has a .grip (the handle on its left). Drag the handle with the mouse or a finger, or press the arrow keys while it has the
+// focus. While you drag, nothing in the page moves but the item itself and a line where it will land. Afterwards the container gets the event
+// "sortchange"; with data-sort-post="<url>" the new order is also sent there (order=<data-sort-id>,<data-sort-id>,...).
+(function () {
+  var drag = null, timer = 0;
+  function itemsOf(row) {  // the items of the list the row stands in, in their order
+    return Array.prototype.filter.call(row.parentNode.children, function (el) { return el.hasAttribute("data-sort-item"); });
   }
+  function relocate(row, best, before) { best.parentNode.insertBefore(row, before ? best : best.nextSibling); }
+  function locate() {  // where the dragged item would land: before or after the item whose middle is nearest to the pointer
+    var all = itemsOf(drag.row), rects = all.map(function (el) { return el.getBoundingClientRect(); }), best = -1, near = Infinity;
+    all.forEach(function (el, i) {
+      if (el === drag.row) { return; }
+      var d = Math.hypot(drag.x - (rects[i].left + rects[i].width / 2), drag.y - (rects[i].top + rects[i].height / 2));
+      if (d < near) { near = d; best = i; }
+    });
+    if (best < 0) { return { all: all, same: true }; }
+    var r = rects[best], before = drag.y < r.top + r.height / 2, from = all.indexOf(drag.row), to = before ? best : best + 1;
+    return { all: all, best: all[best], before: before, same: to === from || to === from + 1 };
+  }
+  function update() {
+    var t = locate();
+    drag.row.style.transform = "translateY(" + (drag.y - drag.y0 + window.pageYOffset - drag.s0) + "px)";
+    t.all.forEach(function (r) { r.classList.remove("sort-before", "sort-after"); });
+    if (!t.same) { t.best.classList.add(t.before ? "sort-before" : "sort-after"); }
+    drag.at = t;
+  }
+  function changed(box) {
+    box.dispatchEvent(new CustomEvent("sortchange", { bubbles: true }));
+    var url = box.getAttribute("data-sort-post");
+    if (!url || !window.fetch) { return; }
+    var first = box.querySelector("[data-sort-item]"), ids = (first ? itemsOf(first) : []).map(function (el) { return el.getAttribute("data-sort-id"); }).join(",");
+    fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "order=" + encodeURIComponent(ids) })
+      .then(function (r) { if (!r.ok) { window.location.reload(); } })
+      .catch(function () { window.location.reload(); });
+  }
+  function stop(drop) {
+    if (!drag) { return; }
+    var d = drag; drag = null;
+    window.clearInterval(timer); timer = 0;
+    d.row.classList.remove("sorting"); d.row.style.transform = "";
+    (d.at ? d.at.all : []).forEach(function (r) { r.classList.remove("sort-before", "sort-after"); });
+    if (drop && d.at && !d.at.same) {
+      relocate(d.row, d.at.best, d.at.before);
+      changed(d.box);
+    }
+  }
+  document.addEventListener("pointerdown", function (e) {
+    var grip = e.target.closest && e.target.closest("[data-sort-item] .grip");
+    if (!grip || drag || (e.pointerType === "mouse" && e.button !== 0)) { return; }
+    e.preventDefault();
+    var row = grip.closest("[data-sort-item]");
+    drag = { row: row, box: row.closest("[data-sortable]"), id: e.pointerId, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, s0: window.pageYOffset, at: null };
+    row.classList.add("sorting");
+    timer = window.setInterval(function () {  // near the top or the bottom of the screen the page scrolls on by itself
+      if (!drag) { return; }
+      var h = window.innerHeight;
+      if (drag.y < 70) { window.scrollBy(0, -14); } else if (drag.y > h - 70) { window.scrollBy(0, 14); } else { return; }
+      update();
+    }, 30);
+    update();
+  });
+  document.addEventListener("pointermove", function (e) {
+    if (!drag || e.pointerId !== drag.id) { return; }
+    drag.x = e.clientX; drag.y = e.clientY;
+    update();
+  });
+  document.addEventListener("pointerup", function (e) { if (drag && e.pointerId === drag.id) { stop(true); } });
+  document.addEventListener("pointercancel", function (e) { if (drag && e.pointerId === drag.id) { stop(false); } });
+  document.addEventListener("keydown", function (e) {
+    if (drag && e.key === "Escape") { stop(false); return; }
+    var grip = e.target.closest && e.target.closest("[data-sort-item] .grip"), keys = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 };
+    if (!grip || !keys[e.key]) { return; }
+    e.preventDefault();
+    var row = grip.closest("[data-sort-item]"), all = itemsOf(row), i = all.indexOf(row), other = all[i + keys[e.key]];
+    if (!other) { return; }
+    relocate(row, other, keys[e.key] < 0);
+    changed(row.closest("[data-sortable]"));
+    grip.focus();
+  });
+})();
+
+// A form with data-sort-save sends itself in the background (with ajax=1) whenever one of its sortable lists is put in order, like the old arrows did.
+document.addEventListener("sortchange", function (e) {
+  var form = e.target.closest && e.target.closest("form[data-sort-save]");
+  if (!form || !window.fetch) { return; }
+  var data = new FormData(form); data.append("ajax", "1");
+  fetch(form.getAttribute("action"), { method: "POST", credentials: "same-origin", body: data }).catch(function () { window.location.reload(); });
 });
+
+// Settings of a plugin with a list (rows of a name and a value): the plus adds a row (from the <template> of the list), the cross removes one; the
+// rows are sorted with the handle (above). The rows are numbered again after every change, so the order saved is the order shown.
+(function () {
+  function numbers(box) {
+    var rows = box.querySelectorAll(".lf-row"), key = box.getAttribute("data-lf"), add = box.querySelector(".lf-add");
+    Array.prototype.forEach.call(rows, function (row, i) {
+      var inputs = row.querySelectorAll("input");
+      inputs[0].name = key + "__" + i + "n"; inputs[1].name = key + "__" + i + "v";
+    });
+    if (add) { add.setAttribute("data-n", String(rows.length)); }
+  }
+  document.addEventListener("sortchange", function (e) { if (e.target.hasAttribute && e.target.hasAttribute("data-lf")) { numbers(e.target); } });
+  document.addEventListener("click", function (event) {
+    var add = event.target.closest && event.target.closest(".lf-add"), del = event.target.closest && event.target.closest(".lf-row .lf-del");
+    if (add) {
+      var box = add.closest("[data-lf]"), tpl = box.querySelector("template[data-lf-row]");
+      if (!tpl || box.querySelectorAll(".lf-row").length >= 30) { return; }
+      var row = tpl.content.firstElementChild.cloneNode(true);
+      box.insertBefore(row, tpl);
+      numbers(box);
+      row.querySelector("input").focus();
+    } else if (del) {
+      var holder = del.closest("[data-lf]");
+      del.closest(".lf-row").remove();
+      numbers(holder);
+    }
+  });
+})();
 
 
 // Settings pages of plugins: a field with data-showif-key shows only while that other setting has the value data-showif-eq; a slider shows its value.
@@ -632,6 +717,53 @@ document.addEventListener("click", function (event) {
     }
   });
   apply();
+})();
+
+// Tabs on the settings page of a plugin (a "tab" element in its settings): the links of [data-set-tabs] show the panels [data-tab-panel] and, for the
+// first tab, everything marked [data-tabfor]; nothing is lost when you switch (one form). The tab sits in the address (#tab-<id>), also after Save.
+(function () {
+  var nav = document.querySelector("[data-set-tabs]");
+  if (!nav) { return; }
+  var form = document.querySelector(".set-form"), action = form ? form.getAttribute("action") : "";
+  function fade() {  // many tabs: the bar scrolls sideways; a soft edge shows on the side where there is more
+    var left = nav.scrollLeft > 4, right = nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4;
+    nav.setAttribute("data-fade", left && right ? "both" : left ? "left" : right ? "right" : "");
+  }
+  nav.addEventListener("scroll", fade, { passive: true });
+  window.addEventListener("resize", fade);
+  function show(id) {
+    Array.prototype.forEach.call(nav.querySelectorAll("a[data-tab]"), function (a) {
+      var on = a.getAttribute("data-tab") === id;
+      a.classList.toggle("on", on);
+      if (on) { a.setAttribute("aria-current", "page"); } else { a.removeAttribute("aria-current"); }
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-tab-panel],[data-tabfor]"), function (el) {
+      el.hidden = (el.getAttribute("data-tab-panel") || el.getAttribute("data-tabfor")) !== id;
+    });
+    if (form && action) { form.setAttribute("action", action.split("#")[0] + "#tab-" + id); }
+    var on = nav.querySelector("a.on");
+    if (on && on.scrollIntoView) { on.scrollIntoView({ inline: "center", block: "nearest" }); }  // the shown tab is never hidden at the edge
+  }
+  nav.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest && e.target.closest("a[data-tab]");
+    if (!a) { return; }
+    e.preventDefault();
+    var id = a.getAttribute("data-tab");
+    show(id);
+    if (window.history && history.replaceState) { history.replaceState(null, "", "#tab-" + id); }
+  });
+  if (form) {  // a required field in a tab that is not shown would block the save without a word: show its tab (the browser then points at it)
+    form.addEventListener("invalid", function (e) {
+      var panel = e.target && e.target.closest && e.target.closest("[data-tab-panel]");
+      if (panel && panel.hidden) {
+        show(panel.getAttribute("data-tab-panel"));
+        if (window.history && history.replaceState) { history.replaceState(null, "", "#tab-" + panel.getAttribute("data-tab-panel")); }
+      }
+    }, true);
+  }
+  fade();
+  var m = /^#tab-(.+)$/.exec(location.hash || "");
+  if (m && !nav.querySelector("a.err") && nav.querySelector('a[data-tab="' + m[1].replace(/"/g, "") + '"]')) { show(m[1]); }
 })();
 
 // Copy buttons: data-copy holds the text; the button's label flips to data-done for a moment.

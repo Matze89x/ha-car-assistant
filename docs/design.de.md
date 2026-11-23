@@ -19,7 +19,7 @@ Wo es liegt: Werte und Grundbausteine in `static/app.css`, die Glas-Schicht und 
 | Glas | `--glass` `--glass2` `--glass-b` | durchscheinende Flächen und ihr 1-px-Rand |
 | Button-Lichtkante | `--btn-hi` (`--hi-rgb`) | die helle Oberkante in jedem Glas-Button; eine Theme-Datei darf sie setzen (optional, hat einen Standardwert) |
 | Überlagerungen auf Glas | `--fg-rgb` `--panel-rgb` `--panel-deep-rgb` `--strong` | `rgba(var(--fg-rgb), .07)` statt Weiß/Schwarz; helle Themes drehen sie um (ein helles Theme beginnt mit `/* scheme: light */`) |
-| Radius | `--r-s` `--r-m` `--r-l` | 8 / 12 / 16 px – klein (Felder in Karten, Chips), mittel (Knöpfe, Kacheln, Felder), groß (Karten, Listen) |
+| Radius | `--r-s` `--r-m` `--r-l`, `--r-surface` (= `--r-l`) | 8 / 12 / 16 px – klein (Felder in Karten, Chips), mittel (Knöpfe, Felder, Zeilen in einer Karte), **groß (alles, was auf einer Seite für sich steht: Karten, Listen, Hinweise, Tab-Leisten, Klappgruppen)** - Nachbarn auf einer Seite haben immer dieselbe Ecke |
 | Kreise | `999px` | **nur** für Icon-Knöpfe, Pillen, Marken, Schalter; die Tab-Leiste folgt `--r-l + 5px` |
 | Abstände | `--sp-edge` `--sp-col` `--sp-top` `--sp-head` `--sp-block` | 14 / 14 / 18 / 16 / 20 px – Rand, Spaltenabstand, erstes Element von oben, unter dem Seitenkopf, zwischen Blöcken |
 | Höhen | `--head-h` `--lab-h` | 44 px Seitenkopf-Zeile, 25 px kleine Gruppenbeschriftung |
@@ -94,6 +94,7 @@ Alles auf jeder Seite besteht aus dieser kurzen Liste. Eine neue Seite nutzt sie
 | **Hinweis-Kachel** | `.notice` (Info / Gespeichert / Warnung / Fehler) im Platz unter dem Kopf; die Einleitung der Seite ist die erste Kachel | `notices.py` (Server), `.notice-slot` |
 | **Tab-Leiste (Text + Symbol)** | `.seg-tabs`: zwischen Ansichten oder Seiten wechseln (Verwaltung / Hinzufügen / Quellen, Jahreszeiten, Zeiträume ...). Vor jedem Tab ein Symbol | `.seg-tabs` |
 | **Symbol-Schalter (rund)** | `.seg-icons`: zwei oder drei Optionen nur als Symbole (Preis / Entfernung ...) | `.seg-icons` |
+| **Sortiergriff** | `.grip`: eine Leiste links in einer Zeile, so hoch wie die Zeile, mit derselben Kontur und den Punkten darin. Zeilen, die man ordnen darf, stehen als `[data-sort-item]` in einem `[data-sortable]`-Container; die Leiste ziehen (Maus oder Finger) oder auf ihr die Pfeiltasten drücken. Optional `data-sort-post="<url>"` sendet `order=<data-sort-id>,...`; das Ereignis `sortchange` meldet es der Seite. Zeilen, die nicht verschoben werden können, tragen dieselbe Leiste ohne Punkte (mit Schloss, wenn sie fest sind), damit der linke Rand in jeder Zeile gleich ist. **Pfeilknöpfe nach oben / unten werden nie zum Sortieren benutzt.** | `.grip`, `[data-sort-item]`, `app.js` (SORTING) |
 | **Navigation** | `.tabbar` (untere Leiste / Seitenleiste) und die *Weiteres*-Liste – keine Tab-Leiste | `base.html`, `.tabbar`, `.mgroup` |
 | **Abschnittsbeschriftung** | `.vd-group-h`, `.rec-month`: 28 px darüber, 10 px zur Kachel darunter | `--sp-label-*` |
 | **Karte / Kachel** | `.card`, `.wd` (Widget, Pfeil oben rechts, wenn es ein Link ist), `.rec` (Listenkarte) | `.card`, `.wd`, `.rec` |
@@ -116,9 +117,9 @@ Ein Test (`tests/test_design_rules.py`) verweigert eine dritte Art von Tab-Leist
 ## 6. Checkliste für eine neue Seite oder einen Baustein
 
 1. Gibt es dafür schon einen Baustein? Den nutzen.
-2. Nur Tokens – keine festen Farben, Radien oder Abstände.
+2. Nur Tokens – keine festen Farben, Radien oder Abstände. Ein Block, der auf einer Seite für sich steht, bekommt die EINE Ecke `--r-surface`, indem er in die Liste der einen Regel am Ende von `pc-core.css` kommt (kein eigener Radius); sonst schlägt ein Test fehl. Sein erster Block beginnt auf einer Linie mit der ersten Karte der *Weiteres*-Liste.
 3. `page_head`, richtige Abstände, funktioniert bei 375 / 800 / 1100 / 1280 px.
-4. Leerzustand, ein Eintrag, viele Einträge, sehr langer Text.
+4. Leerzustand (die Karte mit Symbol und einem hilfreichen Satz: `.card.empty-state`, nie eine nackte Textzeile), ein Eintrag, viele Einträge, sehr langer Text.
 5. EN- und DE-Texte; Icon aus `icons.py`.
 6. Ein Test (`tests/`) für das Verhalten, eine Zeile in beiden Changelogs, Version hoch.
 

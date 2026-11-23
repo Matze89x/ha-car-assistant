@@ -129,10 +129,12 @@ def test_files_wait_for_approval_then_download_with_the_right_headers(client, in
     assert got.headers["content-type"] == "application/java-archive" and "attachment" in got.headers["content-disposition"]
     assert "no-store" in got.headers["cache-control"]
     assert client.get("/plugins/files-pkg/files/other.jar").status_code == 404
-    page = client.get(f"/v/{vid}/integrations/{item['id']}/info?tab=interfaces").text
-    assert 'href="/plugins/files-pkg/files/carassistant.jar"' in page and "SD card package" in page  # buttons on the Interfaces page
-    assert page.count('href="/plugins/files-pkg/files/install.zip"') >= 2  # one in the text ({file:...}), one on the button
-    assert "Program for the car" in page and "put it on the card" in page
+    for where in (
+        "info?tab=interfaces",
+        "settings",
+    ):  # the files are handed out by the set-up guide only, not by the info or the settings page
+        page = client.get(f"/v/{vid}/integrations/{item['id']}/{where}").text
+        assert 'href="/plugins/files-pkg/files/carassistant.jar"' not in page and 'href="/plugins/files-pkg/files/install.zip"' not in page
     stored = pluginsvc.asset_dir("files-pkg", item["pkg_sha"]) / "carassistant.jar"
     assert oct(stored.stat().st_mode & 0o777) == oct(0o444)  # read-only, never executable
 

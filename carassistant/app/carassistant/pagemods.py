@@ -331,22 +331,19 @@ def delete(conn: sqlite3.Connection, row_id: int) -> None:
     conn.execute("DELETE FROM module_rows WHERE id = ?", (row_id,))
 
 
-def move(conn: sqlite3.Connection, vehicle_id: int, addon_id: str, page_id: str, row_id: int, way: str) -> None:
-    """One step up or down in the page's order (the order is rewritten as 1, 2, 3, ...)."""
-    ids = [
+def reorder(conn: sqlite3.Connection, vehicle_id: int, addon_id: str, page_id: str, ids: list[int]) -> None:
+    """Put the entries of a page in the order the person gave by dragging them (the order is rewritten as 1, 2, 3, ...). Entries that are
+    not in ``ids`` keep their relative order after the listed ones; ids that are not entries of this page are ignored."""
+    have = [
         r["id"]
         for r in conn.execute(
             "SELECT id FROM module_rows WHERE vehicle_id = ? AND addon_id = ? AND page = ? ORDER BY sort, id",
             (vehicle_id, addon_id, page_id),
         )
     ]
-    if row_id not in ids:
-        return
-    i = ids.index(row_id)
-    j = i - 1 if way == "up" else i + 1
-    if 0 <= j < len(ids):
-        ids[i], ids[j] = ids[j], ids[i]
-    for n, rid in enumerate(ids, 1):
+    wanted = [i for i in dict.fromkeys(ids) if i in have]
+    seq = [*wanted, *[i for i in have if i not in wanted]]
+    for n, rid in enumerate(seq, 1):
         conn.execute("UPDATE module_rows SET sort = ? WHERE id = ?", (n, rid))
 
 

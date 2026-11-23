@@ -215,3 +215,55 @@ def test_every_style_sheet_is_balanced_and_has_no_dead_selectors_left_over():
         css = (Path(__file__).resolve().parents[1] / "carassistant/app/carassistant/static" / name).read_text(encoding="utf-8")
         css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
         assert css.count("{") == css.count("}"), f"{name}: unbalanced braces"
+
+
+def test_rows_are_put_in_order_with_the_sort_handle_never_with_up_and_down_arrows():
+    """ONE way to sort (docs/design.md, "The sort handle"): the strip `.grip` on the left of a row. A pair of up / down buttons is a second way."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "carassistant/app/carassistant"
+    for path in list((root / "templates").glob("**/*.html")):
+        text = path.read_text(encoding="utf-8")
+        assert "nav.up" not in text and "nav.down" not in text, f"{path.name}: sorting arrows - use the sort handle"
+        assert not re.search(r'name="(move|way|dir)"[^>]*value="[^"]*(up|down)"', text), (
+            f"{path.name}: sorting arrows - use the sort handle"
+        )
+    for key in ("nav.up", "nav.down"):
+        assert f'"{key}"' not in (root / "i18n.py").read_text(encoding="utf-8")
+    css = (root / "static/pc-core.css").read_text(encoding="utf-8")
+    assert not re.search(r"\.mvb\b|\.mv \{", css), "the old sort arrows (.mv / .mvb) are gone"
+    js = (root / "static/app.js").read_text(encoding="utf-8")
+    assert "[data-sort-item]" in js and "sortchange" in js
+
+
+def test_everything_that_stands_on_its_own_on_a_page_has_ONE_corner_defined_in_one_place():
+    """Neighbours on a page share ONE corner (docs/design.md, Radius). It is defined once, in the rule `:is(...) { border-radius: var(--r-surface) }` at the
+    end of pc-core.css; a block of that list never gets another corner anywhere else, and the token is the card's corner."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "carassistant/app/carassistant/static"
+    sheets = {n: (root / n).read_text(encoding="utf-8") for n in ("app.css", "pc-core.css", "frame-kit.css")}
+    assert re.search(r"--r-surface: var\(--r-l\)", sheets["app.css"])
+    one = re.search(r":is\(([^)]*)\) \{ border-radius: var\(--r-surface\); \}", sheets["pc-core.css"])
+    assert one, "the one rule for the corner of a block that stands on its own is missing"
+    surfaces = {x.strip() for x in one.group(1).split(",")}
+    assert {".card", ".notice", ".flash", ".seg-tabs", "details.eq", ".rec", ".wd"} <= surfaces
+    bad = []
+    for name, css in sheets.items():
+        for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+            radius = re.search(r"(?<![-\w])border-radius:\s*([^;]+)", body)
+            if not radius or selectors.strip().startswith(":is(") or selectors.strip().startswith("@"):
+                continue
+            value = radius.group(1).strip()
+            for selector in selectors.split(","):
+                last = re.split(r"[\s>+~]+", selector.strip())[-1]
+                base = re.split(r":(?!is)", last)[0]
+                if base in surfaces and not (
+                    value.startswith("var(--r-surface") or value.startswith("var(--r-l") or value in ("inherit", "0", "0 0 0 0")
+                ):
+                    bad.append(f"{name}: {selector.strip()} {{ border-radius: {value} }}")
+    assert not bad, "a block that stands on its own has another corner than a card: " + "; ".join(bad)
+    # the first block of a page starts level with the first card of the More list, also behind the (empty) notice slot
+    assert ".page-head + .notice-slot + *" in sheets["pc-core.css"]

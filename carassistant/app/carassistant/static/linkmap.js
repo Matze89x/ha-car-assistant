@@ -64,6 +64,10 @@
       var on = any && ((k === 'p' && (id === sel.plugin || r.p[id])) || (k === 'a' && (id === sel.area || r.a[id])));
       n.classList.toggle('sel', on); n.setAttribute('aria-pressed', (k === 'p' && id === sel.plugin) || (k === 'a' && id === sel.area) ? 'true' : 'false');
     });
+    Array.prototype.forEach.call(board.querySelectorAll('.lm-tile[data-area]'), function (n) {
+      var on = sel.plugin === n.getAttribute('data-plugin') && sel.area === n.getAttribute('data-area');
+      n.classList.toggle('sel', on); n.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
     Array.prototype.forEach.call(svg.querySelectorAll('path.w'), function (w) {
       var pl = w.getAttribute('data-plugin'), ar = w.getAttribute('data-area');
       var on = any && ((!sel.plugin || pl === sel.plugin) && (!sel.area || ar === sel.area));
@@ -87,9 +91,13 @@
       .then(function (r) { return r.ok ? r.json() : { signals: [] }; })
       .then(function (d) { if (mine !== token) return; loaded = d.signals || []; shown = 0; render(); })
       .catch(function () { if (mine === token) { loaded = []; render(); } });
-    if (window.matchMedia && window.matchMedia('(max-width: 860px)').matches) { detail.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+    if (narrow()) {  /* on a phone the signals open right under the card of the plugin */
+      var card = plugin ? board.querySelector('.lm-card[data-plugin="' + plugin + '"]') : null;
+      if (card) { card.appendChild(detail); }
+      detail.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
   }
-  function close() { sel = { plugin: '', area: '' }; paintSelection(); detail.hidden = true; token++; }
+  function close() { sel = { plugin: '', area: '' }; paintSelection(); detail.hidden = true; token++; if (detail.parentNode !== root) { root.appendChild(detail); } }
 
   function matches(s, q) { return !q || (s.name + ' ' + s.plugin_name).toLowerCase().indexOf(q) !== -1; }
   function render() {
@@ -144,7 +152,9 @@
 
   /* ---- clicks: a plugin, an integration, a chip (phone) or a line */
   board.addEventListener('click', function (e) {
-    var n = e.target.closest ? e.target.closest('.lm-node, .lm-chip') : null, p = e.target.closest ? e.target.closest('path.hit') : null;
+    var more = e.target.closest ? e.target.closest('[data-more-tiles]') : null;
+    if (more) { more.closest('.lm-card').classList.add('all'); return; }
+    var n = e.target.closest ? e.target.closest('.lm-node, .lm-tile') : null, p = e.target.closest ? e.target.closest('path.hit') : null;
     if (p) { open(p.getAttribute('data-plugin'), p.getAttribute('data-area')); return; }
     if (!n) { return; }
     var kind = n.getAttribute('data-kind');

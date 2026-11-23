@@ -68,7 +68,7 @@
 <section class="card ta" id="analysis">
   <h2>{{ icon('chart') }} {{ _('ta.title') }}</h2>
   <nav class="seg-tabs ta-tabs" aria-label="{{ _('ta.title') }}">{% for p in ta_periods %}<a href="{{ tu }}?ap={{ p }}#analysis" class="{{ 'on' if p == ta_period }}"{% if p == ta_period %} aria-current="page"{% endif %}>{{ icon({'30': 'timer-outline', '90': 'clock', 'year': 'calendar', 'all': 'chart'}.get(p|string, 'calendar'), 18) }}<span>{{ pnames[p] }}</span></a>{% endfor %}</nav>
-  {% if not ta.n %}<p class="muted">{{ _('ta.none') }}</p>{% else %}
+  {% if not ta.n %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('ta.none') }}</p></div>{% else %}
   <div class="trip-kpis ta-kpis">
     <div class="tg"><i>{{ _('ta.trips') }}</i><b>{{ ta.n }}</b></div>
     <div class="tg"><i>{{ _('ta.km') }}</i><b>{{ fnum(units.d(ta.km), 0) }} <small>{{ units.dist_unit }}</small></b></div>
@@ -106,7 +106,7 @@
     {% if ta.style.top_kmh %}<div class="tg"><i>{{ _('ta.top') }}</i><b>{{ fnum(units.d(ta.style.top_kmh), 0) }} <small>{{ units.speed_unit }}</small></b></div>{% endif %}
   </div>
   <p class="hint">{{ _('ta.based', n=ta.style.trips, km=fnum(units.d(ta.style.km), 0), u=units.dist_unit) }}</p>
-  {% else %}<p class="muted">{{ _('ta.no_style') }}</p>{% endif %}
+  {% else %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('ta.no_style') }}</p></div>{% endif %}
   {% endif %}
 </section>
 
@@ -188,7 +188,7 @@
   </div>
   {% with pager_url=tu ~ ('?q=' ~ q|urlencode if q else ''), pager_into='#trip-list' %}{% include "_pager.html" %}{% endwith %}
   {% else %}
-  <p class="hint">{{ _('trips.empty') }}</p>
+  <div class="card empty-state">{{ icon(module_icon.get('trips', 'car'), 36) }}<p>{{ _('trips.empty') }}</p></div>
   {% endif %}
   {{ page_foot(total_rows) }}
 </section>

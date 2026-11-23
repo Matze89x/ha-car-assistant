@@ -1,7 +1,8 @@
 {% from "_macros.html" import icon, switch_row with context %}
 {# The settings of a plugin: one block per field, by type. `f` = the field, `val` = its value (a text), `err` = its error text or ''. #}
 {% macro addon_field(f, val, err, vals, a) %}
-{% if f.type == 'section' %}
+{% if f.type == 'tab' %}{# a tab is drawn by the page (addon_settings.html), it is no field #}
+{% elif f.type == 'section' %}
   <div class="set-sec" data-showif-key="{{ f.show_if.key if f.show_if else '' }}" data-showif-eq="{{ f.show_if.equals if f.show_if else '' }}"><h3>{{ f.label }}</h3>{% if f.help %}<p class="hint">{{ f.help }}</p>{% endif %}</div>
 {% elif f.type == 'info' %}
   <p class="hint set-info" data-showif-key="{{ f.show_if.key if f.show_if else '' }}" data-showif-eq="{{ f.show_if.equals if f.show_if else '' }}">{{ icon('info', 16) }} {% if f.label %}<b>{{ f.label }}</b> {% endif %}{{ f.help }}</p>
@@ -13,9 +14,10 @@
   {% elif f.type == 'select' %}<label>{{ f.label }}<select name="{{ f.key }}">{% for o in f.options %}<option value="{{ o.value }}" {{ 'selected' if val == o.value }}>{{ o.label }}</option>{% endfor %}</select></label>
   {% elif f.type == 'radio' %}<fieldset class="set-group"><legend>{{ f.label }}</legend>{% for o in f.options %}<label class="check"><input type="radio" name="{{ f.key }}" value="{{ o.value }}" {{ 'checked' if val == o.value }}> <span>{{ o.label }}</span></label>{% endfor %}</fieldset>
   {% elif f.type == 'multiselect' %}{% set picked = val.split(',') if val else [] %}<fieldset class="set-group"><legend>{{ f.label }}</legend>{% for o in f.options %}<label class="check"><input type="checkbox" name="{{ f.key }}__{{ o.value }}" value="1" {{ 'checked' if o.value in picked }}> <span>{{ o.label }}</span></label>{% endfor %}</fieldset>
-  {% elif f.type == 'list' %}<div class="lf" data-lf="{{ f.key }}"><span class="lf-t">{{ f.label }}</span>
-    {% set rows = (val.splitlines() if val else []) %}{% for line in rows %}{% set parts = line.split('|', 1) %}<div class="lf-row"><input type="text" name="{{ f.key }}__{{ loop.index0 }}n" value="{{ parts[0]|trim }}" maxlength="80" placeholder="{{ f.name_label }}" autocomplete="off"><input type="text" name="{{ f.key }}__{{ loop.index0 }}v" value="{{ (parts[1] if parts|length > 1 else '')|trim }}" maxlength="200" placeholder="{{ f.value_label }}" autocomplete="off"><button type="button" class="lf-del icon-only" aria-label="{{ _('btn.delete') }}" title="{{ _('btn.delete') }}">{{ icon('close', 16) }}</button></div>{% endfor %}
-    <button type="button" class="small lf-add" ib data-n="{{ rows|length }}" data-name="{{ f.name_label }}" data-value="{{ f.value_label }}" data-del="{{ _('btn.delete') }}">{{ icon('plus', 16) }}<span class="sr">{{ _('btn.add') }}</span></button></div>
+  {% elif f.type == 'list' %}{% macro lf_row(n, name, value) %}<div class="lf-row" data-sort-item><button type="button" class="grip" aria-label="{{ _('sort.handle') }}" title="{{ _('sort.handle') }}">{{ icon('drag-vertical', 20) }}</button><span class="lf-in"><input type="text" name="{{ f.key }}__{{ n }}n" value="{{ name }}" maxlength="80" placeholder="{{ f.name_label }}" autocomplete="off" aria-label="{{ f.name_label }}"><input type="text" name="{{ f.key }}__{{ n }}v" value="{{ value }}" maxlength="200" placeholder="{{ f.value_label }}" autocomplete="off" aria-label="{{ f.value_label }}"></span><button type="button" class="lf-del" aria-label="{{ _('btn.delete') }}" title="{{ _('btn.delete') }}">{{ icon('close', 16) }}</button></div>{% endmacro %}<div class="lf" data-lf="{{ f.key }}" data-sortable><span class="lf-t">{{ f.label }}</span>
+    {% set rows = (val.splitlines() if val else []) %}{% for line in rows %}{% set parts = line.split('|', 1) %}{{ lf_row(loop.index0, parts[0]|trim, (parts[1] if parts|length > 1 else '')|trim) }}{% endfor %}
+    <template data-lf-row>{{ lf_row('#', '', '') }}</template>
+    <button type="button" class="small lf-add" ib data-n="{{ rows|length }}">{{ icon('plus', 16) }}<span class="sr">{{ _('btn.add') }}</span></button></div>
   {% elif f.type == 'slider' %}<label>{{ f.label }}<span class="sl-row"><input type="range" name="{{ f.key }}" value="{{ val or f.min }}" min="{{ f.min }}" max="{{ f.max }}" step="{{ f.step if f.step is defined else 1 }}" data-slider><output class="sl-val">{{ val or f.min }}{% if f.unit %} {{ f.unit }}{% endif %}</output></span></label>
   {% elif f.type == 'textarea' %}<label>{{ f.label }}<textarea name="{{ f.key }}" rows="{{ f.rows or 4 }}" maxlength="1000" placeholder="{{ f.placeholder or '' }}">{{ val }}</textarea></label>
   {% elif f.type == 'color' %}<label>{{ f.label }}<input type="color" name="{{ f.key }}" value="{{ val }}"></label>

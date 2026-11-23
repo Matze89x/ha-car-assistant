@@ -26,8 +26,8 @@ def test_page_has_hero_four_groups_and_footnote(client):
     html = client.get(f"/v/{slug(vid)}/edit").text
     assert "vd-hero" in html and "plate-chip" in html and "B-XY 1" in html
     assert (
-        html.count('class="vd-group-h"') >= 3
-        and html.count('class="vd-g g') == 4
+        html.count('class="vd-group-h"') >= 2
+        and html.count('class="vd-g g') == 2  # a group with nothing in it is not shown: here only energy and papers (the plate)
         and html.count('class="vd-col"') == 2
         and "Energy" in html
     )

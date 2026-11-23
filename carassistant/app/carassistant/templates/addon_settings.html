@@ -1,55 +1,43 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, page_head, form_bar, del_form with context %}
-{% from "_addon_files.html" import file_rows with context %}
 {% from "_addon_fields.html" import addon_field with context %}
+{# With tabs (settings_tabs) everything that is not a setting belongs to the first tab: the other tabs show their settings only. #}
+{% macro tabfor() %}{% if set_tabs %} data-tabfor="{{ set_tabs[0].id }}"{% if set_tab_on != set_tabs[0].id %} hidden{% endif %}{% endif %}{% endmacro %}
 {% block content %}
 {{ page_head(addon.m.icon or ('plug' if addon.kind == 'plugin' else 'puzzle'), addon.m.name) }}
+{% if set_tabs %}<nav class="seg-tabs" aria-label="{{ _('addon.settings') }}" data-set-tabs>{% for g in set_tabs %}<a href="#tab-{{ g.id }}" data-tab="{{ g.id }}" class="{{ 'on' if g.id == set_tab_on }}{{ ' err' if g.err }}"{% if g.id == set_tab_on %} aria-current="page"{% endif %}>{% if g.icon %}{{ icon(g.icon, 18) }}{% endif %}<span>{{ g.label or _('addon.tab_general') }}</span>{% if g.err %}{{ icon('alert', 14) }}{% endif %}</a>{% endfor %}</nav>{% endif %}
 {% if addon.m.settings_page and addon.active %}
-<section class="card addon-token">
+<section class="card addon-token"{{ tabfor() }}>
   <h2>{{ icon('settings', 20) }} {{ _('addon.own_settings') }}</h2>
   <div class="actions"><a class="button primary" href="{{ base }}/v/{{ v.slug }}/m/{{ addon.addon_id }}/{{ addon.m.settings_page }}">{{ icon('chevron', 18) }}<span>{{ _('addon.own_settings_open') }}</span></a></div>
 </section>
 {% endif %}
 {% if addon.m.setup %}
-<section class="card addon-token">
-  <h2>{{ icon('play-circle-outline', 20) }} {{ _('addon.guide') }}</h2>
+<section class="card addon-token"{{ tabfor() }}>
+  <h2>{{ icon('play-circle-outline', 20) }} {{ addon.m.setup.title or _('addon.guide') }}</h2>
   <p class="hint">{{ _('addon.m_guide') }}</p>
-  <div class="actions"><a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ _('addon.guide') }}</span></a></div>
+  <div class="actions"><a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ addon.m.setup.title or _('addon.guide') }}</span></a></div>
 </section>
 {% endif %}
 <section class="card addon-set">
   <h2>{{ icon('settings', 20) }} {{ _('addon.settings') }}</h2>
   {% if errors %}<p class="flash err">{{ _('addon.fix_errors') }}</p>{% endif %}
   <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/setup" class="addon-fields set-form" id="aform">
-    {% for f in addon.m.settings %}{{ addon_field(f, shown.get(f.key, ''), errors.get(f.key, ''), shown, addon) }}
-    {% else %}<p class="hint">{{ _('addon.no_settings') }}</p>{% endfor %}
+    {% if set_tabs %}{% for g in set_tabs %}<div class="set-panel" data-tab-panel="{{ g.id }}"{% if g.id != set_tab_on %} hidden{% endif %}>{% for f in g.fields %}{{ addon_field(f, shown.get(f.key, ''), errors.get(f.key, ''), shown, addon) }}{% endfor %}</div>{% endfor %}
+    {% else %}{% for f in addon.m.settings %}{{ addon_field(f, shown.get(f.key, ''), errors.get(f.key, ''), shown, addon) }}
+    {% else %}<p class="hint">{{ _('addon.no_settings') }}</p>{% endfor %}{% endif %}
     <div class="form-bar">{{ form_bar(label=(_('addon.save_short') if addon.status == 'configured' else _('addon.setup'))) }}</div>
   </form>
 </section>
-{% if addon.m.files or addon.m.bundles %}
-<section class="card">
-  <h2>{{ icon('download', 20) }} {{ _('fil.title') }}</h2>
-  {% if not pkg_offered %}<p class="flash err">{{ _('fil.not_approved') }} <a href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service">{{ _('svc.review') }}</a></p>{% endif %}
-  {{ file_rows(pkg_files) }}
-</section>
-{% endif %}
-{% if addon.m.downloads %}
-<section class="card">
-  <h2>{{ icon('download', 20) }} {{ _('dl.title') }}</h2>
-  <p class="hint">{{ _('dl.hint') }}</p>
-  <div class="actions pk-actions">{% for d in addon.m.downloads %}<a class="button pk-btn" href="{{ base }}{{ d.path }}" download>{{ icon('download', 18) }}<span>{{ d.label }}</span></a>{% endfor %}</div>
-  {% for d in addon.m.downloads if d.note %}<p class="hint"><b>{{ d.label }}</b> - {{ d.note }}</p>{% endfor %}
-</section>
-{% endif %}
 {% if addon.active and addon.m.pages %}
-<section class="card addon-token">
+<section class="card addon-token"{{ tabfor() }}>
   <h2>{{ icon('menu', 20) }} {{ _('addon.nav_title') }}</h2>
   <p class="hint">{{ _('addon.m_bar_out') if in_bar else _('addon.m_bar') }}</p>
   <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/bar"><button name="way" value="{{ 'out' if in_bar else 'in' }}">{{ icon('menu', 18) }}<span>{{ _('addon.nav_out') if in_bar else _('addon.nav_in') }}</span></button></form>
 </section>
 {% endif %}
 {% if addon.kind == 'plugin' and token_fp %}
-<section class="card addon-token">
+<section class="card addon-token"{{ tabfor() }}>
   <h2>{{ icon('lock', 20) }} {{ _('addon.token_show_title') }}</h2>
   {% if kept_token %}
   <p class="hint">{{ _('addon.token_show_hint') }}</p>
@@ -57,25 +45,14 @@
   {% else %}<p class="hint">{{ _('addon.token_show_none') }} <code>•••• {{ token_fp }}</code></p>{% endif %}
 </section>
 {% endif %}
-{% if addon.kind == 'plugin' and addon.status == 'configured' and addon.m.connection_file %}
-<section class="card addon-token">
-  <h2>{{ icon('download', 20) }} {{ _('addon.token_have_title') }}</h2>
-  <p class="hint">{{ _('addon.token_have_hint') }}</p>
-  {% if errors.get('__token') %}<p class="flash err">{{ errors['__token'] }}</p>{% endif %}
-  <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/token/verify" class="grid">
-    <label class="wide">{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required></label>
-    <div class="wide form-bar"><button class="primary">{{ icon('download', 18) }}<span>{{ _('addon.token_have_btn') }}</span></button></div>
-  </form>
-</section>
-{% endif %}
 {% if addon.kind == 'plugin' and addon.status == 'configured' and (not addon.m.service or addon.m.connection_file) %}
-<section class="card addon-token">
+<section class="card addon-token"{{ tabfor() }}>
   <h2>{{ icon('lock', 20) }} {{ _('addon.token_title') }}</h2>
   <p class="hint">{{ _('addon.token_hint') }}</p>
   <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/token" data-confirm="{{ _('addon.confirm_token') }}"><button class="small">{{ icon('refresh', 16) }} {{ _('addon.new_token') }}</button></form>
 </section>
 {% endif %}
-<section class="card addon-danger">
+<section class="card addon-danger"{{ tabfor() }}>
   <h2>{{ icon('delete', 20) }} {{ _('addon.uninstall') }}</h2>
   <p class="hint">{{ _('addon.m_del') }}</p>
   <div class="actions"><button class="danger" form="adel-{{ addon.id }}">{{ icon('delete', 18) }}<span>{{ _('addon.uninstall') }}</span></button></div>

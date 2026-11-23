@@ -109,7 +109,7 @@
   </div>
   {% with pager_url=fu ~ ('?q=' ~ q|urlencode if q else ''), pager_into='.rec-grid' %}{% include "_pager.html" %}{% endwith %}
   {% else %}
-  <p class="hint">{{ _('fuel.empty') }}</p>
+  <div class="card empty-state">{{ icon(module_icon.get('fuel', 'gas-station'), 36) }}<p>{{ _('fuel.empty') }}</p></div>
   {% endif %}
   {{ page_foot(total_rows) }}
 </section>

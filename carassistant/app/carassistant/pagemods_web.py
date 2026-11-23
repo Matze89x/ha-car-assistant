@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import Request
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 
 from . import addons, auth_web, config, db, events, framehead, frametheme, navigation, pagemods
 from .web import app, form_dict, go, render, vehicle_ctx, vehicle_or_404
@@ -188,6 +188,19 @@ async def _save(request: Request, vid: int, addon_id: str, page_id: str, row_id:
     return go(request, f"/v/{vid}/m/{addon_id}/{page_id}", "saved")
 
 
+@app.post("/v/{vid}/m/{addon_id}/{page_id}/order")
+async def module_order(request: Request, vid: int, addon_id: str, page_id: str):
+    """(Before the route of one entry, which would take "order" for an id.) The entries of a sortable page in the order the person dragged them into (``order=<id>,<id>,...``)."""
+    form = await form_dict(request)
+    ids = [int(x) for x in str(form.get("order") or "").split(",") if x.strip().isdigit()][:2000]
+    with db.tx() as conn:
+        vehicle_or_404(conn, vid)
+        if pagemods.module(conn, vid, addon_id):
+            pagemods.reorder(conn, vid, addon_id, page_id, ids)
+    events.changed()
+    return JSONResponse({"ok": True})
+
+
 @app.post("/v/{vid}/m/{addon_id}/{page_id}")
 async def module_add(request: Request, vid: int, addon_id: str, page_id: str):
     return await _save(request, vid, addon_id, page_id, None)
@@ -218,17 +231,6 @@ async def reminder_done(request: Request, vid: int, addon_id: str, rule_id: str)
         reminders.done(conn, vid, addon_id, rule_id)
     events.changed()
     return go(request, f"/v/{vehicle['slug']}/e/fuel" if form.get("back") == "fuel" else f"/v/{vehicle['slug']}", "saved")
-
-
-@app.post("/v/{vid}/m/{addon_id}/{page_id}/{row_id}/move")
-async def module_move(request: Request, vid: int, addon_id: str, page_id: str, row_id: int):
-    form = await form_dict(request)
-    with db.tx() as conn:
-        vehicle_or_404(conn, vid)
-        if pagemods.module(conn, vid, addon_id):
-            pagemods.move(conn, vid, addon_id, page_id, row_id, "up" if form.get("way") == "up" else "down")
-    events.changed()
-    return go(request, f"/v/{vid}/m/{addon_id}/{page_id}")
 
 
 @app.post("/v/{vid}/reminders/{addon_id}/{rule_id}/plan")

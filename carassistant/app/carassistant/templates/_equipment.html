@@ -1,7 +1,7 @@
 {% from "_macros.html" import icon with context %}
 {% set GT = {'series': _('eq.series'), 'option': _('eq.option'), 'retrofit': _('eq.retrofit'), 'missing': _('eq.missing')} %}
 {% set total = equip|map(attribute='total')|sum %}
-{% macro cat(c, first_cat, last_cat) %}
+{% macro cat(c) %}
         <details class="eq">
       <summary>
         <span class="mi-ic {{ c.chip }}">{{ icon(c.icon, 19) }}</span>
@@ -22,9 +22,7 @@
         {% endfor %}
       </ul>
       {% endfor %}
-      <div class="eq-actions"><button type="button" class="ghost-btn small" data-eqpanel="feat">{{ icon('plus', 14) }} <span>{{ _('eq.add_feature') }}</span></button>
-        {% for dr, ic in (('up', 'chevron-up'), ('down', 'chevron-down')) %}<form method="post" action="{{ base }}/v/{{ v.slug }}/equipment/move" class="eq-mv"><input type="hidden" name="cat" value="{{ c.key }}"><input type="hidden" name="dir" value="{{ dr }}">
-          <button class="ghost-btn small" aria-label="{{ _('nav.up') if dr == 'up' else _('nav.down') }}" {{ 'disabled' if (dr == 'up' and first_cat) else '' }}>{{ icon(ic, 16) }}</button></form>{% endfor %}</div>
+      <div class="eq-actions"><button type="button" class="ghost-btn small" data-eqpanel="feat">{{ icon('plus', 14) }} <span>{{ _('eq.add_feature') }}</span></button></div>
       <div class="eq-panel" data-panel="feat" hidden>
         <form method="post" action="{{ base }}/v/{{ v.slug }}/equipment/new" class="eq-form">
           <input type="hidden" name="category" value="{{ c.key }}">
@@ -50,10 +48,10 @@
 </template>
 
   <div class="vd-group-h eq-head">{{ _('eq.title') }} <span class="eq-total" id="eq-count" data-all="{{ total }}">{{ total }}</span></div>
-  <label class="eq-searchbox"><span class="sb-ic">{{ icon('magnify', 18) }}</span><input type="search" id="eq-search" placeholder="{{ _('eq.search') }}" autocomplete="off" enterkeyhint="search"></label>
+  {% if total %}<label class="eq-searchbox"><span class="sb-ic">{{ icon('magnify', 18) }}</span><input type="search" id="eq-search" placeholder="{{ _('eq.search') }}" autocomplete="off" enterkeyhint="search"></label>{% endif %}  {# nothing to search while no feature is entered #}
   <div class="eq-wrap eq-cols">
-    <div class="eq-col">{% for c in equip %}{% if loop.index0 % 2 == 0 %}{{ cat(c, loop.first, loop.last) }}{% endif %}{% endfor %}</div>
-    <div class="eq-col">{% for c in equip %}{% if loop.index0 % 2 == 1 %}{{ cat(c, loop.first, loop.last) }}{% endif %}{% endfor %}</div>
+    <div class="eq-col">{% for c in equip %}{% if loop.index0 % 2 == 0 %}{{ cat(c) }}{% endif %}{% endfor %}</div>
+    <div class="eq-col">{% for c in equip %}{% if loop.index0 % 2 == 1 %}{{ cat(c) }}{% endif %}{% endfor %}</div>
   </div>
   <p class="eq-legend"><span class="eq-mk ok">{{ icon('check', 14) }}</span>{{ _('eq.l_fitted') }}<span class="eq-mk retro">{{ icon('check', 14) }}</span>{{ _('eq.retrofit') }}<span class="eq-mk no">{{ icon('close', 14) }}</span>{{ _('eq.missing') }}</p>
 </section>

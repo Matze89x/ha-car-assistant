@@ -34,14 +34,15 @@ MAX_PAGES = 6
 MAX_PAGE_FIELDS = 20
 FIELD_TYPES = (  # what a plugin may ask the user for in its settings page (docs/plugins.md)
     "text", "password", "textarea", "number", "slider", "bool", "select", "radio", "multiselect", "list", "url", "email", "time", "date", "color",
-    "section", "info", "value",
+    "section", "info", "value", "tab",
 )  # fmt: skip
-NO_VALUE = ("section", "info")  # headings and texts: nothing to store
+NO_VALUE = ("section", "info", "tab")  # headings, texts and tabs: nothing to store
 CHOICE = ("select", "radio", "multiselect")
 MAX_OPTIONS = 30
 MAX_PACKAGE = 100_000
 MAX_MANIFEST = 60_000
 MAX_FIELDS = 40
+MAX_TABS = 12  # tabs of a settings page; they do not count as fields
 
 
 # optional integrations offered for every vehicle (nothing is added unless the user picks it)
@@ -641,7 +642,12 @@ def clean_setup(
         steps.append(step)
     if not steps:
         return None
-    return {"requires": [r for r in SETUP_REQUIRES if r in wanted], "steps": steps}
+    guide = {"requires": [r for r in SETUP_REQUIRES if r in wanted], "steps": steps}
+    if _text(raw, "title", 60):  # the name of the guide (its button and heading); without it the app's own name is used
+        guide["title"] = _text(raw, "title", 60)
+    if _l10n(raw.get("l10n"), {"title": 60}):
+        guide["l10n"] = _l10n(raw.get("l10n"), {"title": 60})
+    return guide
 
 
 def render_text(text: str):
@@ -691,12 +697,29 @@ def _options(f: dict) -> list[dict]:
 
 def clean_setting_fields(raw) -> list[dict]:
     """The ``settings`` of a manifest: what the plugin asks for, as the settings page draws it. Unknown types become text; a choice without
-    options becomes text; ``section`` and ``info`` are headings and texts without a value."""
+    options becomes text; ``section``, ``info`` and ``tab`` are headings, texts and page tabs without a value."""
+    from . import icons
+
     fields: list[dict] = []
-    for i, f in enumerate((raw if isinstance(raw, list) else [])[:MAX_FIELDS]):
+    tabs = 0
+    for i, f in enumerate((raw if isinstance(raw, list) else [])[: MAX_FIELDS + MAX_TABS]):
         if not isinstance(f, dict):
             continue
         kind = f.get("type") if f.get("type") in FIELD_TYPES else "text"
+        if kind == "tab":
+            tab_id = f.get("id") if isinstance(f.get("id"), str) and KEY.match(f["id"]) else f"tab{i}"
+            if tabs >= MAX_TABS or any(x.get("id") == tab_id for x in fields):
+                continue
+            tabs += 1
+            tab = {"key": f"_n{i}", "type": "tab", "id": tab_id, "label": _text(f, "label", 40) or tab_id, "help": ""}
+            if f.get("icon") in icons.ICONS:
+                tab["icon"] = f["icon"]
+            if _l10n(f.get("l10n"), {"label": 40}):
+                tab["l10n"] = _l10n(f.get("l10n"), {"label": 40})
+            fields.append(tab)
+            continue
+        if sum(x["type"] != "tab" for x in fields) >= MAX_FIELDS:
+            continue
         key = f.get("key") if isinstance(f.get("key"), str) and KEY.match(f["key"]) else (f"_n{i}" if kind in NO_VALUE else None)
         if key is None or any(x["key"] == key for x in fields):
             continue
@@ -962,6 +985,11 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
             {**f, **{k: v for k, v in ((f.get("l10n") or {}).get(lang) or {}).items() if k in ("label", "help")}}
             for f in manifest.get("settings", [])
         ]
+        if manifest.get("setup") and manifest["setup"].get("title"):
+            manifest["setup"] = {
+                **manifest["setup"],
+                "title": ((manifest["setup"].get("l10n") or {}).get(lang) or {}).get("title") or manifest["setup"]["title"],
+            }
         offered = latest.get(r["id"], "")
         need = _need(conn, r) if r["status"] == "missing" else None
         defaults = {f["key"]: f["default"] for f in manifest.get("settings", []) if "default" in f}
@@ -1147,6 +1175,33 @@ def _sealed(manifest: dict, values: dict) -> dict:
     """The settings as they are stored: the passwords encrypted (vault.py)."""
     secret = {f["key"] for f in manifest.get("settings", []) if f.get("type") == "password"}
     return {k: (vault.encrypt(v) if k in secret else v) for k, v in values.items()}
+
+
+def settings_tabs(fields: list[dict], bad: set[str] | frozenset[str] = frozenset()) -> list[dict]:
+    """The settings split into the tabs the package asked for (``{"type": "tab", "id", "label", "icon"}``): every setting belongs to the tab before it;
+    what comes before the first tab forms the tab "General" (``implicit``). A package without two or more tabs gets ``[]``: its page stays one list.
+    ``bad`` = keys with an error: their tab is marked (``err``) and shown first."""
+    groups: list[dict] = []
+    lead: list[dict] = []
+    for f in fields:
+        if f["type"] == "tab":
+            groups.append({"id": f["id"], "label": f["label"], "icon": f.get("icon", ""), "fields": [], "implicit": False})
+        elif groups:
+            groups[-1]["fields"].append(f)
+        else:
+            lead.append(f)
+    if not groups:
+        return []
+    if lead:
+        ids = {g["id"] for g in groups}
+        groups.insert(
+            0, {"id": "general" if "general" not in ids else "_general", "label": "", "icon": "", "fields": lead, "implicit": True}
+        )
+    if len(groups) < 2:
+        return []
+    for g in groups:
+        g["err"] = any(f["key"] in bad for f in g["fields"])
+    return groups
 
 
 def guide_keys(addon: dict) -> set[str] | None:

@@ -36,24 +36,26 @@
   </div>
   <div class="vd-groups">
     <div class="vd-col">
-    <div class="vd-g g1"><div class="vd-group-h">{{ _('vd.group_vehicle') }}</div><div class="vd-group">
+    {% set body_g1 %}
       {{ row('calendar-today', _('f.build_date'), fdate(v.build_date) if v.build_date else None, True) }}
       {{ row('calendar-today', _('f.first_reg'), fdate(v.first_reg) if v.first_reg else None, True) }}
       {% if insp_estimate %}{{ row('calendar', _('f.insp_estimate'), fdate(insp_estimate), False, _('vd.src_calc')) }}{% endif %}
       {{ row('information-outline', _('f.model_type'), v.model_type, True) }}
       {{ row('file-document-outline', _('f.hsn_tsn'), ((v.hsn or '–') ~ ' / ' ~ (v.tsn or '–')) if (v.hsn or v.tsn) else None, True) }}
       {{ rows_end() }}
-    </div></div>
-    <div class="vd-g g3"><div class="vd-group-h">{{ _('vd.group_energy') }}</div><div class="vd-group">
+    {% endset %}
+    {% if body_g1|trim %}<div class="vd-g g1"><div class="vd-group-h">{{ _('vd.group_vehicle') }}</div><div class="vd-group">{{ body_g1|safe }}</div></div>{% endif %}  {# a group with nothing in it has no heading either #}
+    {% set body_g3 %}
       {{ row('gas-station', _('f.fuel_type'), _('fuel_type.' ~ v.fuel_type)) }}
       {% if v.fuel_type != 'electric' %}{{ row('gas-station', _('f.tank').split(' (')[0], (fnum(units.v(v.tank_l), 0) ~ ' ' ~ units.vol_unit()) if v.tank_l else None, True) }}{% endif %}
       {% if v.fuel_type in ('electric', 'hybrid') or v.battery_kwh %}{{ row('battery', _('f.battery_kwh').split(' (')[0], (fnum(v.battery_kwh, 1) ~ ' kWh') if v.battery_kwh else None, True) }}{% endif %}
       {{ row('lightning-bolt', _('f.battery_short'), v.battery) }}
       {{ rows_end() }}
-    </div></div>
+    {% endset %}
+    {% if body_g3|trim %}<div class="vd-g g3"><div class="vd-group-h">{{ _('vd.group_energy') }}</div><div class="vd-group">{{ body_g3|safe }}</div></div>{% endif %}  {# a group with nothing in it has no heading either #}
     </div>
     <div class="vd-col">
-    <div class="vd-g g2"><div class="vd-group-h">{{ _('vd.group_tech') }}</div><div class="vd-group">
+    {% set body_g2 %}
       {{ row('engine', _('f.engine'), engine_line, False, None, True) }}
       {{ row('information-outline', _('f.engine_code'), v.engine_code, True) }}
       {{ row('information-outline', _('f.gearbox_code'), v.gearbox_code, True) }}
@@ -65,13 +67,15 @@
       {{ row('oil', _('f.oil_spec'), v.oil_spec, True) }}
       {{ row('oil', _('f.oil_l').split(' (')[0], (fnum(units.v(v.oil_l), 1) ~ ' ' ~ units.vol_unit()) if v.oil_l else None, True) }}
       {{ rows_end() }}
-    </div></div>
-    <div class="vd-g g4"><div class="vd-group-h">{{ _('vd.group_papers') }}</div><div class="vd-group">
+    {% endset %}
+    {% if body_g2|trim %}<div class="vd-g g2"><div class="vd-group-h">{{ _('vd.group_tech') }}</div><div class="vd-group">{{ body_g2|safe }}</div></div>{% endif %}  {# a group with nothing in it has no heading either #}
+    {% set body_g4 %}
       {{ row('card-text-outline', _('f.plate'), v.plate, True) }}
       {{ row('palette', _('f.color'), v.color) }}
       {{ row('information-outline', _('f.paint_code'), v.paint_code, True) }}
       {{ rows_end() }}
-    </div></div>
+    {% endset %}
+    {% if body_g4|trim %}<div class="vd-g g4"><div class="vd-group-h">{{ _('vd.group_papers') }}</div><div class="vd-group">{{ body_g4|safe }}</div></div>{% endif %}  {# a group with nothing in it has no heading either #}
     </div>
   </div>
   {% if v.notes %}<div class="vd-notes"><div class="vd-group-h">{{ _('f.notes') }}</div><div class="card vd-extra"><div class="vd-extra-t">{{ v.notes }}</div></div></div>{% endif %}

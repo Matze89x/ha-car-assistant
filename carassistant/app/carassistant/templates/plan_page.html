@@ -36,6 +36,6 @@
   {% endfor %}
 </div>
 {{ page_foot(pl.hist|length) }}
-{% else %}<p class="hint">{{ _('plan.no_history') }}</p>{% endif %}
+{% else %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('plan.no_history') }}</p></div>{% endif %}
 {% endif %}
 {% endblock %}

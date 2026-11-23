@@ -54,7 +54,7 @@ A service can serve any file on one of its routes (binary files, `Content-Dispos
 ```
 "downloads": [{"label": "Data package", "path": "/my/pack.zip", "note": "for the vehicle display"}]
 ```
-The path must lie under one of the service's routes. The buttons show on the settings page and on the page *Info*. A **public** route is reachable by anyone (a device without a login); a **non-public** one only from Home Assistant or for a signed-in person. **Binary files that need no service** (a program for the car, a ready SD card package) go in `files` / `bundles`: see [plugins.md](plugins.md#files-of-a-package-downloads-without-a-service). A plain file that holds the token and the settings is `connection_file` (see [plugins.md](plugins.md#connection-file)).
+The path must lie under one of the service's routes. The buttons show on the plugin's tile under *Manage* (while it runs); files and the connection file come from the set-up guide only. A **public** route is reachable by anyone (a device without a login); a **non-public** one only from Home Assistant or for a signed-in person. **Binary files that need no service** (a program for the car, a ready SD card package) go in `files` / `bundles`: see [plugins.md](plugins.md#files-of-a-package-downloads-without-a-service). A plain file that holds the token and the settings is `connection_file` (see [plugins.md](plugins.md#connection-file)).
 
 ## 7. Tell what you offer (Interfaces)
 Add `docs` and `interfaces` so the page *Info* of your plugin documents every interface it sends, reads or offers: [plugins.md](plugins.md#the-interfaces-page-of-a-package). The page also shows what the plugin really used (addresses and field names, never values).

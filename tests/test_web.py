@@ -832,7 +832,7 @@ def test_equipment_has_fixed_categories_and_own_features(client):
     page = client.get(f"/v/{vid}/edit").text
     assert ('id="equipment"' in page and "Exterior" in page.replace("Außen", "Exterior")) or "Außen" in page  # fixed areas are always there
     assert (
-        'name="cat"' in page and "equipment/new" in page and "/equipment/starter" not in page and "eq-add" not in page
+        'name="category"' in page and "equipment/new" in page and "/equipment/starter" not in page and "eq-add" not in page
     )  # no starter, no new area
     with db.tx() as conn:
         groups = equipment.groups(conn, vid, "en")
@@ -857,15 +857,17 @@ def test_equipment_has_fixed_categories_and_own_features(client):
     assert "Search equipment" in client.get(f"/v/{vid}/edit").text or "Ausstattung" in client.get(f"/v/{vid}/edit").text
 
 
-def test_equipment_categories_can_be_moved(client):
-    from carassistant import db, equipment
+def test_equipment_categories_have_no_sort_handle(client):
+    from carassistant import equipment
 
     vid = create_vehicle(client)
-    client.post(f"/v/{vid}/equipment/move", data={"cat": "seats", "dir": "up"})
-    client.post(f"/v/{vid}/equipment/move", data={"cat": "seats", "dir": "up"})  # already first: nothing
-    with db.tx() as conn:
-        keys = [g["key"] for g in equipment.groups(conn, vid)]
-    assert keys[:2] == ["seats", "comfort"] and keys[2:] == list(equipment.KEYS[2:])
+    page = client.get(f"/v/{vid}/edit").text
+    assert 'class="grip"' not in page and "data-sortable" not in page  # the twelve fixed areas stay as they are
+    assert page.count('class="eq"') >= len(equipment.KEYS)
+    assert client.post(f"/v/{vid}/equipment/order", data={"order": "seats"}).status_code in (
+        404,
+        405,
+    )  # no route to change the order any more
 
 
 def test_trip_card_stats_and_track_json(client):
@@ -1313,3 +1315,38 @@ def test_the_station_list_shows_ten_then_more_and_marks_the_closed(client, monke
     assert "stn closed" in page and "sort=distance" in page  # the closed one is dimmed; the switch between price and distance
     first_best = page.index("stn best")
     assert "Station 1" in page[first_best : first_best + 600]  # the cheapest OPEN station is the green one, not the closed one
+
+
+def test_a_group_of_the_vehicle_passport_with_nothing_in_it_has_no_heading_and_no_search_without_features(client):
+    vid = create_vehicle(client)
+    page = client.get(f"/v/{vid}/edit").text
+    for group in ("g1", "g2"):  # nothing entered: neither the group nor its heading
+        assert f'class="vd-g {group}"' not in page
+    assert 'class="vd-g g3"' in page  # the fuel type is always known
+    assert 'id="eq-search"' not in page  # no feature yet: nothing to search
+    client.post(f"/v/{vid}/edit", data={"name": "My Car", "fuel_type": "petrol", "first_reg": "2020-05-04", "engine_code": "XYZ"})
+    page = client.get(f"/v/{vid}/edit").text
+    assert 'class="vd-g g1"' in page and 'class="vd-g g2"' in page  # the groups come back with their values
+    client.post(f"/v/{vid}/equipment/new", data={"category": "exterior", "title": "Roof box", "status": "retrofit", "code": "ab1"})
+    assert 'id="eq-search"' in client.get(f"/v/{vid}/edit").text
+
+
+def test_a_page_with_nothing_on_it_shows_the_empty_card_with_the_symbol_and_one_sentence(client):
+    vid = create_vehicle(client)
+    for kind in ("mods", "fuel", "trips", "parts", "tires", "tasks", "appointments", "docs"):
+        page = client.get(f"/v/{slug(vid)}/e/{kind}" if kind != "docs" else f"/v/{slug(vid)}/docs").text
+        assert 'class="card empty-state"' in page, f"{kind}: an empty page is the card with the symbol, not a bare line of text"
+    report = client.get(f"/v/{slug(vid)}/report").text
+    assert 'class="empty-state"' in report and 'class="muted">' + "In this period" not in report
+
+
+def test_the_sources_and_add_pages_are_built_from_the_plugin_tile_and_the_empty_card(client):
+    vid = create_vehicle(client)
+    for kind in ("plugin", "integration"):
+        page = client.get(f"/v/{slug(vid)}/{kind}s/sources").text
+        assert (
+            'class="card addon srcbox"' in page and 'class="pk-grid one"' in page
+        )  # a source is a tile like a plugin: head, state, one line of buttons
+        assert 'class="addon-bar"' in page and "lite-lbl" in page and "pk-foot" not in page
+        add = client.get(f"/v/{slug(vid)}/{kind}s/add").text
+        assert 'class="card empty-state"' in add  # no package known yet: the empty card, not a bare line

@@ -1,4 +1,4 @@
-"""Routes of the equipment list on the vehicle passport: add, edit and delete a feature, move a category."""
+"""Routes of the equipment list on the vehicle passport: add, edit and delete a feature, put the categories in order."""
 
 from __future__ import annotations
 
@@ -29,17 +29,6 @@ async def equipment_item(request: Request, vid: int, item_id: int):
     with db.tx() as conn:
         vehicle_or_404(conn, vid)
         equipment.save_item(conn, vid, item_id, form)
-        back = _back(request, conn, vid)
-    events.changed()
-    return back
-
-
-@app.post("/v/{vid}/equipment/move")
-async def equipment_move(request: Request, vid: int):
-    form = await form_dict(request)
-    with db.tx() as conn:
-        vehicle_or_404(conn, vid)
-        equipment.move_category(conn, vid, form.get("cat", ""), "up" if form.get("dir") == "up" else "down")
         back = _back(request, conn, vid)
     events.changed()
     return back

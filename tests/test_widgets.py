@@ -21,9 +21,12 @@ def test_move_resize_hide_and_reset(client):
     vid = create_vehicle(client)
     base = f"/v/{slug(vid)}/widgets"
     order = [w.key for w in widgets.REGISTRY]
-    form = {"k": order, "size_security": "m", "on_security": "1", "on_service": "1", "move": "security:down"}
+    moved = list(order)
+    i, j = moved.index("security"), moved.index("service")
+    moved[i], moved[j] = moved[j], moved[i]  # the order is the order of the rows: dragged with the handle, saved with the form
+    form = {"k": moved, "size_security": "m", "on_security": "1", "on_service": "1"}
     r = client.post(base, data=form, follow_redirects=False)
-    assert r.status_code == 303 and "/widgets" in r.headers["location"]  # an arrow stays on the page
+    assert r.status_code == 303
     with db.tx() as conn:
         lay = widgets.layout(conn, vid)
     assert [w.key for w in lay][:3] == ["messages", "service", "security"] and lay[2].size == "m" and lay[2].on

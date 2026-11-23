@@ -53,18 +53,36 @@ def build(conn: sqlite3.Connection, vehicle_id: int) -> dict:
         a["explain"] = t("lm.ex_int") if a.get("integration") else t(f"lm.ex_{key}")
         a["ha"] = _ha_goes(key)
         a["meta"] = t("lm.area_meta", n=counts.get(key, 0), ago=ago(a["last"], t)) if counts.get(key) else t("lm.meta_none")
+        a["linked"] = bool(counts.get(key))  # something is connected: it is drawn in full, the others fold away
     mine: dict[str, list[dict]] = {}
     for e in g["edges"]:  # the chips of a plugin (the phone shows these instead of lines)
         mine.setdefault(e["plugin"], []).append(e)
-    names = {a["key"]: a["name"] for a in g["areas"]}
+    by_key = {a["key"]: a for a in g["areas"]}
     for p in g["plugins"]:
         seen: dict[str, dict] = {}
         for e in mine.get(p["id"], []):
+            area = by_key.get(e["area"]) or {}
             item = seen.setdefault(
-                e["area"], {"area": e["area"], "name": names.get(e["area"], e["area"]), "n_set": 0, "n_get": 0, "state": e["state"]}
+                e["area"],
+                {
+                    "area": e["area"],
+                    "name": area.get("name", e["area"]),
+                    "icon": area.get("icon", "puzzle"),
+                    "chip": area.get("chip", "c4"),
+                    "n_set": 0,
+                    "n_get": 0,
+                    "state": e["state"],
+                    "last": e["last"],
+                },
             )
             item["n_" + e["dir"]] += e["n"]
-        p["links"] = sorted(seen.values(), key=lambda x: x["name"].lower())
+            if e["last"] and (not item["last"] or e["last"] > item["last"]):
+                item["last"] = e["last"]
+                item["state"] = e["state"]
+        for item in seen.values():
+            item["ago"] = ago(item["last"], t)
+        # the tiles of a plugin (the phone shows these instead of lines): the busiest first
+        p["links"] = sorted(seen.values(), key=lambda x: (-(x["n_set"] + x["n_get"]), x["name"].lower()))
     g["generated"] = datetime.now(UTC).isoformat(timespec="seconds")
     return g
 

@@ -434,9 +434,12 @@ def _settings_page(request: Request, vid: int, addon: dict, shown: dict, errors:
             connectors.fingerprint(conn, addon.get("token_id")) if addon.get("token_id") and addon["status"] == "configured" else ""
         )
     t = i18n.translator(config.language())
+    set_tabs = addons.settings_tabs(addon["m"]["settings"], frozenset(errors))
     return render(
         request,
         "addon_settings.html",
+        set_tabs=set_tabs,
+        set_tab_on=next((g["id"] for g in set_tabs if g["err"]), set_tabs[0]["id"] if set_tabs else ""),
         kept_token=kept,
         token_fp=fingerprint,
         status=status,
@@ -445,8 +448,6 @@ def _settings_page(request: Request, vid: int, addon: dict, shown: dict, errors:
         addon=addon,
         shown=shown,
         errors={k: t(v) for k, v in errors.items()},
-        pkg_offered=pluginsvc.approved(addon),
-        pkg_files=assets.listing(addon, pluginsvc.approved(addon)),
         back_to=_manage(addon["kind"], vid),  # Back is the Manage page, always (never an address taken from the link)
         in_bar=in_bar,
     )
@@ -584,8 +585,13 @@ async def addon_guide_token(request: Request, vid: int, aid: int):
     return _guide_page(request, vid, aid, 2, token, fresh=True)
 
 
+_token_tries: dict[int, list[float]] = {}  # plugin row id -> times of wrong guesses (the last 15 minutes)
+TOKEN_TRIES = 5
+TOKEN_WINDOW = 15 * 60
+
+
 def _guide_token_ok(conn, aid: int, addon: dict, candidate: str) -> str:
-    """'' when the typed token is the plugin's token, else the error key. Wrong guesses are limited like on the settings page."""
+    """'' when the typed token is the plugin's token, else the error key. Wrong guesses are limited: five in 15 minutes per plugin."""
     import time
 
     now = time.monotonic()
@@ -891,46 +897,6 @@ async def addons_connection_file(request: Request, vid: int, aid: int):
         return go(request, f"/v/{vid}/integrations", "addon.err_id")
     text = addons.connection_file_text(addon["m"], addon["vals"], token=token, vehicle=vid, url=config.external_url() or "", vin=_vin(vid))
     name = addon["m"]["connection_file"]["name"]
-    return Response(
-        text,
-        media_type="text/plain; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store"},
-    )
-
-
-_token_tries: dict[int, list[float]] = {}  # plugin row id -> times of wrong guesses (the last 15 minutes)
-TOKEN_TRIES = 5
-TOKEN_WINDOW = 15 * 60
-
-
-@app.post("/v/{vid}/integrations/{aid}/token/verify")
-async def addons_token_verify(request: Request, vid: int, aid: int):
-    """Hand out the connection file again for a token the user already has: the typed token is compared with the stored fingerprint of the plugin's
-    token and, when it is the same, put into the file - no new token is made. The token is never shown, stored or logged. Wrong guesses are
-    limited (5 in 15 minutes per plugin). Administrator only."""
-    import time
-
-    if (denied := _guard(request, vid)) is not None:
-        return denied
-    form = await form_dict(request)
-    candidate = (form.get("token") or "").strip()[:200]
-    with db.tx() as conn:
-        addon = addons.get(conn, vid, aid)
-        if addon is None or addon["kind"] != "plugin" or not addon["m"].get("connection_file"):
-            return go(request, f"/v/{vid}/plugins", "addon.err_id")
-        now = time.monotonic()
-        tries = [t for t in _token_tries.get(aid, []) if now - t < TOKEN_WINDOW]
-        if len(tries) >= TOKEN_TRIES:
-            _token_tries[aid] = tries
-            return _settings_page(request, vid, addon, addon["vals"], {"__token": "err.token_rate"}, 429)
-        if not candidate or not connectors.token_matches(conn, addon["token_id"], candidate):
-            _token_tries[aid] = [*tries, now]
-            return _settings_page(request, vid, addon, addon["vals"], {"__token": "err.token_mismatch"}, 400)
-        _token_tries.pop(aid, None)
-        text = addons.connection_file_text(
-            addon["m"], addon["vals"], token=candidate, vehicle=vid, url=config.external_url() or "", vin=_vin(vid)
-        )
-        name = addon["m"]["connection_file"]["name"]
     return Response(
         text,
         media_type="text/plain; charset=utf-8",

@@ -1,46 +1,46 @@
 {% from "_macros.html" import icon with context %}
-<section class="card lm-intro">
-  <p class="hint">{{ _('lm.intro') }}</p>
+<p class="hint">{{ _('lm.intro') }}</p>
+{% if not lm.plugins %}
+<div class="card empty-state">{{ icon('swap-vertical', 36) }}<p>{{ _('lm.none') }}</p></div>
+{% else %}
+{% if not lm.edges %}<div class="card empty-state">{{ icon('swap-vertical', 36) }}<p>{{ _('lm.quiet') }}</p></div>{% endif %}
+<div class="lm" id="lm" data-version="{{ lm.version }}" data-base="{{ base }}/v/{{ v.slug }}/plugins/connections"
+  data-edges='{{ lm.edges|tojson }}' data-raw="{{ 1 if can_raw else 0 }}"
+  data-t-set="{{ _('lm.set') }}" data-t-get="{{ _('lm.get') }}" data-t-filter="{{ _('lm.filter') }}" data-t-more="{{ _('lm.more') }}" data-t-history="{{ _('lm.history') }}"
+  data-t-raw="{{ _('lm.raw') }}" data-t-novalue="{{ _('lm.no_value') }}" data-t-masked="{{ _('lm.masked') }}" data-t-empty="{{ _('lm.empty_detail') }}" data-t-hits="{{ _('lm.hits') }}"
+  data-t-dplugin="{{ _('lm.detail_plugin') }}" data-t-darea="{{ _('lm.detail_area') }}" data-t-dlink="{{ _('lm.detail_link') }}">
   <ul class="lm-legend" aria-label="{{ _('lm.title') }}">
     <li><svg viewBox="0 0 40 8" aria-hidden="true"><path d="M1 4H39" class="lg set"/></svg>{{ _('lm.legend_set') }}</li>
     <li><svg viewBox="0 0 40 8" aria-hidden="true"><path d="M1 4H39" class="lg get"/></svg>{{ _('lm.legend_get') }}</li>
     <li><i class="lm-dot live" aria-hidden="true"></i>{{ _('lm.legend_live') }}</li>
     <li><i class="lm-dot idle" aria-hidden="true"></i>{{ _('lm.legend_idle') }}</li>
   </ul>
-</section>
-{% if not lm.plugins %}
-<section class="card"><p class="hint">{{ icon('info', 14) }} {{ _('lm.none') }}</p></section>
-{% else %}
-{% if not lm.edges %}<p class="flash warn">{{ _('lm.quiet') }}</p>{% endif %}
-<div class="lm" id="lm" data-version="{{ lm.version }}" data-base="{{ base }}/v/{{ v.slug }}/plugins/connections"
-  data-edges='{{ lm.edges|tojson }}' data-raw="{{ 1 if can_raw else 0 }}"
-  data-t-set="{{ _('lm.set') }}" data-t-get="{{ _('lm.get') }}" data-t-filter="{{ _('lm.filter') }}" data-t-more="{{ _('lm.more') }}" data-t-history="{{ _('lm.history') }}"
-  data-t-raw="{{ _('lm.raw') }}" data-t-novalue="{{ _('lm.no_value') }}" data-t-masked="{{ _('lm.masked') }}" data-t-empty="{{ _('lm.empty_detail') }}" data-t-hits="{{ _('lm.hits') }}"
-  data-t-dplugin="{{ _('lm.detail_plugin') }}" data-t-darea="{{ _('lm.detail_area') }}" data-t-dlink="{{ _('lm.detail_link') }}">
   <div class="lm-board" id="lm-board">
     <div class="lm-col lm-col-plugins">
       <h2 class="lm-h">{{ icon('plug', 16) }}<span>{{ _('lm.plugins') }}</span></h2>
       {% for p in lm.plugins %}
-      <div class="lm-card">
+      <div class="lm-card" data-plugin="{{ p.id }}">
         <button type="button" class="lm-node lm-plugin t{{ p.tint }} {{ p.state }}{{ ' off' if not p.active }}" data-kind="p" data-id="{{ p.id }}" data-tint="{{ p.tint }}" aria-pressed="false">
           <span class="mi-ic c{{ p.tint }}">{{ icon(p.icon, 20) }}</span>
           <span class="lm-t"><b>{{ p.name }}</b><small class="lm-meta">{{ p.meta }}</small></span>
           <i class="lm-dot {{ p.state }}" aria-hidden="true"></i>
         </button>
-        {% if p.links %}<ul class="lm-chips">{% for l in p.links %}<li><button type="button" class="lm-chip t{{ p.tint }} {{ l.state }}" data-kind="l" data-plugin="{{ p.id }}" data-area="{{ l.area }}">{{ l.name }}<small>{% if l.n_set %}↑{{ l.n_set }}{% endif %}{% if l.n_get %} ↓{{ l.n_get }}{% endif %}</small></button></li>{% endfor %}</ul>{% endif %}
+        {% if p.links %}<ul class="lm-tiles">{% for l in p.links %}<li{{ ' class="extra"' if loop.index > 6 }}><button type="button" class="lm-tile" data-kind="l" data-plugin="{{ p.id }}" data-area="{{ l.area }}" aria-pressed="false" title="{{ l.name }} · {{ l.ago }}"><span class="mi-ic {{ l.chip }}">{{ icon(l.icon, 16) }}</span><span class="lm-tn"><b>{{ l.name }}</b><small>{% if l.n_set %}↑{{ l.n_set }}{% endif %}{% if l.n_get %} ↓{{ l.n_get }}{% endif %}</small></span><i class="lm-dot {{ l.state }}" aria-hidden="true"></i></button></li>{% endfor %}
+          {% if p.links|length > 6 %}<li class="lm-more-li"><button type="button" class="lm-tile lm-tile-more" data-more-tiles>{{ _('lm.more_tiles', n=p.links|length - 6) }}</button></li>{% endif %}</ul>{% endif %}
       </div>
       {% endfor %}
     </div>
     <div class="lm-hub" aria-hidden="true"><span>{{ _('lm.api') }}</span></div>
     <div class="lm-col lm-col-areas">
       <h2 class="lm-h">{{ icon('puzzle', 16) }}<span>{{ _('lm.areas') }}</span></h2>
-      {% for a in lm.areas %}
-      <button type="button" class="lm-node lm-area {{ a.chip }} {{ a.state }}" data-kind="a" data-id="{{ a.key }}" aria-pressed="false">
+      {% macro area_node(a) %}<button type="button" class="lm-node lm-area {{ a.chip }} {{ a.state }}" data-kind="a" data-id="{{ a.key }}" aria-pressed="false">
         <span class="mi-ic {{ a.chip }}">{{ icon(a.icon, 20) }}</span>
         <span class="lm-t"><b>{{ a.name }}</b><small class="lm-meta">{{ a.meta }}</small><small class="lm-ex">{{ a.explain }}{% if a.ha %} {{ _('lm.ha_yes') }}{% endif %}</small></span>
         <i class="lm-dot {{ a.state }}" aria-hidden="true"></i>
-      </button>
-      {% endfor %}
+      </button>{% endmacro %}
+      {% for a in lm.areas if a.linked %}{{ area_node(a) }}{% endfor %}
+      {% set rest = lm.areas|rejectattr('linked')|list %}
+      {% if rest %}<details class="lm-rest"><summary class="button small">{{ icon('chevron-down', 16) }}<span>{{ _('lm.rest', n=rest|length) }}</span></summary>{% for a in rest %}{{ area_node(a) }}{% endfor %}</details>{% endif %}
     </div>
     <svg class="lm-wires" id="lm-wires" aria-hidden="true"></svg>
   </div>

@@ -3,10 +3,10 @@
 {% block content %}
 {% call page_head('view-dashboard', _('wd.edit'), v.name) %}<a class="button" href="{{ base }}/v/{{ v.slug }}">{{ icon('check', 16) }}<span class="lbl">{{ _('wd.done') }}</span></a>{% endcall %}
 <p class="hint">{{ _('wd.edit_hint') }}</p>
-<form method="post" action="{{ base }}/v/{{ v.slug }}/widgets" class="wd-edit-list">
+<form method="post" action="{{ base }}/v/{{ v.slug }}/widgets" class="wd-edit-list" data-sortable data-sort-save>
   {% for w in items %}
-  <div class="wd-row {{ '' if w.on else 'off' }}">
-    <input type="hidden" name="k" value="{{ w.key }}">
+  <div class="wd-row {{ '' if w.on else 'off' }}" data-sort-item>
+    <input type="hidden" name="k" value="{{ w.key }}"><button type="button" class="grip" aria-label="{{ _('sort.handle') }}" title="{{ _('sort.handle') }}">{{ icon('drag-vertical', 20) }}</button>
     <span class="mi-ic {{ w.chip }}">{{ icon(w.icon, 17) }}</span>
     <span class="wd-row-t">{{ w.label or _(w.title) }}</span>
     <select name="size_{{ w.key }}" aria-label="{{ _('wd.size') }}">
@@ -15,10 +15,7 @@
     </select>
     {% for key, choices in w.options %}<select name="opt_{{ w.key }}_{{ key }}" aria-label="{{ WD_LABELS[key] }}">{% for c in choices %}<option value="{{ c }}" {{ 'selected' if w.opts[key] == c }}>{{ WD_LABELS[key ~ '.' ~ c] }}</option>{% endfor %}</select>{% endfor %}
     <label class="switch" title="{{ _('wd.show') }}"><input type="checkbox" name="on_{{ w.key }}" value="1" {{ 'checked' if w.on }}><span></span></label>
-    <span class="wd-move">
-      <button name="move" value="{{ w.key }}:up" class="round-del" aria-label="{{ _('nav.up') }}" {{ 'disabled' if loop.first }}>{{ icon('chevron-up', 18) }}</button>
-      <button name="move" value="{{ w.key }}:down" class="round-del" aria-label="{{ _('nav.down') }}" {{ 'disabled' if loop.last }}>{{ icon('chevron-down', 18) }}</button>
-    </span>
+
   </div>
   {% endfor %}
   <div class="wd-row wd-add">

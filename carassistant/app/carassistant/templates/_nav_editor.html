@@ -3,36 +3,34 @@
   <h2>{{ icon('menu') }} {{ _('int.nav_title') }}</h2>
   <p class="hint">{{ _('int.nav_intro', car=v.name) }} {{ _('nav.drag_hint') }}</p>
   <form method="post" action="{{ base }}/v/{{ v.slug }}/navigation" class="navset" id="navset" data-live="1">
-    <div class="navrow fixed"><span class="mi-ic c1">{{ icon('speedometer', 19) }}</span><span class="nt">{{ _('nav.home') }}</span><span class="mv" aria-hidden="true"><i class="mvb up">{{ icon('chevron', 18) }}</i><i class="mvb down">{{ icon('chevron', 18) }}</i></span></div>
+    <div class="navrow fixed"><span class="grip" aria-hidden="true">{{ icon('lock', 14) }}</span><span class="mi-ic c1">{{ icon('speedometer', 19) }}</span><span class="nt">{{ _('nav.home') }}</span></div>
     <template id="pk-tpl">{% for name in picker_icons %}<label><input type="radio" name="pick-@" value="{{ name }}"><span>{{ icon(name, 22) }}</span></label>{% endfor %}</template>
-    <ol class="navlist" id="navlist" data-more="{{ _('nav.more_zone') }}">
+    <ol class="navlist" id="navlist" data-sortable data-more="{{ _('nav.more_zone') }}">
       {% for key, ic in nav_order %}
-      <li class="navrow {{ 'inmore' if loop.index > 4 }}" data-key="{{ key }}">
+      <li class="navrow {{ 'inmore' if loop.index > 4 }}" data-key="{{ key }}" data-sort-item><button type="button" class="grip" aria-label="{{ _('sort.handle') }}" title="{{ _('sort.handle') }}">{{ icon('drag-vertical', 20) }}</button>
         <input type="hidden" name="m" value="{{ key }}"><input type="hidden" name="i" value="{{ ic }}">
         <details class="iconpick"><summary aria-label="{{ _('nav.icon') }}"><span class="mi-ic {{ chips.get(key, 'c4' if key in nav_extra else 'c1') }}">{{ icon(ic, 19) }}</span></summary>
           <div class="pickgrid" data-key="{{ key }}" data-cur="{{ ic }}"></div>
         </details>
         <span class="nt">{{ nav_extra[key].name if key in nav_extra else _('tab.' ~ key) }}</span>
         <label class="switch" aria-label="{{ _('nav.show') }}"><input type="checkbox" data-fn="{{ base }}/v/{{ v.slug }}/{{ ('integrations/' ~ nav_aid[key] ~ '/active') if key in nav_extra else ('modules/' ~ key) }}" checked><span></span></label>
-        <span class="mv"><button type="button" class="mvb up" aria-label="{{ _('nav.up') }}">{{ icon('chevron', 18) }}</button><button type="button" class="mvb down" aria-label="{{ _('nav.down') }}">{{ icon('chevron', 18) }}</button></span>
       </li>
       {% endfor %}
-    <li class="navrow fixed navpass"><span class="mi-ic c1">{{ icon('car-front', 19) }}</span><span class="nt">{{ _('mod.edit.name') }}</span><span class="mv" aria-hidden="true"><i class="mvb up">{{ icon('chevron', 18) }}</i><i class="mvb down">{{ icon('chevron', 18) }}</i></span></li>
+    <li class="navrow fixed navpass"><span class="grip" aria-hidden="true">{{ icon('lock', 14) }}</span><span class="mi-ic c1">{{ icon('car-front', 19) }}</span><span class="nt">{{ _('mod.edit.name') }}</span></li>
     </ol>
     {% set shown = nav_order|map(attribute=0)|list %}
     {% for m, on, system_off in functions if (not on or system_off) and m.key not in shown %}
-    <div class="navrow off-row"><span class="mi-ic {{ chips.get(m.key, 'c5') }}">{{ icon(module_icon.get(m.key, 'car'), 19) }}</span>
+    <div class="navrow off-row"><span class="grip" aria-hidden="true"></span><span class="mi-ic {{ chips.get(m.key, 'c5') }}">{{ icon(module_icon.get(m.key, 'car'), 19) }}</span>
       <span class="nt">{{ _('mod.' ~ m.key ~ '.name') }}{% if system_off %}<small>{{ _('addon.system_off') }}</small>{% endif %}</span>
       <label class="switch" aria-label="{{ _('nav.show') }}"><input type="checkbox" data-fn="{{ base }}/v/{{ v.slug }}/modules/{{ m.key }}" {{ 'disabled' if system_off }}><span></span></label></div>
     {% endfor %}
     {% for a in items if (('x-' ~ a.addon_id) not in shown) %}
-    <div class="navrow {{ 'off-row' if not a.active or a.missing }}"><span class="mi-ic c4">{{ icon(a.m.icon or 'puzzle', 19) }}</span>
+    <div class="navrow {{ 'off-row' if not a.active or a.missing }}"><span class="grip" aria-hidden="true"></span><span class="mi-ic c4">{{ icon(a.m.icon or 'puzzle', 19) }}</span>
       <span class="nt">{{ a.m.name }}{% if a.missing %}<small>{{ _('addon.needs') }}</small>{% endif %}</span>
       <label class="switch" aria-label="{{ a.m.name }}"><input type="checkbox" data-fn="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/active" {{ 'checked' if a.active and not a.missing }} {{ 'disabled' if a.missing }}><span></span></label></div>
     {% endfor %}
     {% for ic, key in (('puzzle', 'addon.integrations'), ('plug', 'addon.plugins')) %}
-    <div class="navrow fixed"><span class="mi-ic c4">{{ icon(ic, 19) }}</span><span class="nt">{{ _(key) }}</span>
-      <span class="mv" aria-hidden="true"><i class="mvb up">{{ icon('chevron', 18) }}</i><i class="mvb down">{{ icon('chevron', 18) }}</i></span></div>
+    <div class="navrow fixed"><span class="grip" aria-hidden="true">{{ icon('lock', 14) }}</span><span class="mi-ic c4">{{ icon(ic, 19) }}</span><span class="nt">{{ _(key) }}</span></div>
     {% endfor %}
     <p class="navset-hint">{{ icon('lock', 14) }} {{ _('int.nav_fixed') }}</p>
     <div class="actions"><button name="reset" value="1" type="submit" formnovalidate>{{ _('nav.reset') }}</button></div>

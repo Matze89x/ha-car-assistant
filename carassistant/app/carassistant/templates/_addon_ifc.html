@@ -1,26 +1,9 @@
 {% from "_macros.html" import icon with context %}
-{% from "_addon_files.html" import file_rows with context %}
 <section class="card">
   <h2>{{ icon('swap-vertical', 20) }} {{ _('ifc.title') }}</h2>
   <p class="hint">{{ _('ifc.intro') }}</p>
-  {% if data.docs_parts %}<p class="ifc-docs">{% for p in data.docs_parts %}{% if p.file %}{% if p.file.href %}<a href="{{ base }}{{ p.file.href }}" download>{{ p.file.label }}</a>{% else %}{{ p.file.label }}{% endif %}{% else %}{{ p.text }}{% endif %}{% endfor %}</p>{% endif %}
+  {% if data.docs_parts %}<p class="ifc-docs">{% for p in data.docs_parts %}{% if p.file %}{{ p.file.label }}{% else %}{{ p.text }}{% endif %}{% endfor %}</p>{% endif %}
 </section>
-{% if addon.m.downloads %}
-<section class="card">
-  <h2>{{ icon('download', 20) }} {{ _('dl.title') }}</h2>
-  <p class="hint">{{ _('dl.hint') }}</p>
-  <div class="actions pk-actions">{% for d in addon.m.downloads %}<a class="button pk-btn" href="{{ base }}{{ d.path }}" download>{{ icon('download', 18) }}<span>{{ d.label }}</span></a>{% endfor %}</div>
-  {% for d in addon.m.downloads if d.note %}<p class="hint"><b>{{ d.label }}</b> - {{ d.note }}</p>{% endfor %}
-</section>
-{% endif %}
-{% if data.files %}
-<section class="card">
-  <h2>{{ icon('download', 20) }} {{ _('fil.title') }}</h2>
-  <p class="hint">{{ _('fil.hint') }}</p>
-  {% if not data.files_offered %}<p class="flash err">{{ _('fil.not_approved') }}{% if addon.pkgfiles %} <a href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service">{{ _('svc.review') }}</a>{% endif %}</p>{% endif %}
-  {{ file_rows(data.files) }}
-</section>
-{% endif %}
 {% set GROUPS = [('sends', _('ifc.sends'), _('ifc.sends_hint')), ('reads', _('ifc.reads'), _('ifc.reads_hint')), ('offers', _('ifc.offers'), _('ifc.offers_hint'))] %}
 {% set any_rows = data.rows.sends or data.rows.reads or data.rows.offers %}
 {% if not any_rows %}<p class="hint">{{ _('ifc.none') }}</p>{% endif %}

@@ -142,7 +142,7 @@ A plugin that logs in to a web service keeps the credentials in its settings (a 
 
 ## Settings page
 
-*Manage* shows each plugin as a tile with ONE line of buttons at the bottom: *Start / Stop*, *Info* (overview, interfaces, files, the log and the debug switch on one page) and *Settings*, and on the right the one main action: *Update* when a newer version is offered (the version stands as a badge in the head), otherwise *Open* for a plugin with a page. **Remembering the token (always on):** the token of a plugin with a connection file is also kept **encrypted** (the key lies in `secret.key` in the data folder), and the guide offers *Use the saved token* instead of asking again. It is shown only to an administrator in that guide, never in a log. Backups carry the kept token so it works after a restore on another system (the key is not in the file): treat a backup file as private like the tokens themselves. The set-up guide (when the plugin brings one), *Show in the bar* and *Uninstall* are on the settings page. *Settings* opens a **page of its own** (Back leads to *Manage*) with everything the user can change: the fields from `settings` in the `plugin.json`, and the connection token (*New token*). Nothing is saved before *Save*; wrong entries are named and nothing is saved until they are fixed. It works like the settings of Home Assistant: you describe the options as JSON, the app turns them into switches, choices, sliders and so on.
+*Manage* shows each plugin as a tile with ONE line of buttons at the bottom: *Start / Stop*, *Info* (overview, interfaces, the log and the debug switch on one page) and *Settings*, and on the right the one main action: *Update* when a newer version is offered (the version stands as a badge in the head), otherwise *Open* for a plugin with a page. **Remembering the token (always on):** the token of a plugin with a connection file is also kept **encrypted** (the key lies in `secret.key` in the data folder), and the guide offers *Use the saved token* instead of asking again. It is shown only to an administrator in that guide, never in a log. Backups carry the kept token so it works after a restore on another system (the key is not in the file): treat a backup file as private like the tokens themselves. The set-up guide (when the plugin brings one), *Show in the bar* and *Uninstall* are on the settings page. *Settings* opens a **page of its own** (Back leads to *Manage*) with everything the user can change: the fields from `settings` in the `plugin.json`, and the connection token (*New token*). Nothing is saved before *Save*; wrong entries are named and nothing is saved until they are fixed. It works like the settings of Home Assistant: you describe the options as JSON, the app turns them into switches, choices, sliders and so on.
 
 | `type` | what the user sees | extra keys |
 |---|---|---|
@@ -155,16 +155,17 @@ A plugin that logs in to a web service keeps the credentials in its settings (a 
 | `select` | a dropdown | `options`: `[{"value": "eco", "label": "Economy"}]` (at most 30; a value has no comma) |
 | `radio` | choose one of a few, all visible | `options` |
 | `multiselect` | tick any of a few (checkboxes) | `options`; stored as `a,b` |
-| `list` | rows of a name and a value, add / remove, at most 30 | `name_label`, `value_label` |
+| `list` | rows of a name and a value (for example news feeds and their addresses), add / remove / move up and down, at most 30; the service gets them in the order shown as `[{"name", "value"}]` | `name_label`, `value_label` |
 | `url` | a web address (http / https), checked | `required` |
 | `email` | an e-mail address, checked | `required` |
 | `time` | a time `HH:MM` | |
 | `date` | a date `YYYY-MM-DD` | |
 | `color` | a colour picker; stored as `#rrggbb` | |
 | `section` | a heading (with `help` as text) that groups the fields below it | |
+| `tab` | a tab of the settings page: `id` (lower case, `_`), `label`, optional `icon` (an app icon) and `l10n`. Every setting after it belongs to this tab, until the next `tab`; settings before the first `tab` form the tab *General*. Without `tab` (or with only one) the page stays one list. Everything around the settings (set-up guide, files, the token and the connection file, uninstall) sits under the first tab. A tab holds no value, `show_if`, `advanced` and the key of each setting work as before | `id`, `label`, `icon` |
 | `info` | a text only (`label` bold, `help` as text), nothing stored | |
 
-Every field has `key` (lower case, `_`), `label` and an optional `help` text (shown under the field), `default` and `l10n` (translated `label` / `help`). `section` and `info` need no `key`. At most 40 fields.
+Every field has `key` (lower case, `_`), `label` and an optional `help` text (shown under the field), `default` and `l10n` (translated `label` / `help`). `section`, `info` and `tab` need no `key`. At most 40 fields and 12 tabs (tabs do not count as fields).
 
 **Conditions:** `"show_if": {"key": "mode", "equals": "custom"}` shows a field only while another setting has that value (for a switch: `"equals": true`). A hidden field is not checked and not demanded. Example:
 ```
@@ -188,6 +189,8 @@ A device in the car often needs a small file with the address, the vehicle and t
 `{vin}` is the VIN typed into the vehicle data of the car (a setting of the same name loses against it); a line without a value is left out. A **service** finds the same two values in `settings.json` as fixed keys: `external_url` (the external address, or `""`) and `vehicle_vin` (or `""`), read when the service starts - so the plugin never has to ask for them again.
 
 ### Set-up guide (`setup`)
+
+**Its name (optional):** `"setup": {"title": "Install & uninstall on the car", "l10n": {"de": {"title": "Am Auto installieren & deinstallieren"}}}` names the guide for its button on the tile, the card on the settings page and the heading of the guide. Without `title` the app's own name stays (*Set-up guide*). At most 60 characters.
 
 A plugin with a connection file can bring a guide that Car Assistant shows in **three fixed steps** (on its card under *More*: *Set-up guide*; it can be gone through again at any time):
 
@@ -261,7 +264,7 @@ plugins/index.json                    <- {"packages": [{"id": "echo-service", ..
 ```
 - `entry` - the program (a `.py` file of the package). `python` - the lowest Python version (`>=3.x`). `requirements` - names with optional versions, at most 30; no links, no options.
 - `routes` - addresses the service answers on **this app's address** (`https://<your address>/svc/...`). `public: true` = reachable **without a login** (the car sends none); `false` = only from Home Assistant. A prefix starts and ends with `/`, may not cover a page of the app (`/api/`, `/v/`, `/static/`, ...) and may not overlap another plugin's prefix. The app passes the request on **unchanged** (method, query, headers, body - also an empty one without a length and `multipart/*` - and the answer's status and content type), except cookies and authorization, which never cross. Limits: 8 MB request, 16 MB answer, 30 s.
-- `downloads` (a key of `plugin.json`, not of `service`) - files the service offers: `[{"label": "Data package", "path": "/svc/pack.zip", "note": "..."}]`, at most 10; the path must lie under one of the routes. The app shows a button on the settings page and the page *Interfaces*; the service serves the file (binary, `Content-Disposition` passes through, at most 16 MB). A public route is open to anyone, a non-public one only from Home Assistant or for a signed-in person.
+- `downloads` (a key of `plugin.json`, not of `service`) - files the service offers: `[{"label": "Data package", "path": "/svc/pack.zip", "note": "..."}]`, at most 10; the path must lie under one of the routes. The app shows a button on the plugin's tile under *Manage* (only while the plugin runs; keep it to one or two - the log of the car, for example), no longer on the settings or the info page - connection file, files and bundles are handed out by the set-up guide only; the service serves the file (binary, `Content-Disposition` passes through, at most 16 MB). A public route is open to anyone, a non-public one only from Home Assistant or for a signed-in person.
 - `connects` - optional: the hosts the service says it talks to (`api.example.com`, `*.cloud.example.org`, at most 10), shown on the approval page. It is a statement for the person who approves; the app does not block other addresses. A change needs a new approval.
 - `env` - additional environment variables; `{key}` becomes the value of that plugin setting. Names starting with `CA_`, `PYTHON`, `LD_` and a few system names are not allowed.
 
@@ -331,6 +334,6 @@ Like everything in the interface this is an addition: a plugin without `capabili
 
 One map of everything the plugins of a car do: **plugins on the left, the Plugin API in the middle, on the right the integrations** (the areas of the app and the installed integrations) where the information lands. Each plugin has its own colour; one line per plugin and area (solid = the plugin **sends**, *set*; dashed = it **reads**, *get*); a green dot means "just now", yellow "a long time ago". Every area carries a short explanation of where the information goes there (and whether it also goes to Home Assistant as sensors).
 
-Click a plugin, an integration or a line: the signals appear below with the **last value, its time and the last ten values**; a click on a signal shows the **raw value**. On a phone the map becomes a list: each plugin names its integrations as chips.
+Click a plugin, an integration or a line: the signals appear below with the **last value, its time and the last ten values**; a click on a signal shows the **raw value**. On a phone the map becomes one card per plugin with a tile for each integration it talks to (the busiest first, the rest behind *+n more*); the signals open right under the card. Integrations nobody talks to are folded under *More areas*, and what an integration is for is explained in the detail you open.
 
 **Where the data comes from - nothing to do for a plugin.** The app notes every successful call of a plugin to the Plugin API *per signal* (a field of `POST /data`, a free signal, an interface such as `track`, `refuel` or a page of an integration): the direction, the area it lands in, the last raw value and time, and a history of the last **10** different values (reads keep only their time). A value is written only when it changed (or after 30 seconds), a plugin may have at most 400 signals per car, a value is cut at 2000 characters, and everything of a plugin is deleted with it. Only administrators see the values; the names and times are visible to everyone who may see the plugin. The values of earlier calls are not available: the map starts to fill when this version runs.

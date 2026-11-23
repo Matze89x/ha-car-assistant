@@ -34,14 +34,14 @@
       <span class="xr-c">{{ fnum(s.sum, 2) }} <small>{{ units.cur }}</small></span>
     </a>{% endfor %}
   </div>
-  {% else %}<p class="muted">{{ _('report.no_costs') }}</p>{% endif %}
+  {% else %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('report.no_costs') }}</p></div>{% endif %}
 </section>
 
 <section class="card">
   <h2>{{ icon('gas-station') }} {{ _('report.costs') }}</h2>
   {% if cost_chart %}{{ cost_chart|safe }}
   <div class="rp-legend">{% for n in cost_names %}<span><i class="b{{ loop.index }}"></i>{{ n }} <b>{{ fnum(cost_totals[loop.index0], 0) }} {{ units.cur }}</b></span>{% endfor %}</div>
-  {% else %}<p class="muted">{{ _('report.no_costs') }}</p>{% endif %}
+  {% else %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('report.no_costs') }}</p></div>{% endif %}
 </section>
 
 <section class="card" id="rp-list">
@@ -60,7 +60,7 @@
       <span class="xr-c">{{ fnum(e.cost, 2) }} <small>{{ units.cur }}</small></span>
     </a>{% endfor %}
   </div>
-  {% else %}<p class="muted">{{ _('report.no_list') }}</p>{% endfor %}
+  {% else %}<div class="empty-state">{{ icon('list', 32) }}<p>{{ _('report.no_list') }}</p></div>{% endfor %}
 </section>
 
 <section class="card">
@@ -70,17 +70,17 @@
     <div class="tile"><span class="label">{{ _('report.last') }}</span><span class="value">{{ fnum(stats.last_per_100, 1) if stats.last_per_100 else '–' }} <small>{{ units.consumption_unit(unit) }}</small></span></div>
     <div class="tile"><span class="label">{{ _('report.cost100') }}</span><span class="value">{{ fnum(stats.cost_per_100, 2) if stats.cost_per_100 else '–' }} <small>{{ units.cur }}</small></span></div>
   </div>
-  {% if chart %}{{ chart|safe }}<div class="rp-legend"><span><i class="ln"></i>{{ _('report.interval') }}</span><span><i class="tr"></i>{{ _('report.trend') }}</span></div>{% else %}<p class="muted">{{ _('report.need_data') }}</p>{% endif %}
+  {% if chart %}{{ chart|safe }}<div class="rp-legend"><span><i class="ln"></i>{{ _('report.interval') }}</span><span><i class="tr"></i>{{ _('report.trend') }}</span></div>{% else %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('report.need_data') }}</p></div>{% endif %}
 </section>
 
 <section class="card">
   <h2>{{ icon('gas-station') }} {{ _('report.price') }}</h2>
-  {% if price_chart %}{{ price_chart|safe }}<div class="rp-legend"><span><i class="ln"></i>{{ _('report.price_unit') }}</span><span><i class="tr"></i>{{ _('report.trend') }}</span></div>{% else %}<p class="muted">{{ _('report.no_price') }}</p>{% endif %}
+  {% if price_chart %}{{ price_chart|safe }}<div class="rp-legend"><span><i class="ln"></i>{{ _('report.price_unit') }}</span><span><i class="tr"></i>{{ _('report.trend') }}</span></div>{% else %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('report.no_price') }}</p></div>{% endif %}
 </section>
 
 <section class="card">
   <h2>{{ icon('speedometer') }} {{ _('report.km_title') }}{% if km_chart %} <small class="muted">{{ fnum(km_total, 0) }} {{ units.dist_unit }}</small>{% endif %}</h2>
-  {% if km_chart %}{{ km_chart|safe }}{% else %}<p class="muted">{{ _('report.no_km') }}</p>{% endif %}
+  {% if km_chart %}{{ km_chart|safe }}{% else %}<div class="empty-state">{{ icon('speedometer', 32) }}<p>{{ _('report.no_km') }}</p></div>{% endif %}
 </section>
 
 <section class="card">
@@ -93,7 +93,7 @@
       <span class="mr-v"><i>{{ fnum(m.spent, 2) if m.spent else '–' }}</i><small>{{ units.cur }}</small></span></div>
   {% endmacro %}
   <div class="mlist">{% for m in months %}{{ mrow(m) }}{% endfor %}</div>
-  {% else %}<p class="muted">{{ _('report.need_data') }}</p>{% endif %}
+  {% else %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('report.need_data') }}</p></div>{% endif %}
   <p class="hint">{{ _('report.method') }}</p>
 </section>
 {% endblock %}

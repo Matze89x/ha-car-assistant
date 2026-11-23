@@ -3,7 +3,7 @@
 {% from "_addon_files.html" import file_rows with context %}
 {% from "_addon_fields.html" import addon_field with context %}
 {% block content %}
-{{ page_head(addon.m.icon or 'plug', _('guide.title') ~ ' · ' ~ addon.m.name) }}
+{{ page_head(addon.m.icon or 'plug', (addon.m.setup.title or _('guide.title')) ~ ' · ' ~ addon.m.name) }}
 {% set base_url = base ~ '/v/' ~ v.slug ~ '/integrations/' ~ addon.id %}
 <ol class="guide-bar">
   <li class="{{ 'cur' if step == 1 }}{{ ' done' if step > 1 }}"><span class="gnum">1</span><b>{{ _('guide.s1') }}</b></li>

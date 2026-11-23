@@ -129,17 +129,4 @@ def save_item(conn: sqlite3.Connection, vehicle_id: int, item_id: int, form: dic
     )
 
 
-def move_category(conn: sqlite3.Connection, vehicle_id: int, category: str, direction: str) -> None:
-    """Move a category one place up or down."""
-    seq = order(conn, vehicle_id)
-    if category not in seq:
-        return
-    i = seq.index(category)
-    j = i - 1 if direction == "up" else i + 1
-    if not 0 <= j < len(seq):
-        return
-    seq[i], seq[j] = seq[j], seq[i]
-    db.set_setting(conn, f"{ORDER_SETTING}.{vehicle_id}", json.dumps(seq))
-
-
 _ = icons  # the icon names of CATEGORIES are checked by the tests

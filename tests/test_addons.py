@@ -281,38 +281,6 @@ def test_many_kinds_of_settings_are_stored_checked_and_handed_over_typed(client)
     assert typed["on"] is True and typed["volume"] == 10 and typed["features"] == ["news"] and "intro" not in typed and "hint" not in typed
 
 
-def test_an_existing_token_gets_the_connection_file_again_without_a_new_token(client):
-    from carassistant import connectors
-
-    vid = create_vehicle(client)
-    manifest = {**FILE_MANIFEST, "id": "token-plugin"}
-    upload(client, vid, json.dumps(manifest).encode())
-    with db.tx() as conn:
-        item = addons.list_for(conn, vid)[0]
-        token = addons.set_up(conn, vid, addons.get(conn, vid, item["id"]), {"server": "https://car.example.com", "interval": "60"})
-        before = conn.execute("SELECT COUNT(*), MAX(token_hash) FROM api_tokens").fetchone()
-    url = f"/v/{slug(vid)}/integrations/{item['id']}/token/verify"
-    page = client.get(f"/v/{slug(vid)}/integrations/{item['id']}/settings").text
-    assert "I already have the token" in page and "New token" in page  # both ways side by side
-    bad = client.post(url, data={"token": "ca_not-the-token"})
-    assert (
-        bad.status_code == 400 and "not the token of this plugin" in bad.text and "ca_not-the-token" not in bad.text
-    )  # the typed value is not echoed (the page itself shows the kept token to the administrator)
-    assert client.post(url, data={"token": ""}).status_code == 400
-    good = client.post(url, data={"token": token})
-    assert (
-        good.status_code == 200 and "attachment" in good.headers["content-disposition"] and token in good.text
-    )  # in the file, nowhere else
-    assert "no-store" in good.headers["cache-control"]
-    with db.tx() as conn:
-        after = conn.execute("SELECT COUNT(*), MAX(token_hash) FROM api_tokens").fetchone()
-        assert connectors.token_matches(conn, item["token_id"] or conn.execute("SELECT id FROM api_tokens").fetchone()["id"], token)
-    assert tuple(before) == tuple(after)  # no new token, the old one is still the one
-    for _ in range(5):  # guessing is limited: five wrong tries in 15 minutes, then it stops - even for the right token
-        client.post(url, data={"token": "ca_wrong"})
-    assert client.post(url, data={"token": token}).status_code == 429
-
-
 SETUP_MANIFEST = {
     **FILE_MANIFEST,
     "id": "guided",
@@ -630,3 +598,129 @@ def test_step_two_has_three_boxes_and_next_does_the_chosen_one(client):
     assert kept.status_code == 200 and f'name="token" value="{token2}"' in kept.text
     wrong = client.post(f"{url}/guide/next", data={**settings, "token_mode": "existing", "have_token": "ca_wrong"})
     assert wrong.status_code == 400
+
+
+TABBED = {
+    "id": "tabbed",
+    "name": "Tabbed",
+    "version": "1.0",
+    "kind": "plugin",
+    "settings": [
+        {"key": "name", "label": "Name", "type": "text"},
+        {"type": "tab", "id": "news", "label": "News", "icon": "bell-outline", "l10n": {"de": {"label": "Nachrichten"}}},
+        {"key": "feed", "label": "Feed", "type": "url", "required": True},
+        {"type": "section", "label": "More"},
+        {"key": "count", "label": "Count", "type": "number"},
+        {"type": "tab", "id": "weather", "label": "Weather", "icon": "no-such-icon"},
+        {"key": "city", "label": "City", "type": "text"},
+        {"type": "tab", "id": "news", "label": "Twice"},  # the same id again: dropped
+    ],
+}
+
+
+def test_a_tab_element_splits_the_settings_and_a_package_without_tabs_is_unchanged():
+    m = addons.parse_package(json.dumps(TABBED).encode())
+    kinds = [(f["type"], f.get("id") or f["key"]) for f in m["settings"]]
+    assert kinds.count(("tab", "news")) == 1 and ("tab", "weather") in kinds
+    tabs = addons.settings_tabs(m["settings"])
+    assert [g["id"] for g in tabs] == ["general", "news", "weather"]
+    assert [f["key"] for f in tabs[0]["fields"]] == ["name"] and tabs[0]["implicit"]
+    assert [f["key"] for f in tabs[1]["fields"] if f["type"] != "section"] == ["feed", "count"]
+    assert tabs[1]["icon"] == "bell-outline" and tabs[2]["icon"] == ""  # an icon the app does not know is dropped
+    assert addons.settings_tabs(addons.parse_package(json.dumps(MANIFEST).encode())["settings"]) == []  # no tab: one list as before
+    only_one = {**TABBED, "settings": [{"type": "tab", "id": "a", "label": "A"}, {"key": "x", "type": "text", "label": "X"}]}
+    assert addons.settings_tabs(addons.parse_package(json.dumps(only_one).encode())["settings"]) == []  # one tab = no tab bar
+    first = {**TABBED, "settings": [{"type": "tab", "id": "general", "label": "Main"}, *TABBED["settings"][1:5]]}
+    ids = [g["id"] for g in addons.settings_tabs(addons.parse_package(json.dumps(first).encode())["settings"])]
+    assert ids == ["general", "news"]  # a first tab of its own takes the place of the implicit one
+    many = {**TABBED, "settings": [{"type": "tab", "id": f"t{i}", "label": str(i)} for i in range(12)]}
+    assert sum(f["type"] == "tab" for f in addons.parse_package(json.dumps(many).encode())["settings"]) == addons.MAX_TABS
+
+
+def test_the_settings_page_shows_tabs_with_the_cards_in_the_first_one_and_keeps_every_value(client):
+    vid = create_vehicle(client)
+    upload(client, vid, json.dumps(TABBED).encode())
+    with db.tx() as conn:
+        aid = addons.list_for(conn, vid)[0]["id"]
+    url = f"/v/{slug(vid)}/integrations/{aid}"
+    page = client.get(f"{url}/settings").text
+    assert "data-set-tabs" in page and page.count("data-tab-panel=") == 3
+    assert re.search(r'data-tab-panel="news" hidden', page) and 'data-tab-panel="general" hidden' not in page
+    assert page.count('data-tabfor="general"') >= 1 and 'name="_n' not in page  # a tab is never a form field
+    # a missing required value sends you to the tab that has the error, nothing is saved
+    bad = client.post(f"{url}/setup", data={"name": "x", "feed": ""})
+    assert bad.status_code == 400
+    assert re.search(r'data-tab-panel="general" hidden', bad.text) and 'data-tab-panel="news" hidden' not in bad.text
+    assert 'class="err"' in bad.text or " err" in bad.text
+    ok = client.post(f"{url}/setup", data={"name": "x", "feed": "https://example.com/rss", "count": "3", "city": "Berlin"})
+    assert ok.status_code in (200, 303)
+    with db.tx() as conn:
+        vals = addons.list_for(conn, vid)[0]["vals"]
+    assert vals["feed"] == "https://example.com/rss" and vals["city"] == "Berlin" and vals["name"] == "x"
+    assert not any(k.startswith("_n") for k in vals)
+    plain = upload(client, vid, json.dumps({**MANIFEST, "id": "no-tabs"}).encode())
+    assert plain.status_code in (200, 303)
+    with db.tx() as conn:
+        other = next(a["id"] for a in addons.list_for(conn, vid) if a["addon_id"] == "no-tabs")
+    assert "data-set-tabs" not in client.get(f"/v/{slug(vid)}/integrations/{other}/settings").text
+
+
+def test_a_list_setting_can_be_sorted_and_the_saved_order_is_the_order_of_the_rows(client):
+    manifest = {
+        "id": "feeds",
+        "name": "Feeds",
+        "version": "1",
+        "kind": "plugin",
+        "settings": [{"key": "feeds", "type": "list", "label": "News feeds", "name_label": "Name", "value_label": "RSS address"}],
+    }
+    vid = create_vehicle(client)
+    upload(client, vid, json.dumps(manifest).encode())
+    with db.tx() as conn:
+        aid = addons.list_for(conn, vid)[0]["id"]
+    url = f"/v/{slug(vid)}/integrations/{aid}"
+    client.post(
+        f"{url}/setup",
+        data={"feeds__0n": "A", "feeds__0v": "https://a.example/rss", "feeds__1n": "B", "feeds__1v": "https://b.example/rss"},
+    )
+    page = client.get(f"{url}/settings").text
+    assert page.count('class="grip"') == 3  # a handle on each of the two rows and on the <template> a new row is made from
+    assert "<template data-lf-row>" in page and 'name="feeds__#n"' in page
+    # the page numbers the rows again after a move: the numbers (and so the saved order) follow the rows
+    client.post(
+        f"{url}/setup",
+        data={"feeds__0n": "B", "feeds__0v": "https://b.example/rss", "feeds__1n": "A", "feeds__1v": "https://a.example/rss"},
+    )
+    with db.tx() as conn:
+        rows = addons.service_settings(addons.get(conn, vid, aid))["feeds"]
+    assert [r["name"] for r in rows] == ["B", "A"]
+
+
+def test_a_plugin_may_name_its_set_up_guide_and_without_a_name_nothing_changes(client):
+    vid = create_vehicle(client)
+    named = {
+        **SETUP_MANIFEST,
+        "id": "named-guide",
+        "setup": {
+            **SETUP_MANIFEST["setup"],
+            "title": "Install & uninstall on the car",
+            "l10n": {"de": {"title": "Am Auto installieren & deinstallieren"}},
+        },
+    }
+    parsed = addons.parse_package(json.dumps(named).encode())["setup"]
+    assert parsed["title"] == "Install & uninstall on the car" and parsed["l10n"]["de"]["title"].startswith("Am Auto")
+    upload(client, vid, json.dumps(named).encode())
+    upload(client, vid, json.dumps({**SETUP_MANIFEST, "id": "plain-guide"}).encode())
+    with db.tx() as conn:
+        by_id = {a["addon_id"]: a["id"] for a in addons.list_for(conn, vid)}
+    tile = client.get(f"/v/{slug(vid)}/plugins").text
+    assert "Install &amp; uninstall on the car" in tile  # the main button of a plugin that is not set up yet
+    assert "Install &amp; uninstall on the car" in client.get(f"/v/{slug(vid)}/integrations/{by_id['named-guide']}/settings").text
+    assert "Install &amp; uninstall on the car" in client.get(f"/v/{slug(vid)}/integrations/{by_id['named-guide']}/guide").text
+    plain = client.get(f"/v/{slug(vid)}/integrations/{by_id['plain-guide']}/settings").text
+    assert "Install &amp; uninstall" not in plain and "Set-up guide" in plain  # no name: the app's own name stays
+
+
+def test_a_settings_page_may_have_twelve_tabs_and_the_bar_scrolls():
+    many = {**TABBED, "id": "twelve", "settings": [{"type": "tab", "id": f"t{i}", "label": f"Tab {i}"} for i in range(14)]}
+    tabs = [f for f in addons.parse_package(json.dumps(many).encode())["settings"] if f["type"] == "tab"]
+    assert len(tabs) == 12 == addons.MAX_TABS

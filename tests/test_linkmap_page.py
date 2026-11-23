@@ -105,3 +105,20 @@ def test_a_hundred_connections_stay_light(world):
         assert (
             c.execute("SELECT COUNT(*) FROM signal_history").fetchone()[0] <= 800 * linkmap.HISTORY
         )  # a bounded history, never a growing log
+
+
+def test_the_page_is_calm_tiles_for_the_phone_the_unconnected_areas_folded_and_the_explanations_only_in_the_detail(world):
+    with db.tx() as c:
+        _plugin(c, "p-one", "Plugin One", "car")
+        _call(c, "p-one", "POST", "data", {"ignition": True, "tyre_pressure_bar": {"fl": 2.4}})
+    html = world.get("/v/1/plugins/connections").text
+    assert 'class="lm-tiles"' in html and 'class="lm-tile"' in html and 'data-area="dashboard"' in html  # the phone shows a card with tiles
+    assert "lm-intro" not in html and html.count("lm-legend") == 1  # no introduction card: one line and a thin legend
+    assert 'class="lm-rest"' not in html  # nothing to fold yet: the areas nobody uses are not drawn at all
+    with db.tx() as c:
+        c.execute(
+            "INSERT INTO vehicle_addons(vehicle_id, kind, addon_id, manifest, status, active, created_at) VALUES(1, 'integration', 'quiet-int', ?, 'configured', 1, datetime('now'))",
+            ('{"id": "quiet-int", "kind": "integration", "name": "Quiet", "icon": "puzzle", "version": "1"}',),
+        )
+    html = world.get("/v/1/plugins/connections").text
+    assert 'class="lm-rest"' in html and "More areas (1)" in html  # an integration nobody talks to is folded under one line

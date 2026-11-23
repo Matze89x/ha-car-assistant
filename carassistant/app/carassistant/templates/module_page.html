@@ -39,10 +39,10 @@
 </div>
 {% endif %}
 {% if view %}
-<div class="eq-wrap pm-wrap" id="pm-list">
+<div class="eq-wrap pm-wrap" id="pm-list"{% if page.sortable %} data-sortable data-sort-post="{{ base }}{{ base_url }}/order"{% endif %}>
   {% for r in view %}
-  <details class="eq pm-unit" data-q="{{ r.q }}" data-changed="{{ 1 if r.changed else 0 }}" {{ 'open' if edit_id == r.id or reveal == r.id }}>
-    <summary>{% if r.badge %}<span class="pm-badge">{{ r.badge }}</span>{% endif %}
+  <details class="eq pm-unit" data-q="{{ r.q }}" data-changed="{{ 1 if r.changed else 0 }}" {{ 'open' if edit_id == r.id or reveal == r.id }}{% if page.sortable %} data-sort-item data-sort-id="{{ r.id }}"{% endif %}>
+    <summary>{% if page.sortable %}<button type="button" class="grip" aria-label="{{ _('sort.handle') }}" title="{{ _('sort.handle') }}">{{ icon('drag-vertical', 20) }}</button>{% endif %}{% if r.badge %}<span class="pm-badge">{{ r.badge }}</span>{% endif %}
       <span class="eq-t pm-t"><b>{{ r.title }}</b>{% if r.subtitle %}<small>{{ r.subtitle }}</small>{% endif %}</span>
       {% if r.diffs %}<span class="eq-n pm-cnt{{ ' on' if r.changed }}">{{ r.changed }} B</span>{% endif %}
       {{ icon('chevron-down', 18) }}</summary>
@@ -100,9 +100,7 @@
         <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
           {% if has_compare %}<button class="ghost-btn small" name="same_as_old" value="1" formnovalidate>{{ icon('swap', 16) }}<span>{{ _('pm.same_as_old') }}</span></button>{% endif %}</div>
       </form>
-      {% if page.sortable %}<div class="eq-acts pm-sort">
-        <form method="post" action="{{ base }}{{ base_url }}/{{ r.id }}/move"><input type="hidden" name="way" value="up"><button class="ghost-btn small" aria-label="{{ _('nav.up') }}" {{ 'disabled' if loop.first }}>{{ icon('chevron-up', 16) }}</button></form>
-        <form method="post" action="{{ base }}{{ base_url }}/{{ r.id }}/move"><input type="hidden" name="way" value="down"><button class="ghost-btn small" aria-label="{{ _('nav.down') }}" {{ 'disabled' if loop.last }}>{{ icon('chevron-down', 16) }}</button></form></div>{% endif %}
+
     </div>
   </details>
   {% endfor %}

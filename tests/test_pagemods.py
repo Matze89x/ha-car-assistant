@@ -83,6 +83,26 @@ def test_entries_original_is_written_once_and_bytes_are_compared(client):
         assert pagemods.rows(conn, vid, "coding-demo", "units") == []
 
 
+def test_the_entries_of_a_sortable_page_are_put_in_order_with_the_handle(client):
+    vid, slug = _car(client)
+    pkg = {**PKG, "id": "sorted-demo", "pages": [{**PKG["pages"][0], "sortable": True}]}
+    _install(client, vid, pkg)
+    base = f"/v/{slug}/m/sorted-demo/units"
+    for name, addr in (("A", "01"), ("B", "02"), ("C", "03")):
+        client.post(base, data={"addr": addr, "name": name})
+    with db.tx() as conn:
+        ids = [r["id"] for r in pagemods.rows(conn, vid, "sorted-demo", "units")]
+    page = client.get(base).text
+    assert page.count('class="grip"') == 3 and f'data-sort-post="{base}/order"' in page
+    assert all(f'data-sort-id="{i}"' in page for i in ids)
+    r = client.post(f"{base}/order", data={"order": f"{ids[2]},{ids[0]},99999"})  # C, A first; B follows; an unknown id is ignored
+    assert r.status_code == 200 and r.json() == {"ok": True}
+    with db.tx() as conn:
+        assert [r["id"] for r in pagemods.rows(conn, vid, "sorted-demo", "units")] == [ids[2], ids[0], ids[1]]
+    plain = client.get(f"/v/{slug}/m/coding-demo/units").text
+    assert 'class="grip"' not in plain and "data-sort-post" not in plain  # a page that is not sortable has no handle
+
+
 def test_order_can_be_changed_and_entries_survive_a_vehicle_backup_roundtrip():
     from carassistant import db as _db  # noqa: F401
 

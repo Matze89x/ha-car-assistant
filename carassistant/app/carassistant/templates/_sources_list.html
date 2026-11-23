@@ -1,10 +1,13 @@
 {% from "_macros.html" import form_bar, icon with context %}
 <p class="hint">{{ _('src.intro') }}</p>
-<div class="pk-grid">
+<div class="pk-grid one">
 {% for r in rows %}
-<section class="card pk-tile srcbox">
-  <div class="pk-head"><span class="mi-ic c{{ loop.index0 % 4 + 1 }} pk-ic">{{ icon('download', 26) }}</span>
-    <span class="pk-t"><b>{{ r.name }}{% if r.is_default %} <span class="badge">{{ _('src.default') }}</span>{% endif %}</b><small class="pk-src">{{ r.url }}</small></span></div>
+<section class="card addon srcbox">
+  <div class="addon-head">
+    <span class="mi-ic c{{ loop.index0 % 4 + 1 }}">{{ icon('database', 20) }}</span>
+    <div class="addon-t"><h2>{{ r.name }}</h2><small class="pk-src">{{ r.url }}</small></div>
+    {% if r.is_default %}<span class="run-pill"><i></i>{{ _('src.default') }}</span>{% endif %}
+  </div>
   <p class="src-state">
     {% if r.error %}<span class="badge overdue">{{ _(r.error) }}</span>
     {% elif r.checked_at %}<span class="badge ok">{{ (_('src.packages_plugin', n=r.n_packages) if kind == 'plugin' else _('src.packages_integration', n=r.n_packages)) }}</span> <small class="muted">{{ _('src.checked', when=fdate(r.checked_at) ~ ' ' ~ r.checked_at[11:16]) }}</small>
@@ -12,13 +15,14 @@
     {% if r.has_token %}<span class="badge">{{ icon('lock', 12) }} {{ _('src.key_set') }}</span>{% endif %}
     {% if r.n_installed %}<span class="badge">{{ _('src.installed_n', n=r.n_installed) }}</span>{% endif %}
   </p>
-  {% for n in r.notes %}<p class="hint">{{ icon('alert', 14) }} {% set kn = _('src.kind_integration') if n.kind == 'integration' else (_('src.kind_plugin') if n.kind == 'plugin' else _('src.kind_vehicle')) %}{{ _('src.note_id', id=n.id, kind=kn) if n.why == 'id' else (_('src.note_none', kind=kn) if n.why == 'none' else _('src.note_shape', kind=kn)) }}</p>{% endfor %}
-  <div class="actions pk-foot">
-    {% if vid %}<a class="button small" href="{{ base }}/v/{{ vid }}/{{ kind }}s/sources/{{ r.id }}/key">{{ icon('lock', 16) }} {{ _('src.key_change') }}</a>
-    {% else %}<button type="button" class="small" data-open="skey-dlg-{{ r.id }}">{{ icon('lock', 16) }} {{ _('src.key_change') }}</button>{% endif %}
-    {% if r.n_installed %}<span class="hint">{{ _('src.keep_hint') }}</span>
-    {% else %}<form method="post" action="{{ base }}/sources/{{ r.id }}/delete" class="inline" data-confirm="{{ _('src.confirm_delete') }}"><input type="hidden" name="kind" value="{{ kind }}">{% if vid %}<input type="hidden" name="vid" value="{{ vid }}">{% endif %}<button class="danger small">{{ icon('delete', 16) }} {{ _('btn.delete') }}</button></form>{% endif %}
+  {% for n in r.notes %}<p class="addon-status err">{{ icon('alert', 16) }}<span>{% set kn = _('src.kind_integration') if n.kind == 'integration' else (_('src.kind_plugin') if n.kind == 'plugin' else _('src.kind_vehicle')) %}{{ _('src.note_id', id=n.id, kind=kn) if n.why == 'id' else (_('src.note_none', kind=kn) if n.why == 'none' else _('src.note_shape', kind=kn)) }}</span></p>{% endfor %}
+  {% if r.n_installed %}<p class="addon-status">{{ icon('info', 16) }}<span>{{ _('src.keep_hint') }}</span></p>{% endif %}
+  <div class="addon-bar">
+    {% if not r.n_installed %}<button class="danger lite-lbl" form="sdel-{{ r.id }}" aria-label="{{ _('btn.delete') }}" title="{{ _('btn.delete') }}">{{ icon('delete', 18) }}<span class="lbl2">{{ _('btn.delete') }}</span></button>{% endif %}
+    {% if vid %}<a class="button lite-lbl" href="{{ base }}/v/{{ vid }}/{{ kind }}s/sources/{{ r.id }}/key" aria-label="{{ _('src.key_change') }}" title="{{ _('src.key_change') }}">{{ icon('lock', 18) }}<span class="lbl2">{{ _('src.key_change') }}</span></a>
+    {% else %}<button type="button" class="lite-lbl" data-open="skey-dlg-{{ r.id }}" aria-label="{{ _('src.key_change') }}" title="{{ _('src.key_change') }}">{{ icon('lock', 18) }}<span class="lbl2">{{ _('src.key_change') }}</span></button>{% endif %}
   </div>
+  {% if not r.n_installed %}<form method="post" action="{{ base }}/sources/{{ r.id }}/delete" id="sdel-{{ r.id }}" data-confirm="{{ _('src.confirm_delete') }}" hidden><input type="hidden" name="kind" value="{{ kind }}">{% if vid %}<input type="hidden" name="vid" value="{{ vid }}">{% endif %}</form>{% endif %}
   {% if not vid %}<dialog id="skey-dlg-{{ r.id }}" class="vsw addon-dlg" aria-label="{{ _('src.key_change') }}">
     <div class="vsw-head"><h2>{{ icon('lock', 20) }} {{ r.name }}</h2><button type="button" class="vsw-x" data-close aria-label="{{ _('btn.close') }}">{{ icon('close', 20) }}</button></div>
     <div class="addon-dlg-body">
