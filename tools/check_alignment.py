@@ -58,6 +58,28 @@ def _seed(data: Path, lang: str = "en") -> None:
     subprocess.run([sys.executable, "-c", code], check=True, env=env, capture_output=True, timeout=120)  # noqa: S603
 
 
+def page_list(b, base: str, ms) -> list[str]:
+    """Every page of the More list of a car with much data and of one with little, plus the pages that are not in the list (settings, plugins ...)."""
+    pages: list[str] = []
+    for car in (ms.DIESEL, ms.COMPACT):  # a car with much data and one with little
+        b.open(f"{base}/v/{car}/more", 1200, 900, 1, settle=2.0)
+        pages += json.loads(b.run("JSON.stringify(Array.prototype.map.call(document.querySelectorAll('.more-pane a.mi[href]'), function (a) { return a.getAttribute('href'); }))"))
+    return pages + [
+        "/about",
+        "/vehicles",
+        "/settings/user",
+        "/settings/system",
+        f"/settings/car?car={ms.DIESEL}",
+        f"/v/{ms.DIESEL}/edit",
+        f"/v/{ms.DIESEL}/docs?m=err.required",  # a message above the page
+        f"/v/{ms.DIESEL}/plugins/connections",
+        f"/v/{ms.DIESEL}/plugins/add",
+        f"/v/{ms.DIESEL}/plugins/sources",
+        f"/v/{ms.DIESEL}/integrations/add",
+        f"/v/{ms.DIESEL}/integrations/sources",
+    ]
+
+
 def run(widths: tuple[int, ...] = (1000, 1200, 1440)) -> list[str]:
     """The pages that start off the line of the More list: ``["/about at 1200 px: 13.6 px lower (section.card.about-hero)", ...]``."""
     import make_screenshots as ms
@@ -75,24 +97,7 @@ def run(widths: tuple[int, ...] = (1000, 1200, 1440)) -> list[str]:
             base = f"http://127.0.0.1:{port}"
             ms.wait_for(base + "/healthz")
             with Browser() as b:
-                pages: list[str] = []
-                for car in (ms.DIESEL, ms.COMPACT):  # a car with much data and one with little
-                    b.open(f"{base}/v/{car}/more", 1200, 900, 1, settle=2.0)
-                    pages += json.loads(b.run("JSON.stringify(Array.prototype.map.call(document.querySelectorAll('.more-pane a.mi[href]'), function (a) { return a.getAttribute('href'); }))"))
-                pages += [
-                    "/about",
-                    "/vehicles",
-                    "/settings/user",
-                    "/settings/system",
-                    f"/settings/car?car={ms.DIESEL}",
-                    f"/v/{ms.DIESEL}/edit",
-                    f"/v/{ms.DIESEL}/docs?m=err.required",  # a message above the page
-                    f"/v/{ms.DIESEL}/plugins/connections",
-                    f"/v/{ms.DIESEL}/plugins/add",
-                    f"/v/{ms.DIESEL}/plugins/sources",
-                    f"/v/{ms.DIESEL}/integrations/add",
-                    f"/v/{ms.DIESEL}/integrations/sources",
-                ]
+                pages = page_list(b, base, ms)
                 for width in widths:
                     gaps: dict[str, float] = {}
                     for page in dict.fromkeys(pages):

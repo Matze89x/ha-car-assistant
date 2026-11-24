@@ -19,8 +19,8 @@
   </div>
 </section>
 
+<h2 class="vd-group-h">{{ _('about.glance') }}</h2>
 <section class="card about-glance">
-  <h2>{{ _('about.glance') }}</h2>
   <div class="about-stats">
     {% for ic, val, lab in ((('database'), about.db, _('about.db')), ('docs', about.files, _('about.files')), ('garage', about.vehicles|length, _('about.vehicles')), ('list', about.entries, _('about.entries')), ('plug', about.addons, _('about.addons')), ('settings', about.schema, _('about.schema'))) %}
     <div class="about-stat"><span class="as-ic">{{ icon(ic, 18) }}</span><span class="as-t"><b>{{ val }}</b><small>{{ lab }}</small></span></div>
@@ -28,7 +28,7 @@
   </div>
 </section>
 
-<div class="mg-head"><h2>{{ _('about.built_with') }}</h2></div>
+<h2 class="vd-group-h">{{ _('about.built_with') }}</h2>
 <section class="card">
   <div class="about-chips">
     <span class="badge">Python {{ about.python }}</span>
@@ -48,7 +48,7 @@
 </section>
 </div>
 <div class="ab-col">
-<div class="mg-head"><h2>{{ _('about.installed') }}</h2></div>
+<h2 class="vd-group-h">{{ _('about.installed') }}</h2>
 {% for av in about.vehicles %}
 <section class="card about-car">
   <h3>{{ icon('garage', 18) }} <a href="{{ base }}/v/{{ av.slug }}/integrations">{{ av.name }}</a> <small>{{ _('about.car_entries', n=av.entries) }}</small></h3>
@@ -68,7 +68,7 @@
 <section class="card empty-state"><p class="hint">{{ _('about.none') }}</p></section>
 {% endfor %}
 
-<div class="mg-head"><h2>{{ _('about.services') }}</h2></div>
+<h2 class="vd-group-h">{{ _('about.services') }}</h2>
 <section class="card about-car">
   {% for g in about.global %}
   <div class="about-row">
