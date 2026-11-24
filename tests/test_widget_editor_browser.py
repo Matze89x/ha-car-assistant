@@ -72,6 +72,7 @@ def test_a_tap_beside_the_widgets_saves_and_ends_the_editing():
             url = f"{base}/v/{ms.DIESEL}"
             with Browser() as b:
                 b.open(url, 1280, 1500, 1, settle=1.5)
+                b.drain()  # from here on everything the page reports is looked at
                 before = json.loads(b.run(STATE))
                 key = next(k for k, off in before if not off and k not in ("messages",))
                 b.run("document.getElementById('wd-toggle').click()")
@@ -116,6 +117,8 @@ def test_a_tap_beside_the_widgets_saves_and_ends_the_editing():
                 assert b.run(EDITING) is True
                 b.run("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))")
                 b.wait_for(f"!{EDITING}")
+                reported = [e for e in b.drain() if e["kind"] in ("exception", "console", "csp")]
+                assert not reported, reported  # no script error, no blocked script while editing
         finally:
             server.terminate()
             server.wait(timeout=10)

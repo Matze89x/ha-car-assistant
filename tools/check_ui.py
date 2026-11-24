@@ -5,7 +5,8 @@
 * **one main action** (``.primary``) per card or form,
 * **the buttons of a form bar sit bottom right** (the bar is right aligned; only the guide's Back / Next bars spread out),
 * **a thing you tap is big enough**: 30 px at least (the area that takes a tap counts, a ``::after`` that grows it too),
-* **every button has a name** (text, ``aria-label`` or ``title``) and **every field a label**.
+* **every button has a name** (text, ``aria-label`` or ``title``) and **every field a label**,
+* **nothing is wider than the screen** (no sideways scrolling) and **no text runs out of its own box**.
 
 Folded forms (the add form, the edit form of a card) are opened first so that the buttons inside are measured, too. German has the longest words, a
 phone the least room: ``tests/test_page_ui.py`` runs German at phone width and English wide, when Chrome is installed.
@@ -48,6 +49,27 @@ MEASURE = r"""
     }
     if (w2 < 30 || h2 < 30) { out.push('too small to tap (' + Math.round(w2) + 'x' + Math.round(h2) + '): "' + (name(e) || e.className) + '" (in ' + where(e) + ')'); }
   });
+
+  var de = document.documentElement, cw = de.clientWidth;  /* nothing may be wider than the screen: no sideways scrolling on a phone */
+  if (de.scrollWidth > cw + 1) {
+    var wide = Array.prototype.filter.call(document.body.querySelectorAll('*'), function (e) {
+      var r = e.getBoundingClientRect();
+      return r.width > 0 && r.right > cw + 1 && !e.closest('svg, [hidden], template, dialog:not([open]), .wd-ghost') && getComputedStyle(e).position !== 'fixed' && e.parentElement.getBoundingClientRect().right <= cw + 1;
+    });
+    out.push('the page is wider than the screen (' + de.scrollWidth + ' > ' + cw + ' px)' + (wide.length ? ': ' + wide[0].tagName.toLowerCase() + '.' + String(wide[0].className).split(' ').slice(0, 2).join('.') : ''));
+  }
+
+  var tw = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT), te, spilled = {};  /* text that runs out of its own box (a long address under a badge) */
+  while ((te = tw.nextNode())) {
+    if (te.closest('svg, template, [hidden], dialog:not([open]), script, style, .wd-ghost, pre, code, textarea, input, select')) { continue; }
+    var ts = getComputedStyle(te);
+    if (ts.display === 'inline' || ts.display === 'none' || ts.display === 'contents' || ts.overflowX !== 'visible') { continue; }
+    var own = Array.prototype.some.call(te.childNodes, function (n) { return n.nodeType === 3 && n.textContent.trim(); });
+    if (own && te.clientWidth > 0 && te.scrollWidth > te.clientWidth + 6) {  /* 6 px: the trailing letter spacing of a spaced-out word is no spill */
+      var k = te.tagName.toLowerCase() + '.' + String(te.className).split(' ').slice(0, 2).join('.');
+      if (!spilled[k]) { spilled[k] = 1; out.push('text runs out of its box (' + te.scrollWidth + ' > ' + te.clientWidth + ' px): ' + k + ' "' + te.textContent.trim().slice(0, 30) + '"'); }
+    }
+  }
 
   var groups = new Map();
   ctl.forEach(function (e) { var p = e.parentElement; if (!groups.has(p)) { groups.set(p, []); } groups.get(p).push(e); });

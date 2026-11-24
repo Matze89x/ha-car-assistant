@@ -15,6 +15,8 @@
   --glass:rgba(var(--fg-rgb),.055); --glass2:rgba(var(--fg-rgb),.055); --glass-b:rgba(var(--fg-rgb),.085); }
 html, body { background:var(--bg); }
 body { background:transparent; }
+/* a long word never runs out of its tile: where it does not fit and there is no other place to break, it breaks (a narrow phone, German compounds); paragraphs are not hyphenated */
+main { overflow-wrap: anywhere; }
 body::before { content:''; position:fixed; left:0; right:0; top:0; bottom:0; z-index:-1; pointer-events:none; background:radial-gradient(85% 34% at 50% 0%,rgba(var(--accent-rgb), .11),transparent 72%),radial-gradient(110% 50% at 50% 100%,rgba(70,90,150,.12),transparent 72%); }
 .card, .tile, .trip, .ov, .mgroup, .schip { background:var(--glass); border-color:var(--glass-b); box-shadow:none; }
 .tiles { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
@@ -569,6 +571,11 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 /* umbrella pages: the segmented bar that switches between the pages of one family (the original's "Fuel | Analysis" switch) */
 .seg-tabs { position: relative; display: flex; gap: 4px; padding: 3px; margin: 0 0 var(--sp-head); border-radius: var(--r-l); border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb),.075); overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .seg-tabs::-webkit-scrollbar { display: none; }
+/* wider than the screen: it scrolls, and the edge with more behind it fades out (app.js sets more-l / more-r) */
+.seg-tabs.more-r { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 30px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 30px), transparent); }
+.seg-tabs.more-l { -webkit-mask-image: linear-gradient(270deg, #000 calc(100% - 30px), transparent); mask-image: linear-gradient(270deg, #000 calc(100% - 30px), transparent); }
+.seg-tabs.more-l.more-r { -webkit-mask-image: linear-gradient(90deg, transparent, #000 30px, #000 calc(100% - 30px), transparent); mask-image: linear-gradient(90deg, transparent, #000 30px, #000 calc(100% - 30px), transparent); }
+@media (max-width: 430px) { .rp-bar .seg-tabs a .ico { display: none; } }  /* three words next to a number field: without the symbols they fit */
 .seg-tabs a { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: var(--r-m); color: var(--muted); font-weight: 600; font-size: 14px; white-space: nowrap; text-decoration: none; }
 .seg-tabs a:hover { color: var(--strong); text-decoration: none; }
 .seg-tabs a.on { background: rgba(var(--ok-rgb), .18); color: var(--ok); box-shadow: inset 0 0 0 1px rgba(var(--ok-rgb), .4); }
@@ -829,6 +836,7 @@ dialog.pe { width: min(640px, calc(100% - 20px)); }
 .about-wrap { container-type: inline-size; }
 @container (min-width: 760px) { .about-page { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 .about-page .about-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 340px) { .about-page .about-stats { grid-template-columns: minmax(0, 1fr); } }  /* the smallest phones: one column, the figures need room */
 .about-hero { text-align: left; padding: 18px; }
 .about-hero .about-id { display: flex; align-items: center; gap: 14px; }
 .about-hero h2 { margin: 0; text-align: left; }
@@ -948,7 +956,7 @@ form[action$="/delete"] .round-del:hover { background: rgba(var(--overdue-rgb), 
 .rec-facts:empty { display: none; }
 .rec-facts dt { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .rec-facts dd { margin: 1px 0 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
-.rec-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.rec-actions { display: flex; gap: 8px; flex-wrap: nowrap; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--glass-b); }  /* the same hairline as above the edit button of the fuel and km-counter cards */
 .rec-actions:empty { display: none; }
 .rec-edit { margin-top: auto; border-top: 1px solid var(--glass-b); padding-top: 8px; }
 
@@ -1222,7 +1230,7 @@ input[type=date], input[type=time] { height: 48px; }
 .addon-head { display: flex; align-items: center; gap: 12px; }
 .addon-t { flex: 1; min-width: 0; }
 .addon-t h2 { margin: 0; font-size: 18px; }
-.addon-t small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.addon-t small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }  /* an address wraps inside the tile, it does not run under the badge */
 .addon-d { margin: 12px 0 4px; color: var(--muted); font-size: 14px; line-height: 1.5; }
 .run-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--muted); background: rgba(var(--fg-rgb), .06); border: 1px solid var(--glass-b); white-space: nowrap; }
 .run-pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
@@ -3021,6 +3029,7 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 }
 .rg-row select { width: 100%; min-width: 0; text-overflow: ellipsis; }
 .rg-units .season-pick .sp b { font-size: 12px; overflow-wrap: normal; }
+@media (max-width: 340px) { .rg-units .season-pick { grid-template-columns: minmax(0, 1fr); } }  /* the smallest phones: the three unit systems one under the other */
 .rg-units .season-pick .sp { min-width: 0; padding-inline: 6px; }
 
 /* Setup guide, step 2/3: boxes with a choice on top (radio behaviour), download boxes */

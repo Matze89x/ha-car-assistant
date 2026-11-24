@@ -1004,3 +1004,26 @@ document.addEventListener("click", function (e) {
   document.addEventListener("change", function (e) { if (e.target && e.target.type === "checkbox") { sync(); } });
   sync();
 })();
+
+// Tab bars wider than the screen scroll sideways (a phone, German words): the active tab is brought into view first, and the edge where there is
+// more fades out, so nothing looks cut off by mistake.
+(function () {
+  var bars = document.querySelectorAll(".seg-tabs");
+  if (!bars.length) { return; }
+  function edges(bar) {
+    var max = bar.scrollWidth - bar.clientWidth;
+    bar.classList.toggle("more-l", bar.scrollLeft > 2);
+    bar.classList.toggle("more-r", bar.scrollLeft < max - 2);
+  }
+  Array.prototype.forEach.call(bars, function (bar) {
+    var on = bar.querySelector("a.on, a[aria-current]"), pending = false;
+    if (on && bar.scrollWidth > bar.clientWidth + 1) { bar.scrollLeft = on.offsetLeft - (bar.clientWidth - on.offsetWidth) / 2; }
+    edges(bar);
+    bar.addEventListener("scroll", function () {
+      if (pending) { return; }
+      pending = true;
+      requestAnimationFrame(function () { pending = false; edges(bar); });
+    }, { passive: true });
+  });
+  window.addEventListener("resize", function () { Array.prototype.forEach.call(bars, edges); });
+})();

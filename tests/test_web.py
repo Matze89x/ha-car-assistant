@@ -1366,3 +1366,11 @@ def test_open_is_offered_only_for_a_file_that_is_there(client):
     (config.files_dir() / str(vid) / f"{doc}.pdf").unlink()
     page = client.get(f"{base}/docs").text
     assert f'href="{base}/docs/{doc}"' not in page and "File missing" in page
+
+
+def test_a_tiny_document_is_shown_in_bytes_not_as_zero_kilobytes(client):
+    vid = create_vehicle(client)
+    base = f"/v/{slug(vid)}"
+    client.post(f"{base}/docs", files={"file": ("note.txt", b"x" * 120, "text/plain")})
+    page = client.get(f"{base}/docs").text
+    assert "120 B" in page and "0 KB" not in page

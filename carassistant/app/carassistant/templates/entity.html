@@ -88,10 +88,11 @@
         <div><dt>{{ _('f.next_due') }}</dt><dd>{% if ex.due.due_date or ex.due.due_km %}{% if ex.due.due_date %}{{ fdate(ex.due.due_date.isoformat()) }}{% endif %}{% if ex.due.due_km %} · {{ fnum(units.d(ex.due.due_km)) }} {{ units.dist_unit }}{% endif %}{% else %}–{% endif %}</dd></div>
       {% endif %}
     </dl>
-    <div class="rec-actions">
+    <div class="rec-actions md-acts">
       {% if entity.key == 'tasks' %}<form method="post" action="{{ vurl }}/{{ r['id'] }}/done" class="inline"><button class="small">{{ _('tasks.done') }}</button></form>{% endif %}
       {% if entity.key == 'trips' %}<a class="button small" href="{{ base }}/v/{{ v.slug }}/trips/{{ r['id'] }}">{{ _('btn.view') }}</a>{% endif %}
       {% if entity.key == 'tires' and not r['mounted'] %}<form method="post" action="{{ vurl }}/{{ r['id'] }}/mount" class="inline"><button class="small">{{ _('tires.mount') }}</button></form>{% endif %}
+      <button type="button" class="ghost-btn small" data-rec-open>{{ icon('pencil', 16) }}<span>{{ _('btn.edit') }}</span></button>  {# an Edit button on every card, like the other pages; a tap on the card opens it too #}
     </div>
     <div class="rec-inline">
       <form method="post" action="{{ vurl }}/{{ r['id'] }}" class="grid">

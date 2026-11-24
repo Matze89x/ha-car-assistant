@@ -60,6 +60,7 @@ def test_a_tap_on_a_card_does_not_open_the_date_sheet_on_a_phone():
 
                 # a phone (coarse pointer): the card opens, nothing takes the cursor
                 b.open(url, 390, 900, 1, settle=1.0)
+                b.drain()  # from here on everything the page reports is looked at
                 assert b.run("matchMedia('(pointer: coarse)').matches") is False  # the test must see the real thing first
                 b.run(COARSE)
                 b.run(tap_card)
@@ -83,6 +84,8 @@ def test_a_tap_on_a_card_does_not_open_the_date_sheet_on_a_phone():
                 time.sleep(0.2)
                 got = json.loads(b.run(FOCUS))
                 assert got["in_add"] is True and got["type"] not in ("date", "month", "time")
+                reported = [e for e in b.drain() if e["kind"] in ("exception", "console", "csp")]
+                assert not reported, reported  # no script error, no blocked script
         finally:
             server.terminate()
             server.wait(timeout=10)

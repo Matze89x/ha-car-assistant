@@ -12,7 +12,7 @@
     <article class="rec doc-rec" data-rec-edit>
       <header class="doc-top"><span class="mi-ic {{ cat_chip.get(d.category, 'c5') }}">{{ icon(cat_icon.get(d.category, 'docs'), 19) }}</span>
         <div class="doc-main"><h3 class="rec-title">{{ d.title }}</h3>
-          <small class="doc-sub">{{ _('doccat.' ~ d.category) }} · {{ (fnum(kb / 1024, 1) ~ ' MB') if kb >= 1024 else (fnum(kb) ~ ' KB') }}</small></div>
+          <small class="doc-sub">{{ _('doccat.' ~ d.category) }} · {{ (fnum(kb / 1024, 1) ~ ' MB') if kb >= 1024 else ((fnum(kb) ~ ' KB') if kb >= 1 else ((d.size or 0) ~ ' B')) }}</small></div>
         {% if d.valid_until %}<span class="badge {{ 'overdue' if d.valid_until < today else ('soon' if d.valid_until <= soon else 'ok') }}">{{ _('docs.expired') if d.valid_until < today else _('docs.valid_until_badge', d=fdate(d.valid_until)) }}</span>{% endif %}</header>
       <dl class="rec-facts">
         <div><dt>{{ _('docs.doc_date') }}</dt><dd>{{ fdate(d.doc_date) if d.doc_date else fdate(d.created_at) }}</dd></div>
