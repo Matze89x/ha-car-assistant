@@ -26,7 +26,20 @@ def _mouse(b, kind: str, x: float, y: float) -> None:
 def _tap(b, x: float, y: float) -> None:
     _mouse(b, "mousePressed", x, y)
     _mouse(b, "mouseReleased", x, y)
-    time.sleep(0.25)
+
+
+# a spot of the page that is neither a widget nor anything that can be pressed (the margin beside the widgets, empty room in a column ...), found
+# by looking: the layout is not the same on every machine (fonts, scrollbars)
+EMPTY_SPOT = """(function () {
+  var keep = '.wd-slot, a.wd-addtile, #wd-toggle, dialog, a, button, input, select, textarea, label, summary, [role=button]';
+  for (var y = 300; y < 900; y += 60) {
+    for (var x = document.documentElement.clientWidth - 6; x > 20; x -= 6) {
+      var e = document.elementFromPoint(x, y);
+      if (e && e.closest && !e.closest(keep) && !e.closest('[data-rec-edit]')) { return JSON.stringify([x, y]); }
+    }
+  }
+  return 'null';
+})()"""
 
 
 def test_a_tap_beside_the_widgets_saves_and_ends_the_editing():
@@ -61,14 +74,12 @@ def test_a_tap_beside_the_widgets_saves_and_ends_the_editing():
                 b.open(url, 1280, 1500, 1, settle=1.5)
                 before = json.loads(b.run(STATE))
                 key = next(k for k, off in before if not off and k not in ("messages",))
-                outside = (1268.0, 700.0)  # the page behind the content, right of the widgets
-                assert b.run(f"!document.elementFromPoint({outside[0]}, {outside[1]}).closest('.wd-slot, a, button, dialog')"), (
-                    "the spot is not empty"
-                )
-
                 b.run("document.getElementById('wd-toggle').click()")
                 assert b.run(EDITING) is True
                 b.run(f"document.querySelector('.wd-slot[data-k=\"{key}\"] .wd-eye').click()")  # hide one widget (saved a moment later)
+                spot = json.loads(b.run(EMPTY_SPOT))
+                assert spot is not None, "no empty spot beside the widgets"
+                outside = (float(spot[0]), float(spot[1]))
 
                 # a tap ON a widget does not end it (and does not follow its link)
                 box = json.loads(
@@ -77,29 +88,34 @@ def test_a_tap_beside_the_widgets_saves_and_ends_the_editing():
                     )
                 )
                 _tap(b, *box)
+                time.sleep(0.4)
                 assert b.run(EDITING) is True and b.run("location.pathname") == f"/v/{ms.DIESEL}"
 
                 # pressing beside and dragging away (a scroll, a selection) is no tap
                 _mouse(b, "mousePressed", *outside)
                 _mouse(b, "mouseMoved", outside[0], outside[1] + 120)
                 _mouse(b, "mouseReleased", outside[0], outside[1] + 120)
-                time.sleep(0.2)
+                time.sleep(0.4)
                 assert b.run(EDITING) is True
 
                 # a tap beside the widgets: finished, the button says so, and the change is on the server
                 _tap(b, *outside)
-                assert b.run(EDITING) is False
+                b.wait_for(f"!{EDITING}")
                 assert b.run("document.querySelector('#wd-toggle .lbl').textContent") == "Customise dashboard"
-                time.sleep(0.8)
-                b.open(url, 1280, 1500, 1, settle=1.0)
-                after = dict((k, off) for k, off in json.loads(b.run(STATE)))
-                assert after[key] is True  # the hidden widget stayed hidden after a reload
+                hidden = False
+                for _ in range(12):  # the save is a request of its own: look again until it has arrived
+                    time.sleep(0.5)
+                    b.open(url, 1280, 1500, 1, settle=0.5)
+                    hidden = dict(json.loads(b.run(STATE)))[key]
+                    if hidden:
+                        break
+                assert hidden is True  # the hidden widget stayed hidden after a reload
 
                 # Escape ends it too
                 b.run("document.getElementById('wd-toggle').click()")
                 assert b.run(EDITING) is True
                 b.run("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))")
-                assert b.run(EDITING) is False
+                b.wait_for(f"!{EDITING}")
         finally:
             server.terminate()
             server.wait(timeout=10)

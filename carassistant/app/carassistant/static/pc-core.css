@@ -1718,6 +1718,8 @@ details.eq .mi-ic > .ico { width: 18px; height: 18px; }
 .eq-i { width: 26px; height: 26px; }
 .eq-tx { font-size: 14px; }
 .eq-list .eq-i { min-height: 0; min-width: 0; width: 26px; height: 26px; }
+.eq-i { position: relative; }
+.eq-i::after { content: ''; position: absolute; inset: -7px; }  /* the round button stays 26 px, the area that takes a tap is 40 px (an icon button of the design book) */
 
 /* the area rows keep their standard height (about 54px); only the feature lines inside are slim */
 details.eq > summary { padding: 11px 14px; gap: 12px; min-height: 54px; }
@@ -2847,7 +2849,18 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 .doc-acts { justify-content: flex-end; }
 .doc-acts .ghost-btn { width: auto; flex: 0 0 auto; }
 .rec.doc-rec.editing > .doc-top, .rec.doc-rec.editing > .rec-facts, .rec.doc-rec.editing > .md-notes, .rec.doc-rec.editing > .doc-acts { display: none; }
-.rec-inline .form-bar { flex-wrap: wrap; }
+/* The buttons of an edit form never wrap (design book): the card is the container, not the window - a narrow card in a wide window (several columns) is as
+   tight as a phone. First Delete becomes a bin, then Cancel a cross; Save keeps its word. */
+.rec-inline { container: recform / inline-size; }
+.rec-inline .form-bar { flex-wrap: nowrap; }
+@container recform (max-width: 440px) {
+  .rec-inline .form-bar button.danger span { display: none; }
+  .rec-inline .form-bar button.danger { width: 44px; padding: 0; justify-content: center; }
+}
+@container recform (max-width: 319px) {
+  .rec-inline .form-bar .ghost-btn span { display: none; }
+  .rec-inline .form-bar .ghost-btn { width: 44px; padding: 0; justify-content: center; }
+}
 .rec-grid.doc-grid { grid-template-columns: minmax(0, 1fr); }
 .about-page .about-hero .about-id .about-logo { width: 112px; min-width: 0; align-self: center; }
 
