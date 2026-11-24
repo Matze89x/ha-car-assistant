@@ -361,8 +361,8 @@ BACK_RULES = (
 
 
 ADDON_PAGE = re.compile(
-    r"(/v/[^/]+)/(?:integrations/(\d+)(?:/.*)?|m/([^/]+)(?:/.*)?)"
-)  # a page of ONE plugin / integration (settings, logs, guide, its own pages)
+    r"(/v/[^/]+)/integrations/(\d+)(?:/.*)?"
+)  # a page of ONE plugin / integration (settings, logs, guide, ...); its own page /m/<id> has its own entry
 ADDON_LIST = re.compile(r"(/v/[^/]+)/(plugins|integrations)(?:/.*)?")  # a list of them and its tabs (Manage, Connections, Add, Sources)
 
 
@@ -371,10 +371,7 @@ def _addon_area(conn: sqlite3.Connection, path: str) -> str | None:
     every page inside it, and a page of one plugin leads Back to it. None for every other page."""
     hit = ADDON_PAGE.fullmatch(path)
     if hit:
-        if hit[2]:
-            row = conn.execute("SELECT kind FROM vehicle_addons WHERE id = ?", (int(hit[2]),)).fetchone()
-        else:
-            row = conn.execute("SELECT kind FROM vehicle_addons WHERE addon_id = ? LIMIT 1", (hit[3],)).fetchone()
+        row = conn.execute("SELECT kind FROM vehicle_addons WHERE id = ?", (int(hit[2]),)).fetchone()
         return f"{hit[1]}/{'integrations' if row and row['kind'] == 'integration' else 'plugins'}" if row else None
     hit = ADDON_LIST.fullmatch(path)
     return f"{hit[1]}/{hit[2]}" if hit else None

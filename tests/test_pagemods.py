@@ -60,6 +60,19 @@ def test_a_stopped_integration_has_no_page_and_a_running_one_is_in_more(client):
     assert client.get(f"/v/{slug}/m/coding-demo", follow_redirects=False).status_code == 303
 
 
+def test_a_page_of_a_package_with_its_own_entry_marks_that_entry_and_leads_back_to_more(client):
+    """The page Coding is opened from its own entry in More: that entry stays marked (not the list of Integrations) and Back goes to More."""
+    import re
+
+    vid, slug = _car(client)
+    _install(client, vid)
+    page = client.get(f"/v/{slug}/m/coding-demo").text
+    marked = re.findall(r'<a class="mi sel" href="([^"]*)"', page)
+    assert marked == [f"/v/{slug}/m/coding-demo"], marked
+    back = re.search(r'class="back-btn[^"]*" href="([^"]*)"', page)
+    assert back and back.group(1).endswith("/more"), back and back.group(1)
+
+
 def test_entries_original_is_written_once_and_bytes_are_compared(client):
     vid, slug = _car(client)
     _install(client, vid)

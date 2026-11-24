@@ -53,10 +53,9 @@
       {% for f in long_facts %}{% if f.key != 'notes' %}<div class="pm-note"><small>{{ f.label }}</small>{{ f.value }}</div>{% endif %}{% endfor %}
       {% for d in r.diffs %}
       <div class="pm-code">
-        <div class="pm-code-h">{{ d.label }} · {{ d.diff.len_new }} {{ _('pm.bytes') }}</div>
         <div class="pm-tag">{{ d.old_label }}</div>
         <div class="pm-oldline"><code class="mono">{{ d.old_line or '–' }}</code></div>
-        <div class="pm-tag">{{ d.label }}</div>
+        <div class="pm-tag">{{ d.label }} · {{ d.diff.len_new }} {{ _('pm.bytes') }}</div>
         <div class="pm-bytes">
           {% for c in d.diff.cells %}<div class="pm-byte{{ ' ch' if c.changed }}" data-old="{{ c.old }}" data-new="{{ c.new }}" tabindex="0" role="button" aria-label="{{ _('pm.byte') }} {{ c.i }}"><i>{{ '%02d' | format(c.i) }}</i><b class="n">{{ c.new or '–' }}</b><em class="was"{{ '' if c.changed else ' hidden' }}>{{ _('pm.was') }} {{ c.old or '–' }}</em><u class="dot" hidden></u></div>{% endfor %}
         </div>
