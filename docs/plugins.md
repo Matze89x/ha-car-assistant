@@ -181,6 +181,22 @@ Every field has `key` (lower case, `_`), `label` and an optional `help` text (sh
 {"key": "mode", "type": "radio", "label": "Mode", "options": [{"value": "auto", "label": "Automatic"}, {"value": "custom", "label": "Custom"}], "default": "auto"},
 {"key": "address", "type": "url", "label": "Address", "required": true, "show_if": {"key": "mode", "equals": "custom"}}
 ```
+More than one setting, and more than "is equal": a single test is `{"key": ..., <one of these>}` -
+
+| Test | The field is shown while ... |
+|---|---|
+| `"equals": "x"` | the setting is exactly `x` (a switch: `true` / `false`) |
+| `"not": "x"` | the setting is anything but `x` (an empty choice counts) |
+| `"in": ["a", "b"]` | the setting is one of these values (up to 12) |
+| `"not_in": ["a", "b"]` | the setting is none of them |
+| `"has": "x"` | the box `x` of a `multiselect` is ticked |
+
+Tests are put together with `{"any": [...]}` (one of them is enough) and `{"all": [...]}` (every one); a plain list means `all`. They nest (three levels, eight tests at most):
+```
+"show_if": {"any": [{"key": "advanced", "equals": true},
+                    {"all": [{"key": "mode", "in": ["custom", "expert"]}, {"key": "features", "has": "map"}]}]}
+```
+A condition that cannot be used (a wrong key, an empty list, too many tests) is dropped: the setting is then simply always shown, and `tools/check_plugin.py` tells you. A test of a setting that does not exist counts as true, so a typo never hides a field. Packages that only use `equals` need no change.
 
 **What a service gets** in `settings.json` (see below): numbers and sliders as numbers, switches as `true` / `false`, a `multiselect` as a list of the ticked values, a `list` as `[{"name": ..., "value": ...}]`, everything else as text. In the connection file all values are text (a switch is `1` / `0`).
 

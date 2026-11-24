@@ -116,10 +116,30 @@ def check(target: Path) -> tuple[list[str], list[str]]:
             notes.append(
                 f"Setting '{field.get('key')}': the type '{field.get('type')}' is unknown (becomes text). Types: {', '.join(addons.FIELD_TYPES)}"
             )
+
+    def tested(cond) -> list[str]:  # every setting a (cleaned) condition looks at
+        if not cond:
+            return []
+        if "all" in cond or "any" in cond:
+            return [k for part in cond.get("all", cond.get("any", [])) for k in tested(part)]
+        return [cond["key"]]
+
     for field in manifest.get("settings", []):
-        cond = field.get("show_if")
-        if cond and cond["key"] not in keys:
-            errors.append(f"Setting '{field['key']}': show_if refers to '{cond['key']}', which is not a setting.")
+        for other in tested(field.get("show_if")):
+            if other not in keys:
+                errors.append(f"Setting '{field['key']}': show_if refers to '{other}', which is not a setting.")
+    cleaned = {f["key"]: f for f in manifest.get("settings", [])}
+    for field in data.get("settings", []) if isinstance(data.get("settings"), list) else []:
+        if (
+            isinstance(field, dict)
+            and field.get("show_if") is not None
+            and field.get("key") in cleaned
+            and "show_if" not in cleaned[field["key"]]
+        ):
+            notes.append(
+                f"Setting '{field['key']}': show_if cannot be used and is ignored, the setting is always shown "
+                "(a test is {key, equals | not | in | not_in | has}; put tests together with any / all, at most 8, three levels deep)."
+            )
     for field in data.get("settings", []) if isinstance(data.get("settings"), list) else []:
         if (
             isinstance(field, dict)

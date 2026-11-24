@@ -3,10 +3,7 @@
 It had been checked without any data: with a unit whose byte is opened, the editor was wider than the screen (a note field cut off at the edge, the
 round bit buttons running out of the box). Needs a real browser (tools/cdp.py); skipped without one."""
 
-import os
-import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
 
@@ -15,6 +12,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
+sys.path.insert(0, str(ROOT / "tests"))
 
 OLD = " ".join(f"{(i * 7) % 256:02X}" for i in range(40))
 NEW = OLD.replace(OLD.split()[6], "FF", 1)  # one byte changed
@@ -46,54 +44,23 @@ MEASURE = """JSON.stringify((function () {
 def coding():
     from cdp import Browser, find_chrome
 
+    from browser_app import running_app
+
     if find_chrome() is None:
         pytest.skip("no Chrome / Chromium installed")
-    import make_screenshots as ms
+    from tests.test_pagemods import PKG
 
-    with tempfile.TemporaryDirectory() as tmp:
-        data = Path(tmp) / "app"
-        data.mkdir()
-        env = {
-            **os.environ,
-            "PYTHONPATH": str(ROOT / "carassistant" / "app") + os.pathsep + str(ROOT / "tools"),
-            "CARASSISTANT_DATA": str(data),
-            "CARASSISTANT_DEV": "1",
-        }
-        seed = "import sys; from pathlib import Path; import make_screenshots as ms; ms.seed(Path(sys.argv[1]), 'en')"
-        subprocess.run([sys.executable, "-c", seed, str(data)], check=True, env=env, capture_output=True, timeout=120)
-        install = (
-            "import json, sys; from carassistant import addons, db; from tests.test_pagemods import PKG\n"
-            "with db.tx() as conn:\n"
-            "    vid = conn.execute('SELECT id FROM vehicles WHERE slug = ?', (sys.argv[1],)).fetchone()['id']\n"
-            "    source = conn.execute('SELECT id FROM sources LIMIT 1').fetchone()['id']\n"
-            "    pk = addons.add(conn, vid, addons.parse_package(json.dumps(PKG).encode()), source, '0' * 64)\n"
-            "    conn.execute('UPDATE vehicle_addons SET active = 1 WHERE id = ?', (pk,))\n"
-        )
-        env["PYTHONPATH"] += os.pathsep + str(ROOT)
-        subprocess.run([sys.executable, "-c", install, ms.DIESEL], check=True, env=env, capture_output=True, timeout=60, cwd=ROOT)
-        port = ms.free_port()
-        server = subprocess.Popen(
-            [sys.executable, "-m", "carassistant"],
-            env={**env, "CARASSISTANT_PORT": str(port)},
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        try:
-            base = f"http://127.0.0.1:{port}"
-            ms.wait_for(base + "/healthz")
-            page = f"{base}/v/{ms.DIESEL}/m/coding-demo"
-            with httpx.Client(follow_redirects=False, timeout=30) as c:
-                for addr, name, old, new, notes in (
-                    ("09", "Central electronics (a name that is rather long for a small screen)", OLD, NEW, "A long note " * 12),
-                    ("5F", "Information electronics 1", "0A 0B 0C 0D", "0A 0B 0C 0D", ""),
-                ):
-                    r = c.post(page + "/units", data={"addr": addr, "name": name, "old": old, "new": new, "notes": notes})
-                    assert r.status_code == 303, r.status_code
-            with Browser() as b:
-                yield b, page
-        finally:
-            server.terminate()
-            server.wait(timeout=10)
+    with running_app(PKG) as (base, slug, _pk):
+        page = f"{base}/v/{slug}/m/coding-demo"
+        with httpx.Client(follow_redirects=False, timeout=30) as c:
+            for addr, name, old, new, notes in (
+                ("09", "Central electronics (a name that is rather long for a small screen)", OLD, NEW, "A long note " * 12),
+                ("5F", "Information electronics 1", "0A 0B 0C 0D", "0A 0B 0C 0D", ""),
+            ):
+                r = c.post(page + "/units", data={"addr": addr, "name": name, "old": old, "new": new, "notes": notes})
+                assert r.status_code == 303, r.status_code
+        with Browser() as b:
+            yield b, page
 
 
 @pytest.mark.parametrize("width", [320, 390, 768])

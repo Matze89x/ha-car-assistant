@@ -794,7 +794,9 @@ document.addEventListener("sortchange", function (e) {
 })();
 
 
-// Settings pages of plugins: a field with data-showif-key shows only while that other setting has the value data-showif-eq; a slider shows its value.
+// Settings pages of plugins: a field shows only while its condition holds. The old form: data-showif-key / data-showif-eq (one setting has this value);
+// every other form is a tree in data-showif (JSON): {key, equals | not | in | not_in | has} tests, put together with {any: [...]} and {all: [...]}.
+// A slider shows its value.
 (function () {
   var form = document.querySelector(".set-form");
   if (!form) { return; }
@@ -806,10 +808,30 @@ document.addEventListener("sortchange", function (e) {
     if (el.type === "radio") { var on = form.querySelector('[name="' + key + '"]:checked'); return on ? on.value : ""; }
     return el.value;
   }
+  function picked(key) {  // a multiselect is a row of boxes named <key>__<value>: the ticked ones; any other setting is its one value
+    if (form.querySelector('[name="' + key + '"]')) { return [current(key)]; }
+    var out = [], boxes = form.querySelectorAll('[name^="' + key + '__"]');
+    if (!boxes.length) { return [""]; }
+    Array.prototype.forEach.call(boxes, function (b) { if (b.checked) { out.push(b.getAttribute("name").slice(key.length + 2)); } });
+    return out;
+  }
+  function holds(c) {
+    var i, p;
+    if (c.all) { for (i = 0; i < c.all.length; i++) { if (!holds(c.all[i])) { return false; } } return true; }
+    if (c.any) { for (i = 0; i < c.any.length; i++) { if (holds(c.any[i])) { return true; } } return false; }
+    p = picked(c.key);
+    if (c.equals !== undefined) { return p.join(",") === c.equals; }
+    if (c.not !== undefined) { return p.join(",") !== c.not; }
+    if (c.has !== undefined) { return p.indexOf(c.has) >= 0; }
+    var list = c.in || c.not_in || [], hit = false;
+    for (i = 0; i < p.length; i++) { if (list.indexOf(p[i]) >= 0) { hit = true; } }
+    return c.in ? hit : !hit;
+  }
   function apply() {
-    Array.prototype.forEach.call(form.querySelectorAll("[data-showif-key]"), function (box) {
-      var key = box.getAttribute("data-showif-key");
-      if (key) { box.hidden = current(key) !== box.getAttribute("data-showif-eq"); }
+    Array.prototype.forEach.call(form.querySelectorAll("[data-showif-key], [data-showif]"), function (box) {
+      var tree = box.getAttribute("data-showif"), key = box.getAttribute("data-showif-key");
+      if (tree) { try { box.hidden = !holds(JSON.parse(tree)); } catch (e) { box.hidden = false; } }
+      else if (key) { box.hidden = current(key) !== box.getAttribute("data-showif-eq"); }
     });
   }
   form.addEventListener("input", apply);

@@ -1110,19 +1110,55 @@ def clean_setting_fields(raw) -> list[dict]:
         for name, width in (("placeholder", 80), ("unit", 16)):
             if _text(f, name, width) and kind in ("text", "password", "textarea", "number", "slider", "url", "email", "select"):
                 field[name] = _text(f, name, width)
-        cond = f.get(
-            "show_if"
-        )  # only shown while another setting has this value: {"key": "mode", "equals": "custom"} (a switch: "equals": "1")
-        if (
-            isinstance(cond, dict)
-            and isinstance(cond.get("key"), str)
-            and KEY.match(cond["key"])
-            and isinstance(cond.get("equals"), str | int | bool)
-        ):
-            equals = cond["equals"]
-            field["show_if"] = {"key": cond["key"], "equals": ("1" if equals else "0") if isinstance(equals, bool) else str(equals)[:40]}
+        cond = clean_show_if(f.get("show_if"))  # only shown while other settings have these values (see clean_show_if)
+        if cond:
+            field["show_if"] = cond
         fields.append(field)
     return fields
+
+
+SHOW_OPS = ("equals", "not", "in", "not_in", "has")  # what one condition can say about a setting
+SHOW_MAX_PARTS, SHOW_MAX_DEPTH, SHOW_MAX_VALUES = 8, 3, 12
+
+
+def _show_text(value) -> str | None:
+    """A value a condition compares with, as the text the form has: a switch is ``"1"`` or ``"0"``."""
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    return str(value)[:40] if isinstance(value, str | int) else None
+
+
+def clean_show_if(cond, depth: int = 0, parts: list | None = None):
+    """The condition of a setting (``show_if``), cleaned - or None: a condition that cannot be used is dropped, the setting is then simply always shown.
+
+    One test of one setting: ``{"key": "mode", "equals": "custom"}`` (a switch: ``"equals": true``), or ``"not"``, ``"in": [...]`` (one of these values),
+    ``"not_in": [...]``, ``"has": "x"`` (a ``multiselect`` with this box ticked). Tests are put together with ``{"any": [...]}`` (one of them) and
+    ``{"all": [...]}`` (every one); a plain list means ``all``. Up to 8 tests, 3 levels deep. Only ``equals`` is the old form and stays as it was."""
+    parts = [0] if parts is None else parts
+    if isinstance(cond, list):
+        cond = {"all": cond}
+    if not isinstance(cond, dict) or depth > SHOW_MAX_DEPTH:
+        return None
+    for word in ("all", "any"):
+        if word in cond:
+            items = cond[word]
+            if not isinstance(items, list) or not 1 <= len(items) <= SHOW_MAX_PARTS:
+                return None
+            cleaned = [clean_show_if(c, depth + 1, parts) for c in items]
+            return {word: cleaned} if all(cleaned) else None
+    key = cond.get("key")
+    op = next((o for o in SHOW_OPS if o in cond), None)
+    if not isinstance(key, str) or not KEY.match(key) or op is None:
+        return None
+    parts[0] += 1
+    if parts[0] > SHOW_MAX_PARTS:
+        return None
+    if op in ("in", "not_in"):
+        raw = cond[op]
+        values = [_show_text(v) for v in raw] if isinstance(raw, list) and 1 <= len(raw) <= SHOW_MAX_VALUES else []
+        return {"key": key, op: values} if values and None not in values else None
+    value = _show_text(cond[op])
+    return {"key": key, op: value} if value is not None else None
 
 
 def parse_package(raw: bytes) -> dict:
@@ -1613,20 +1649,37 @@ def check_settings(manifest: dict, form: dict, old: dict) -> dict[str, str]:
     return errors
 
 
-def _is_shown(f: dict, manifest: dict, form: dict) -> bool:
-    cond = f.get("show_if")
-    if not cond:
-        return True
-    other = next((x for x in manifest["settings"] if x["key"] == cond["key"]), None)
+def show_if_holds(cond: dict, settings: dict, form: dict) -> bool:
+    """Does a cleaned condition (``clean_show_if``) hold for this form? ``settings`` = the package's settings by key. A test of a setting that does not
+    exist holds (the setting is then shown - a typo must never hide something)."""
+    if "all" in cond:
+        return all(show_if_holds(c, settings, form) for c in cond["all"])
+    if "any" in cond:
+        return any(show_if_holds(c, settings, form) for c in cond["any"])
+    other = settings.get(cond["key"])
     if other is None:
         return True
     if other["type"] == "bool":
-        current = "1" if form.get(other["key"]) else "0"
+        picked = ["1" if form.get(other["key"]) else "0"]
     elif other["type"] == "multiselect":
-        current = ",".join(_picked(other["key"], other, form))
+        picked = _picked(other["key"], other, form)
     else:
-        current = str(form.get(other["key"]) or "").strip()
-    return current == cond["equals"]
+        picked = [str(form.get(other["key"]) or "").strip()]
+    current = ",".join(picked)  # the whole value (for a multiselect: the ticked boxes, joined)
+    if "equals" in cond:
+        return current == cond["equals"]
+    if "not" in cond:
+        return current != cond["not"]
+    if "in" in cond:
+        return any(p in cond["in"] for p in picked)
+    if "not_in" in cond:
+        return not any(p in cond["not_in"] for p in picked)
+    return cond["has"] in picked
+
+
+def _is_shown(f: dict, manifest: dict, form: dict) -> bool:
+    cond = f.get("show_if")
+    return not cond or show_if_holds(cond, {x["key"]: x for x in manifest["settings"]}, form)
 
 
 def clean_settings(manifest: dict, form: dict, old: dict) -> dict:

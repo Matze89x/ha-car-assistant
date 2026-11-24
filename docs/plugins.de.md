@@ -181,6 +181,22 @@ Jedes Feld hat `key` (Kleinbuchstaben, `_`), `label` und optional einen `help`-T
 {"key": "mode", "type": "radio", "label": "Modus", "options": [{"value": "auto", "label": "Automatisch"}, {"value": "custom", "label": "Eigene"}], "default": "auto"},
 {"key": "address", "type": "url", "label": "Adresse", "required": true, "show_if": {"key": "mode", "equals": "custom"}}
 ```
+Mehrere Einstellungen und mehr als „ist gleich": Ein einzelner Test ist `{"key": ..., <eines davon>}` -
+
+| Test | Das Feld ist sichtbar, solange ... |
+|---|---|
+| `"equals": "x"` | die Einstellung genau `x` ist (bei einem Schalter: `true` / `false`) |
+| `"not": "x"` | die Einstellung alles außer `x` ist (eine leere Auswahl zählt mit) |
+| `"in": ["a", "b"]` | die Einstellung einer dieser Werte ist (bis zu 12) |
+| `"not_in": ["a", "b"]` | die Einstellung keiner davon ist |
+| `"has": "x"` | das Kästchen `x` einer `multiselect` angekreuzt ist |
+
+Tests werden mit `{"any": [...]}` (einer genügt) und `{"all": [...]}` (jeder) zusammengesetzt; eine einfache Liste bedeutet `all`. Sie lassen sich verschachteln (drei Ebenen, höchstens acht Tests):
+```
+"show_if": {"any": [{"key": "advanced", "equals": true},
+                    {"all": [{"key": "mode", "in": ["custom", "expert"]}, {"key": "features", "has": "map"}]}]}
+```
+Eine Bedingung, die sich nicht verwenden lässt (falscher Schlüssel, leere Liste, zu viele Tests), wird verworfen: Die Einstellung ist dann einfach immer sichtbar, und `tools/check_plugin.py` sagt es dir. Ein Test auf eine Einstellung, die es nicht gibt, gilt als erfüllt, ein Tippfehler versteckt also nie ein Feld. Pakete, die nur `equals` benutzen, brauchen keine Änderung.
 
 **Was ein Dienst bekommt** in `settings.json` (siehe unten): Zahlen und Schieberegler als Zahlen, Schalter als `true` / `false`, eine `multiselect` als Liste der angekreuzten Werte, eine `list` als `[{"name": ..., "value": ...}]`, alles andere als Text. In der Verbindungsdatei sind alle Werte Text (ein Schalter ist `1` / `0`).
 
