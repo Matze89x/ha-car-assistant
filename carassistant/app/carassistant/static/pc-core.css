@@ -785,7 +785,8 @@ a, .tab, .wd, .mi, .sb-brand, button, .icon-btn { -webkit-touch-callout: none; -
 
 /* While a video is there, NO picture lies behind it: the photo is only the stand-in when the video cannot play */
 .hero-media > img.hero-car { display: none; }
-.hero-media.failed { aspect-ratio: auto; cursor: default; }
+.hero-media.failed { aspect-ratio: auto; }  /* a tap is a new try (media.js) */
+.hero-why { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 3; padding: 6px 10px; border-radius: var(--r-s); background: rgba(var(--panel-rgb), .92); border: 1px solid var(--glass-b); color: var(--text); font-size: 12px; text-align: center; pointer-events: none; }  /* why the video does not play, after a tap */
 .hero-media.failed > img.hero-car { display: block; position: static; width: 100%; height: auto; max-height: 240px; max-width: none; margin: 0; object-fit: contain; }
 .hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; background: transparent; opacity: 0; transition: opacity .45s ease; }
 .hero-video.vgone { opacity: 0 !important; transition: none !important; }
@@ -2190,9 +2191,16 @@ body { cursor: default; }
 
 /* Plugin and integration cards: a bar of three clear buttons with words, the main action (Open) on the right, the rest under "More" with a line each */
 .addon-bar { container: abar / inline-size; display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: auto; padding-top: 14px; }
+/* the frame of the bar of a tile: its own width decides when the bar takes a second line (a container cannot change itself) */
+.abar-box { container: abar / inline-size; margin-top: auto; }
+.abar-box > .addon-bar { margin-top: 0; }
 
-/* ONE line at the bottom of the tile, never wrapped */
-.addon-bar > a.button, .addon-bar > button, .addon-bar > details > summary { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; white-space: nowrap; cursor: pointer; }
+/* ONE line at the bottom of the tile - and NOTHING is ever cut off or pushed out of the tile: the words of the small buttons go first (the container rules below
+   count everything that stands in the bar and turn them into symbols, which give way down to 32 px); the MAIN button, whose words the plugin chooses, takes up the
+   rest and is shortened with "..." if it must */
+.addon-bar > a.button.primary, .addon-bar > button.primary, .addon-bar > form:has(> .primary) { flex: 0 1 auto; min-width: 44px; }
+.addon-bar > a.button, .addon-bar > button, .addon-bar > details > summary { flex: 0 0 auto; min-width: 44px; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; white-space: nowrap; cursor: pointer; }
+.addon-bar > a.button > span, .addon-bar > button > span, .addon-bar > form > button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .addon-bar button.go { color: var(--bg); background: var(--ok); border-color: var(--ok); }
 
 /* The head of an installed plugin: name (opens the info), and top right ONE switch that starts / stops it */
@@ -2213,14 +2221,33 @@ body { cursor: default; }
 .addon-bar > .danger { margin-right: auto; }
 /* A button that is only a symbol (Uninstall, the bin): 44 px, and it gives way a little on the narrowest phone so that the whole line still fits */
 .addon-bar > .ico-only, .addon-bar > form > .ico-only { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; }
+.addon-bar > svg, .addon-bar .ico { flex: 0 0 auto; }
 .addon-bar.ad-clear > form { margin-right: auto; }
-/* Words on the buttons only while the TILE (not the window) has the room: every free button of a plugin needs about 110 px more; the symbols share what is left */
-@container abar (max-width: 440px) { .addon-bar.fb0 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb0 .lite-lbl .lbl2 { display: none; } }
-@container abar (max-width: 560px) { .addon-bar.fb1 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb1 .lite-lbl .lbl2 { display: none; } }
-@container abar (max-width: 670px) { .addon-bar.fb2 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb2 .lite-lbl .lbl2 { display: none; } }
-@container abar (max-width: 780px) { .addon-bar.fb3 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb3 .lite-lbl .lbl2 { display: none; } }
-/* three free buttons or two on the smallest tile: the main button is a symbol, too (its name stays in aria-label / title) */
-@container abar (max-width: 330px) { .addon-bar:is(.fb2, .fb3) > .primary > span, .addon-bar:is(.fb2, .fb3) > form > .primary > span { display: none; } .addon-bar:is(.fb2, .fb3) > .primary, .addon-bar:is(.fb2, .fb3) > form > .primary { padding: 0 10px; } }
+/* Words on the buttons only while the TILE (not the window) has the room. Every button that stands in the bar next to Delete, Logs and Settings (the free buttons of the plugin AND its
+   downloads - fb0 ... fb8, fb9 = nine or more) needs about 130 px more (a German word is long, and so is the name of the main button); with nine or more the bar is symbols only, always, and may take a second line. The symbols share what is left. */
+@container abar (max-width: 560px) { .addon-bar.fb0 > form:not(:has(> .primary)) { flex: 0 1 44px; } .addon-bar.fb0 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb0 .lite-lbl .lbl2 { display: none; } }
+@container abar (max-width: 690px) { .addon-bar.fb1 > form:not(:has(> .primary)) { flex: 0 1 44px; } .addon-bar.fb1 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb1 .lite-lbl .lbl2 { display: none; } }
+@container abar (max-width: 820px) { .addon-bar.fb2 > form:not(:has(> .primary)) { flex: 0 1 44px; } .addon-bar.fb2 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb2 .lite-lbl .lbl2 { display: none; } }
+@container abar (max-width: 950px) { .addon-bar.fb3 > form:not(:has(> .primary)) { flex: 0 1 44px; } .addon-bar.fb3 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb3 .lite-lbl .lbl2 { display: none; } }
+@container abar (max-width: 1080px) { .addon-bar.fb4 > form:not(:has(> .primary)) { flex: 0 1 44px; } .addon-bar.fb4 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb4 .lite-lbl .lbl2 { display: none; } }
+@container abar (max-width: 1210px) { .addon-bar.fb5 > form:not(:has(> .primary)) { flex: 0 1 44px; } .addon-bar.fb5 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb5 .lite-lbl .lbl2 { display: none; } }
+@container abar (max-width: 1340px) { .addon-bar.fb6 > form:not(:has(> .primary)) { flex: 0 1 44px; } .addon-bar.fb6 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb6 .lite-lbl .lbl2 { display: none; } }
+@container abar (max-width: 1470px) { .addon-bar.fb7 > form:not(:has(> .primary)) { flex: 0 1 44px; } .addon-bar.fb7 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb7 .lite-lbl .lbl2 { display: none; } }
+@container abar (max-width: 1600px) { .addon-bar.fb8 > form:not(:has(> .primary)) { flex: 0 1 44px; } .addon-bar.fb8 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb8 .lite-lbl .lbl2 { display: none; } }
+.addon-bar.fb9 { flex-wrap: wrap; row-gap: 8px; }
+.addon-bar.fb9 > form:not(:has(> .primary)) { flex: 0 1 44px; }
+.addon-bar.fb9 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; }
+.addon-bar.fb9 .lite-lbl .lbl2 { display: none; }
+/* A tile that holds more buttons than one line has room for (a phone, three or more extras): the bar takes a SECOND line - better than a button cut off at the edge.
+   (symbols need 40 px each, the main button about 90 px more) */
+@container abar (max-width: 370px) { .addon-bar.fb3 { flex-wrap: wrap; row-gap: 8px; } }
+@container abar (max-width: 410px) { .addon-bar.fb4 { flex-wrap: wrap; row-gap: 8px; } }
+@container abar (max-width: 450px) { .addon-bar.fb5 { flex-wrap: wrap; row-gap: 8px; } }
+@container abar (max-width: 490px) { .addon-bar.fb6 { flex-wrap: wrap; row-gap: 8px; } }
+@container abar (max-width: 530px) { .addon-bar.fb7 { flex-wrap: wrap; row-gap: 8px; } }
+@container abar (max-width: 570px) { .addon-bar.fb8 { flex-wrap: wrap; row-gap: 8px; } }
+/* two or more extra buttons on the smallest tile: the main button is a symbol, too (its name stays in aria-label / title) */
+@container abar (max-width: 330px) { .addon-bar:not(.fb0, .fb1) > .primary > span, .addon-bar:not(.fb0, .fb1) > form > .primary > span { display: none; } .addon-bar:not(.fb0, .fb1) > .primary, .addon-bar:not(.fb0, .fb1) > form > .primary { padding: 0 10px; } }
 @media (max-width: 480px) {
   .addon-st { display: none; }
   .addon-bar > .lite-lbl .lbl2, .addon-bar > form > .lite-lbl .lbl2 { display: none; }
@@ -2331,8 +2358,8 @@ form.set-form > .form-bar { display: flex; justify-content: space-between; align
 .pm-gchip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .pm-gchip:disabled { opacity: .35; }
 .pm-gbtn { height: 40px; }
-.addon-bar > form { margin: 0; flex: 0 0 auto; }
-.addon-bar > form > button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; white-space: nowrap; }
+.addon-bar > form { margin: 0; flex: 0 0 auto; min-width: 32px; display: flex; }
+.addon-bar > form > button { flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; white-space: nowrap; }
 
 .addon-danger h2 svg { color: var(--overdue, var(--accent)); }
 @media (max-width: 520px) {

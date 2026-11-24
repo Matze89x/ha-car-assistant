@@ -91,6 +91,31 @@ def test_the_tile_has_uninstall_as_a_symbol_then_logs_settings_and_the_free_butt
     assert ">Logs<" in bar and ">Settings<" in bar and ">Documentation<" in bar and ">Wake<" in bar
 
 
+def test_the_tile_counts_the_downloads_too_so_the_bar_never_overflows(client):
+    """The widths at which the words go are chosen by how many extra buttons stand in the bar: the own buttons AND the downloads."""
+    vid = create_vehicle(client)
+    manifest = {
+        **MANIFEST,
+        "id": "dl-demo",
+        "pages": PAGES,
+        "service": SERVICE,
+        "buttons": [{"id": "docs", "label": "Documentation", "page": "docs"}],
+        "downloads": [{"label": "Car log", "path": "/svc/car.log"}, {"label": "Signal data", "path": "/svc/signals.zip"}],
+    }
+    with db.tx() as conn:
+        source = conn.execute("SELECT id FROM sources LIMIT 1").fetchone()["id"]
+        addons.add(conn, vid, addons.parse_package(json.dumps(manifest).encode()), source, "0" * 64)
+    page = client.get(f"/v/{slug(vid)}/plugins").text
+    assert 'class="abar-box"><div class="addon-bar fb3"' in page  # one button of its own + two downloads
+    assert ">Car log<" in page and ">Signal data<" in page
+    many = {**manifest, "id": "dl-many", "buttons": [], "downloads": [{"label": f"D{i}", "path": f"/svc/d{i}.zip"} for i in range(10)]}
+    with db.tx() as conn:
+        addons.add(conn, vid, addons.parse_package(json.dumps(many).encode()), source, "0" * 64)
+    assert (
+        'class="addon-bar fb9"' in client.get(f"/v/{slug(vid)}/plugins").text
+    )  # nine or more: symbols only, and a second line may be taken
+
+
 def test_a_plugin_without_free_buttons_has_the_same_tile_with_fb0(client):
     client.post("/vehicles", data={"name": "Plain", "fuel_type": "petrol"})
     vid = create_vehicle(client, name="Plain two")

@@ -358,9 +358,10 @@ Every plugin has a **tile** under *Plugins → Manage* with ONE line of buttons 
 | **Logs** | the plugin's own log page (see [Logs and the debug button](#logs-and-the-debug-button-of-a-plugin)) |
 | **Settings** | the plugin's settings page |
 | *your own buttons* | up to **three**, see below |
+| *downloads* | every entry of `downloads` (a log, a data package) while the plugin runs |
 | **the main button** (right, red) | what is to be done next: *Review and approve*, *Update*, *Set up* (while the plugin has a `setup` that is not finished) or *Open* |
 
-The tile decides by its own width, not the window's: while there is room the buttons carry their words, then only their symbols (the name stays in `aria-label` / `title`), and with three buttons of your own on the smallest tile the main button becomes a symbol, too. It never wraps.
+The tile decides by its own width, not the window's: while there is room the buttons carry their words, then only their symbols (the name stays in `aria-label` / `title`), and with two or more extra buttons (own buttons plus downloads) on the smallest tile the main button becomes a symbol, too; a long name of the main button is shortened with "...". Nothing is ever cut off at the edge of the tile. Only a plugin with **three or more extra buttons** takes a second line on a phone - keep to one or two downloads and use the own buttons for what matters.
 
 **Your own buttons.** A package may list up to three buttons of its own (`buttons`). A button either **opens a page** of the package or **triggers an action** of its service and shows the answer:
 

@@ -361,9 +361,10 @@ Jedes Plugin hat unter *Plugins → Verwaltung* eine **Kachel** mit EINER Knopfz
 | **Logs** | die eigene Log-Seite des Plugins (siehe [Protokolle und der Debug-Knopf](#protokolle-und-der-debug-knopf-eines-plugins)) |
 | **Einstellungen** | die Einstellungsseite des Plugins |
 | *deine eigenen Knöpfe* | bis zu **drei**, siehe unten |
+| *Downloads* | jeder Eintrag von `downloads` (ein Protokoll, ein Datenpaket), solange das Plugin läuft |
 | **der Hauptknopf** (rechts, rot) | was als Nächstes dran ist: *Prüfen und freigeben*, *Aktualisieren*, *Einrichten* (solange das Plugin ein `setup` hat, das noch nicht fertig ist) oder *Öffnen* |
 
-Die Kachel entscheidet nach ihrer eigenen Breite, nicht nach der des Fensters: Solange Platz ist, tragen die Knöpfe ihre Wörter, danach nur ihre Symbole (der Name bleibt in `aria-label` / `title`), und bei drei eigenen Knöpfen auf der kleinsten Kachel wird auch der Hauptknopf zum Symbol. Sie bricht nie um.
+Die Kachel entscheidet nach ihrer eigenen Breite, nicht nach der des Fensters: Solange Platz ist, tragen die Knöpfe ihre Wörter, danach nur ihre Symbole (der Name bleibt in `aria-label` / `title`), und bei zwei oder mehr zusätzlichen Knöpfen (eigene Knöpfe plus Downloads) auf der kleinsten Kachel wird auch der Hauptknopf zum Symbol; ein langer Name des Hauptknopfs wird mit "..." gekürzt. Nichts wird je am Rand der Kachel abgeschnitten. Nur ein Plugin mit **drei oder mehr zusätzlichen Knöpfen** bekommt am Handy eine zweite Zeile - bleib bei ein bis zwei Downloads und nutze die eigenen Knöpfe für das, was zählt.
 
 **Eigene Knöpfe.** Ein Paket darf bis zu drei eigene Knöpfe aufführen (`buttons`). Ein Knopf **öffnet eine Seite** des Pakets oder **löst eine Aktion** seines Dienstes aus und zeigt die Antwort:
 

@@ -67,16 +67,31 @@
   // picture - and the box is never empty. Only when there is no picture at all, the car photo takes over (as it always did).
   // A picture that is still ON ITS WAY (the poster, the last frame) is waited for (four seconds at most): a phone that refuses the video at once - before the
   // picture has arrived - must not fall back to the car photo and then show the picture on top of it.
-  var pending = 0, patience = null;
+  var pending = 0, patience = null, tapped = false;
+  // Why the video does not play, in words the person can read out: the video's own error, else the name of what the browser refused with.
+  var WHY = v.getAttribute("data-why") || "";
+  function reason(e) {
+    var er = v.error;
+    if (er && er.code) { return { 1: "aborted", 2: "network", 3: "decode", 4: "format not supported" }[er.code] || ("code " + er.code); }
+    return (e && e.name) || "";
+  }
+  function whyNote(e) {  // after a tap that did not help: a line over the picture for a few seconds (the phone's own answer is the one thing we cannot see from here)
+    if (!WHY) { return; }
+    var old = wrap.querySelector(".hero-why"); if (old) { old.parentNode.removeChild(old); }
+    var n = document.createElement("span"), r = reason(e); n.className = "hero-why"; n.setAttribute("role", "status");
+    n.textContent = WHY + (r ? " (" + r + ")" : "");
+    wrap.appendChild(n); setTimeout(function () { if (n.parentNode) { n.parentNode.removeChild(n); } }, 9000);
+  }
   function giveUp() {
     clearTimeout(watchdog);
-    if (canvas) { wrap.classList.add("vplay"); return; }
+    if (canvas) { wrap.classList.add("vplay"); if (tapped) { whyNote(null); } return; }
     if (pending > 0) {
       if (!patience) { patience = setTimeout(function () { pending = 0; giveUp(); }, 4000); }
       return;
     }
     clearTimeout(patience); patience = null;
-    wrap.classList.add("failed"); if (v.parentNode) { v.parentNode.removeChild(v); }
+    wrap.classList.add("failed"); try { v.pause(); } catch (e) { /* stays */ }  // the video element stays (hidden): a tap tries again
+    if (tapped) { whyNote(null); }
   }
   function stillSettled() {  // a picture arrived (or could not): a video that gave up meanwhile now looks at what there is
     if (pending > 0) { pending--; }
@@ -210,11 +225,21 @@
   wrap.addEventListener("click", function () {
     if (!v.parentNode) { return; }
     if (v.ended || v.paused) {
+      var retry = wrap.classList.contains("failed");  // nothing could be shown: the tap is a new try, from the start
       if (!v.getAttribute("src")) { v.src = v.getAttribute("data-src"); }
+      else if (v.error) { try { v.load(); } catch (e) { /* the next play() says why */ } }
       var held = canvas;
       unfreeze(); try { v.currentTime = 0; } catch (e) { /* not seekable yet */ }
-      done = false; shown = true; started = false; usedSaved = !!held; v.muted = true;
-      var p = v.play(); if (p && p.catch) { p.catch(function () { if (held && !canvas && !started) { v.classList.add("vgone"); wrap.insertBefore(held, v.nextSibling); canvas = held; done = true; } }); }
+      if (retry) { wrap.classList.remove("failed"); wrap.classList.add("vplay"); }
+      done = false; shown = true; started = false; usedSaved = !!held; v.muted = true; tapped = true;
+      var p = v.play();
+      if (p && p.catch) {
+        p.catch(function (e) {
+          whyNote(e);
+          if (held && !canvas && !started) { v.classList.add("vgone"); wrap.insertBefore(held, v.nextSibling); canvas = held; done = true; }
+          else if (retry && !started) { wrap.classList.remove("vplay"); wrap.classList.add("failed"); }
+        });
+      }
     }
   });
   document.addEventListener("visibilitychange", function () { if (document.hidden) { if (!done) { remember(true); v.pause(); } } else if (done) { reseek(); } else { go(); } });

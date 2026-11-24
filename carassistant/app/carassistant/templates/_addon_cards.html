@@ -33,7 +33,8 @@
     </div>
   {% else %}
     {% set free = (a.m.buttons or []) if a.active else [] %}
-    <div class="addon-bar fb{{ free|length }}">
+    {% set extra = free|length + ((a.m.downloads or [])|length if a.active else 0) %}
+    <div class="abar-box"><div class="addon-bar fb{{ [extra, 9]|min }}">
       <button class="danger ico-only" form="adel-{{ a.id }}" aria-label="{{ _('addon.uninstall') }}" title="{{ _('addon.uninstall') }}">{{ icon('delete', 18) }}</button>
       <a class="button lite-lbl" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/logs" aria-label="{{ _('addon.logs') }}" title="{{ _('addon.logs') }}">{{ icon('list', 18) }}<span class="lbl2">{{ _('addon.logs') }}</span></a>
       {% if a.m.settings or plugin %}<a class="button lite-lbl" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/settings" aria-label="{{ _('addon.settings') }}" title="{{ _('addon.settings') }}">{{ icon('settings', 18) }}<span class="lbl2">{{ _('addon.settings') }}</span></a>{% endif %}
@@ -45,7 +46,7 @@
       {% elif a.m.setup and a.status != 'configured' %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ a.m.setup.title or _('addon.setup') }}</span></a>
       {% elif plugin and a.status != 'configured' %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/settings">{{ icon('play-circle-outline', 18) }}<span>{{ _('addon.setup') }}</span></a>
       {% elif a.active and a.m.pages %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/m/{{ a.addon_id }}">{{ icon('chevron', 18) }}<span>{{ _('addon.open') }}</span></a>{% endif %}
-    </div>
+    </div></div>
 
       {% endif %}
   {{ del_form('adel-' ~ a.id, base ~ '/v/' ~ v.slug ~ '/integrations/' ~ a.id ~ '/delete', 'addon.confirm_delete') }}

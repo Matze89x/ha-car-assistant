@@ -135,6 +135,7 @@ def _demo_plugins(conn, vid: int) -> None:
             {"id": "wake", "label": "Wake the car", "icon": "power", "action": "/demo/wake"},
             {"id": "sync", "label": "Sync now", "icon": "refresh", "action": "/demo/sync", "confirm": "Fetch everything again?"},
         ],
+        "downloads": [{"label": "Car log", "path": "/demo/car.log"}, {"label": "Signal data", "path": "/demo/signals.zip"}],
     }
     addons.add(conn, vid, addons.parse_package(json.dumps(gateway).encode()), source, "0" * 64)
     cloud = {

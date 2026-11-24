@@ -195,6 +195,64 @@ def test_the_videos_own_picture_stands_in_when_nothing_was_kept(hero):
     )
 
 
+# a phone in low-power mode: it refuses every start by the page until the person taps (the test lets the next start through)
+REFUSE_UNTIL_TAP = (
+    "var _play = HTMLMediaElement.prototype.play;"
+    "HTMLMediaElement.prototype.play = function () { return window.__allow ? _play.call(this) : Promise.reject(new DOMException('no', 'NotAllowedError')); };"
+)
+
+
+def _tap(hero):
+    hero.b.run("document.querySelector('.hero-media').click()")
+
+
+def test_a_tap_after_a_refused_start_plays_the_video(hero):
+    """A phone in low-power mode refuses the start, but not a start by a tap: the picture stands, the tap plays the video."""
+    hero.visit(REFUSE_UNTIL_TAP, keep_last=False)
+    hero.b.wait_for("document.querySelector('.hero-media .hero-frozen')", seconds=10)
+    time.sleep(1.8)  # the page tries again by itself a few times - the phone keeps refusing
+    hero.b.run("window.__allow = true")
+    _tap(hero)
+    try:
+        hero.b.wait_for(
+            "(function () { var v = document.querySelector('video.hero-video'); return v && v.currentTime > 0.1; })()", seconds=6
+        )
+    except RuntimeError:
+        ST = "JSON.stringify((function(){var w=document.querySelector('.hero-media'),v=w.querySelector('video');return {cls:w.className, v: !!v, paused:v&&v.paused, t:v&&v.currentTime, ended:v&&v.ended, rs:v&&v.readyState, src:v&&v.getAttribute('src'), err:v&&v.error&&v.error.code, why:(w.querySelector('.hero-why')||{}).textContent, ev: window.__ev};})())"
+        print("FAILSTATE", hero.b.run(ST), hero.b.drain()[:5])
+        raise
+    assert "vplay" in hero.state()["classes"]
+
+
+def test_a_tap_that_does_not_help_says_why(hero):
+    hero.visit(REFUSE, keep_last=False)
+    hero.b.wait_for("document.querySelector('.hero-media .hero-frozen')", seconds=10)
+    _tap(hero)
+    hero.b.wait_for("document.querySelector('.hero-why')", seconds=5)
+    note = hero.b.run("document.querySelector('.hero-why').textContent")
+    assert "cannot be played" in note and "NotAllowedError" in note  # the words of the page and the name of what the browser answered
+    assert hero.b.run("!!document.querySelector('video.hero-video')")  # the video stays: the next tap tries again
+
+
+def test_with_no_picture_at_all_the_video_stays_and_a_tap_tries_again(hero):
+    pictures = {f: f.read_bytes() for f in (hero.data / "app").rglob("*.jpg")}  # the video's own picture: taken away for this test only
+    for f in pictures:
+        f.unlink()
+    try:
+        hero.visit(REFUSE_UNTIL_TAP, keep_last=False)
+        hero.b.wait_for("document.querySelector('.hero-media.failed')", seconds=12)
+        assert hero.b.run("!!document.querySelector('video.hero-video')")  # it used to be removed: then a tap could do nothing
+        hero.b.run("window.__allow = true")
+        _tap(hero)
+        hero.b.wait_for(
+            "(function () { var v = document.querySelector('video.hero-video'); return v && v.currentTime > 0.1; })()", seconds=10
+        )
+        assert "failed" not in hero.state()["classes"]
+    finally:
+        for f, data in pictures.items():
+            f.write_bytes(data)
+
+
 def test_a_missing_video_file_keeps_the_picture(hero):
     hero.remember()
     for f in (hero.data / "app").rglob("*.webm"):

@@ -9,7 +9,8 @@
 * **nothing is wider than the screen** (no sideways scrolling) and **no text runs out of its own box or is cut off by it**,
 * **the space below the last thing in a card is only the card's padding** (the same distance below as at its left),
 * **cards one under the other stand `--sp-col` apart** (no margin on top of the gap),
-* **a switch is the last thing at the right end of its row** (like the settings of an iPhone; never on the left).
+* **a switch is the last thing at the right end of its row** (like the settings of an iPhone; never on the left),
+* **the buttons at the bottom of a plugin tile lie inside the tile** (nothing cut off, however many downloads and buttons the plugin has).
 
 Folded forms (the add form, the edit form of a card) are opened first so that the buttons inside are measured, too. German has the longest words, a
 phone the least room: ``tests/test_page_ui.py`` runs German at phone width and English wide, when Chrome is installed.
@@ -46,7 +47,7 @@ MEASURE = r"""
     if (lines > 1) { out.push('the label of a button wraps: "' + name(e) + '" (in ' + where(e) + ')'); }
     var br = e.getBoundingClientRect(), tw2 = document.createTreeWalker(e, NodeFilter.SHOW_TEXT), tx;  /* the label must stay inside its button (squeezed buttons print over each other) */
     while ((tx = tw2.nextNode())) {
-      if (!tx.textContent.trim() || tx.parentElement.closest('.sr, .sr-only')) { continue; }  /* text for screen readers only is no label */
+      if (!tx.textContent.trim() || tx.parentElement.closest('.sr, .sr-only') || getComputedStyle(tx.parentElement).textOverflow === 'ellipsis') { continue; }  /* a label that is shortened with "..." on purpose stays inside */  /* text for screen readers only is no label */
       var rr = document.createRange(); rr.selectNodeContents(tx);
       var lr = rr.getBoundingClientRect();
       if (lr.width && (lr.right > br.right + 1.5 || lr.left < br.left - 1.5)) { out.push('the label of a button runs out of the button: "' + name(e) + '" (in ' + where(e) + ')'); break; }
@@ -151,7 +152,7 @@ MEASURE = r"""
   var groups = new Map();
   ctl.forEach(function (e) { var p = e.parentElement; if (!groups.has(p)) { groups.set(p, []); } groups.get(p).push(e); });
   groups.forEach(function (list, p) {
-    if (list.length < 2) { return; }
+    if (list.length < 2 || p.matches('.addon-bar:is(.fb3, .fb4, .fb5, .fb6, .fb7, .fb8, .fb9)')) { return; }  /* a tile bar with three or more extra buttons takes a second line on a phone on purpose: better than a button cut off */
     var tops = list.map(function (e) { return e.getBoundingClientRect().top; }), hs = list.map(function (e) { return Math.round(e.getBoundingClientRect().height); });
     var names = list.map(name).join(' | ');
     if (Math.max.apply(null, tops) - Math.min.apply(null, tops) > 6) { out.push('a row of buttons is on several lines: ' + names + ' (in ' + where(list[0]) + ')'); }
@@ -191,6 +192,18 @@ MEASURE = r"""
       return !sw.contains(e) && !e.contains(sw) && vis(e) && e.getBoundingClientRect().left >= sr.right - 1 && (e.matches('button, a, input, select') || (e.children.length === 0 && (e.textContent || '').trim()));
     });
     if (beside) { out.push('something stands to the right of a switch: "' + label + '"'); }
+  });
+  /* the bar at the bottom of a plugin tile: every button lies inside it and inside the tile - nothing is cut off at either side, however many
+     buttons and downloads the plugin has (a tile never grows wider than the page either) */
+  document.querySelectorAll('.addon-bar').forEach(function (bar) {
+    if (!vis(bar)) { return; }
+    var tile = bar.closest('.card') || bar, tr = tile.getBoundingClientRect();
+    Array.prototype.forEach.call(bar.querySelectorAll('a.button, button, summary'), function (b) {
+      if (!vis(b)) { return; }
+      var r = b.getBoundingClientRect();
+      if (r.left < tr.left - 0.5 || r.right > tr.right + 0.5) { out.push('a button of a tile bar lies outside its tile: "' + (name(b) || b.getAttribute('aria-label') || b.className) + '" (' + Math.round(Math.min(r.left - tr.left, 0) + Math.max(r.right - tr.right, 0)) + ' px)'); }
+    });
+    if (bar.scrollWidth > bar.clientWidth + 1) { out.push('the bar of a tile is wider than the tile (' + (bar.scrollWidth - bar.clientWidth) + ' px)'); }
   });
   return JSON.stringify(out);
 })()
