@@ -40,6 +40,12 @@ Alle Tankungen nach Monaten mit Verbrauch und Preisen. Die **Tankstellensuche** 
 
 ![Tanken](screenshots/de/fuel.png)
 
+## Alle Anbindungen der Plugins
+
+*Plugins → Anbindungen*: eine zoombare Karte mit den Plugins links, **jedem Kanal der Plugin-API** in der Mitte - auch den offenen (hohle Ringe) - und rechts, wo es ankommt. Mit dem Mausrad zoomen, ziehen zum Verschieben; ein Klick auf ein Plugin, einen Kanal, einen Ort oder eine Linie öffnet darunter die Erklärung, die Anbindungen, den Rohwert und die letzten Werte mit Datum und Uhrzeit.
+
+![Die Anbindungskarte mit einem geöffneten Kanal](screenshots/de/connections-map.png)
+
 ## Kostensicht
 
 Was das Auto im gewählten Zeitraum kostet: die Summe, der Anteil von Tanken, Service, Umbauten und Teilen, ein Diagramm je Zeitraum und eine Liste jedes Eintrags mit Preis.

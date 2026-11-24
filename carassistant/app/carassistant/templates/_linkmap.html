@@ -1,5 +1,36 @@
 {% from "_macros.html" import icon with context %}
 <p class="hint">{{ _('lm.intro') }}</p>
+{# the zoomable map (wide screens): every channel of the Plugin API, also the open ones; phones keep the cards below #}
+<div class="lmz" id="lmz" data-model='{{ lmz|tojson }}' data-base="{{ base }}/v/{{ v.slug }}/plugins/connections" data-raw="{{ 1 if can_raw else 0 }}"
+  data-t-plugins="{{ _('lmz.plugins') }}" data-t-channels="{{ _('lmz.channels') }}" data-t-places="{{ _('lmz.places') }}" data-t-counts_short="{{ _('lmz.counts_short') }}"
+  data-t-set="{{ _('lm.set') }}" data-t-get="{{ _('lm.get') }}" data-t-hits="{{ _('lm.hits') }}" data-t-raw="{{ _('lm.raw') }}" data-t-masked="{{ _('lm.masked') }}" data-t-novalue="{{ _('lm.no_value') }}" data-t-history="{{ _('lm.history') }}"
+  data-t-no_connections="{{ _('lmz.no_connections') }}" data-t-no_data="{{ _('lmz.no_data') }}" data-t-last_seen="{{ _('lmz.last_seen') }}" data-t-calls="{{ _('lmz.calls') }}" data-t-more_signals="{{ _('lmz.more_signals') }}">
+  <div class="lmz-bar">
+    <ul class="lmz-legend" aria-label="{{ _('lmz.title') }}">
+      <li><svg viewBox="0 0 40 8" aria-hidden="true"><path d="M1 4H39" class="lg set"/></svg>{{ _('lmz.legend_set') }}</li>
+      <li><svg viewBox="0 0 40 8" aria-hidden="true"><path d="M1 4H39" class="lg get"/></svg>{{ _('lmz.legend_get') }}</li>
+      <li><i class="lm-dot open" aria-hidden="true"></i>{{ _('lmz.legend_open') }}</li>
+      <li><i class="lm-dot live" aria-hidden="true"></i>{{ _('lmz.legend_used') }}</li>
+    </ul>
+    <div class="lmz-tools">
+      <span class="lmz-count">{{ _('lmz.counts', used=lmz.n_used, open=lmz.n_open) }}</span>
+      <button type="button" class="icon-btn" data-lmz-zoom="out" aria-label="{{ _('lmz.zoom_out') }}" title="{{ _('lmz.zoom_out') }}">{{ icon('minus', 18) }}</button>
+      <button type="button" class="icon-btn" data-lmz-zoom="fit" aria-label="{{ _('lmz.fit') }}" title="{{ _('lmz.fit') }}">{{ icon('fullscreen', 18) }}</button>
+      <button type="button" class="icon-btn" data-lmz-zoom="in" aria-label="{{ _('lmz.zoom_in') }}" title="{{ _('lmz.zoom_in') }}">{{ icon('plus', 18) }}</button>
+      <button type="button" class="icon-btn" data-lmz-zoom="wide" aria-label="{{ _('lmz.wide') }}" title="{{ _('lmz.wide') }}">{{ icon('arrow-expand-all', 18) }}</button>
+    </div>
+  </div>
+  <div class="lmz-stage" tabindex="0" role="application" aria-label="{{ _('lmz.title') }}"><svg class="lmz-svg" aria-hidden="false"></svg></div>
+  <section class="card lmz-detail" id="lmz-detail" hidden>
+    <header class="lm-dh"><h2 id="lmz-dtitle"></h2><button type="button" class="icon-btn" id="lmz-dclose" aria-label="{{ _('lm.close') }}" title="{{ _('lm.close') }}">{{ icon('close', 18) }}</button></header>
+    <p class="hint" id="lmz-dex"></p>
+    <ul class="lmz-chips" id="lmz-dextra"></ul>
+    <h3 class="lmz-h3">{{ icon('swap', 16) }}<span>{{ _('lmz.connections') }}</span></h3>
+    <ul class="lmz-conn" id="lmz-conn"></ul>
+    <h3 class="lmz-h3">{{ icon('database', 16) }}<span>{{ _('lmz.data') }}</span></h3>
+    <div id="lmz-data"></div>
+  </section>
+</div>
 {% if not lm.plugins %}
 <div class="card empty-state">{{ icon('swap-vertical', 36) }}<p>{{ _('lm.none') }}</p></div>
 {% else %}

@@ -40,6 +40,12 @@ All fill-ups by month with consumption and prices. The **station search** on top
 
 ![Fuel](screenshots/en/fuel.png)
 
+## All connections of the plugins
+
+*Plugins → Connections*: a zoomable map with the plugins on the left, **every channel of the Plugin API** in the middle - the open ones (hollow rings) too - and where it lands on the right. Zoom with the mouse wheel, drag to move; a click on a plugin, a channel, a place or a line opens the explanation, the connections, the raw value and the last values with date and time below.
+
+![The connection map with one channel opened](screenshots/en/connections-map.png)
+
 ## Evaluation (costs)
 
 What the car costs in the chosen period: the total, the share of fuel, service, modifications and parts, a chart per period and a list of every priced entry.

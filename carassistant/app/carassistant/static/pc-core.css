@@ -3102,11 +3102,11 @@ path.me-ring { stroke: #3b82f6; fill: #3b82f6; fill-opacity: .12; stroke-width: 
 /* ===== Connection map (Plugins -> Connections): plugins | Plugin API | integrations, one line per plugin and area ===== */
 .t1 { --tint: var(--chip-1); } .t2 { --tint: var(--chip-2); } .t3 { --tint: var(--chip-3); } .t4 { --tint: var(--chip-4); }
 .t5 { --tint: var(--chip-5); } .t6 { --tint: var(--chip-6); } .t7 { --tint: var(--chip-7); }
-.lm-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 12px; padding: 0; list-style: none; font-size: 12px; color: var(--muted); }
-.lm-legend li { display: inline-flex; align-items: center; gap: 6px; }
-.lm-legend svg { width: 34px; height: 8px; }
-.lm-legend .lg { stroke: var(--muted); stroke-width: 2.5; fill: none; }
-.lm-legend .lg.get { stroke-dasharray: 6 5; }
+.lm-legend, .lmz-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 12px; padding: 0; list-style: none; font-size: 12px; color: var(--muted); }
+.lm-legend li, .lmz-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.lm-legend svg, .lmz-legend svg { width: 34px; height: 8px; }
+.lm-legend .lg, .lmz-legend .lg { stroke: var(--muted); stroke-width: 2.5; fill: none; }
+.lm-legend .lg.get, .lmz-legend .lg.get { stroke-dasharray: 6 5; }
 .lm { position: relative; }
 .lm-board { position: relative; display: grid; grid-template-columns: minmax(220px, 1fr) 84px minmax(260px, 1.15fr); gap: 0 10px; align-items: start; }
 .lm-col { display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 2; min-width: 0; }
@@ -3194,6 +3194,80 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
   .lm-rowbtn .lm-val { grid-column: 2 / 4; grid-row: 2; }
   .lm-raw { padding-left: 4px; }
 }
+
+/* ------------------------------------------------------------------ the zoomable connection map (wide screens; phones keep the cards above) */
+.lmz { position: relative; }
+.lmz-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 18px; margin: 0 0 10px; }
+.lmz-bar .lmz-legend { margin: 0; }
+.lmz-tools { display: inline-flex; align-items: center; gap: 8px; }
+.lmz-count { color: var(--muted); font-size: 12px; margin-right: 6px; }
+.lmz-stage { position: relative; height: clamp(440px, 72vh, 820px); overflow: hidden; border-radius: var(--r-m); background: var(--glass); border: 1px solid var(--glass-b); }
+.lmz-stage:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lmz-svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.lmz-stage.moving .lmz-svg { cursor: grabbing; }
+.lmz-svg text { fill: var(--text); font-family: inherit; pointer-events: none; }
+.lmz-svg .lmz-col-h { fill: var(--muted); letter-spacing: .09em; text-transform: uppercase; font-weight: 600; }
+.lmz-svg .lmz-meta, .lmz-svg .lmz-ago { fill: var(--muted); }
+.lmz-svg .lmz-title { font-weight: 700; }
+.lmz-svg .lmz-ha { fill: var(--ok); font-weight: 700; letter-spacing: .06em; }
+.lmz-ico { fill: var(--muted); pointer-events: none; }
+.lmz-node { cursor: pointer; outline: none; }
+.lmz-box { fill: var(--card2); stroke: var(--glass-b); stroke-width: 1; }
+.lmz-node:hover > .lmz-box, .lmz-node:focus-visible > .lmz-box { stroke: rgba(var(--fg-rgb), .35); }
+.lmz-plugin .lmz-tintbar { fill: var(--tint); }
+.lmz-plugin.off { opacity: .55; }
+.lmz-plugin .lmz-dot { fill: var(--dim); }
+.lmz-plugin.live .lmz-dot, .lmz-plugin.recent .lmz-dot { fill: var(--ok); }
+.lmz-plugin.idle .lmz-dot { fill: var(--soon); }
+.lmz-row { fill: transparent; stroke: transparent; }
+.lmz-ch:hover .lmz-row, .lmz-ch:focus-visible .lmz-row { fill: rgba(var(--fg-rgb), .07); }
+.lmz-ch .lmz-dot { fill: none; stroke: var(--dim); stroke-width: 1.5; stroke-dasharray: 2.4 2; }  /* an open channel: a hollow, dashed ring - it could be connected */
+.lmz-ch .lmz-label { fill: var(--muted); }
+.lmz-ch.live .lmz-dot, .lmz-ch.recent .lmz-dot, .lmz-ch.idle .lmz-dot { stroke: none; stroke-dasharray: none; }
+.lmz-ch.live .lmz-dot, .lmz-ch.recent .lmz-dot { fill: var(--ok); }
+.lmz-ch.idle .lmz-dot { fill: var(--soon); }
+.lmz-ch.live .lmz-label, .lmz-ch.recent .lmz-label, .lmz-ch.idle .lmz-label { fill: var(--text); }
+.lmz-dir { fill: var(--dim); }
+.lmz-ch.live .lmz-dir, .lmz-ch.recent .lmz-dir, .lmz-ch.idle .lmz-dir { fill: var(--muted); }
+.lmz-out { fill: none; stroke: var(--dim); stroke-width: 1.5; stroke-dasharray: 3 5; opacity: .6; }
+.lmz-out.live, .lmz-out.recent { stroke: var(--ok); stroke-dasharray: none; stroke-width: 2; opacity: .8; }
+.lmz-out.idle { stroke: var(--soon); stroke-dasharray: none; stroke-width: 2; opacity: .6; }
+.lmz-w { fill: none; stroke: var(--tint); stroke-width: 2; opacity: .5; }
+.lmz-w.live { opacity: 1; stroke-width: 3; }
+.lmz-w.idle, .lmz-w.none { opacity: .25; }
+.lmz-w.get { stroke-dasharray: 7 6; }
+.lmz-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
+.lmz-world.has-sel .lmz-node:not(.sel) { opacity: .3; }
+.lmz-world.has-sel .lmz-w, .lmz-world.has-sel .lmz-out { opacity: .06; }
+.lmz-world.has-sel .lmz-w.sel, .lmz-world.has-sel .lmz-out.sel { opacity: 1; stroke-width: 3.5; }
+.lmz-node.sel > .lmz-box { stroke: var(--accent); }
+.lmz-detail { margin-top: 16px; }
+.lmz-h3 { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.lmz-chips { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 4px; padding: 0; list-style: none; }
+.lmz-chip { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .04); font-size: 12px; color: var(--muted); }
+.lmz-conn { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--glass-b); }
+.lmz-conn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 9px 2px; border-bottom: 1px solid var(--glass-b); font-size: 14px; }
+.lmz-conn-row .lmz-arrow { color: var(--muted); }
+.lmz-conn-row .lmz-calls { margin-left: auto; color: var(--muted); font-size: 12px; }
+.lmz-conn-row time { color: var(--muted); font-size: 12px; }
+.lmz-sig { border-bottom: 1px solid var(--glass-b); }
+.lmz-sig > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 10px 2px; cursor: pointer; list-style: none; }
+.lmz-sig > summary::-webkit-details-marker { display: none; }
+.lmz-sig > summary b { font-size: 14px; overflow-wrap: anywhere; }
+.lmz-sig > summary small { color: var(--muted); font-size: 12px; }
+.lmz-sig > summary time { margin-left: auto; color: var(--muted); font-size: 12px; }
+.lmz-sig-body { padding: 0 2px 14px 2px; }
+.lmz-sig-body h3 { margin: 10px 0 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.lmz-sig-body pre { max-height: 240px; overflow: auto; margin: 0; padding: 10px; border-radius: var(--r-s); background: var(--card2); font-family: "Space Mono", monospace; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lmz.lmz-full { position: fixed; inset: 0; z-index: 900; display: flex; flex-direction: column; overflow-y: auto; padding: 14px; background: var(--bg); }
+.lmz.lmz-full .lmz-stage { flex: 0 0 auto; height: calc(100vh - 110px); }
+html.lmz-lock { overflow: hidden; }
+.lm-dot.open { background: none; border: 1.5px dashed var(--dim); box-sizing: border-box; }
+.lmz [hidden] { display: none !important; }
+/* the zoomable map where there is room; the cards where there is not */
+@media (min-width: 861px) { .lm { display: none; } }
+@media (max-width: 860px) { .lmz { display: none; } }
+@media (prefers-reduced-motion: reduce) { .lmz-ch.live .lmz-dot { animation: none; } }
 
 /* the tabs of a plugin's settings page: its own settings per tab; the first tab also holds the cards around the settings */
 [data-set-tabs] a.err { color: var(--warn, var(--overdue)); }

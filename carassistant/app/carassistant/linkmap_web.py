@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from . import db, linkmap, linkmap_ui
+from . import db, linkmap, linkmap_ui, linkmap_zoom
 from .connectors_web import _may_manage
 from .web import app, vehicle_or_404
 
@@ -24,6 +24,27 @@ def links_graph(vid: int):
     with db.tx() as conn:
         vehicle_or_404(conn, vid)
         return JSONResponse(linkmap_ui.light(linkmap_ui.build(conn, vid)), headers=NO_STORE)
+
+
+@app.get("/v/{vid}/plugins/connections/zoom.json")
+def links_zoom(vid: int):
+    """The refresh of the zoomable map: the states of plugins, channels and lines (the structure is the ``version``)."""
+    with db.tx() as conn:
+        vehicle_or_404(conn, vid)
+        return JSONResponse(linkmap_zoom.light(linkmap_zoom.model(conn, vid)), headers=NO_STORE)
+
+
+@app.get("/v/{vid}/plugins/connections/detail.json")
+def links_detail(request: Request, vid: int, kind: str, id: str, sub: str = ""):
+    """Everything about one thing of the map: explanation, connections, the signals with their last value, the raw value (only for those who may
+    see it) and the small history with dates."""
+    if kind not in ("channel", "plugin", "group"):
+        raise HTTPException(400, "kind")
+    raw_ok = _may_manage(request)
+    with db.tx() as conn:
+        vehicle_or_404(conn, vid)
+        body = linkmap_zoom.detail(conn, vid, kind, id[:120], sub[:120], raw_ok)
+    return JSONResponse(body, headers=NO_STORE)
 
 
 @app.get("/v/{vid}/plugins/connections/signals.json")

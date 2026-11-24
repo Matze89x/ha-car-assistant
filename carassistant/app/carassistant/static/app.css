@@ -324,7 +324,7 @@ ul.codes { list-style: none; padding: 0; display: grid; grid-template-columns: r
 ul.codes li { padding: 10px 14px; border-radius: var(--r-s); background: rgba(var(--fg-rgb),.06); border: 1px solid var(--glass-b); font-size: 15px; letter-spacing: .06em; }
 
 /* no white flash between pages: the old page stays until the new one is ready; the navigation does not move */
-html { background: var(--bg); }
+html { background: var(--bg); scrollbar-gutter: stable; }  /* with classic scrollbars a short page and a long page keep the same width: nothing jumps sideways between pages */
 
 /* More: grouped menu with tinted icon chips */
 .mgroup-wrap { margin-top: 18px; }

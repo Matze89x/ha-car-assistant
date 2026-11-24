@@ -17,6 +17,7 @@ from . import (
     i18n,
     interfaces,
     linkmap_ui,
+    linkmap_zoom,
     modules,
     navigation,
     pluginsvc,
@@ -156,6 +157,7 @@ def _plugins_page(request: Request, vid: int, tab: str):
                 ptab=tab,
                 section_tabs=_tabs(f"/v/{vehicle['slug']}/plugins", tab, PLUG_TABS),
                 lm=linkmap_ui.build(conn, vid),
+                lmz=linkmap_zoom.model(conn, vid),
                 can_raw=_may_manage(request),
             )
         sortc = _sort_ctx(request, tab == "manage")

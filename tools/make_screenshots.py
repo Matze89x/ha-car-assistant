@@ -29,7 +29,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 CHROME = os.environ.get("CHROME") or "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 DIESEL, EV = "demo-diesel", "demo-electric"
 COMPACT = "demo-compact"  # a plain car with no data from the car: its dashboard shows the odometer plate you can turn over and type on
-SCENES = ("odometer-photo", "fuel-scan")  # pictures that need a tap and a photo first (tools/cdp.py)
+SCENES = ("odometer-photo", "fuel-scan", "connections-map")  # pictures that need a tap and a photo first (tools/cdp.py)
 
 # name, path, width, height (desktop pictures; the height cuts the page where it is still worth looking at)
 DESKTOP = (
@@ -209,6 +209,38 @@ def compose(photo: bytes, screen: Path, out: Path, photo_height: int | None = 76
     sheet.save(out, optimize=True)
 
 
+def connect_demo_plugins() -> None:
+    """Two made-up plugins that have talked to the Plugin API (in this process: the data folder of ``seed``), so that the connection map has lines."""
+    import json
+
+    from carassistant import db, linkmap
+
+    with db.tx() as conn:
+        vid = conn.execute("SELECT id FROM vehicles WHERE slug = ?", (DIESEL,)).fetchone()[0]
+        for addon_id, name, icon in (("demo-connector", "Demo connector", "plug"), ("cloud-account", "Cloud account", "cloud")):
+            conn.execute(
+                "INSERT INTO vehicle_addons(vehicle_id, kind, addon_id, manifest, status, settings, created_at, active) VALUES(?, 'plugin', ?, ?, 'configured', '{}', '2026-01-01', 1)",
+                (vid, addon_id, json.dumps({"id": addon_id, "kind": "plugin", "name": name, "version": "1", "icon": icon})),
+            )
+        pre = ["", "api", "v1", "vehicles", str(vid)]
+
+        def call(addon: str, method: str, what: str, body=None) -> None:
+            linkmap.record(conn, vid, addon, method, pre + [what], body)
+
+        for km, ign, fuel in ((86020, "on", 42), (86031, "off", 41), (86044, "off", 40)):
+            linkmap._seen.clear()
+            call("demo-connector", "POST", "data", {"odometer_km": km, "ignition": ign, "fuel_level_pct": fuel, "range_km": 520 - (42 - fuel) * 12})
+        linkmap._seen.clear()
+        call("demo-connector", "POST", "data", {"position": {"lat": 52.52, "lon": 13.405}, "speed_kmh": 0, "doors": {"fl": "closed", "fr": "closed"}, "tyre_pressure_bar": {"fl": 2.4, "fr": 2.4, "rl": 2.5, "rr": 2.5}})
+        call("demo-connector", "GET", "control")
+        call("demo-connector", "POST", "logs", {"lines": ["connected", "reading"]})
+        call("cloud-account", "POST", "data", {"battery_12v_v": 12.6, "outside_temp_c": 7.5, "service_due_km": 4200})
+        call("cloud-account", "GET", "data")
+        call("cloud-account", "POST", "track", {"points": [{"lat": 52.5, "lon": 13.4}]})
+        call("cloud-account", "POST", "refuel", {"amount": 41.2, "price_per_unit": 1.659})
+        conn.execute("UPDATE signal_state SET last_ts = ? WHERE addon_id = 'cloud-account' AND name = 'service_due_km'", ((date.today() - timedelta(days=3)).isoformat() + "T10:00:00+00:00",))
+
+
 def scenes(base: str, out_root: Path, lang: str, only: set[str]) -> None:
     """The pictures that show a tap and a photo: the odometer plate turned over with a photo of the cluster read, the fill-up form with a receipt read."""
     from cdp import Browser, upload_script
@@ -233,6 +265,21 @@ def scenes(base: str, out_root: Path, lang: str, only: set[str]) -> None:
             b.shot(screen, clip=(max(0, x - 18), max(0, y - 6), min(520, w + 36), h + 10), scale=2)
             compose(photo, screen, out_root / lang / "odometer-photo.png")
             print(lang, "odometer-photo", flush=True)
+        if not only or "connections-map" in only:
+            connect_demo_plugins()
+            b.open(f"{base}/v/{DIESEL}/plugins/connections", 1800, 1500, 1, settle=1.0)  # a wide window: the whole map fits and reads well
+            b.wait_for("document.getElementById('lmz').classList.contains('ready')")
+            time.sleep(0.4)
+            b.run("document.querySelector('.lmz-ch[data-id=\"odometer_km\"]').dispatchEvent(new MouseEvent('click',{bubbles:true}))")  # a click opens everything about it below
+            b.wait_for("document.querySelectorAll('.lmz-sig').length > 0")
+            time.sleep(0.8)
+            x, y, w, h = b.run("(function(){var r=document.getElementById('lmz').getBoundingClientRect();return [r.left+scrollX,r.top+scrollY,r.width,r.height];})()")
+            screen = Path(tmp) / "map.png"
+            b.shot(screen, clip=(x - 8, y - 8, w + 16, h + 16), scale=1)
+            out = out_root / lang / "connections-map.png"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            screen.replace(out)
+            print(lang, "connections-map", flush=True)
         if not only or "fuel-scan" in only:
             b.open(f"{base}/v/{COMPACT}/e/fuel#fuel-add", 520, 1000, 2, settle=3.5)  # the link opens the form of a new fill-up
             photo = demo_photos.receipt_photo(lang=lang, odometer=86_020)

@@ -100,7 +100,7 @@ class _Socket:
 
 class Browser:
     def __init__(self):
-        self.tmp = tempfile.TemporaryDirectory(prefix="ca-chrome-")
+        self.tmp = Path(tempfile.mkdtemp(prefix="ca-chrome-"))
         self.port = _free_port()
         self.proc = subprocess.Popen(
             [
@@ -111,7 +111,7 @@ class Browser:
                 "--no-first-run",
                 *(["--no-sandbox"] if hasattr(os, "geteuid") and os.geteuid() == 0 else []),  # a root user (a container) cannot use the sandbox
                 f"--remote-debugging-port={self.port}",
-                f"--user-data-dir={self.tmp.name}",
+                f"--user-data-dir={self.tmp}",
                 "about:blank",
             ],
             stdout=subprocess.DEVNULL,
@@ -143,7 +143,8 @@ class Browser:
             self.proc.wait(timeout=10)
         except subprocess.TimeoutExpired:
             self.proc.kill()
-        self.tmp.cleanup()
+        time.sleep(0.3)  # Chrome is still writing its profile for a moment
+        shutil.rmtree(self.tmp, ignore_errors=True)
 
     def call(self, method: str, **params):
         self.next_id += 1
