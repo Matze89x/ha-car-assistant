@@ -1,0 +1,13 @@
+# Copy this file to .github/workflows/check.yml of your SOURCE (the repository with your plugins and integrations).
+# It checks every package against the CURRENT Car Assistant on every change and every Monday - so you hear about it when the app has moved on and
+# a package no longer fits, without having to look. (To check against a fixed version instead of the newest: add  with: {app-ref: v0.5.24}.)
+name: Check against Car Assistant
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * 1"
+jobs:
+  check:
+    uses: Matze89x/ha-car-assistant/.github/workflows/check-source.yml@main

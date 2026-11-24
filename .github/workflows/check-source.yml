@@ -1,0 +1,25 @@
+# A reusable workflow: checks a SOURCE (a repository with plugins/, integrations/ and vehicles/) against the current Car Assistant.
+# A source calls it with a few lines (docs/examples/source-ci.yml) - on every change and once a week, so that a change in the app that a package no
+# longer fits is found by itself. The check lives in the app (tools/check_source.py) and so it is always as new as the app.
+name: Check a source against Car Assistant
+on:
+  workflow_call:
+    inputs:
+      app-ref:
+        description: "The version of Car Assistant to check against: a branch, tag or commit (main = the newest)"
+        type: string
+        default: main
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: Matze89x/ha-car-assistant
+          ref: ${{ inputs.app-ref }}
+          path: .car-assistant
+      - uses: actions/setup-python@v7
+        with: {python-version: "3.12"}
+      - run: pip install -r .car-assistant/carassistant/requirements.txt
+      - run: python .car-assistant/tools/check_source.py .

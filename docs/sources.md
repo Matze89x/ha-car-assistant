@@ -55,6 +55,14 @@ If GitHub answers "403" because its hourly limit for anonymous requests (60 per 
 
 A source can only be deleted when **no package installed from it** remains.
 
+## Keeping a source current
+
+Your own plugins and integrations belong in a **source** of their own - one repository with a folder per package - and **not** in a fork of the app: a fork that carries your packages drifts away from the app with every release and has to be pulled up again by hand. A source stays independent of the app, and the app keeps it in view instead:
+
+- `python tools/check_source.py <folder of the source>` reads every package the way **this** version of the app reads it (the same check as `tools/check_plugin.py`), compares the indexes with the folders (ids, versions, checksums) and looks at the vehicle files. Errors end with exit code 1, hints (a typo in a key, a missing icon or translation) are only printed.
+- The reusable workflow `.github/workflows/check-source.yml` of the app repository runs it on a source. Copy [`docs/examples/source-ci.yml`](examples/source-ci.yml) to `.github/workflows/check.yml` of your source: on every change **and every Monday** the whole source is checked against the newest app, so you hear about a package that no longer fits without having to look. The check lives in the app, so it is always as new as the app; a private source can use it as well. To check against a fixed version, add `with: {app-ref: v0.5.24}`.
+- One source for everything that belongs together (the public one for packages anyone may use, a **private** one for personal and car-specific plugins - never public), one folder per package. A package that grows into a project of its own (its own history, releases and helpers) may move to a repository of its own; the source then only lists it.
+
 ## Factory setting
 
 After a fresh start the first source is the project's package repository, [ha-car-assistant-sources](https://github.com/Matze89x/ha-car-assistant-sources) - it also holds the instructions for writing your own packages. It can be deleted (when nothing from it is installed) and restored with *Restore the standard source*.

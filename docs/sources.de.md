@@ -55,6 +55,14 @@ Antwortet GitHub mit „403“, weil sein Stundenlimit für anonyme Anfragen (60
 
 Eine Quelle lässt sich nur löschen, wenn **kein daraus installiertes Paket** mehr vorhanden ist.
 
+## Eine Quelle aktuell halten
+
+Deine eigenen Plugins und Integrationen gehören in eine **Quelle** für sich - ein Repository mit einem Ordner je Paket - und **nicht** in einen Fork der App: Ein Fork mit deinen Paketen läuft bei jedem Release von der App weg und muss von Hand nachgezogen werden. Eine Quelle bleibt von der App unabhängig, und die App behält sie im Blick:
+
+- `python tools/check_source.py <Ordner der Quelle>` liest jedes Paket so, wie **diese** Version der App es liest (dieselbe Prüfung wie `tools/check_plugin.py`), vergleicht die Verzeichnisse mit den Ordnern (IDs, Versionen, Prüfsummen) und schaut sich die Fahrzeugdateien an. Fehler enden mit Exit-Code 1, Hinweise (ein Tippfehler in einem Schlüssel, ein fehlendes Symbol oder eine fehlende Übersetzung) werden nur ausgegeben.
+- Der wiederverwendbare Workflow `.github/workflows/check-source.yml` im Repository der App führt sie auf einer Quelle aus. Kopiere [`docs/examples/source-ci.yml`](examples/source-ci.yml) nach `.github/workflows/check.yml` deiner Quelle: Bei jeder Änderung **und jeden Montag** wird die ganze Quelle gegen die neueste App geprüft, du hörst also von einem Paket, das nicht mehr passt, ohne nachsehen zu müssen. Die Prüfung liegt in der App, ist also immer so neu wie die App; eine private Quelle kann sie ebenfalls nutzen. Um gegen eine feste Version zu prüfen, füge `with: {app-ref: v0.5.24}` hinzu.
+- Eine Quelle für alles, was zusammengehört (die öffentliche für Pakete, die jeder nutzen darf, eine **private** für Persönliches und Autospezifisches - nie öffentlich), ein Ordner je Paket. Ein Paket, das zu einem eigenen Projekt wächst (eigener Verlauf, eigene Releases und Hilfen), darf in ein eigenes Repository ziehen; die Quelle führt es dann nur auf.
+
 ## Werkseinstellung
 
 Nach einem frischen Start ist die erste Quelle das Paket-Repository des Projekts, [ha-car-assistant-sources](https://github.com/Matze89x/ha-car-assistant-sources) – dort stehen auch die Anleitungen für eigene Pakete. Sie lässt sich löschen (wenn nichts daraus installiert ist) und mit *Standardquelle wiederherstellen* zurückholen.
