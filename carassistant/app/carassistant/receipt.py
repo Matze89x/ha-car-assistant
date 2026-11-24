@@ -36,7 +36,7 @@ FIELDS = (
 )  # what a receipt can fill in, in the order of the form
 # the odometer, when the station printed it (typed at the pump, fleet and company cards): "KM-Stand: 86020", "Kilometerstand 86.020", "Odometer 86020"
 ODOMETER_LABEL = re.compile(
-    r"\b(?:km[\s.\-]*stand|kilometer[\s.\-]*stand|kilometerstand|tachostand|odometer|mileage|fzg\.?[\s\-]*km)\b[\s.:=]*(\d{1,3}(?:[ .,'’]\d{3})+|\d{3,7})(?!\d)",
+    r"\b(?:km[\s.\-]*sta[a-z]{1,2}|kilometer[\s.\-]*sta[a-z]{1,2}|tachostand|odometer|mileage|fzg\.?[\s\-]*km|kilom[eé]trage|compteur|przebieg|chilometraggio|kilometraje|od[oó]metro)\b[\s.:=]*(\d{1,3}(?:[ .,'’]\d{3})+|\d{3,7})(?!\d)",
     re.I,
 )
 
@@ -90,14 +90,14 @@ BRANDS = (
     ("MOL", r"\bmol\b"),
 )
 PRODUCTS = (
-    ("Super E10", r"super\s*e\s*10|e10"),
+    ("Super E10", r"super\s*e\s*1\s*[0oO@°]|\be\s*1\s*[0oO@°]\b|sans\s*plomb\s*98?\s*e10"),
     ("Super E5", r"super\s*e\s*5|\be5\b"),
     ("Super Plus", r"super\s*plus"),
     ("V-Power Diesel", r"v-?power\s*diesel|ultimate\s*diesel|diesel\s*ultimate"),
     ("V-Power", r"v-?power|ultimate\s*(?:95|100)|ultimate"),
     ("Premium Diesel", r"premium\s*diesel|diesel\s*premium|excellium|aral\s*ultimate"),
-    ("Diesel", r"diesel|\bdsl\b"),
-    ("Super", r"\bsuper\b|benzin|unleaded|\bsp\s*95\b|\b95\b"),
+    ("Diesel", r"diesel|\bdsl\b|gazole|gasoil|gas[oó]leo|olej\s*nap[eę]dowy"),
+    ("Super", r"\bsuper\b|benzin|unleaded|sans\s*plomb|gasolina|benzyna|\bsp\s*9[58]\b|\b95\b"),
     ("Autogas", r"autogas|\blpg\b"),
     ("Erdgas", r"erdgas|\bcng\b"),
     ("Strom", r"\bkwh\b|ladevorgang|charging"),
@@ -151,6 +151,49 @@ def clean(data: bytes) -> bytes:
         img = img.resize((max(1, round(img.width * factor)), max(1, round(img.height * factor))), Image.LANCZOS)
     out = io.BytesIO()
     img.save(out, "PNG")
+    return out.getvalue()
+
+
+def skew(data: bytes) -> float:
+    """How far a photo is turned: the angle (degrees, -14 ... 14) at which the lines of text are most clearly separate - the rows of a straight line of
+    digits differ most from each other (the variance of the row means of the black-and-white middle of the photo). 0 when turning does not help clearly."""
+    from PIL import Image, ImageOps, ImageStat
+
+    img = Image.open(io.BytesIO(data)).convert("L")
+    img.thumbnail((520, 520))
+    w, h = img.size
+    img = ImageOps.autocontrast(
+        img.crop((int(w * 0.15), int(h * 0.25), int(w * 0.85), int(h * 0.95))), cutoff=2
+    )  # the middle and lower part: digits, not dials or edges
+    mean = ImageStat.Stat(img).mean[0]
+    img = img.point(lambda v: 255 if v > mean else 0)
+    fill = round(ImageStat.Stat(img).mean[0])
+
+    def score(angle: float) -> float:
+        turned = img.rotate(angle, resample=Image.BILINEAR, fillcolor=fill)
+        return ImageStat.Stat(turned.resize((1, turned.height), Image.BOX)).var[0]
+
+    base = score(0)
+    best, best_score = 0.0, base
+    for angle in range(-14, 15, 2):
+        if angle and (s := score(angle)) > best_score:
+            best, best_score = float(angle), s
+    for angle in (best - 1, best + 1):
+        if best and (s := score(angle)) > best_score:
+            best, best_score = angle, s
+    return best if abs(best) >= 2 and best_score > base * 1.15 else 0.0
+
+
+def deskew(data: bytes) -> bytes:
+    """The photo turned back straight (when it is clearly crooked), else as it is."""
+    angle = skew(data)
+    if not angle:
+        return data
+    from PIL import Image, ImageStat
+
+    img = Image.open(io.BytesIO(data)).convert("L")
+    out = io.BytesIO()
+    img.rotate(angle, resample=Image.BICUBIC, expand=True, fillcolor=round(ImageStat.Stat(img).mean[0])).save(out, "PNG")
     return out.getvalue()
 
 
@@ -231,7 +274,7 @@ def _score(result: dict) -> int:
 
 
 def _good(result: dict) -> bool:
-    return result["checked"] and not result["derived"] and len(result["found"]) >= 5
+    return result["checked"] and not result["derived"] and len(result["found"]) >= 5 and bool(result["date"])
 
 
 def scan(data: bytes, today: date | None = None) -> dict:
@@ -242,7 +285,7 @@ def scan(data: bytes, today: date | None = None) -> dict:
     what only another try found (date, product, odometer) is added."""
     if len(data) > MAX_BYTES:
         raise ValueError("too large")
-    cleaned = clean(data)
+    cleaned = deskew(clean(data))
     seen: dict[int, int] = {}  # odometer readings found and how many readings found each
 
     def note(result: dict) -> dict:
@@ -251,7 +294,7 @@ def scan(data: bytes, today: date | None = None) -> dict:
         return result
 
     with _one_at_a_time:
-        first = best = note(parse(read_text(cleaned, 6), today))
+        best = note(parse(read_text(cleaned, 6), today))
         if not _good(best):
             tries = ((None, 4), ("sharp", 6), ("bin", 6), ("left", 6), ("right", 6), ("left2", 6), ("right2", 6))
             for kind, psm in tries:
@@ -263,11 +306,35 @@ def scan(data: bytes, today: date | None = None) -> dict:
                 best = better
                 if _good(best):
                     break
-    # one digit wrong in a kilometre figure would go unnoticed: it is taken from a clean first reading (everything added up), or when two readings agree
-    agreed = [n for n, c in seen.items() if c >= 2]
-    best["odometer"] = first["odometer"] if _good(first) else (agreed[0] if agreed else None)
+        # one digit wrong in a kilometre figure would go unnoticed (a 0 read as a 9): a figure that was found is read once more in other views, and the
+        # digits are voted on position by position; a figure that does not come out the same in at least two readings is not offered
+        if seen:
+            for kind, psm in ((None, 4), ("sharp", 6), ("bin", 6), ("left", 6), ("right", 6)):
+                if max(seen.values()) >= 3 or sum(seen.values()) >= 4:
+                    break
+                note(parse(read_text(cleaned if kind is None else variant(cleaned, kind), psm), today))
+    best["odometer"] = _vote_odometer(seen)
     best["found"] = [k for k in FIELDS if best.get(k)]
     return best
+
+
+def _vote_odometer(seen: dict[int, int]) -> int | None:
+    """The odometer the readings agree on: the figure found most often, with every digit decided by the vote of the figures of the same length that differ from it in at most
+    one place. A figure found only once is not trusted (None)."""
+    if not seen:
+        return None
+    top = max(seen.items(), key=lambda kv: (kv[1], len(str(kv[0])), kv[0]))[0]
+    group = {
+        n: c for n, c in seen.items() if len(str(n)) == len(str(top)) and sum(a != b for a, b in zip(str(n), str(top), strict=True)) <= 1
+    }
+    digits = []
+    for pos in range(len(str(top))):
+        votes: dict[str, int] = {}
+        for n, c in group.items():
+            votes[str(n)[pos]] = votes.get(str(n)[pos], 0) + c
+        digits.append(max(votes.items(), key=lambda kv: (kv[1], kv[0] == str(top)[pos]))[0])
+    value = int("".join(digits))
+    return value if sum(group.values()) >= 2 else None
 
 
 # ------------------------------------------------------------------ the text of a receipt
@@ -285,7 +352,7 @@ def _numbers(line: str) -> list[tuple[float, int]]:
 def _clean_text(text: str) -> list[str]:
     fixed = []
     for raw in text.replace("\r", "").split("\n"):
-        line = raw.strip()
+        line = re.sub(r"[‐‑–—−]", "-", raw.strip())  # an en or em dash is a hyphen (EC—Karte, V—Power)
         if not line:
             continue
         # frequent misreadings inside a number: a letter O for a zero, l / I for a one, a space or a dot as the decimal comma

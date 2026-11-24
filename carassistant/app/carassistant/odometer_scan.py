@@ -7,24 +7,28 @@ plausible and found by most layouts wins. Nothing here is stored."""
 from __future__ import annotations
 
 import re
+import time
 from collections import Counter
 
 from . import receipt
 
 MAX_DIGITS = 7  # 9,999,999: more is no odometer
 MIN_VALUE = 100  # a smaller number is a trip counter or noise
+BUDGET = 9.0  # seconds of text recognition for one photo, at most
 MAX_JUMP = 100_000  # since the last reading a car does not drive more than this
 
 
 def numbers(text: str) -> list[int]:
-    """Every number of 3 to 7 digits in the text; two neighbouring groups with a thousands split ("52 340") are read as one number as well."""
-    tokens = [t for t in re.findall(r"\d+", text) if t]
+    """Every number of 3 to 7 digits in the text; two neighbouring groups of ONE line with a thousands split ("52 340") are read as one number as well
+    (the numbers of two lines - a dial and a trip counter - are never joined)."""
     found: list[int] = []
-    for i, tok in enumerate(tokens):
-        if 3 <= len(tok) <= MAX_DIGITS:
-            found.append(int(tok))
-        if i + 1 < len(tokens) and 1 <= len(tok) <= 3 and len(tokens[i + 1]) == 3 and len(tok) + 3 <= MAX_DIGITS:
-            found.append(int(tok + tokens[i + 1]))
+    for line in text.splitlines():
+        tokens = [x for x in re.findall(r"\d+", line) if x]
+        for i, tok in enumerate(tokens):
+            if 3 <= len(tok) <= MAX_DIGITS:
+                found.append(int(tok))
+            if i + 1 < len(tokens) and 1 <= len(tok) <= 3 and len(tokens[i + 1]) == 3 and len(tok) + 3 <= MAX_DIGITS:
+                found.append(int(tok + tokens[i + 1]))
     return [n for n in found if n >= MIN_VALUE]
 
 
@@ -61,15 +65,33 @@ def labelled(text: str) -> list[int]:
     return found
 
 
+def consensus(top: int, votes: Counter, last: int | None) -> int:
+    """The figure with every digit decided by the vote of the readings: a single misread digit (an 8 read as a 3, a 0 as a 9) is outvoted by the
+    others. Only figures of the same length that differ from the best one in at most two places vote."""
+    text = str(top)
+    group = {n: v for n, v in votes.items() if len(str(n)) == len(text) and sum(a != b for a, b in zip(str(n), text, strict=True)) <= 2}
+    if len(group) < 2:
+        return top
+    digits = []
+    for pos in range(len(text)):
+        tally: Counter = Counter()
+        for n, v in group.items():
+            tally[str(n)[pos]] += v
+        digits.append(max(tally.items(), key=lambda kv: (kv[1], kv[0] == text[pos]))[0])
+    value = int("".join(digits))
+    return value if plausible(value, last) or not plausible(top, last) else top
+
+
 def read(data: bytes, last: int | None = None) -> dict:
     """A photo -> ``{"value": int | None, "plausible": bool}``. ValueError for a file that is no photo.
 
-    The lower half is read first (the odometer is there, away from the dial numbers), with the unit as a clue: a number before "km" counts more.
-    Then the whole photo (somebody may have photographed only the little display). Every reading is one vote per number; two different readings
-    that agree on a plausible number end the search."""
+    The lower half is read first (the odometer is there, away from the dial numbers), with the unit as a clue: a number before "km" counts more. Then
+    the whole photo (somebody may have photographed only the little display). Every reading is one vote per number; four readings that agree on a plausible
+    number end the search. When they do not agree - a crooked, dim or soft photo - more views follow (sharper, black and white, turned back a little)
+    and in the end every digit is decided by the vote of the readings, so that one misread digit does not win."""
     if len(data) > receipt.MAX_BYTES:
         raise ValueError("too large")
-    cleaned = receipt.clean(data)
+    cleaned = receipt.deskew(receipt.clean(data))
     votes: Counter = Counter()  # number -> weighted votes
     readings: Counter = Counter()  # number -> how many different readings found it
     tagged: set[int] = set()  # numbers that stood right before their unit
@@ -80,30 +102,57 @@ def read(data: bytes, last: int | None = None) -> dict:
             readings[n] += 1
 
     def best() -> tuple[int | None, bool]:
-        everything = list(
-            tagged or votes
-        )  # a number with its unit beats every other (even one below the last reading: it is shown, flagged)
+        # a number with its unit beats every other (even one below the last reading: it is shown, flagged) - but not a small one: next to a reading
+        # of 86 020 a number like 240 is a trip counter, whatever the last reading says
+        units = [n for n in tagged if last is None or n >= last * 0.5]
+        everything = units or list(votes)
         pool = [n for n in everything if plausible(n, last)] or everything
         if not pool:
             return None, False
         value = max(pool, key=lambda n: (votes[n], len(str(n)), n))
         return value, plausible(value, last)
 
+    def sure() -> bool:
+        value, ok = best()
+        return value is not None and ok and readings[value] >= 4
+
+    deadline = time.monotonic() + BUDGET
+
+    def look(image: bytes, weight: int, text_too: bool) -> bool:
+        if time.monotonic() > deadline:  # enough tries: what is known is what is offered
+            return True
+        if text_too:  # the unit as a clue, read as text (not only digits)
+            found = labelled(receipt.read_text(image, 6))
+            tagged.update(found)
+            add(found, 4)
+        for psm in (6, 11, 7):  # page layouts: several lines first (a trip counter confuses the single-line reading)
+            add(numbers(receipt.read_text(image, psm, digits=True)), weight)
+            if sure():
+                return True
+        return False
+
     with receipt._one_at_a_time:
-        for part, weight in ((receipt.lower(cleaned, LOWER), 2), (cleaned, 1)):
-            variants = [part, receipt.inverted(part)]
-            if weight == 2:  # the unit as a clue, read as text (not only digits)
-                for image in variants:
-                    found = labelled(receipt.read_text(image, 6))
-                    tagged.update(found)
-                    add(found, 4)
-            for psm in (6, 11, 7):  # page layouts: several lines first (a trip counter confuses the single-line reading)
-                seen: set[int] = set()
-                for image in variants:
-                    seen.update(numbers(receipt.read_text(image, psm, digits=True)))
-                add(seen, weight)  # one vote per page layout: the same wrong reading of both copies is still one vote
-                value, ok = best()
-                if value is not None and ok and readings[value] >= 2:  # two readings agree on a plausible number: good enough
-                    return {"value": value, "plausible": True}
+        low = receipt.lower(cleaned, LOWER)
+        done = False
+        for part, weight in ((low, 2), (cleaned, 1)):
+            for image in (part, receipt.inverted(part)):
+                if look(image, weight, weight == 2):
+                    done = True
+                    break
+            if done:
+                break
+        if not done:  # not sure: a tighter strip (a small window in a dial) and other views of the lower half and of the whole photo
+            strip = receipt.lower(cleaned, 0.4)
+            for kind in ("plain", "sharp", "bin"):
+                for part, weight in ((strip, 2), (low, 2), (cleaned, 1)) if kind == "plain" else ((low, 2), (cleaned, 1)):
+                    view = part if kind == "plain" else receipt.variant(part, kind)
+                    if look(view, weight, weight == 2) or look(receipt.inverted(view), weight, False):
+                        done = True
+                        break
+                if done:
+                    break
     value, ok = best()
+    if value is not None:
+        value = consensus(value, votes, last)
+        ok = plausible(value, last)
     return {"value": value, "plausible": ok}

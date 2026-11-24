@@ -36,6 +36,15 @@ Das Aussehen der App steckt in zwei Dateien (`static/app.css`, darüber `static/
 
 `tests/test_design_rules.py` bewacht den Rest: ausgeglichene Klammern (ein überzähliges `}` lässt den Browser still die nächste Regel überspringen), die Schriftgrößen-Skala, die Rundungen, eine Knopf-Regel, nur zwei Arten von Tab-Leisten.
 
+## Die App im Browser und mit Übungsfotos prüfen
+
+Vier kleine Werkzeuge in `tools/` (sie brauchen Google Chrome oder Chromium; das Foto-Werkzeug auch Tesseract) sehen sich die App an wie ein Mensch, auf einer vorübergehenden Installation mit ausgedachten Autos - von einer echten Installation wird nichts gelesen:
+
+- `python tools/check_alignment.py` - öffnet jede Seite der *Weiteres*-Liste und misst, dass der erste Block, der Titel und der Abstand zur Liste auf einer Linie liegen (siehe [Design](design.de.md)); `tests/test_page_alignment.py` führt es aus.
+- `python tools/smoke_crawl.py` - geht durch alle Seiten (ein paar Minuten) und meldet einen Serverfehler, einen Skriptfehler, eine fehlgeschlagene Anfrage oder eine verletzte Regel der Content Security Policy; ein kurzer Gang läuft als `tests/test_smoke_crawl.py`.
+- `python tools/ocr_bench.py` - liest jedes Foto des **Übungssatzes** (`tools/practice_photos.py`: ausgedachte Tachos und Tankbelege in mehreren Stilen und Sprachen, jedes mit seiner richtigen Antwort) wie es ist und so schlecht, wie ein Handy es machen kann (unscharf, dunkel, schief, klein, stark komprimiert, mit Spiegelung) und zählt die richtigen Antworten. Vor und nach einer Änderung des Lesens ausführen: Die Zahl darf nicht sinken (saubere Fotos: `tests/test_ocr_practice.py`). `python tools/practice_photos.py <Ordner>` schreibt die Fotos und ihre Antworten, zum Üben von Hand.
+- `python tools/make_screenshots.py` - die Bilder der Dokumentation (siehe seine Beschreibung); `tools/cdp.py` ist der kleine DevTools-Client, den die Werkzeuge gemeinsam nutzen.
+
 ## Einstellungen des Repositorys (einmalig)
 
 Eine kurze Liste steht in der Checkliste des Maintainers: eine Regel für `main` (Pull Request, CI muss grün sein, Code-Owner-Prüfung, kein Force-Push), Freigabe in *Actions* für Erstbeitragende und ein Nur-Lese-Token, *Discussions* an, private Meldung von Sicherheitslücken, Dependabot-Warnungen, Secret Scanning mit Push Protection.

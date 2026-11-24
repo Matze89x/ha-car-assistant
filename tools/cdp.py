@@ -118,6 +118,7 @@ class Browser:
             stderr=subprocess.DEVNULL,
         )
         self.next_id = 0
+        self.events: list[dict] = []  # what the page reported since the last ``drain``: script errors, console errors, failed requests
         end = time.time() + 30
         target = None
         while time.time() < end and target is None:
@@ -130,6 +131,8 @@ class Browser:
             raise RuntimeError("Chrome did not start")
         self.ws = _Socket(target["webSocketDebuggerUrl"])
         self.call("Page.enable")
+        for domain in ("Runtime", "Network", "Log"):
+            self.call(f"{domain}.enable")
 
     def __enter__(self) -> Browser:
         return self
@@ -155,6 +158,32 @@ class Browser:
                 if "error" in reply:
                     raise RuntimeError(f"{method}: {reply['error']}")
                 return reply.get("result", {})
+            if "method" in reply:
+                self.events.append(reply)
+
+    def drain(self) -> list[dict]:
+        """Everything the page has reported since the last call, as plain facts: ``{"kind": "exception" | "console" | "failed" | "http" | "csp", "text": ...}``."""
+        time.sleep(0.05)
+        try:  # pick up what is still on its way (the socket is only read while a call waits)
+            self.call("Runtime.evaluate", expression="1")
+        except RuntimeError:
+            pass
+        out = []
+        for e in self.events:
+            m, p = e.get("method", ""), e.get("params", {})
+            if m == "Runtime.exceptionThrown":
+                d = p.get("exceptionDetails", {})
+                out.append({"kind": "exception", "text": (d.get("exception", {}).get("description") or d.get("text", "")).splitlines()[0][:200]})
+            elif m == "Runtime.consoleAPICalled" and p.get("type") in ("error", "assert"):
+                out.append({"kind": "console", "text": " ".join(str(a.get("value", a.get("description", ""))) for a in p.get("args", []))[:200]})
+            elif m == "Network.loadingFailed" and not p.get("canceled"):
+                out.append({"kind": "failed", "text": f"{p.get('errorText', '')} {p.get('requestId', '')}"})
+            elif m == "Network.responseReceived" and p.get("response", {}).get("status", 0) >= 400:
+                out.append({"kind": "http", "text": f"{p['response']['status']} {p['response']['url']}"})
+            elif m == "Log.entryAdded" and p.get("entry", {}).get("level") == "error":
+                out.append({"kind": "csp" if "Content Security Policy" in p["entry"].get("text", "") else "console", "text": p["entry"].get("text", "")[:200]})
+        self.events = []
+        return out
 
     def open(self, url: str, width: int, height: int, scale: int = 1, settle: float = 2.5) -> None:
         self.call("Emulation.setDeviceMetricsOverride", width=width, height=height, deviceScaleFactor=scale, mobile=False)

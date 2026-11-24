@@ -36,6 +36,15 @@ The look of the app lives in two files (`static/app.css`, then `static/pc-core.c
 
 `tests/test_design_rules.py` guards the rest: braces balanced (a stray `}` makes the browser skip the next rule silently), the font scale, the radii, one button rule, only two kinds of tab bars.
 
+## Checking the app in a browser and with practice photos
+
+Four small tools in `tools/` (they need Google Chrome or Chromium; the photo tool also Tesseract) look at the app the way a person does, on a temporary installation with made-up cars - nothing of a real installation is read:
+
+- `python tools/check_alignment.py` - opens every page of the *More* list and measures that the first block, the title and the gap to the list sit level (see [Design](design.md)); `tests/test_page_alignment.py` runs it.
+- `python tools/smoke_crawl.py` - walks through all pages (a few minutes) and reports a server error, a script error, a failed request or a broken rule of the Content Security Policy; a short walk runs as `tests/test_smoke_crawl.py`.
+- `python tools/ocr_bench.py` - reads every photo of the **practice set** (`tools/practice_photos.py`: made-up instrument clusters and fuel receipts in several styles and languages, each with its right answer) as it is and as bad as a phone can make it (blurred, dim, crooked, small, over-compressed, with glare) and counts the right answers. Run it before and after a change of the reading: the number must not go down (clean photos: `tests/test_ocr_practice.py`). `python tools/practice_photos.py <folder>` writes the photos and their answers, for practising by hand.
+- `python tools/make_screenshots.py` - the pictures of the documentation (see its docstring); `tools/cdp.py` is the small DevTools client the tools above share.
+
 ## Settings of the repository (once)
 
 A short list lives in the maintainer's checklist: a branch rule for `main` (pull request, CI must pass, code owner review, no force push), *Actions* approval for first-time contributors and a read-only token, *Discussions* on, private vulnerability reporting, Dependabot alerts, secret scanning with push protection.
