@@ -359,14 +359,17 @@ def test_the_plate_is_fixed_while_a_plugin_reports_the_odometer_and_the_hidden_s
         conn.execute("INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, '2026-01-01', 12345, 'manual')", (vid,))
     page = client.get(f"/v/{slug(vid)}").text
     assert (
-        'class="odo-face odo-back" inert' in page and "odo-static" not in page
-    )  # typed by hand: it turns over, the back is not reachable by Tab
+        'class="odo-face odo-back" inert' in page and 'class="odo-flip"' in page and page.count("odo-flip odo-static") == 1
+    )  # typed by hand: it turns over, the back is not reachable by Tab (the one plate that is static is the look of the odometer widget)
     with db.tx() as conn:
         conn.execute("INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, '2026-01-02', 12400, 'plugin')", (vid,))
     page = client.get(f"/v/{slug(vid)}").text
     assert (
-        "odo-flip odo-static" in page and "odo-face odo-back" not in page and "data-odo-open" not in page
-    )  # reported by the car: just shown
+        page.count("odo-flip odo-static") == 2
+        and 'class="odo-flip"' not in page
+        and "odo-face odo-back" not in page
+        and "data-odo-open" not in page
+    )  # reported by the car: just shown (the plate under the car and the widget look)
 
 
 # ------------------------------------------------------------------ the lower half of a cluster, the odometer on a receipt, real photos

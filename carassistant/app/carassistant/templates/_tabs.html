@@ -38,8 +38,9 @@
     <div class="range-sub">{% if hero_range.liters %}{{ _('hero.liters', l=fnum(units.v(hero_range.liters, hero_range.unit), 1), u=units.vol_unit(hero_range.unit)) }} · {% endif %}{{ _('hero.estimated') if hero_range.estimated else _('hero.range_src') }}</div>
     {% if hero_range.when %}<div class="range-sub range-last">{{ _('hero.last', when=fshort(hero_range.when)) }}</div>{% endif %}
   </div>
-  {% elif odometer is not none %}
-  {% set ti = tank_info if tank_info is defined else none %}
+  {% endif %}
+  {% if odometer is not none %}  {# the odometer plate: the one place to type it, turn it over (also under a range) #}
+  {% set ti = tank_info if (tank_info is defined and not hero_range) else none %}  {# the range block above already says what is in the tank #}
   <div class="odo-card">
     {{ odo_plate() }}
     {{ odo_progress() }}

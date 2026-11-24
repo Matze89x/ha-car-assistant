@@ -41,7 +41,9 @@ def test_move_resize_hide_and_reset(client):
     assert 'id="wd-toggle"' in html and 'id="wd-tpl"' in html
     client.post(base, data={"reset": "1"})
     with db.tx() as conn:
-        assert [w.key for w in widgets.layout(conn, vid)] == order and all(w.on for w in widgets.layout(conn, vid))
+        assert [w.key for w in widgets.layout(conn, vid)] == order and [w.on for w in widgets.layout(conn, vid)] == [
+            w.on for w in widgets.REGISTRY
+        ]  # back to the defaults
 
 
 def test_unknown_or_broken_layout_is_ignored(client):

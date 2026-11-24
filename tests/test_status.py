@@ -200,11 +200,13 @@ def test_home_shows_range_if_the_car_reports_it_else_the_odometer(client):
     assert (
         'class="odo-card"' in page and "odo-drum" in page and 'aria-label="50,000 km"' in page
     )  # no range: the odometer is the big figure ...
-    assert 'class="wd-t">Odometer' not in page  # ... and there is no second odometer widget
+    assert 'data-k="odometer"' in page and re.search(
+        r'class="wd-slot [a-z]+ off" data-k="odometer"', page
+    )  # the odometer widget is an extra look: off until it is switched on
     with db.tx() as conn:
         now = "2030-01-01T00:00:00+00:00"
         conn.execute("INSERT INTO live(vehicle_id, key, value, updated) VALUES(?, 'range_km', '540', ?)", (vid, now))
         conn.execute("INSERT INTO live(vehicle_id, key, value, updated) VALUES(?, 'fuel_level', '62', ?)", (vid, now))
     page = client.get(f"/v/{slug(vid)}").text
     assert 'class="range-km">540<' in page and "62 %" in page  # the range is the big figure with the tank level
-    assert 'class="wd-t">Odometer' in page  # the odometer moves to its widget
+    assert 'class="odo-card"' in page and "odo-drum" in page  # the plate stays under the car, below the range

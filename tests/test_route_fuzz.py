@@ -72,7 +72,7 @@ def test_no_route_answers_odd_forms_with_a_server_error(world):
         for _ in range(3):
             data = {rnd.choice(FORM_KEYS): rnd.choice(ODD) for _ in range(rnd.randint(0, 6))}
             r = world.post(_fill(path), data=data, headers={"Origin": "http://testserver"})
-            if r.status_code >= 500:
+            if r.status_code >= 500 and r.status_code != 501:  # 501 = a feature that is not installed (text recognition), a clean refusal
                 bad.append(f"POST {path} {str(data)[:100]} -> {r.status_code}")
     assert not bad, "\n".join(bad[:12])
 
@@ -84,7 +84,7 @@ def test_no_route_answers_odd_query_strings_with_a_server_error(world):
         for _ in range(3):
             query = "&".join(f"{rnd.choice(QUERY_KEYS)}={quote(rnd.choice(ODD))}" for _ in range(rnd.randint(0, 4)))
             r = world.get(_fill(path) + ("?" + query if query else ""))
-            if r.status_code >= 500:
+            if r.status_code >= 500 and r.status_code != 501:  # 501 = a feature that is not installed (text recognition), a clean refusal
                 bad.append(f"GET {path}?{query[:100]} -> {r.status_code}")
     assert not bad, "\n".join(bad[:12])
 

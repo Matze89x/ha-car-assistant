@@ -113,3 +113,31 @@ def test_the_page_carries_the_zoom_map_with_every_channel_and_phones_keep_the_ca
     ) or "\\u003cb\\u003e" in raw  # never as markup
     assert world.get("/static/linkmap_zoom.js").status_code == 200
     assert world.get("/v/1/plugins/connections/zoom.json").json()["version"] == model["version"]
+
+
+def test_the_pages_of_an_integration_are_channels_in_a_group_of_their_own(world):
+    with db.tx() as conn:
+        _plugin(conn, "p-one", "Plugin One")
+        conn.execute(
+            "INSERT INTO vehicle_addons(vehicle_id, kind, addon_id, manifest, status, active, created_at) VALUES(1, 'integration', 'my-int', ?, 'configured', 1, datetime('now'))",
+            (
+                json.dumps(
+                    {
+                        "id": "my-int",
+                        "kind": "integration",
+                        "name": "My Integration",
+                        "pages": [{"id": "entries", "title": "Entries", "fields": []}, {"id": "other", "title": "Other", "fields": []}],
+                    }
+                ),
+            ),
+        )
+        _call(conn, "p-one", "POST", "modules/my-int/entries", {"rows": [{"a": 1}]})
+        body = linkmap_zoom.model(conn, 1)
+    group = next(g for g in body["groups"] if g["area"] == "int:my-int")
+    assert group["name"] == "My Integration" and group["integration"] is True
+    by_key = {c["key"]: c for c in group["channels"]}
+    assert (
+        by_key["int:my-int/entries"]["state"] == "live" and by_key["int:my-int/other"]["state"] == "open"
+    )  # one page is used, the other is open
+    d = world.get("/v/1/plugins/connections/detail.json?kind=group&id=int:my-int").json()
+    assert d["title"] == "My Integration" and d["connections"][0]["channel_label"] == "Entries" and d["signals"][0]["name"] == "entries"

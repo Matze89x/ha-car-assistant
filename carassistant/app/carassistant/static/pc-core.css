@@ -386,6 +386,7 @@ dialog.cdlg { width: min(440px, calc(100% - 28px)); }
 .odo-card .bar { margin-top: 8px; }
 
 /* odometer only: docked to the car (the glow under the car overlaps the label) and the same block gap below as everywhere */
+.range-block + .odo-card { margin: 16px 0 0; text-align: left; }  /* the plate under a range: left, like the figures above it */
 .hero-car-wrap + .odo-card { margin-top: -16px; margin-bottom: calc(var(--sp-block) - 14px); position: relative; z-index: 2; }
 .odo-t b { margin-top: 0; line-height: 1; }
 

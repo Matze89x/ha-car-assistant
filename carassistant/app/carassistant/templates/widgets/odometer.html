@@ -1,5 +1,5 @@
-{% from "_macros.html" import widget, odo_drum, odo_entry, odo_plate with context %}
-{% if odometer is not none and hero_range %}  {# without a reported range the odometer is the big figure under the car #}
+{% from "_macros.html" import widget, odo_drum, odo_plate with context %}
+{% if odometer is not none %}  {# the widget only SHOWS the odometer (to change it: tap the odometer on the dashboard, under the car) #}
 {# three looks, the slot's data-opt-design shows one of them (the choice is made while editing the page): drums and tile in the usual tile, the plate (the same box as under the car, without turning over) free #}
 <div class="wd-look-drums">
 {% call widget('counter', 'c3', _('f.odometer'), '/e/counters', w.size) %}
@@ -12,5 +12,4 @@
 {% endcall %}
 </div>
 <div class="wd-look-plate">{{ odo_plate(false, false) }}</div>
-{% if not (odo_from_car is defined and odo_from_car) %}{{ odo_entry() }}{% endif %}
 {% endif %}
