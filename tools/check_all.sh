@@ -19,6 +19,6 @@ clean=0; [ -z "$(git status --porcelain --untracked-files=no)" ] && clean=1
 if [ "$clean" = 1 ] && [ -f "$mark" ] && [ "$(cat "$mark")" = "$tree" ]; then echo "check_all: this tree has passed already - nothing to do"; exit 0; fi
 "$VENV/bin/ruff" format --check . >/dev/null || { echo "check_all: ruff format --check failed (run: $VENV/bin/ruff format .)"; exit 1; }
 "$VENV/bin/ruff" check . >/dev/null || { echo "check_all: ruff check failed"; exit 1; }
-nice -n 10 "$VENV/bin/pytest" -q -x -n "${CA_JOBS:-3}" -p no:cacheprovider
+nice -n 10 "$VENV/bin/pytest" -q -x -n "${CA_JOBS:-3}" -p no:cacheprovider -rf
 [ "$clean" = 1 ] && echo "$tree" > "$mark"
 echo "check_all: all green"
