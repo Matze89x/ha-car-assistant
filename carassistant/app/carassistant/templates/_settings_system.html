@@ -33,16 +33,6 @@
   <form method="post" action="{{ base }}/settings/app-update" class="mqtt-bar"><button class="ghost-btn" name="now" value="1">{{ icon('refresh', 18) }}<span>{{ _('upd.now') }}</span></button></form>
 </section>
 
-<section class="card" id="logs">
-  <h2>{{ icon('bug') }} {{ _('sys.logs_title') }}</h2>
-  <p class="hint">{{ _('sys.logs_hint') }}</p>
-  <form method="post" action="{{ base }}/settings/logs" data-live="1">
-    <label>{{ _('sys.logs_days') }}<select name="days">{% for n in log_days_choices %}<option value="{{ n }}" {{ 'selected' if n == log_days }}>{{ _('sys.logs_days_n', n=n) }}</option>{% endfor %}</select></label>
-    <label>{{ _('sys.logs_keep') }}<select name="lines">{% for n in log_choices %}<option value="{{ n }}" {{ 'selected' if n == log_keep }}>{{ n }}</option>{% endfor %}</select></label>
-  </form>
-  <p class="hint">{{ _('sys.logs_total', n=log_total) }}</p>
-  {% if log_total %}<form method="post" action="{{ base }}/settings/logs" class="inline" data-confirm="{{ _('dbg.confirm_clear') }}"><input type="hidden" name="clear" value="1"><button class="danger small">{{ icon('delete', 16) }} {{ _('sys.logs_clear') }}</button></form>{% endif %}
-</section>
 </div>
 <div class="sys-col">
 <section class="card" id="mqtt">

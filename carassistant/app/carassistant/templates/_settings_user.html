@@ -38,7 +38,7 @@
     {% for car in vehicle_rows if not car.archived and car.slug %}
     <div class="mk-field"><span class="mk-fl">{{ car.name }}</span>
       <div class="cp-row"><input readonly data-select value="{{ ext }}/app/{{ car.slug }}" aria-label="{{ car.name }}">
-        <button type="button" class="ghost-btn small" data-copy="{{ ext }}/app/{{ car.slug }}" data-done="{{ _('mcp.copied') }}">{{ icon('content-copy', 16) }}<span>{{ _('mcp.copy') }}</span></button></div></div>{% endfor %}
+        <a class="button small" href="{{ ext }}/app/{{ car.slug }}" target="_blank" rel="noopener noreferrer">{{ icon('chevron', 16) }}<span>{{ _('addon.open') }}</span></a></div></div>{% endfor %}
   </div>{% endif %}
 </section>
 </div>

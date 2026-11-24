@@ -41,7 +41,6 @@
 </section>
 
 <section class="card about-made">
-  <h3>{{ icon('heart', 18) }} {{ _('about.made_by', who=about.author) }}</h3>
   <p class="about-lead">{{ _('about.made_text') }}</p>
   {% if about.support_url %}<p class="hint">{{ _('about.coffee_hint') }}</p>{% endif %}
   {% if about.support_url %}<p><a class="button" href="{{ about.support_url }}" target="_blank" rel="noopener noreferrer">{{ icon('coffee', 16) }} {{ _('about.coffee') }}</a></p>{% endif %}

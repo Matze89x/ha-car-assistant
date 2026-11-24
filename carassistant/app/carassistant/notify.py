@@ -110,6 +110,7 @@ def matrix(conn: sqlite3.Connection, user_id: int) -> dict:
     def shown(km):
         return None if km is None else round(units.of().d(km))
 
+    default_choice = _energy_choice(row["energy_pct"] if row else None, row["energy_km"] if row else None, shown)
     cars = []
     for v in conn.execute("SELECT * FROM vehicles WHERE archived = 0 ORDER BY name COLLATE NOCASE").fetchall():
         own = conn.execute(
@@ -122,8 +123,7 @@ def matrix(conn: sqlite3.Connection, user_id: int) -> dict:
                 "id": v["id"],
                 "name": v["name"],
                 "events": set(_events_of(own["events"])) if own else set(default),
-                "energy_pct": base["energy_pct"] if base else None,
-                "energy_km": shown(base["energy_km"]) if base else None,
+                **_energy_choice(base["energy_pct"] if base else None, base["energy_km"] if base else None, shown),
                 "pct_ph": lv["warn_pct"],  # what an empty field means: the yellow level of the car
                 "km_ph": shown(lv["warn_km"]) or "",
             }
@@ -132,10 +132,19 @@ def matrix(conn: sqlite3.Connection, user_id: int) -> dict:
         "default": default,
         "cars": cars,
         "general": set(_general_of(row["general"])) if row else set(),
-        "energy_pct": row["energy_pct"] if row else None,
-        "energy_km": shown(row["energy_km"]) if row else None,
+        "energy_mode": default_choice["mode"],
+        "energy_pct": default_choice["energy_pct"],
+        "energy_km": default_choice["energy_km"],
         "pct_ph": energy.DEFAULT_WARN_PCT,
     }
+
+
+def _energy_choice(pct, km, shown) -> dict:
+    """What the matrix shows for a threshold: ONE way to be told - ``mode`` ``pct`` (the level) or ``km`` (the range) - and its value. 0 stands for
+    a way that is not used; a person who once had both (an earlier version) sees the level."""
+    if not pct and km:
+        return {"mode": "km", "energy_pct": None, "energy_km": shown(km)}
+    return {"mode": "pct", "energy_pct": pct or None, "energy_km": None}
 
 
 def _threshold(raw, high: int, base_from=None) -> int | None:
@@ -149,18 +158,26 @@ def _threshold(raw, high: int, base_from=None) -> int | None:
     return min(number, high)
 
 
+def _energy_form(form, key: str) -> tuple[int | None, int | None]:
+    """The threshold of the form for one car (or ``new``): ``em_<key>`` says which way is used - ``pct`` (the level, ``ep_<key>``) or ``km`` (the range,
+    ``ek_<key>``) - and the way that is not chosen is stored as 0 (not used). An empty level follows the yellow level of the car; a range chosen but
+    left empty falls back to that, too."""
+    pct = _threshold(form.get(f"ep_{key}"), 99)
+    km = _threshold(form.get(f"ek_{key}"), 3000, units.of().from_d)
+    if form.get(f"em_{key}") == "km" and km:
+        return 0, km
+    return pct, 0
+
+
 def save_matrix(conn: sqlite3.Connection, user_id: int, form) -> None:
     """The whole matrix from one form: ``ev_new`` (the choice for new cars), ``ev_<car id>`` per car, ``gen`` (general events), and the low tank /
-    battery threshold ``ep_<car id>`` (per cent) and ``ek_<car id>`` (range; ``new`` for new cars) - only when the form carries them."""
+    battery threshold per car (``em_`` / ``ep_`` / ``ek_<car id>``, ``new`` for new cars; see ``_energy_form``) - only when the form carries them."""
     conn.execute("INSERT OR IGNORE INTO user_notify(user_id, service, events) VALUES(?, '', '[]')", (user_id,))
     default = [e for e in EVENTS if e in form.getlist("ev_new")]
     general = [e for e in GENERAL if e in form.getlist("gen")]
     conn.execute("UPDATE user_notify SET events = ?, general = ? WHERE user_id = ?", (json.dumps(default), json.dumps(general), user_id))
-    if "ep_new" in form or "ek_new" in form:
-        conn.execute(
-            "UPDATE user_notify SET energy_pct = ?, energy_km = ? WHERE user_id = ?",
-            (_threshold(form.get("ep_new"), 99), _threshold(form.get("ek_new"), 3000, units.of().from_d), user_id),
-        )
+    if "em_new" in form or "ep_new" in form or "ek_new" in form:
+        conn.execute("UPDATE user_notify SET energy_pct = ?, energy_km = ? WHERE user_id = ?", (*_energy_form(form, "new"), user_id))
     for v in conn.execute("SELECT id FROM vehicles WHERE archived = 0").fetchall():
         chosen = [e for e in EVENTS if e in form.getlist(f"ev_{v['id']}")]
         conn.execute(
@@ -168,15 +185,10 @@ def save_matrix(conn: sqlite3.Connection, user_id: int, form) -> None:
             "ON CONFLICT(user_id, vehicle_id) DO UPDATE SET events = excluded.events, enabled = 1",
             (user_id, v["id"], json.dumps(chosen)),
         )
-        if f"ep_{v['id']}" in form or f"ek_{v['id']}" in form:
+        if any(f"{k}_{v['id']}" in form for k in ("em", "ep", "ek")):
             conn.execute(
                 "UPDATE user_notify_vehicle SET energy_pct = ?, energy_km = ? WHERE user_id = ? AND vehicle_id = ?",
-                (
-                    _threshold(form.get(f"ep_{v['id']}"), 99),
-                    _threshold(form.get(f"ek_{v['id']}"), 3000, units.of().from_d),
-                    user_id,
-                    v["id"],
-                ),
+                (*_energy_form(form, str(v["id"])), user_id, v["id"]),
             )
 
 

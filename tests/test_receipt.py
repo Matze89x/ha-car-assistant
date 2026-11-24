@@ -150,6 +150,21 @@ def test_numbers_of_an_odometer_photo_are_found_split_groups_joined_and_noise_dr
     assert o.numbers("12") == [] and o.numbers("") == []
 
 
+def test_a_number_with_km_behind_it_is_the_odometer_even_when_the_unit_is_misread_and_km_h_never_counts():
+    from collections import Counter
+
+    from carassistant import odometer_scan as o
+
+    assert o.labelled("86020 km") == [86020] and o.labelled("86.020 km") == [86020] and o.labelled("52 340 KM") == [52340]
+    assert o.labelled("86020 krn") == [86020] and o.labelled("86020 k m") == [86020]  # what the text recognition makes of a small "km"
+    assert (
+        o.labelled("120 km/h") == [] and o.labelled("120 kmh") == [] and o.labelled("24,5 km") == []
+    )  # a speed or a trip counter with a decimal
+    votes = Counter({1234: 6, 123456: 5})  # a figure with six digits counts a little more than a trip counter read more often
+    assert o.score(123456, votes) > o.score(1234, votes)
+    assert o.score(1234, Counter({1234: 6, 5: 5})) == 6  # and no bonus for the short ones
+
+
 def test_the_most_plausible_number_wins_and_an_odd_one_is_flagged():
     from carassistant import odometer_scan as o
 
@@ -283,12 +298,12 @@ def test_the_odometer_list_marks_what_does_not_fit_and_a_plain_reading_can_be_de
         assert [r["odd"] for r in summary.odometer_readings(conn, vid)] == ["", ""]
 
 
-def test_a_long_odometer_list_shows_the_newest_rows_and_every_odd_one_with_a_link_to_all(client):
+def test_the_odometer_list_of_the_passport_loads_in_batches_like_every_list_and_hides_when_a_plugin_reports_it(client):
     from datetime import date, timedelta
 
     from tests.test_web import create_vehicle, slug
 
-    from carassistant import db, summary
+    from carassistant import connectors, db, summary
 
     vid = create_vehicle(client)
     first = date(2024, 1, 1)
@@ -297,18 +312,33 @@ def test_a_long_odometer_list_shows_the_newest_rows_and_every_odd_one_with_a_lin
         for i in range(300):
             km = 90_000 if i == 2 else 10_000 + i * 20  # an old typo far above its neighbours
             conn.execute(
-                "INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, ?, ?, 'auto')",
+                "INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, ?, ?, 'manual')",
                 (vid, (first + timedelta(days=i)).isoformat(), km),
             )
         rows = summary.odometer_readings(conn, vid)
-        shown = summary.trim_readings(rows)
-    assert len(rows) == 300 and len(shown) == 121 and shown[-1]["km"] == 90_000 and shown[-1]["odd"]  # the newest 120 and the old typo
+    assert len(rows) == 300 and any(r["odd"] for r in rows)
     page = client.get(f"/v/{slug(vid)}/edit").text
-    assert page.count("odo-hrow") == 121 and "edit?odo=all#odo-readings" in page and 'class="eq-n">300<' in page
+    assert page.count("odo-hrow") == 5  # five at a time to start with, like every list
     assert (
-        client.get(f"/v/{slug(vid)}/edit?odo=all").text.count("odo-hrow") == 300
-        and "edit?odo=all#odo-readings" not in client.get(f"/v/{slug(vid)}/edit?odo=all").text
+        'class="eq-total">300<' in page and 'data-into="#odo-list"' in page and "edit?page=2" in page
+    )  # the next batch loads while scrolling
+    assert 'id="odo-list"' in page and 'class="odo-hist"' not in page  # no scroll box inside a card
+    assert client.get(f"/v/{slug(vid)}/edit?page=2").text.count("odo-hrow") == 5
+    assert (
+        client.get(f"/v/{slug(vid)}/edit?page=60").text.count("odo-hrow") == 5
+        and client.get(f"/v/{slug(vid)}/edit?page=zzz").status_code == 200
     )
+    with db.tx() as conn:
+        db.set_setting(conn, "ui.page_size", "25")  # the choice under Settings -> User -> Lists
+    assert client.get(f"/v/{slug(vid)}/edit").text.count("odo-hrow") == 25
+    with db.tx() as conn:  # a plugin reports the odometer: the list is not for typing and checking, it is gone
+        connectors.create_token(conn, "Plug", vid)
+        conn.execute(
+            "UPDATE odometer SET source = 'api:Plug' WHERE vehicle_id = ? AND date = (SELECT MAX(date) FROM odometer WHERE vehicle_id = ?)",
+            (vid, vid),
+        )
+        assert summary.odometer_from_car(conn, vid)
+    assert 'id="odo-readings"' not in client.get(f"/v/{slug(vid)}/edit").text
 
 
 def test_the_vehicle_passport_has_the_odometer_entry_when_no_plugin_reports_it(client):

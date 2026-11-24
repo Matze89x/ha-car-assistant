@@ -153,8 +153,8 @@ def more_groups(conn: sqlite3.Connection, vid: int | None, t) -> list[dict]:
             "title": t("more.g_general"),
             "items": [
                 {
-                    "href": "/settings/user",
-                    "paths": ["/settings", *(f"/settings/{k}" for k in ("user", "design", "region", "system")), "/account"],
+                    "href": "/settings/car",
+                    "paths": ["/settings", *(f"/settings/{k}" for k in ("car", "user", "design", "region", "system")), "/account"],
                     "icon": "settings",
                     "chip": CHIP["settings"],
                     "title": t("nav.settings"),

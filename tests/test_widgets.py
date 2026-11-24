@@ -103,8 +103,8 @@ def test_the_odometer_widget_shows_only_the_months_under_its_figure(client):
     client.post(f"{base}/widgets", data={"k": order, "on_odometer": "1", "size_odometer": "s", "opt_odometer_design": "drums"})
     page = client.get(base).text
     assert (
-        page.count('class="odo-wd-foot"') == 2 and page.count('class="minibars"') >= 2
-    )  # drums and tile look carry it, the plate look does not
+        page.count('class="odo-wd-foot"') == 3 and page.count('class="minibars"') >= 3
+    )  # all three looks (drums, tile, plate) carry the six months under the figure
     assert page.count('class="mb top"') >= 2 or 'class="mb top"' in page  # this month is the marked bar
     assert 'wd-t">Kilometerstand' not in page and 'class="wd-t">Odometer' in page  # the short title: it fits the small tile
     assert "odo-wd-stats" not in page and "a day" not in page and "this month" not in page  # only the bars: no average, no month sum

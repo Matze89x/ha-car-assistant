@@ -13,7 +13,7 @@
   {% else %}
     {% if acct_me %}
     <div class="acct-head">
-      <i class="acct-av">{{ acct_me.username[:1]|upper }}</i>
+      <i class="acct-av" aria-hidden="true">{{ icon('driver', 30) }}</i>
       <div class="acct-who"><b>{{ acct_me.username }}</b><small>{{ _('account.admin') if acct_me.is_admin else _('account.user') }}</small></div>
       {% if acct_port == 'off' %}<span class="badge">{{ _('account.badge_off') }}</span>{% else %}<span class="badge ok">{{ _('account.badge_on') }}</span>{% endif %}
     </div>
@@ -44,8 +44,8 @@
       </li>
       {% if ext_set or not acct_external %}
       <li>
-        <div class="ar-line"><span class="ar-l">{{ _('account.passkeys') }}</span>
-          <span class="ar-v">{% for p in acct_passkeys %}<span class="chip-pk">{{ icon('key-variant', 14) }} {{ p.label }}
+        <div class="ar-line ar-pk"><span class="ar-l">{{ _('account.passkeys') }}</span>
+          <span class="ar-v">{% for p in acct_passkeys %}<span class="chip-pk">{{ icon('key-variant', 14) }} <span class="pk-l" title="{{ p.label }}">{{ p.label }}</span>
             <form method="post" action="{{ base }}/account/passkey/{{ p.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% else %}<span class="muted">–</span>{% endfor %}</span>
           {% if acct_external %}<div id="pk-add-box" class="ar-edit" data-base="{{ base }}" data-unsupported="{{ _('acct.passkey_unsupported') }}" data-cancelled="{{ _('acct.passkey_cancelled') }}" data-exists="{{ _('acct.passkey_exists') }}">
             <button type="button" id="pk-add" class="ar-pill" aria-label="{{ _('account.passkey_add') }}">{{ icon('plus', 16) }}<span>{{ _('account.passkey_add') }}</span></button></div>{% endif %}</div>
@@ -75,7 +75,7 @@
     {% if acct_users|length > 1 %}<h3 class="acct-sub">{{ _('account.users') }}</h3>
     <ul class="acct-users">
       {% for u in acct_users %}<li>
-        <div class="ar-line"><i class="acct-av s">{{ u.username[:1]|upper }}</i><span class="ar-v"><b>{{ u.username }}</b>{% if u.is_admin %} <span class="badge">{{ _('account.admin') }}</span>{% endif %}
+        <div class="ar-line"><i class="acct-av s" aria-hidden="true">{{ icon('driver', 20) }}</i><span class="ar-v"><b>{{ u.username }}</b>{% if u.is_admin %} <span class="badge">{{ _('account.admin') }}</span>{% endif %}
           <small class="muted">{% if u.passkeys %}{{ icon('key-variant', 12) }} {{ u.passkeys }}{% endif %}{% if u.last_login %} · {{ u.last_login[:10] }}{% endif %}</small></span>
           {% if not acct_external or not u.is_admin %}<details class="ar-edit"><summary aria-label="{{ _('account.manage') }}">{{ icon('pencil', 16) }}<span>{{ _('account.manage') }}</span></summary>
             <form method="post" action="{{ base }}/account/users/{{ u.id }}/password" class="acct-form"><label>{{ _('account.new') }}<input type="password" name="new" autocomplete="new-password" minlength="{{ pwmin }}" maxlength="128" required></label>{{ form_bar() }}</form>

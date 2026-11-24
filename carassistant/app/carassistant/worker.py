@@ -23,6 +23,7 @@ def maintain(conn) -> None:
         from . import connectors
 
         connectors.trim_all(conn)  # log lines older than the retention go
+        connectors.expire_debug(conn)  # a log switch whose time has run out is forgotten
         conn.execute("PRAGMA optimize")
         conn.commit()
         conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")

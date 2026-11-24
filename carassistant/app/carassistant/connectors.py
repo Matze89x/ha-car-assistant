@@ -363,13 +363,46 @@ def _merged_tyres(conn: sqlite3.Connection, vehicle_id: int, data: dict) -> dict
 # ---- the one way towards the vehicle: switches the dashboard sets and the vehicle reads (first one: debug)
 
 
+DEBUG_DAYS = (1, 3, 7)  # how long the log switch of a plugin stays on
+DEBUG_DEFAULT_DAYS = 1
+
+
+def plugin_debug_state(conn: sqlite3.Connection, vehicle_id: int, addon_id: str | None) -> tuple[int, datetime] | None:
+    """The log switch of ONE plugin: ``(days, until)`` while it is on, ``None`` when it is off or its time has run out. It is stored as
+    ``<days>|<until>``; the older form ``1`` (no end) counts as off - nothing stays on for ever."""
+    if not addon_id:
+        return None
+    raw = db.get_setting(conn, f"debug.{vehicle_id}.{addon_id}", "")
+    days, _sep, until = raw.partition("|")
+    try:
+        end = datetime.fromisoformat(until)
+    except ValueError:
+        return None
+    if end.tzinfo is None:
+        end = end.replace(tzinfo=UTC)
+    return (int(days), end) if days.isdigit() and end > datetime.now(UTC) else None
+
+
 def plugin_debug(conn: sqlite3.Connection, vehicle_id: int, addon_id: str | None) -> bool:
-    """The debug button of ONE plugin: more is noted for it until the button is switched off again."""
-    return bool(addon_id) and db.get_setting(conn, f"debug.{vehicle_id}.{addon_id}", "") == "1"
+    """Is the log switch of this plugin on - and has its time not run out yet?"""
+    return plugin_debug_state(conn, vehicle_id, addon_id) is not None
 
 
-def set_plugin_debug(conn: sqlite3.Connection, vehicle_id: int, addon_id: str, on: bool) -> None:
-    db.set_setting(conn, f"debug.{vehicle_id}.{addon_id}", "1" if on else None)
+def set_plugin_debug(conn: sqlite3.Connection, vehicle_id: int, addon_id: str, on: bool, days: int = DEBUG_DEFAULT_DAYS) -> None:
+    """Switch the log of one plugin on for ``days`` days from NOW (1, 3 or 7; changing the time starts it again) or off."""
+    from datetime import timedelta
+
+    days = days if days in DEBUG_DAYS else DEBUG_DEFAULT_DAYS
+    until = (datetime.now(UTC) + timedelta(days=days)).isoformat(timespec="seconds")
+    db.set_setting(conn, f"debug.{vehicle_id}.{addon_id}", f"{days}|{until}" if on else None)
+
+
+def expire_debug(conn: sqlite3.Connection) -> None:
+    """Forget the log switches whose time has run out (they are off already; this only tidies the settings)."""
+    for row in conn.execute("SELECT key, value FROM settings WHERE key LIKE 'debug.%.%'").fetchall():
+        vehicle_id, _dot, addon_id = row["key"].removeprefix("debug.").partition(".")
+        if vehicle_id.isdigit() and addon_id and plugin_debug_state(conn, int(vehicle_id), addon_id) is None:
+            db.set_setting(conn, row["key"], None)
 
 
 def debug_enabled(conn: sqlite3.Connection, vehicle_id: int, addon_id: str | None = None) -> bool:

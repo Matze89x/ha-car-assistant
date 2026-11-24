@@ -1,4 +1,4 @@
-"""The one way every list of cards works: a batch of N cards (10 / 25 / 50, the person's choice), the next batch loads while scrolling,
+"""The one way every list of cards works: a batch of N cards (5 / 10 / 25 / 50 / 100, the person's choice, 5 to start with), the next batch loads while scrolling,
 and a heading wherever the period changes (Today, Yesterday, This week, Last week, then the month)."""
 
 from __future__ import annotations
@@ -9,8 +9,8 @@ from datetime import date, timedelta
 
 from . import db, userprefs
 
-SIZES = (4, 10, 25, 50)
-DEFAULT = 10
+SIZES = (5, 10, 25, 50, 100)
+DEFAULT = 5
 SETTING = "ui.page_size"
 _size: ContextVar[int] = ContextVar("list_page_size", default=DEFAULT)
 
@@ -24,7 +24,7 @@ def clean(raw: object) -> int | None:
 
 
 def current_choice(conn: sqlite3.Connection, user_id: int | None) -> int:
-    """The person's own choice if signed in and set, else the server's, else 10."""
+    """The person's own choice if signed in and set, else the server's, else 5."""
     mine = clean(userprefs.get(conn, user_id, "page_size") or "")
     return mine or clean(db.get_setting(conn, SETTING, str(DEFAULT))) or DEFAULT
 

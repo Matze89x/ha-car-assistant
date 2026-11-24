@@ -82,19 +82,16 @@
     </div>
   </div>
   {% if v.notes %}<div class="vd-notes"><div class="vd-group-h">{{ _('f.notes') }}</div><div class="card vd-extra"><div class="vd-extra-t">{{ v.notes }}</div></div></div>{% endif %}
-  {# every odometer value of the car in one list, in the passport (no page of its own): the ones that do not fit are marked; a reading typed by hand can be deleted, any other opens its entry #}
-  {% set n_odd = odo_readings|selectattr('odd')|list|length %}
-  <details class="eq odo-readings" id="odo-readings"{{ ' open' if n_odd }}>
-    <summary>
-      <span class="mi-ic c3">{{ icon('counter', 19) }}</span>
-      <span class="eq-t">{{ _('odo.history_title') }}</span><span class="eq-n">{{ odo_total }}</span>
-      {{ icon('chevron-down', 18) }}
-    </summary>
+  {# every odometer value of the car in one list, in the passport (no page of its own) - only while nobody reports the odometer for the car (a plugin or a Home Assistant entity
+     then owns it): the ones that do not fit are marked; a reading typed by hand can be deleted, any other opens its entry. It loads in batches like every list. #}
+  {% if not odo_from_car %}
+  <div class="eq-sec vd-odo-list" id="odo-readings">
+    <div class="vd-group-h eq-head">{{ _('odo.history_title') }} <span class="eq-total">{{ odo_total }}</span></div>
     {% if odo_readings %}
-    <p class="hint">{{ _('odo.history_intro') }}</p>
-    {% if n_odd %}<p class="flash warn">{{ _('odo.history_odd', n=n_odd) }}</p>{% endif %}
-    <div class="odo-hist">
-      <ul class="plain">
+    <div class="card odo-hist-card">
+      <p class="hint">{{ _('odo.history_intro') }}</p>
+      {% if odo_odd_n %}<p class="flash warn">{{ _('odo.history_odd', n=odo_odd_n) }}</p>{% endif %}
+      <ul class="plain odo-list" id="odo-list">
       {% for r in odo_readings %}
         <li class="odo-hrow{{ ' odd' if r.odd }}">
           <span class="odo-hkm">{{ fnum(units.d(r.km)) }} <small>{{ units.dist_unit }}</small></span>
@@ -105,13 +102,14 @@
         </li>
       {% endfor %}
       </ul>
+      {% with pager=odo_pager, pager_url=base ~ '/v/' ~ v.slug ~ '/edit', pager_into='#odo-list' %}{% include "_pager.html" %}{% endwith %}
+      {% for r in odo_readings if r.kind == 'odometer' %}<form method="post" action="{{ base }}/v/{{ v.slug }}/odometer/{{ r.id }}/delete" id="odel-{{ r.id }}" data-confirm="{{ _('odo.confirm_delete') }}" hidden></form>{% endfor %}
     </div>
-    {% if odo_total > odo_readings|length %}<div class="form-bar"><a class="ghost-btn small" href="{{ base }}/v/{{ v.slug }}/edit?odo=all#odo-readings">{{ icon('list', 16) }}<span>{{ _('odo.show_all', n=odo_total) }}</span></a></div>{% endif %}
-    {% for r in odo_readings if r.kind == 'odometer' %}<form method="post" action="{{ base }}/v/{{ v.slug }}/odometer/{{ r.id }}/delete" id="odel-{{ r.id }}" data-confirm="{{ _('odo.confirm_delete') }}" hidden></form>{% endfor %}
     {% else %}
     <div class="card empty-state">{{ icon('speedometer', 36) }}<p>{{ _('odo.history_empty') }}</p></div>
     {% endif %}
-  </details>
+  </div>
+  {% endif %}
   {% include "_equipment.html" %}
   <div class="bk-note">{{ _('vd.note') }}</div>
 </div>

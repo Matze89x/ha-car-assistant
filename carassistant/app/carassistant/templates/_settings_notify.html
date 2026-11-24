@@ -2,10 +2,15 @@
 {% set EV = {'maint_due': _('notify.ev_maint_due'), 'appointment': _('notify.ev_appointment'), 'reminder': _('notify.ev_reminder'), 'car_message': _('notify.ev_car_message'), 'open_closure': _('notify.ev_open_closure'), 'low_energy': _('notify.ev_low_energy'), 'tyre_pressure': _('notify.ev_tyre_pressure'), 'trip_end': _('notify.ev_trip_end'), 'refuel': _('notify.ev_refuel')} %}
 {% set GEN = {'addon_update': _('notify.ev_addon_update')} %}
 {# The threshold of the low tank / battery message: right under its switch, shown while the switch is on. Empty = the yellow level of the car. #}
-{% macro thr_block(id, pct, km, pct_ph, km_ph) %}
+{% macro thr_block(id, mode, pct, km, pct_ph, km_ph) %}
 <div class="nm-thr">
-  <label>{{ _('notify.thr_pct') }}<input name="ep_{{ id }}" inputmode="numeric" maxlength="2" placeholder="{{ pct_ph }}" value="{{ pct if pct is not none else '' }}"></label>
-  <label>{{ _('notify.thr_km') }} ({{ units.dist_unit }})<input name="ek_{{ id }}" inputmode="numeric" maxlength="4" placeholder="{{ km_ph }}" value="{{ km if km is not none else '' }}"></label>
+  <span class="nm-thr-l">{{ _('notify.thr_title') }}</span>
+  <div class="nm-thr-pick">
+    <label class="sp"><input type="radio" name="em_{{ id }}" value="pct" {{ 'checked' if mode != 'km' }}><span>{{ icon('gauge', 20) }}<b>{{ _('notify.thr_by_pct') }}</b></span></label>
+    <label class="sp"><input type="radio" name="em_{{ id }}" value="km" {{ 'checked' if mode == 'km' }}><span>{{ icon('speedometer', 20) }}<b>{{ _('notify.thr_by_km') }}</b></span></label>
+  </div>
+  <label class="nm-thr-pct">{{ _('notify.thr_pct') }}<input name="ep_{{ id }}" inputmode="numeric" maxlength="2" placeholder="{{ pct_ph }}" value="{{ pct if pct is not none else '' }}"></label>
+  <label class="nm-thr-km">{{ _('notify.thr_km') }} ({{ units.dist_unit }})<input name="ek_{{ id }}" inputmode="numeric" maxlength="4" placeholder="{{ km_ph }}" value="{{ km if km is not none else '' }}"></label>
   <p class="hint">{{ _('notify.thr_hint') }}</p>
 </div>
 {% endmacro %}
@@ -51,11 +56,11 @@
     <div id="nm-panels">
       {% for c in notify_matrix.cars %}
       <div class="nm-panel" data-panel="p{{ c.id }}">
-        {% for key in notify_events %}{{ switch_row('ev_' ~ c.id, EV[key], key in c.events, key) }}{% if key == 'low_energy' %}{{ thr_block(c.id, c.energy_pct, c.energy_km, c.pct_ph, c.km_ph) }}{% endif %}{% endfor %}
+        {% for key in notify_events %}{{ switch_row('ev_' ~ c.id, EV[key], key in c.events, key) }}{% if key == 'low_energy' %}{{ thr_block(c.id, c.mode, c.energy_pct, c.energy_km, c.pct_ph, c.km_ph) }}{% endif %}{% endfor %}
       </div>
       {% endfor %}
       <div class="nm-panel" data-panel="pnew" hidden>
-        {% for key in notify_events %}{{ switch_row('ev_new', EV[key], key in notify_matrix.default, key) }}{% if key == 'low_energy' %}{{ thr_block('new', notify_matrix.energy_pct, notify_matrix.energy_km, notify_matrix.pct_ph, '') }}{% endif %}{% endfor %}
+        {% for key in notify_events %}{{ switch_row('ev_new', EV[key], key in notify_matrix.default, key) }}{% if key == 'low_energy' %}{{ thr_block('new', notify_matrix.energy_mode, notify_matrix.energy_pct, notify_matrix.energy_km, notify_matrix.pct_ph, '') }}{% endif %}{% endfor %}
       </div>
     </div>
     {% if not notify_matrix.cars %}<p class="muted">{{ _('notify.no_cars') }}</p>{% endif %}

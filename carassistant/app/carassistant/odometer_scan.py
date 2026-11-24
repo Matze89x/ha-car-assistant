@@ -50,7 +50,12 @@ def pick(found: list[int], last: int | None) -> tuple[int | None, bool]:
 
 
 # a number with a unit behind it ("86020 km", "86.020 km", "53 450 mi") is the odometer; "24.5 km" has a decimal and is a trip counter
-LABELLED = re.compile(r"(?<![\d.,])(\d{1,3}(?:[ .,'’]\d{3})+|\d{3,7})(?![\d])\s*(?:km|mi|kilometer)\b(?!\s*/)", re.I)  # not "km/h"
+LABELLED = re.compile(
+    r"(?<![\d.,])(\d{1,3}(?:[ .,'’]\d{3})+|\d{3,7})(?![\d])\s*(?:k\s?m|krn|kn|mi|kilometers?)\b(?!\s*/)", re.I
+)  # not "km/h"; "krn" / "kn" / "k m": what the text recognition makes of a small "km"
+DIGIT_BONUS = (
+    2  # an odometer has six or seven digits on most cars (a trip counter four or five, a dial number three): a little more weight for those
+)
 LOWER = 0.5  # the odometer sits in the lower half of a cluster; the dial numbers (0 ... 260) are above it
 
 
@@ -63,6 +68,11 @@ def labelled(text: str) -> list[int]:
         if MIN_VALUE <= value < 10**MAX_DIGITS:
             found.append(value)
     return found
+
+
+def score(n: int, votes: Counter) -> int:
+    """What a number is worth: its votes, and a little more when it has six or seven digits."""
+    return votes[n] + (DIGIT_BONUS if 6 <= len(str(n)) <= MAX_DIGITS else 0)
 
 
 def consensus(top: int, votes: Counter, last: int | None) -> int:
@@ -109,7 +119,7 @@ def read(data: bytes, last: int | None = None) -> dict:
         pool = [n for n in everything if plausible(n, last)] or everything
         if not pool:
             return None, False
-        value = max(pool, key=lambda n: (votes[n], len(str(n)), n))
+        value = max(pool, key=lambda n: (score(n, votes), len(str(n)), n))
         return value, plausible(value, last)
 
     def sure() -> bool:

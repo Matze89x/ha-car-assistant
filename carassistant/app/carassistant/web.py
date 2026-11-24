@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import hashlib
 import logging
 import re
@@ -1048,7 +1047,13 @@ def vehicle_edit(request: Request, vid: int):
         if request.query_params.get("mode") == "form":
             return vehicle_form_page(request, vehicle)
         readings = summary.odometer_readings(conn, vid)
-        shown = readings if request.query_params.get("odo") == "all" else summary.trim_readings(readings)
+        size = lists.size()  # the person's choice (Settings -> User -> Lists): this list loads in batches like every other
+        pages = max(1, -(-len(readings) // size))
+        try:
+            page = min(max(int(request.query_params.get("page", "1")), 1), pages)
+        except ValueError:
+            page = 1
+        shown = readings[(page - 1) * size : page * size]
         return render(
             request,
             "vehicle_data.html",
@@ -1060,7 +1065,9 @@ def vehicle_edit(request: Request, vid: int):
             odo_scan_on=receipt_available(),
             odo_readings=shown,
             odo_total=len(readings),
+            odo_pager={"page": page, "pages": pages, "total": len(readings), "size": size},
             odo_odd=any(r["odd"] for r in readings),
+            odo_odd_n=sum(1 for r in readings if r["odd"]),
             vin_year=None if vehicle["year"] else vin_info.model_year(vehicle["vin"]),
             insp_estimate=None if summary.next_inspection(conn, vid) else _iso(summary.inspection_estimate(vehicle["first_reg"])),
             equip=equipment.groups(conn, vid, config.language()),
@@ -2391,9 +2398,6 @@ def _settings_section(request: Request, section: str):
         design_ctx = _design_context(conn)
         sources_auto = db.get_setting(conn, "sources.auto", "") == "1"
         app_update = appupdate.status(conn)
-        log_keep = connectors.log_keep(conn)
-        log_days = connectors.log_days(conn)
-        log_total = conn.execute("SELECT COUNT(*) FROM vehicle_logs").fetchone()[0]
         me = account.get("acct_me")
         cars = conn.execute("SELECT * FROM vehicles WHERE archived = 0 ORDER BY name COLLATE NOCASE").fetchall()
         car = _current_car(request, cars)
@@ -2474,11 +2478,6 @@ def _settings_section(request: Request, section: str):
         start_car=start_car,
         sources_auto=sources_auto,
         app_update=app_update,
-        log_keep=log_keep,
-        log_days=log_days,
-        log_days_choices=connectors.LOG_DAYS_CHOICES,
-        log_choices=connectors.LOG_KEEP_CHOICES,
-        log_total=log_total,
         notify_events=notify.EVENTS,
         notify_general=notify.GENERAL,
         push_devices=push_dev,
@@ -2694,24 +2693,6 @@ async def settings_app_update(request: Request):
     if form.get("ajax"):
         return Response(status_code=204)
     return go(request, "/settings/system#updates", "saved")
-
-
-@app.post("/settings/logs")
-async def settings_logs(request: Request):
-    """How many log lines each plugin may keep (the oldest go first), or delete all plugin logs."""
-    form = await form_dict(request)
-    with db.tx() as conn:
-        if form.get("clear"):
-            conn.execute("DELETE FROM vehicle_logs")
-        else:
-            with contextlib.suppress(ValueError):  # not a number: unchanged
-                if form.get("lines"):
-                    connectors.set_log_keep(conn, int(form["lines"]))
-                if form.get("days"):
-                    connectors.set_log_days(conn, int(form["days"]))
-    if form.get("ajax"):
-        return Response(status_code=204)
-    return go(request, "/settings/system#logs", "saved")
 
 
 @app.post("/settings/prefs")

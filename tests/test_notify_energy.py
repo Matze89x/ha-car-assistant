@@ -165,40 +165,59 @@ def test_an_electric_car_is_told_about_its_battery(client, monkeypatch):
     assert sent == ["Battery is getting low: 18 %"]
 
 
-def test_the_settings_keep_the_thresholds_and_show_them_under_the_switch(client):
+def test_the_settings_keep_one_way_to_be_told_and_show_it_under_the_switch(client):
     uid = _admin(client)
     vid = create_vehicle(client, "Phone Car")
+
+    def stored():
+        with db.tx() as conn:
+            row = conn.execute(
+                "SELECT energy_pct, energy_km FROM user_notify_vehicle WHERE user_id = ? AND vehicle_id = ?", (uid, vid)
+            ).fetchone()
+        return row["energy_pct"], row["energy_km"]
+
+    # a level: the range is stored as "not used" (0) - one way or the other, never both
     r = client.post(
         "/settings/notifications/matrix",
-        data={f"ev_{vid}": ["low_energy"], f"ep_{vid}": "18", f"ek_{vid}": "120", "ep_new": "22", "ek_new": ""},
+        data={
+            f"ev_{vid}": ["low_energy"],
+            f"em_{vid}": "pct",
+            f"ep_{vid}": "18",
+            f"ek_{vid}": "120",
+            "em_new": "km",
+            "ep_new": "22",
+            "ek_new": "150",
+        },
     )
-    assert r.status_code == 303
+    assert r.status_code == 303 and stored() == (18, 0)
     with db.tx() as conn:
-        row = conn.execute(
-            "SELECT energy_pct, energy_km FROM user_notify_vehicle WHERE user_id = ? AND vehicle_id = ?", (uid, vid)
-        ).fetchone()
-        assert (row["energy_pct"], row["energy_km"]) == (18, 120)
         m = notify.matrix(conn, uid)
-        assert m["cars"][0]["energy_pct"] == 18 and m["cars"][0]["energy_km"] == 120 and m["energy_pct"] == 22 and m["energy_km"] is None
+        car = m["cars"][0]
+        assert (car["mode"], car["energy_pct"], car["energy_km"]) == ("pct", 18, None)
+        assert (m["energy_mode"], m["energy_pct"], m["energy_km"]) == ("km", None, 150)  # the choice for new cars: a range
     page = client.get("/settings/user").text
-    assert f'name="ep_{vid}"' in page and 'value="18"' in page and f'name="ek_{vid}"' in page and 'name="ep_new"' in page
+    assert f'name="em_{vid}" value="pct" checked' in page.replace("\n", " ") or f'name="em_{vid}" value="pct"  checked' in page.replace(
+        "\n", " "
+    )
+    assert f'name="ep_{vid}"' in page and f'name="ek_{vid}"' in page and 'name="em_new"' in page
     assert (
         page.index(f'name="ev_{vid}" value="low_energy"')
-        < page.index(f'name="ep_{vid}"')
+        < page.index(f'name="em_{vid}"')
         < page.index(f'name="ev_{vid}" value="tyre_pressure"')
     )  # right under its switch
+    # a range
     client.post(
-        "/settings/notifications/matrix", data={f"ev_{vid}": ["low_energy"], f"ep_{vid}": "", f"ek_{vid}": "0"}
-    )  # empty = the car's level, 0 = not used
+        "/settings/notifications/matrix", data={f"ev_{vid}": ["low_energy"], f"em_{vid}": "km", f"ep_{vid}": "18", f"ek_{vid}": "120"}
+    )
+    assert stored() == (0, 120)
     with db.tx() as conn:
-        row = conn.execute(
-            "SELECT energy_pct, energy_km FROM user_notify_vehicle WHERE user_id = ? AND vehicle_id = ?", (uid, vid)
-        ).fetchone()
-        assert row["energy_pct"] is None and row["energy_km"] == 0
+        assert notify.matrix(conn, uid)["cars"][0]["mode"] == "km"
+    # a range chosen but left empty falls back to the level (the car's yellow level when that is empty, too)
+    client.post("/settings/notifications/matrix", data={f"ev_{vid}": ["low_energy"], f"em_{vid}": "km", f"ep_{vid}": "", f"ek_{vid}": ""})
+    assert stored() == (None, 0)
     client.post("/settings/notifications/matrix", data={f"ev_{vid}": ["low_energy"]})  # a form without the fields leaves them alone
-    with db.tx() as conn:
-        assert conn.execute("SELECT energy_km FROM user_notify_vehicle WHERE user_id = ?", (uid,)).fetchone()["energy_km"] == 0
-    client.post("/settings/notifications/matrix", data={f"ev_{vid}": ["low_energy"], f"ep_{vid}": "500", f"ek_{vid}": "99999"})
-    with db.tx() as conn:
-        row = conn.execute("SELECT energy_pct, energy_km FROM user_notify_vehicle WHERE user_id = ?", (uid,)).fetchone()
-        assert (row["energy_pct"], row["energy_km"]) == (99, 3000)  # held to what makes sense
+    assert stored() == (None, 0)
+    client.post("/settings/notifications/matrix", data={f"ev_{vid}": ["low_energy"], f"em_{vid}": "pct", f"ep_{vid}": "500"})
+    assert stored() == (99, 0)  # held to what makes sense
+    client.post("/settings/notifications/matrix", data={f"ev_{vid}": ["low_energy"], f"em_{vid}": "km", f"ek_{vid}": "99999"})
+    assert stored() == (0, 3000)

@@ -5,7 +5,7 @@
     {% if odo_wd.bars %}<div class="odo-wd-chart">{{ odo_wd.bars|safe }}<div class="odo-wd-months">{% for m in odo_wd.months %}<span>{{ m }}</span>{% endfor %}</div></div>{% endif %}
   </div>{% endif %}{% endmacro %}
 {% if odometer is not none %}  {# the widget only SHOWS the odometer (to change it: tap the odometer on the dashboard, under the car) #}
-{# three looks, the slot's data-opt-design shows one of them (the choice is made while editing the page): drums and tile in the usual tile, the plate (the same box as under the car, without turning over) free #}
+{# three looks, the slot's data-opt-design shows one of them (the choice is made while editing the page): all three in the usual tile with the six months under them; the plate is the same box as under the car, without turning over #}
 <div class="wd-look-drums">
 {% call widget('counter', 'c3', _('wd.odo_title'), '/e/counters', w.size) %}
   {{ odo_drum() }}
@@ -18,5 +18,10 @@
   {{ foot() }}
 {% endcall %}
 </div>
-<div class="wd-look-plate">{{ odo_plate(false, false) }}</div>
+<div class="wd-look-plate">
+{% call widget('counter', 'c3', _('wd.odo_title'), '/e/counters', w.size) %}
+  {{ odo_plate(false, false) }}
+  {{ foot() }}
+{% endcall %}
+</div>
 {% endif %}

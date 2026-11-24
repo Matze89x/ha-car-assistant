@@ -139,8 +139,8 @@ def test_logs_belong_to_their_plugin_are_limited_by_the_setting_and_go_with_it(c
     with db.tx() as conn:
         assert conn.execute("SELECT COUNT(*) FROM vehicle_logs WHERE addon_id = 'alpha-plug'").fetchone()[0] == 30
         connectors.set_log_keep(conn, 200)
-    client.post("/settings/logs", data={"lines": "7"})  # not an offered value: ignored
     with db.tx() as conn:
+        connectors.set_log_keep(conn, 7)  # not an offered value: ignored
         assert connectors.log_keep(conn) == 200
     page = client.get(f"/v/{vid}/debug?plugin=alpha-plug", follow_redirects=True).text  # leads to the log page of that plugin
     assert "alpha 29" in page and "beta 29" not in page
@@ -171,11 +171,13 @@ def test_every_plugin_keeps_its_own_number_of_lines(client):
         assert (
             conn.execute("SELECT MIN(message) FROM vehicle_logs WHERE addon_id = 'one'").fetchone()[0] == "line 100"
         )  # the oldest went first
-    client.post("/settings/logs", data={"lines": "500"})  # offered value: more room
-    client.post("/settings/logs", data={"clear": "1"})
     with db.tx() as conn:
+        connectors.set_log_keep(conn, 500)  # offered value: more room
         assert connectors.log_keep(conn) == 500
-        assert conn.execute("SELECT COUNT(*) FROM vehicle_logs").fetchone()[0] == 0
+    assert (
+        client.get("/settings/system").status_code == 200 and 'id="logs"' not in client.get("/settings/system").text
+    )  # no plugin logs under System any more
+    assert client.post("/settings/logs", data={"days": "1"}).status_code in (404, 405)
 
 
 def test_debug_button_of_one_plugin_and_retention_by_days(client):
@@ -206,8 +208,12 @@ def test_debug_button_of_one_plugin_and_retention_by_days(client):
     with db.tx() as conn:
         seen = {r["addon_id"] for r in conn.execute("SELECT addon_id FROM vehicle_traffic")}
     assert seen == {"alpha-plug"}  # only the plugin with its button on is watched
-    info = client.get(f"/v/{vid}/integrations/{pks['alpha']}/info?tab=logs").text  # the switch sits with the log on the Info page
-    assert 'aria-pressed="true"' in info and "Debug is on" in info
+    info = client.get(f"/v/{vid}/integrations/{pks['alpha']}/info?tab=logs").text  # the log page says so and points to the settings
+    assert "Debug is on" in info and f"/integrations/{pks['alpha']}/settings" in info
+    page = client.get(
+        f"/v/{vid}/integrations/{pks['alpha']}/settings"
+    ).text  # the switch sits in the settings of every plugin, with its time
+    assert 'name="on"' in page and "Switches off by itself on" in page and '<option value="1" selected>' in page
     assert f"/integrations/{pks['alpha']}/info" in client.get(f"/v/{vid}/plugins").text  # the tile points to it under More
     assert client.get(f"/v/{vid}/addons/{pks['alpha']}/log").status_code == 303  # the old address leads there
     client.post(f"/v/{vid}/integrations/{pks['alpha']}/debug", data={"on": "0"})
@@ -217,13 +223,12 @@ def test_debug_button_of_one_plugin_and_retention_by_days(client):
     with db.tx() as conn:
         conn.execute("UPDATE vehicle_logs SET added = ? WHERE addon_id = 'alpha-plug'", (old,))
         assert connectors.log_days(conn) == 7
-    client.post("/settings/logs", data={"days": "1"})
     with db.tx() as conn:
+        connectors.set_log_days(conn, 1)
         assert connectors.log_days(conn) == 1
         assert (
             conn.execute("SELECT COUNT(*) FROM vehicle_logs WHERE addon_id = 'alpha-plug'").fetchone()[0] == 0
         )  # three days old, kept for one
-    client.post("/settings/logs", data={"days": "9"})  # not offered: unchanged
     with db.tx() as conn:
+        connectors.set_log_days(conn, 9)  # not offered: unchanged
         assert connectors.log_days(conn) == 1
-    assert "1 day(s)" in client.get("/settings/system").text

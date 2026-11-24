@@ -1417,6 +1417,7 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
                 "has_update": is_newer(offered, manifest.get("version", "")),
                 "source_name": names.get(r["source_id"]),
                 "debug": connectors.plugin_debug(conn, vehicle_id, r["addon_id"]),
+                "debug_state": connectors.plugin_debug_state(conn, vehicle_id, r["addon_id"]),
                 "missing": r["status"] == "missing",
                 "need": need,
             }

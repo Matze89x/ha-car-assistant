@@ -152,7 +152,9 @@ def test_more_is_a_second_navigation_on_pages_under_more(client):
     for path in (f"/v/{slug(first)}/e/appointments", "/settings/design", f"/v/{slug(first)}/integrations"):
         page = client.get(path).text
         assert 'class="more-pane"' in page and "with-more" in page, path
-    assert 'href="/settings/user"' in client.get("/settings/design").text and "mi sel" in client.get("/settings/design").text
+    assert (
+        'href="/settings/car"' in client.get("/settings/design").text and "mi sel" in client.get("/settings/design").text
+    )  # Settings opens on the car
     assert 'data-open="vsw"' in client.get("/settings/design").text  # "Switch vehicle" is an entry of that list
     assert "more-pane" not in client.get(f"/v/{slug(first)}").text  # not on Home
     assert "more-pane" not in client.get(f"/v/{slug(first)}/e/fuel").text  # pages of the bottom bar are not under More
@@ -166,7 +168,7 @@ def test_login_lives_under_settings_and_the_server_pages_stay_off_the_vehicle(cl
     user = client.get("/settings/user")
     assert user.status_code == 200 and 'id="account"' in user.text and 'id="navlist"' not in user.text
     more = client.get("/settings/design").text
-    assert 'href="/settings/user"' in more and 'href="/account"' not in more  # no extra "Account & login" entry any more
+    assert 'href="/settings/car"' in more and 'href="/account"' not in more  # no extra "Account & login" entry any more
     assert (
         client.post("/account/create", data={"username": "owner", "password": "longenough123", "password2": "different"})
         .headers["location"]
@@ -184,7 +186,7 @@ def test_more_group_current_vehicle_holds_only_what_the_bar_lacks(client):
     assert current.index("integrations") < current.index("plugins")  # Integrations, then Plugins
     for page_key in ("trips", "service"):  # the pages of the bar are not repeated
         assert f'href="/v/{slug(first)}/e/{page_key}"' not in current
-    for href in ("/vehicles", "/settings/user"):
+    for href in ("/vehicles", "/settings/car"):
         assert f'href="{href}"' in general  # server level: settings, all vehicles, about
     assert 'href="/account"' not in general and 'href="/integrations"' not in page
     create_vehicle(client, "B Car")

@@ -448,6 +448,8 @@ def _settings_page(request: Request, vid: int, addon: dict, shown: dict, errors:
         request,
         "addon_settings.html",
         set_tabs=set_tabs,
+        debug_days=connectors.DEBUG_DAYS,
+        debug_default=connectors.DEBUG_DEFAULT_DAYS,
         car_files=car_files,
         set_tab_on=next((g["id"] for g in set_tabs if g["err"]), set_tabs[0]["id"] if set_tabs else ""),
         kept_token=kept,
@@ -1119,7 +1121,8 @@ async def addon_debug(request: Request, vid: int, aid: int):
         addon = addons.get(conn, vid, aid)
         if addon is None:
             return go(request, f"/v/{vid}/plugins", "addon.err_id")
-        connectors.set_plugin_debug(conn, vid, addon["addon_id"], form.get("on") == "1")
+        days = int(form["days"]) if (form.get("days") or "").isdigit() else connectors.DEBUG_DEFAULT_DAYS
+        connectors.set_plugin_debug(conn, vid, addon["addon_id"], form.get("on") == "1", days)
         where = _where(addon["kind"], vid)
     if form.get("ajax"):
         return Response(status_code=204)

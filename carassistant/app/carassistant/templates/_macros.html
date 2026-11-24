@@ -148,7 +148,7 @@
       {{ odo_form() }}
     </div>{% endif %}
   </div>
-  {% if odo_odd %}<a class="odo-all odd" href="{{ base }}/v/{{ v.slug }}/edit#odo-readings">{{ icon('alert', 14) }}<span>{{ _('odo.odd_link') }}</span></a>{% endif %}
+  {% if odo_odd %}{% if flip %}<a class="odo-all odd" href="{{ base }}/v/{{ v.slug }}/edit#odo-readings">{{ icon('alert', 14) }}<span>{{ _('odo.odd_link') }}</span></a>{% else %}<span class="odo-all odd">{{ icon('alert', 14) }}<span>{{ _('odo.odd_link') }}</span></span>{% endif %}{% endif %}  {# in the widget the whole tile is a link already: a link inside it would break the tile in two #}
 </div>
 {%- endmacro %}
 

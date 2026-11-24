@@ -12,7 +12,6 @@
 <p class="hint">{{ _('int.intro', car=v.name) }}</p>
 {% include "_nav_editor.html" %}
 {% if items %}<div class="mg-head"><h2>{{ _('int.installed') }}</h2></div>
-{% if items|length > 1 %}{% include "_pk_sort.html" %}{% endif %}
 <div class="pk-grid one">{% with rows=items, empty=_('int.none') %}{% include "_addon_cards.html" %}{% endwith %}</div>{% endif %}
 {% elif itab == 'add' %}
 {% with kind='integration' %}{% include "_available_card.html" %}{% endwith %}

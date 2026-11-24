@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, form_bar, del_form with context %}
+{% from "_macros.html" import icon, page_head, form_bar, del_form, switch_row with context %}
 {% from "_addon_fields.html" import addon_field with context %}
 {% from "_addon_files.html" import file_rows with context %}
 {# With tabs (settings_tabs) everything that is not a setting belongs to the first tab: the other tabs show their settings only. #}
@@ -50,6 +50,17 @@
   {% if dl_set %}<div class="actions fit">{% for d in dl_set %}<a class="button" href="{{ base }}{{ d.path }}" download title="{{ d.note or d.label }}">{{ icon('download', 18) }}<span>{{ d.label }}</span></a>{% endfor %}</div>{% endif %}
 </section>
 {% endif %}
+<section class="card addon-log-set"{{ tabfor() }}>
+  <h2>{{ icon('bug', 20) }} {{ _('addon.log_title') }}</h2>
+  <p class="hint">{{ _('addon.log_hint') }}</p>
+  <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/debug" data-live="1" data-reload="1" class="als-form">
+    <input type="hidden" name="ajax" value="1">
+    {{ switch_row('on', _('addon.log_on'), addon.debug_state is not none, '1') }}
+    <label class="als-days">{{ _('addon.log_for') }}<select name="days">{% for n in debug_days %}<option value="{{ n }}" {{ 'selected' if n == (addon.debug_state[0] if addon.debug_state else debug_default) }}>{{ _('addon.log_days_n', n=n) }}</option>{% endfor %}</select></label>
+  </form>
+  {% if addon.debug_state %}<p class="hint als-left">{{ icon('clock', 14) }} {{ _('addon.log_until', when=fdatetime(addon.debug_state[1])) }}</p>{% endif %}
+  <div class="actions"><a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/logs">{{ icon('list', 18) }}<span>{{ _('addon.logs') }}</span></a></div>
+</section>
 {% if addon.active and addon.m.pages %}
 <section class="card addon-token"{{ tabfor() }}>
   <h2>{{ icon('menu', 20) }} {{ _('addon.nav_title') }}</h2>

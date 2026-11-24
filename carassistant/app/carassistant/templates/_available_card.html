@@ -3,7 +3,6 @@
 <div class="pk-bar">
   <span class="hint">{{ _('pk.last', when=fdatetime(last_read)) if last_read else _('pk.never') }}</span>
 </div>
-{% if available|length > 1 %}{% include "_pk_sort.html" %}{% endif %}
 <div class="pk-grid">
   {% for p in available %}
   <{{ 'div' if p.installed else 'a' }} class="card pk-tile{{ ' done' if p.installed }}"{% if not p.installed %} href="{{ base }}/v/{{ v.slug }}/packages/{{ p.source_id }}/{{ kind }}/{{ p.pkg_id }}"{% endif %}>

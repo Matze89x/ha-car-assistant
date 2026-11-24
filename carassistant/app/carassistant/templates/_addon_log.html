@@ -8,7 +8,7 @@
 <section class="tp-sec">
   <div class="card ad-log">
     <div class="ad-row"><div class="ad-t"><b>{{ _('addon.debug_on') if debug_on else _('addon.debug') }}</b><small>{{ _('dbg.state_on') if debug_on else _('dbg.state_off') }}</small></div>
-      <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/debug"><input type="hidden" name="on" value="{{ 0 if debug_on else 1 }}"><button class="ghost-btn small" aria-pressed="{{ 'true' if debug_on else 'false' }}">{{ icon('bug', 16) }}<span>{{ _('dbg.turn_off') if debug_on else _('dbg.turn_on') }}</span></button></form></div>
+      <a class="ghost-btn small" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/settings">{{ icon('settings', 16) }}<span>{{ _('addon.settings') }}</span></a></div>
     {% if lines %}
     <div class="dbg-log">
       {% for l in lines %}<div class="dbg-line lv-{{ l.level }}"><span class="dbg-ts">{{ flog(l.ts) }}</span><span class="dbg-lv">{{ l.level }}</span><span class="dbg-msg">{{ l.message }}</span></div>{% endfor %}
