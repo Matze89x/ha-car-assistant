@@ -417,9 +417,16 @@ def _prepare_run(conn, addon: dict) -> tuple[Path, str]:
         conn.execute(
             "UPDATE vehicle_addons SET token_id = (SELECT id FROM api_tokens ORDER BY id DESC LIMIT 1) WHERE id = ?", (addon["id"],)
         )
+        connectors.remember(
+            conn, conn.execute("SELECT id FROM api_tokens ORDER BY id DESC LIMIT 1").fetchone()["id"], token
+        )  # readable on *General*
         token_file.write_text(token)
         os.chmod(token_file, 0o600)
         _own(token_file, addon["id"])
+    if token and addon.get("token_id") and not connectors.remembered(conn, addon["token_id"]):
+        connectors.remember(
+            conn, addon["token_id"], token
+        )  # a token made before the app kept copies: the service holds it, so the copy can be made now
     settings_file = folder / "settings.json"
     settings_file_values = addons.typed_settings(addon["m"], addon["vals"])
     vin_row = conn.execute("SELECT vin FROM vehicles WHERE id = ?", (addon["vehicle_id"],)).fetchone()

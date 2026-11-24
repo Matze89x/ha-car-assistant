@@ -110,7 +110,11 @@ def _demo_plugins(conn, vid: int) -> None:
         "icon": "plug",
         "description": "A made-up plugin with a service, three buttons of its own and a log - it only exists to show the tile of a plugin.",
         "settings": [
+            {"key": "account", "label": "Account", "type": "value"},
+            {"key": "car_files", "label": "Files on the car", "type": "value"},
+            {"type": "tab", "id": "connection", "label": "Connection"},
             {"key": "host", "label": "Address", "type": "text"},
+            {"type": "tab", "id": "radio", "label": "Radio stations"},
             {
                 "key": "stations",
                 "label": "Stations",
@@ -134,10 +138,44 @@ def _demo_plugins(conn, vid: int) -> None:
             {"id": "docs", "label": "Documentation", "icon": "file-document-outline", "page": "docs"},
             {"id": "wake", "label": "Wake the car", "icon": "power", "action": "/demo/wake"},
             {"id": "sync", "label": "Sync now", "icon": "refresh", "action": "/demo/sync", "confirm": "Fetch everything again?"},
+            {
+                "id": "logout",
+                "label": "Log out",
+                "icon": "lock-open-variant",
+                "action": "/demo/logout",
+                "place": "settings",
+                "confirm": "Log out of the account?",
+                "when": {"key": "account", "set": True},
+            },
+            {"id": "relogin", "label": "Change the login", "icon": "account", "page": "docs", "place": "settings"},
         ],
-        "downloads": [{"label": "Car log", "path": "/demo/car.log"}, {"label": "Signal data", "path": "/demo/signals.zip"}],
+        "downloads": [
+            {"label": "Car log", "path": "/demo/car.log"},
+            {"label": "Signal data", "path": "/demo/signals.zip"},
+            {"label": "Full export of everything the plugin keeps", "path": "/demo/export.zip", "place": "settings"},
+        ],
+        "bundles": [
+            {
+                "name": "install.zip",
+                "label": "Update for the car",
+                "note": "Replaces the program on the card.",
+                "version": "1.4",
+                "installed": "car_files",
+                "entries": [{"from": "a.txt", "to": "mod/a.txt"}],
+            },
+            {
+                "name": "uninstall.zip",
+                "label": "Remove from the car",
+                "version": "1.4",
+                "installed": "car_files",
+                "entries": [{"from": "b.txt", "to": "mod/b.txt"}],
+            },
+        ],
     }
-    addons.add(conn, vid, addons.parse_package(json.dumps(gateway).encode()), source, "0" * 64)
+    pk = addons.add(conn, vid, addons.parse_package(json.dumps(gateway).encode()), source, "0" * 64)
+    conn.execute(  # logged in, and the car still holds an older version than the one on offer
+        "UPDATE vehicle_addons SET settings = ? WHERE id = ?", (json.dumps({"account": "Example account", "car_files": "1.2"}), pk)
+    )
     cloud = {
         "id": "demo-cloud",
         "kind": "plugin",
@@ -160,6 +198,8 @@ def _demo_plugins(conn, vid: int) -> None:
                 {"id": "needs", "type": "requirements", "requires": ["external_https"], "filled": ["user"]},
                 {"id": "token", "type": "token", "text": "The token lets the plugin talk to Car Assistant."},
             ],
+            "done_when": [{"token": True}, {"key": "user", "set": True}],
+            "settings_after": True,
         },
     }
     addons.add(conn, vid, addons.parse_package(json.dumps(cloud).encode()))

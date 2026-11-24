@@ -32,18 +32,19 @@
       <button class="danger icon-lbl" form="adel-{{ a.id }}" aria-label="{{ _('addon.uninstall') }}" title="{{ _('addon.uninstall') }}">{{ icon('delete', 18) }}<span class="lbl2">{{ _('addon.uninstall') }}</span></button>
     </div>
   {% else %}
-    {% set free = (a.m.buttons or []) if a.active else [] %}
-    {% set extra = free|length + ((a.m.downloads or [])|length if a.active else 0) %}
+    {% set free = ((a.m.buttons or [])|rejectattr('place', 'equalto', 'settings')|selectattr('shown')|list) if a.active else [] %}
+    {% set dls = ((a.m.downloads or [])|rejectattr('place', 'equalto', 'settings')|selectattr('shown')|list) if a.active else [] %}
+    {% set extra = free|length + dls|length %}
     <div class="abar-box"><div class="addon-bar fb{{ [extra, 9]|min }}">
       <button class="danger ico-only" form="adel-{{ a.id }}" aria-label="{{ _('addon.uninstall') }}" title="{{ _('addon.uninstall') }}">{{ icon('delete', 18) }}</button>
       <a class="button lite-lbl" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/logs" aria-label="{{ _('addon.logs') }}" title="{{ _('addon.logs') }}">{{ icon('list', 18) }}<span class="lbl2">{{ _('addon.logs') }}</span></a>
-      {% if a.m.settings or plugin %}<a class="button lite-lbl" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/settings" aria-label="{{ _('addon.settings') }}" title="{{ _('addon.settings') }}">{{ icon('settings', 18) }}<span class="lbl2">{{ _('addon.settings') }}</span></a>{% endif %}
+      {% if (a.m.settings or plugin) and a.settings_shown %}<a class="button lite-lbl" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/settings" aria-label="{{ _('addon.settings') }}" title="{{ _('addon.settings') }}">{{ icon('settings', 18) }}<span class="lbl2">{{ _('addon.settings') }}</span></a>{% endif %}
       {% for b in free %}{% if b.page %}<a class="button lite-lbl" href="{{ base }}/v/{{ v.slug }}/m/{{ a.addon_id }}/{{ b.page }}" aria-label="{{ b.label }}" title="{{ b.label }}">{{ icon(b.icon, 18) }}<span class="lbl2">{{ b.label }}</span></a>
       {% else %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/button/{{ b.id }}"{% if b.confirm %} data-confirm="{{ b.confirm }}"{% endif %}><button class="lite-lbl" aria-label="{{ b.label }}" title="{{ b.label }}">{{ icon(b.icon, 18) }}<span class="lbl2">{{ b.label }}</span></button></form>{% endif %}{% endfor %}
-      {% if a.active %}{% for d in a.m.downloads %}<a class="button lite-lbl" href="{{ base }}{{ d.path }}" download aria-label="{{ d.label }}" title="{{ d.note or d.label }}">{{ icon('download', 18) }}<span class="lbl2">{{ d.label }}</span></a>{% endfor %}{% endif %}
+      {% for d in dls %}<a class="button lite-lbl" href="{{ base }}{{ d.path }}" download aria-label="{{ d.label }}" title="{{ d.note or d.label }}">{{ icon('download', 18) }}<span class="lbl2">{{ d.label }}</span></a>{% endfor %}
       {% if need_review %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/service">{{ icon('shield', 18) }}<span>{{ _('svc.review') }}</span></a>
       {% elif a.has_update %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/update"><button class="primary">{{ icon('refresh', 18) }}<span>{{ _('addon.update') }}</span></button></form>
-      {% elif a.m.setup and a.status != 'configured' %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ a.m.setup.title or _('addon.setup') }}</span></a>
+      {% elif a.m.setup and a.setup_open %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ a.m.setup.title or _('addon.setup') }}</span></a>
       {% elif plugin and a.status != 'configured' %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/settings">{{ icon('play-circle-outline', 18) }}<span>{{ _('addon.setup') }}</span></a>
       {% elif a.active and a.m.pages %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/m/{{ a.addon_id }}">{{ icon('chevron', 18) }}<span>{{ _('addon.open') }}</span></a>{% endif %}
     </div></div>

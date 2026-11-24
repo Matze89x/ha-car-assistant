@@ -156,17 +156,99 @@ def clean_service(raw: object) -> dict | None:
 DOWNLOAD_PATH = re.compile(r"/[A-Za-z0-9_./~%+-]{1,150}")
 
 
-def clean_downloads(raw, service: dict | None) -> list[dict]:
-    """Files a plugin's service offers for download: ``[{"label", "path", "note"}]``. The path must lie under one of the service's routes
-    (the app shows a button; the file itself comes from the service). Anything else is dropped."""
+def clean_downloads(raw, service: dict | None, setting_types: dict[str, str] | None = None) -> list[dict]:
+    """Files a plugin's service offers for download: ``[{"label", "path", "note", "place", "when"}]``. The path must lie under one of the service's
+    routes (the app shows a button; the file itself comes from the service). ``place`` is ``tile`` (default) or ``settings`` (the tab *General* of the
+    settings page); ``when`` says when the button shows (``clean_when``). Anything else is dropped."""
     prefixes = [r["prefix"] for r in (service or {}).get("routes", [])]
     out: list[dict] = []
     for item in (raw if isinstance(raw, list) else [])[:10]:
         path = item.get("path") if isinstance(item, dict) else None
         if not isinstance(path, str) or not DOWNLOAD_PATH.fullmatch(path) or ".." in path or not any(path.startswith(p) for p in prefixes):
             continue
-        out.append({"label": _text(item, "label", 60) or path.rsplit("/", 1)[-1], "path": path, "note": _text(item, "note", 200)})
+        when = clean_when(item.get("when"), setting_types or {})
+        if when is None:  # a condition that cannot be read: the button stays away rather than show when it should not
+            continue
+        out.append(
+            {
+                "label": _text(item, "label", 60) or path.rsplit("/", 1)[-1],
+                "path": path,
+                "note": _text(item, "note", 200),
+                **({"place": "settings"} if item.get("place") == "settings" else {}),
+                **({"when": when} if when else {}),
+            }
+        )
     return out
+
+
+# ---- conditions (``when``): when a button or a download shows, and when the set-up counts as done (docs/plugins.md, "Conditions")
+WHEN_TESTS = 5  # at most this many tests in one ``when`` (all must hold)
+
+
+def clean_when(raw, setting_types: dict[str, str], allow_setup: bool = True) -> list[dict] | None:
+    """The ``when`` of a button, a download or the ``done_when`` of the set-up: ONE test or a list of up to 5 (all must hold). A test is
+    ``{"setup": "done" | "open"}``, ``{"token": true | false}``, ``{"key": "<setting>", "equals": value}`` or ``{"key": "<setting>", "set": true | false}``.
+    No ``when`` gives ``[]``; a ``when`` that cannot be read gives ``None`` - the caller then drops the thing it belongs to (a condition that is
+    silently ignored would show what the plugin meant to hide)."""
+    if raw is None:
+        return []
+    tests_in = raw if isinstance(raw, list) else [raw]
+    if not tests_in or len(tests_in) > WHEN_TESTS:
+        return None
+    out: list[dict] = []
+    for t in tests_in:
+        if not isinstance(t, dict):
+            return None
+        if "setup" in t:
+            if not allow_setup or t["setup"] not in ("done", "open"):
+                return None
+            out.append({"setup": t["setup"]})
+        elif "token" in t:
+            if not isinstance(t["token"], bool):
+                return None
+            out.append({"token": t["token"]})
+        elif isinstance(t.get("key"), str) and t["key"] in setting_types and setting_types[t["key"]] not in NO_VALUE:
+            if isinstance(t.get("equals"), str | int | bool):
+                value = t["equals"]
+                out.append({"key": t["key"], "equals": ("1" if value else "0") if isinstance(value, bool) else str(value)[:40]})
+            elif isinstance(t.get("set"), bool):
+                out.append({"key": t["key"], "set": t["set"]})
+            else:
+                return None
+        else:
+            return None
+    return out
+
+
+def when_holds(tests: list[dict], *, setup_done: bool, has_token: bool, values: dict, types: dict[str, str]) -> bool:
+    """Do all tests of a ``when`` hold right now? ``values`` are the stored settings (a switch is ``1`` / ``0``, a password never counts as set
+    here because it is not in ``values`` readable)."""
+    for t in tests:
+        if "setup" in t:
+            ok = setup_done == (t["setup"] == "done")
+        elif "token" in t:
+            ok = has_token == t["token"]
+        else:
+            have = values.get(t["key"], "")
+            if "equals" in t:
+                ok = str(have) == t["equals"]
+            else:
+                filled = have not in ("", None) and not (types.get(t["key"]) == "bool" and str(have) == "0")
+                ok = filled == t["set"]
+        if not ok:
+            return False
+    return True
+
+
+def version_state(have: str, offered: str) -> str:
+    """What a file the plugin offers (``offered``) means for what lies on the car (``have``): ``update`` (the offer is newer), ``current``,
+    or ``newer`` (the car has a newer one); ``""`` when the plugin did not say what is on the car."""
+    from .sources import version_key
+
+    if not have or not offered:
+        return ""
+    a, b = version_key(have), version_key(offered)
+    return "current" if a == b else "update" if b > a else "newer"
 
 
 CAPABILITY_PATH = re.compile(r"/[A-Za-z0-9_./~%+-]{1,150}")
@@ -187,6 +269,22 @@ def clean_capabilities(raw, service: dict | None) -> dict:
 # ---- files a package brings for download ("assets"): checked binaries the app hands out itself, never runs (docs/plugins.md)
 FILE_EXTENSIONS = (".jar", ".zip", ".bin", ".json", ".txt", ".md", ".pdf")  # a fixed list - nothing that could be run
 FILE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}")
+FILE_VERSION = re.compile(
+    r"[0-9A-Za-z][0-9A-Za-z._+-]{0,19}"
+)  # the version of a file the plugin offers (shown, compared with what is on the car)
+
+
+def _file_version(item: dict) -> dict:
+    """``version`` (what the plugin offers) and ``installed`` (the key of a setting in which the plugin reports what lies on the car) of a file or a
+    bundle; whatever is unusable is left out - they are only shown, never needed. ``installed`` is checked against the settings later."""
+    out = {}
+    if isinstance(item.get("version"), str) and FILE_VERSION.fullmatch(item["version"]):
+        out["version"] = item["version"]
+    if isinstance(item.get("installed"), str) and KEY.match(item["installed"]):
+        out["installed"] = item["installed"]
+    return out
+
+
 PKG_PATH = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_./-]{0,158}")
 MAX_FILES_N = 10
 MAX_FILE_BYTES = 8_000_000
@@ -248,6 +346,7 @@ def clean_files(raw) -> list[dict]:
                 "note": _text(item, "note", 300),
                 "sha256": sha.lower(),
                 "size": size,
+                **_file_version(item),
             }
         )
     if total > MAX_FILES_TOTAL:
@@ -291,8 +390,22 @@ def clean_bundles(raw, files: list[dict]) -> list[dict]:
             extra["connection_file_to"] = to
         if _l10n(item.get("l10n"), {"label": 80, "note": 300}):  # the texts in other languages, like the settings have
             extra["l10n"] = _l10n(item.get("l10n"), {"label": 80, "note": 300})
-        out.append({"name": name, "label": _text(item, "label", 80) or name, "note": _text(item, "note", 300), "entries": entries, **extra})
+        out.append(
+            {
+                "name": name,
+                "label": _text(item, "label", 80) or name,
+                "note": _text(item, "note", 300),
+                "entries": entries,
+                **_file_version(item),
+                **extra,
+            }
+        )
     return out
+
+
+def _installed_keys(items: list[dict], writable: set[str]) -> list[dict]:
+    """``installed`` must name a setting the plugin can write itself (a ``value`` field or ``service_writable``); otherwise nothing could ever fill it."""
+    return [{k: v for k, v in it.items() if k != "installed" or v in writable} for it in items]
 
 
 def needs_package(manifest: dict) -> bool:
@@ -308,7 +421,9 @@ def approval_fingerprint(manifest: dict) -> str:
     thing = {
         "service": manifest.get("service"),
         "files": [(f["name"], f["sha256"], f["size"]) for f in manifest.get("files", [])],
-        "bundles": manifest.get("bundles", []),
+        "bundles": [
+            {k: v for k, v in b.items() if k not in ("version", "installed")} for b in manifest.get("bundles", [])
+        ],  # the version a bundle is shown with is no part of what is approved
     }
     writable = sorted(f["key"] for f in manifest.get("settings", []) if f.get("service_writable") or f.get("type") == "value")
     if writable:  # only then: approvals given before the service could change settings stay valid
@@ -356,19 +471,21 @@ def _l10n(raw, limits: dict[str, int]) -> dict[str, dict[str, str]]:
 
 
 MAX_BUTTONS = 3  # what fits in the ONE line of the tile on the smallest phone (docs/plugins.md, Buttons)
+MAX_SETTINGS_BUTTONS = 6  # buttons that live in the tab *General* of the settings page instead (``place: "settings"``)
 BUTTON_ID = re.compile(r"[a-z][a-z0-9_-]{0,30}")
 
 
-def clean_buttons(raw, pages: list[dict], service: dict | None) -> list[dict]:
-    """Free buttons a plugin puts on its tile (docs/plugins.md, "Buttons"): ``{"id", "label", "icon", "page": "<id of a page of the package>"}`` opens a
-    page of the plugin, ``{"id", "label", "icon", "action": "/route"}`` makes the app call a route of the plugin's own service (NOT public) and show the
-    answer. At most 3; anything that does not fit is dropped."""
+def clean_buttons(raw, pages: list[dict], service: dict | None, setting_types: dict[str, str] | None = None) -> list[dict]:
+    """Free buttons of a plugin (docs/plugins.md, "Buttons"): ``{"id", "label", "icon", "page": "<id of a page of the package>"}`` opens a page of the
+    plugin, ``{"id", "label", "icon", "action": "/route"}`` makes the app call a route of the plugin's own service (NOT public) and show the answer.
+    ``place`` is ``tile`` (default, at most 3: the ONE line of the tile) or ``settings`` (at most 6, in the tab *General*: logout, change the login,
+    delete data ...); ``when`` says when the button shows (``clean_when``). Anything that does not fit is dropped."""
     from . import icons
 
     out: list[dict] = []
     page_ids = {p["id"] for p in pages if isinstance(p, dict) and p.get("id")}
     prefixes = [r["prefix"] for r in (service or {}).get("routes", []) if not r.get("public")]
-    for item in raw[:MAX_BUTTONS] if isinstance(raw, list) else []:
+    for item in raw[: MAX_BUTTONS + MAX_SETTINGS_BUTTONS] if isinstance(raw, list) else []:
         if (
             not isinstance(item, dict)
             or not isinstance(item.get("id"), str)
@@ -378,6 +495,12 @@ def clean_buttons(raw, pages: list[dict], service: dict | None) -> list[dict]:
             continue
         label = _text(item, "label", 40)
         if not label:
+            continue
+        place = "settings" if item.get("place") == "settings" else "tile"
+        if sum(1 for b in out if b.get("place", "tile") == place) >= (MAX_SETTINGS_BUTTONS if place == "settings" else MAX_BUTTONS):
+            continue
+        when = clean_when(item.get("when"), setting_types or {})
+        if when is None:  # a condition that cannot be read: the button stays away rather than show when it should not
             continue
         btn = {"id": item["id"], "label": label, "icon": item.get("icon") if item.get("icon") in icons.ICONS else "play-circle-outline"}
         if item.get("page") in page_ids:
@@ -391,6 +514,10 @@ def clean_buttons(raw, pages: list[dict], service: dict | None) -> list[dict]:
             btn["action"] = path
             if _text(item, "confirm", 160):
                 btn["confirm"] = _text(item, "confirm", 160)
+        if place == "settings":
+            btn["place"] = "settings"
+        if when:
+            btn["when"] = when
         if _l10n(item.get("l10n"), {"label": 40, "confirm": 160}):
             btn["l10n"] = _l10n(item.get("l10n"), {"label": 40, "confirm": 160})
         out.append(btn)
@@ -768,9 +895,12 @@ def clean_setup(
     setting_keys: frozenset[str] | set[str] = frozenset(),
     frame_ids: frozenset[str] | set[str] = frozenset(),
     service: dict | None = None,
+    setting_types: dict[str, str] | None = None,
 ) -> dict | None:
     """The ``setup`` of a manifest: a guide in steps (docs/plugins.md). ``requires`` lists what must be there first (an https address under System,
-    a VIN in the vehicle data); a step may offer the token, the connection file and ``bundles`` of the package, and brings its own text."""
+    a VIN in the vehicle data); a step may offer the token, the connection file and ``bundles`` of the package, and brings its own text.
+    ``done_when`` (a ``when``, see ``clean_when``) says what else must hold for the set-up to count as done - for example a token and a login that
+    worked; ``settings_after`` hides the *Settings* button of the tile until the set-up is done (only with a ``flow``)."""
     if not isinstance(raw, dict):
         return None
     flow = clean_flow(raw.get("flow"), bundles, has_file, setting_keys, frame_ids, service)
@@ -822,6 +952,11 @@ def clean_setup(
         guide["title"] = _text(raw, "title", 60)
     if _l10n(raw.get("l10n"), {"title": 60}):
         guide["l10n"] = _l10n(raw.get("l10n"), {"title": 60})
+    done = clean_when(raw.get("done_when"), setting_types or {k: "text" for k in setting_keys}, allow_setup=False)
+    if done:  # a condition that cannot be read is ignored here: the set-up then counts as done at the end of the guide, as before
+        guide["done_when"] = done
+    if flow and raw.get("settings_after") is True:
+        guide["settings_after"] = True
     return guide
 
 
@@ -1001,9 +1136,12 @@ def parse_package(raw: bytes) -> dict:
     tiles = clean_tiles(data.get("tiles"))
     files = clean_files(data.get("files"))
     bundles = clean_bundles(data.get("bundles"), files)
-    downloads = clean_downloads(data.get("downloads"), service)
+    types = {f["key"]: f["type"] for f in fields if "key" in f}
+    writable = {k for k, t in types.items() if t == "value"} | {f["key"] for f in fields if f.get("service_writable")}
+    files, bundles = _installed_keys(files, writable), _installed_keys(bundles, writable)
+    downloads = clean_downloads(data.get("downloads"), service, types)
     capabilities = clean_capabilities(data.get("capabilities"), service)
-    buttons = clean_buttons(data.get("buttons"), pages, service)
+    buttons = clean_buttons(data.get("buttons"), pages, service, types)
     setup = clean_setup(
         data.get("setup"),
         bundles,
@@ -1011,6 +1149,7 @@ def parse_package(raw: bytes) -> dict:
         {f["key"] for f in fields},
         {p["id"] for p in pages if p.get("kind") == "frame"},
         service,
+        types,
     )
     docs = _docs_text(data.get("docs"))  # a longer description for the Interfaces page (paragraphs and line breaks stay)
     icon = data.get("icon") if data.get("icon") in icons.ICONS else ""  # one of the app's icons (docs/icons.md); shown on the plugin's tile
@@ -1161,6 +1300,25 @@ def _need(conn: sqlite3.Connection, r: sqlite3.Row) -> dict:
     return {"state": "add_source" if url else "upload", "url": url}
 
 
+def _ui_state(row, manifest: dict, vals: dict) -> dict:
+    """What the page needs to judge a ``when``: is the set-up done (finished, and every ``done_when`` holds), is there a token, the stored values.
+    ``setup_open`` is true while a plugin WITH a ``setup`` still has to be set up (its main button says so)."""
+    setup = manifest.get("setup") or {}
+    types = {f["key"]: f["type"] for f in manifest.get("settings", []) if "key" in f}
+    has_token = row["token_id"] is not None
+    done = row["status"] == "configured" and when_holds(
+        setup.get("done_when", []), setup_done=True, has_token=has_token, values=vals, types=types
+    )
+    return {
+        "setup_done": done,
+        "has_token": has_token,
+        "values": vals,
+        "types": types,
+        "setup_open": bool(setup) and not done,
+        "settings_after": bool(setup.get("settings_after")),
+    }
+
+
 def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
     from .sources import is_newer
 
@@ -1204,11 +1362,21 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
         stored = {
             k: (vault.decrypt(v) if k in secret else v) for k, v in json.loads(r["settings"] or "{}").items()
         }  # passwords are encrypted at rest
+        vals = {**defaults, **stored}
+        state = _ui_state(r, manifest, vals)
+        judge = {k: state[k] for k in ("setup_done", "has_token", "values", "types")}
+        manifest["buttons"] = [
+            {**b, "shown": when_holds(b.get("when", []), **judge)} for b in manifest.get("buttons", [])
+        ]  # which of them show right now (their ``when``)
+        manifest["downloads"] = [{**d, "shown": when_holds(d.get("when", []), **judge)} for d in manifest.get("downloads", [])]
         out.append(
             {
                 **dict(r),
                 "m": manifest,
-                "vals": {**defaults, **stored},
+                "vals": vals,
+                "setup_open": state["setup_open"],
+                "settings_shown": not (state["settings_after"] and state["setup_open"]),
+                "has_token": state["has_token"],
                 "latest": offered,
                 "has_update": is_newer(offered, manifest.get("version", "")),
                 "source_name": names.get(r["source_id"]),
@@ -1512,6 +1680,9 @@ def settings_tabs(fields: list[dict], bad: set[str] | frozenset[str] = frozenset
         )
     if len(groups) < 2:
         return []
+    groups[0]["label"] = (
+        ""  # the first tab is always the app's own *General* (login, token, files, uninstall belong there), whatever it was called
+    )
     for g in groups:
         g["err"] = any(f["key"] in bad for f in g["fields"])
     return groups
@@ -1567,8 +1738,7 @@ def set_up(conn: sqlite3.Connection, vehicle_id: int, addon: dict, form: dict, o
     ):
         token = connectors.create_token(conn, f"{addon['m']['name']}", vehicle_id)
         token_id = conn.execute("SELECT id FROM api_tokens ORDER BY id DESC LIMIT 1").fetchone()["id"]
-        if addon["m"].get("connection_file"):
-            connectors.remember(conn, token_id, token)
+        connectors.remember(conn, token_id, token)  # every plugin token: an administrator can read it again on the tab *General*
     conn.execute(
         "UPDATE vehicle_addons SET status = 'configured', settings = ?, token_id = ? WHERE id = ?",
         (json.dumps(_sealed(addon["m"], _guide_values(addon, form, only))), token_id, addon["id"]),
@@ -1651,8 +1821,7 @@ def new_token(conn: sqlite3.Connection, vehicle_id: int, addon: dict) -> str:
     token = connectors.create_token(conn, addon["m"]["name"], vehicle_id)
     token_id = conn.execute("SELECT id FROM api_tokens ORDER BY id DESC LIMIT 1").fetchone()["id"]
     conn.execute("UPDATE vehicle_addons SET token_id = ? WHERE id = ?", (token_id, addon["id"]))
-    if addon["m"].get("connection_file"):
-        connectors.remember(conn, token_id, token)
+    connectors.remember(conn, token_id, token)
     return token
 
 

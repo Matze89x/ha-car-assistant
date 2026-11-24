@@ -1488,6 +1488,16 @@ label.button.pk-btn { position: relative; }
 .addon-field[hidden], .set-sec[hidden], .set-info[hidden] { display: none; }
 
 /* the Interfaces page of a plugin */
+.actions.fit > .button, .actions.fit > form { max-width: 100%; min-width: 0; }
+.actions.fit > form { margin: 0; }
+.actions.fit .button > span, .actions.fit button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* a long name is shortened with "...", never wrapped (the full name is the title) */
+.addon-value { display: flex; align-items: baseline; justify-content: space-between; gap: 4px 14px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--glass-b); }
+.addon-value:first-child { border-top: 0; padding-top: 0; }
+.addon-value .av-l { color: var(--muted); }
+.addon-value .av-v { min-width: 0; text-align: right; overflow-wrap: anywhere; }
+.addon-value .addon-help { flex-basis: 100%; margin: 0; }
+.fv { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: .85rem; color: var(--muted); }
+.fv b { color: var(--text); font-weight: 600; }
 .ifc-row { padding: 12px 0; border-top: 1px solid var(--glass-b); display: grid; gap: 6px; }
 .ifc-row:first-of-type { border-top: 0; }
 .ifc-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

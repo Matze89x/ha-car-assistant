@@ -341,7 +341,7 @@ def test_one_click_reads_trusts_and_installs_a_package_with_a_service(client, mo
     with db.tx() as conn:
         sources.refresh_all(conn, "plugin")  # the source's list is read (the package page shows what the index and the manifest say)
     page = client.get(f"/v/{vid}/packages/{sid}/plugin/echo-svc").text
-    assert "What this package will do" in page and "Approve and install" in page and "install?approve=1" in page
+    assert "What this package will do" in page and "Allow" in page and "Deny" in page and "install?approve=1" in page
     assert "service/main.py" in page and "/svc/" in page  # what it runs and where it answers: read BEFORE anything is installed
     client.post(f"/v/{vid}/packages/{sid}/plugin/echo-svc/install?approve=1")
     with db.tx() as conn:
@@ -367,7 +367,49 @@ def test_a_package_without_code_keeps_its_plain_install_button(client, monkeypat
 
         sources.refresh_all(conn, "integration")
     page = client.get(f"/v/{vid}/packages/{sid}/integration/plain-one").text
-    assert "What this package will do" not in page and "approve=1" not in page and ">Install<" in page.replace(" ", "").replace("\n", "")
+    assert "What this package will do" not in page and "approve=1" not in page and ">Allow<" in page.replace(" ", "").replace("\n", "")
+    assert ">Deny<" in page and "does not say what it sends or reads" in page  # a package that tells nothing is said to tell nothing
+
+
+def test_the_install_page_says_what_a_plugin_sends_offers_and_brings_before_it_is_installed(client, monkeypatch):
+    """Before anything is installed the page lists what the package says it does: Deny on the left, Allow at the bottom right."""
+    from carassistant import sources
+
+    plugin = {
+        "id": "tell-me",
+        "kind": "plugin",
+        "name": "Tell me",
+        "version": "1",
+        "settings": [{"key": "car", "type": "value", "label": "On the car"}],
+        "interfaces": [
+            {"direction": "sends", "name": "Vehicle data", "path": "/api/v1/vehicles/<id>/data", "fields": ["odometer_km"]},
+            {"direction": "reads", "name": "Control", "path": "/api/v1/vehicles/<id>/control"},
+        ],
+        "tiles": [{"id": "sp", "label": "Speed", "data": "speed_kmh"}],
+        "connection_file": {"name": "link.cfg", "template": "token={token}\n"},
+    }
+    index = {"packages": [{"id": "tell-me", "name": "Tell me", "version": "1"}]}
+    _serve(monkeypatch, {"plugins/index.json": json.dumps(index).encode(), "plugins/tell-me/plugin.json": json.dumps(plugin).encode()})
+    client.post("/vehicles", data={"name": "Tell Car", "fuel_type": "petrol"})
+    with db.tx() as conn:
+        vid = conn.execute("SELECT id FROM vehicles ORDER BY id DESC LIMIT 1").fetchone()["id"]
+        sid = conn.execute("SELECT id FROM sources WHERE is_default = 1").fetchone()[0]
+        sources.refresh_all(conn, "plugin")
+    page = client.get(f"/v/{vid}/packages/{sid}/plugin/tell-me").text
+    for text in (
+        "Sends to Car Assistant",
+        "Vehicle data",
+        "odometer_km",
+        "speed_kmh",  # the value tile says which number the plugin has to send
+        "Reads from Car Assistant",
+        "Control",
+        "Brings along",
+        "Connection file",
+        "A token for the Plugin API",
+        "Settings it may change itself",
+    ):
+        assert text in page, text
+    assert page.index(">Deny<") < page.index(">Allow<")  # Deny left of Allow, both at the bottom
 
 
 def test_the_example_package_builds_the_same_every_time_and_can_be_stored(tmp_path):

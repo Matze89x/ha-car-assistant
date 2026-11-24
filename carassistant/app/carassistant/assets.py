@@ -106,6 +106,13 @@ def bundle_info(addon: dict, bundle: dict) -> dict:
 def listing(addon: dict, offered: bool) -> list[dict]:
     """The files and bundles of a package for the pages: name, label, note, size, checksum, and (when approved) the address to fetch them."""
     rows = []
+    vals = addon.get("vals") or {}
+
+    def versions(item: dict) -> dict:
+        """What the plugin says it offers (``version``) and what it reported to lie on the car (the setting named in ``installed``)."""
+        have = str(vals.get(item.get("installed", ""), "") or "")
+        return {"version": item.get("version", ""), "have": have, "state": addons.version_state(have, item.get("version", ""))}
+
     for f in addon["m"].get("files", []):
         rows.append(
             {
@@ -116,6 +123,7 @@ def listing(addon: dict, offered: bool) -> list[dict]:
                 "sha256": f["sha256"],
                 "kind": "file",
                 "href": f"/plugins/{addon['addon_id']}/files/{f['name']}" if offered else "",
+                **versions(f),
             }
         )
     lang = config.language()
@@ -136,6 +144,7 @@ def listing(addon: dict, offered: bool) -> list[dict]:
                 + ([f"(connection file) -> {b['connection_file_to']}"] if with_token else []),
                 "with_token": with_token,  # handed out only by the set-up guide, with the token of that run
                 "href": f"/plugins/{addon['addon_id']}/files/{b['name']}" if offered and not with_token else "",
+                **versions(b),
             }
         )
     return rows

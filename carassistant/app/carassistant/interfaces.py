@@ -16,6 +16,71 @@ def _norm(path: str, vehicle_id: int) -> str:
     return re.sub(rf"/vehicles/{vehicle_id}(?=/|$)", "/vehicles/{id}", path)
 
 
+def preview(m: dict, t) -> dict:
+    """What a package says it will do, read from its description alone (nothing of it runs): shown BEFORE it is installed. Four groups of rows
+    (``name``, ``path``, ``fields``, ``note``): ``sends`` (to the app), ``reads`` (from the app), ``offers`` (addresses, pages, actions its service
+    answers) and ``brings`` (files, the token, settings it may change itself). ``t`` is the translator of the page."""
+    rows: dict[str, list[dict]] = {"sends": [], "reads": [], "offers": [], "brings": []}
+
+    def add(group: str, name: str, path: str = "", fields=None, note: str = "") -> None:
+        rows[group].append({"name": name, "path": path, "fields": list(fields or []), "note": note})
+
+    for item in m.get("interfaces", []):  # what the package says about itself
+        add(item["direction"], item["name"], item.get("path", ""), item.get("fields"), item.get("note", ""))
+    shown = [x["data"] for x in m.get("tiles", []) if x.get("data")]
+    if shown:
+        add("sends", t("pkg.row_tiles"), "", shown, t("pkg.note_tiles"))
+    service = m.get("service") or {}
+    for route in service.get("routes", []):
+        if route.get("token_header"):
+            note = t("svc.public_token", header=route["token_header"])
+        else:
+            note = t("svc.public") if route.get("public") else t("svc.local")
+        add("offers", t("pkg.row_route"), route["prefix"], None, note)
+    for page in m.get("pages", []):
+        if page.get("kind") == "frame":
+            add("offers", t("pkg.row_page", title=page["title"]), page["route"], None, t("pkg.note_frame"))
+        else:
+            add("offers", t("pkg.row_page", title=page["title"]), "", [f["key"] for f in page.get("fields", [])])
+    nav = (m.get("capabilities") or {}).get("navigate")
+    if nav:
+        add("offers", t("pkg.row_navigate"), nav["path"], None, t("pkg.note_navigate"))
+    for button in m.get("buttons", []):
+        if button.get("action"):
+            add("offers", t("pkg.row_action", label=button["label"]), button["action"], None, t("pkg.note_action"))
+    for step in (m.get("setup") or {}).get("flow", []):
+        if step["type"] == "check":
+            add("offers", t("pkg.row_check", title=step.get("title") or step["id"]), step.get("action", ""), None, t("pkg.note_check"))
+        elif step["type"] == "download":
+            add("offers", t("pkg.row_make", title=step.get("title") or step["id"]), step.get("action", ""), None, t("pkg.note_make"))
+    for d in m.get("downloads", []):
+        add("brings", t("pkg.row_download", label=d["label"]), d["path"], None, d.get("note", ""))
+    for f in m.get("files", []):
+        add(
+            "brings",
+            t("pkg.row_file", label=f["label"]),
+            f["name"],
+            None,
+            " · ".join(x for x in (f.get("version", ""), f.get("note", "")) if x),
+        )
+    for b in m.get("bundles", []):
+        add(
+            "brings",
+            t("pkg.row_bundle", label=b["label"]),
+            b["name"],
+            None,
+            " · ".join(x for x in (b.get("version", ""), b.get("note", "")) if x),
+        )
+    if m.get("connection_file"):
+        add("brings", t("pkg.row_connfile"), m["connection_file"]["name"], None, t("pkg.note_connfile"))
+    writes = [f["key"] for f in m.get("settings", []) if f.get("service_writable") or f.get("type") == "value"]
+    if writes:
+        add("brings", t("pkg.row_writes"), "", writes)
+    if m.get("kind", "plugin") == "plugin":
+        add("brings", t("pkg.row_token"), "", None, t("pkg.note_token"))
+    return {"rows": rows, "has_any": any(rows.values())}
+
+
 def view(conn: sqlite3.Connection, vehicle_id: int, addon: dict, base_url: str) -> dict:
     """Everything for the page, as plain data: ``sends`` / ``reads`` / ``offers`` (each a list of rows), the ``settings`` and the ``docs`` text."""
     m = addon["m"]

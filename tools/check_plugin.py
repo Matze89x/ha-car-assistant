@@ -133,7 +133,8 @@ def check(target: Path) -> tuple[list[str], list[str]]:
     asked = data.get("downloads") if isinstance(data.get("downloads"), list) else []
     if len(asked) != len(manifest.get("downloads", [])):
         notes.append(
-            "Some 'downloads' were dropped: a path must start with one of the service routes (service.routes[].prefix) and use plain characters."
+            "Some 'downloads' were dropped: a path must start with one of the service routes (service.routes[].prefix) and use plain characters, "
+            "and a 'when' must be readable (a setup / token / key test, see docs/plugins.md)."
         )
     asked_buttons = data.get("buttons") if isinstance(data.get("buttons"), list) else []
     kept_buttons = {b["id"] for b in manifest.get("buttons", [])}
@@ -142,11 +143,23 @@ def check(target: Path) -> tuple[list[str], list[str]]:
         for b in asked_buttons
         if not isinstance(b, dict) or b.get("id") not in kept_buttons
     ]
-    if lost or len(asked_buttons) > addons.MAX_BUTTONS:
+    if lost or len(asked_buttons) > addons.MAX_BUTTONS + addons.MAX_SETTINGS_BUTTONS:
         notes.append(
-            f"Buttons dropped: {', '.join(lost) or 'the ones after the third'} - a button needs a unique id (a-z0-9_-), a label and EITHER a 'page' "
-            f"(the id of one of your frame pages) OR an 'action' (a route under a NON-public service route prefix); at most {addons.MAX_BUTTONS}."
+            f"Buttons dropped: {', '.join(lost) or 'the ones after the ninth'} - a button needs a unique id (a-z0-9_-), a label and EITHER a 'page' "
+            f"(the id of one of your frame pages) OR an 'action' (a route under a NON-public service route prefix); a 'when' must be readable "
+            f"(a key that is a setting of yours); at most {addons.MAX_BUTTONS} on the tile and {addons.MAX_SETTINGS_BUTTONS} with 'place': 'settings'."
         )
+    for kind in ("files", "bundles"):
+        for item in data.get(kind) if isinstance(data.get(kind), list) else []:
+            if (
+                isinstance(item, dict)
+                and item.get("installed")
+                and item.get("installed") not in {x.get("installed") for x in manifest.get(kind, [])}
+            ):
+                notes.append(
+                    f"'{item.get('name')}': 'installed' must be the key of a 'value' setting (or one with 'service_writable') - the version on the car "
+                    "could never be reported, so it was dropped."
+                )
     setup = data.get("setup") if isinstance(data.get("setup"), dict) else {}
     asked_flow = setup.get("flow") if isinstance(setup.get("flow"), list) else []
     kept_flow = {st["id"] for st in (manifest.get("setup") or {}).get("flow", [])}
@@ -160,6 +173,10 @@ def check(target: Path) -> tuple[list[str], list[str]]:
             f"Set-up steps dropped: {', '.join(lost) or 'the ones after the twelfth'} - a step needs a unique id (a-z0-9_), a 'type' ({', '.join(addons.FLOW_TYPES)}) "
             "and what its type needs: form = 'settings'; check / download = an 'action' under a NON-public route prefix; page = the id of a frame page; "
             "requirements = 'requires' or 'filled'."
+        )
+    if setup.get("done_when") and not (manifest.get("setup") or {}).get("done_when"):
+        notes.append(
+            '\'setup.done_when\' could not be read and was ignored: use tests like {"token": true} or {"key": "<your setting>", "set": true}.'
         )
     if folder is not None and (manifest.get("files") or manifest.get("bundles")):
         index_entry = None

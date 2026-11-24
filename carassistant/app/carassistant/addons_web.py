@@ -309,6 +309,7 @@ def package_page(request: Request, vid: int, source_id: int, kind: str, pkg_id: 
             installed=installed,
             kind=kind,
             needs_review=needs_review,
+            does=interfaces.preview({**manifest, "kind": kind}, i18n.translator(config.language())) if manifest else None,
             service=(manifest or {}).get("service"),
             may=_may_manage(request),
         )
@@ -442,6 +443,9 @@ def _settings_page(request: Request, vid: int, addon: dict, shown: dict, errors:
         request,
         "addon_settings.html",
         set_tabs=set_tabs,
+        car_files=[{**r, "entries": []} for r in assets.listing(addon, pluginsvc.approved(addon))]  # the list of entries belongs on the Info page
+        if addon["m"].get("files") or addon["m"].get("bundles")
+        else [],
         set_tab_on=next((g["id"] for g in set_tabs if g["err"]), set_tabs[0]["id"] if set_tabs else ""),
         kept_token=kept,
         token_fp=fingerprint,
@@ -983,9 +987,12 @@ async def addon_button(request: Request, vid: int, aid: int, bid: str):
         button = next((b for b in addon["m"].get("buttons", []) if b["id"] == bid and b.get("action")), None)
         if button is None:
             raise HTTPException(404)
+        hidden = not button.get("shown", True)  # its ``when`` does not hold right now: it is not on the page, so it is not run either
         ctx = vehicle_ctx(conn, vehicle, "integrations")
         who = auth_web._acting_user(request, conn)
-    if not addon["active"] or not pluginsvc.approved(addon):
+    if hidden:
+        ok, message = False, "addon.button_when"
+    elif not addon["active"] or not pluginsvc.approved(addon):
         ok, message = False, "addon.button_off"
     else:
         payload = {"vehicle": vid, "button": bid, "language": config.language()}

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, page_head, form_bar, del_form with context %}
 {% from "_addon_fields.html" import addon_field with context %}
+{% from "_addon_files.html" import file_rows with context %}
 {# With tabs (settings_tabs) everything that is not a setting belongs to the first tab: the other tabs show their settings only. #}
 {% macro tabfor() %}{% if set_tabs %} data-tabfor="{{ set_tabs[0].id }}"{% if set_tab_on != set_tabs[0].id %} hidden{% endif %}{% endif %}{% endmacro %}
 {% block content %}
@@ -19,6 +20,16 @@
   <div class="actions"><a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ addon.m.setup.title or _('addon.guide') }}</span></a></div>
 </section>
 {% endif %}
+{% set acts = ((addon.m.buttons or [])|selectattr('place', 'equalto', 'settings')|selectattr('shown')|list) if addon.active else [] %}
+{% if acts %}
+<section class="card addon-token"{{ tabfor() }}>
+  <h2>{{ icon('account', 20) }} {{ _('addon.actions') }}</h2>
+  <div class="actions fit">
+  {% for b in acts %}{% if b.page %}<a class="button" href="{{ base }}/v/{{ v.slug }}/m/{{ addon.addon_id }}/{{ b.page }}" title="{{ b.label }}">{{ icon(b.icon, 18) }}<span>{{ b.label }}</span></a>
+  {% else %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/button/{{ b.id }}" class="inline"{% if b.confirm %} data-confirm="{{ b.confirm }}"{% endif %}><button title="{{ b.label }}">{{ icon(b.icon, 18) }}<span>{{ b.label }}</span></button></form>{% endif %}{% endfor %}
+  </div>
+</section>
+{% endif %}
 <section class="card addon-set">
   <h2>{{ icon('settings', 20) }} {{ _('addon.settings') }}</h2>
   {% if errors %}<p class="flash err">{{ _('addon.fix_errors') }}</p>{% endif %}
@@ -29,6 +40,15 @@
     <div class="form-bar">{{ form_bar(label=(_('addon.save_short') if addon.status == 'configured' else _('addon.setup'))) }}</div>
   </form>
 </section>
+{% set dl_set = ((addon.m.downloads or [])|selectattr('place', 'equalto', 'settings')|selectattr('shown')|list) if addon.active else [] %}
+{% if car_files or dl_set %}
+<section class="card addon-token"{{ tabfor() }}>
+  <h2>{{ icon('download', 20) }} {{ _('addon.files_car') }}</h2>
+  {% if car_files %}<p class="hint">{{ _('addon.files_car_hint') }}</p>{{ file_rows(car_files) }}
+  {% if car_files|selectattr('with_token')|list %}<p class="hint">{{ _('addon.files_token') }}</p><div class="actions"><a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ addon.m.setup.title or _('addon.guide') if addon.m.setup else _('addon.guide') }}</span></a></div>{% endif %}{% endif %}
+  {% if dl_set %}<div class="actions fit">{% for d in dl_set %}<a class="button" href="{{ base }}{{ d.path }}" download title="{{ d.note or d.label }}">{{ icon('download', 18) }}<span>{{ d.label }}</span></a>{% endfor %}</div>{% endif %}
+</section>
+{% endif %}
 {% if addon.active and addon.m.pages %}
 <section class="card addon-token"{{ tabfor() }}>
   <h2>{{ icon('menu', 20) }} {{ _('addon.nav_title') }}</h2>
