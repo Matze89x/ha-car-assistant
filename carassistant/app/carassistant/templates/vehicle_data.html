@@ -87,7 +87,7 @@
   <details class="eq odo-readings" id="odo-readings"{{ ' open' if n_odd }}>
     <summary>
       <span class="mi-ic c3">{{ icon('counter', 19) }}</span>
-      <span class="eq-t">{{ _('odo.history_title') }}</span><span class="eq-n">{{ odo_readings|length }}</span>
+      <span class="eq-t">{{ _('odo.history_title') }}</span><span class="eq-n">{{ odo_total }}</span>
       {{ icon('chevron-down', 18) }}
     </summary>
     {% if odo_readings %}
@@ -106,6 +106,7 @@
       {% endfor %}
       </ul>
     </div>
+    {% if odo_total > odo_readings|length %}<div class="form-bar"><a class="ghost-btn small" href="{{ base }}/v/{{ v.slug }}/edit?odo=all#odo-readings">{{ icon('list', 16) }}<span>{{ _('odo.show_all', n=odo_total) }}</span></a></div>{% endif %}
     {% for r in odo_readings if r.kind == 'odometer' %}<form method="post" action="{{ base }}/v/{{ v.slug }}/odometer/{{ r.id }}/delete" id="odel-{{ r.id }}" data-confirm="{{ _('odo.confirm_delete') }}" hidden></form>{% endfor %}
     {% else %}
     <div class="card empty-state">{{ icon('speedometer', 36) }}<p>{{ _('odo.history_empty') }}</p></div>

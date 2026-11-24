@@ -66,13 +66,6 @@ def push_mode() -> bool:
     return (ha.network_port() or (None, None))[1] is not None
 
 
-def anyone_notified(conn: sqlite3.Connection) -> bool:
-    """Did anybody set up a way to be notified? (the start page asks for it as long as nobody did)"""
-    return bool(
-        conn.execute("SELECT 1 FROM user_notify WHERE service != ''").fetchone() or conn.execute("SELECT 1 FROM push_devices").fetchone()
-    )
-
-
 def clean_service(raw: str) -> str:
     """A Home Assistant notify service name: ``mobile_app_phone`` (a leading ``notify.`` is dropped)."""
     name = (raw or "").strip().removeprefix("notify.")

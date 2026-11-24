@@ -165,3 +165,40 @@ def test_a_bi_fuel_car_has_a_consumption_per_fuel_and_the_first_fuel_is_unchange
     # a car with one fuel has none of this
     plain = create_vehicle(client)
     assert 'name="fuel_kind"' not in client.get(f"/v/{slug(plain)}/e/fuel").text
+
+
+def test_a_bi_fuel_car_tells_the_fuels_apart_in_the_export_and_in_home_assistant(client):
+    from tests.test_web import create_vehicle
+
+    from carassistant import db, mqtt_ha
+
+    vid = create_vehicle(client)
+    client.post(f"/v/{vid}/edit", data={"name": "Gas car", "fuel_type": "petrol", "fuel2_type": "lpg"})
+    with db.tx() as conn:
+        for day, km, amount, kind in (
+            ("2026-01-01", 1000, 40.0, "main"),
+            ("2026-01-10", 1100, 20.0, "second"),
+            ("2026-01-20", 1400, 30.0, "second"),
+            ("2026-02-01", 1500, 40.0, "main"),
+            ("2026-02-05", 1600, 25.0, "second"),  # the newest fill-up is gas: it is not "the last fill-up" of the first fuel
+        ):
+            conn.execute(
+                "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_per_unit, price_total, full_tank, fuel_kind) VALUES (?, ?, ?, ?, 1.0, ?, 1, ?)",
+                (vid, day, km, amount, amount, kind),
+            )
+        row = conn.execute("SELECT * FROM vehicles WHERE id = ?", (vid,)).fetchone()
+        values = mqtt_ha.compute_values(conn, row)
+        wanted = {s.key for s in mqtt_ha.wanted_sensors(row, values)}
+    assert values["avg_consumption"] == "8.0" and values["avg_consumption_second"] == "11.0"  # 40 L / 500 km; gas 55 L / 500 km
+    assert values["last_fill_amount"] == "40.00" and values["last_fill_date"] == "2026-02-01"  # the first fuel's own last fill-up
+    assert "avg_consumption_second" in wanted  # the "more statistics" group (cost per 100 km ...) is off by default, like the first fuel's
+    assert (
+        values["cost_per_100km_second"] == "11.00" and values["fuel_spent_total_second"] == "75.00"
+    )  # 1.0 per litre: 11 L per 100 km; 20 + 30 + 25 L
+    lines = client.get(f"/v/{vid}/fuel-export.csv").content.decode("utf-8-sig").splitlines()
+    head = lines[0].split(";")
+    assert len(head) == 9 and head[3] == "Fuel"  # the added column, after the amount
+    assert [r.split(";")[3] for r in lines[1:]] == ["Petrol", "LPG", "LPG", "Petrol", "LPG"]
+    # a car with one fuel keeps the old columns
+    plain = create_vehicle(client)
+    assert len(client.get(f"/v/{plain}/fuel-export.csv").content.decode("utf-8-sig").splitlines()[0].split(";")) == 8

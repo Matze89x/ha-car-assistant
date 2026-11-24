@@ -85,8 +85,8 @@ Alles gibt es auf Englisch und auf Deutsch; oben in jeder Seite wechselst du die
 | Seite | Worum es geht |
 |---|---|
 | [Add-on-Seite in Home Assistant](carassistant/DOCS.de.md) | der Reiter *Dokumentation* im Add-on |
-| [Sicherheit](SECURITY.de.md) | wie du eine Schwachstelle meldest und wie die App dich schützt |
-| [Mitmachen](CONTRIBUTING.de.md) | wie du hilfst: Regeln, Tests, Pull Requests |
+| [Sicherheit](docs/community/security.de.md) | wie du eine Schwachstelle meldest und wie die App dich schützt |
+| [Mitmachen](docs/community/contributing.de.md) | wie du hilfst: Regeln, Tests, Pull Requests |
 | [Änderungsprotokoll](carassistant/CHANGELOG.de.md) | was sich in welcher Version geändert hat |
 
 ## Entwicklung

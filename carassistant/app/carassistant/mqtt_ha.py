@@ -97,6 +97,11 @@ SENSORS: tuple[SensorDef, ...] = (
     _s("last_consumption", "Last consumption", state_class="measurement", icon="mdi:gauge", live=True, precision=1),
     _s("cost_per_100km", "Cost per 100 km", state_class="measurement", icon="mdi:cash-multiple", live=True, precision=2),
     _s("fuel_spent_total", "Fuel cost total", state_class="total", icon="mdi:cash", live=True, precision=2),
+    # a bi-fuel car (petrol or diesel plus gas): the gas has its own figures, from its own fill-ups only
+    _s("avg_consumption_second", "Average consumption gas", state_class="measurement", icon="mdi:gas-cylinder", live=True, precision=1),
+    _s("last_consumption_second", "Last consumption gas", state_class="measurement", icon="mdi:gas-cylinder", live=True, precision=1),
+    _s("cost_per_100km_second", "Cost per 100 km gas", state_class="measurement", icon="mdi:cash-multiple", live=True, precision=2),
+    _s("fuel_spent_total_second", "Fuel cost total gas", state_class="total", icon="mdi:cash", live=True, precision=2),
     _s("costs_year", "Costs this year", state_class="total", icon="mdi:cash-register", live=True, precision=2),
     _s("km_month", "Distance this month", unit="km", device_class="distance", state_class="measurement", icon="mdi:map-marker-distance", live=True, precision=0),
     _s("km_year", "Distance this year", unit="km", device_class="distance", state_class="measurement", icon="mdi:map-marker-distance", live=True, precision=0),
@@ -124,6 +129,8 @@ NAMES_DE = {
     "12 V battery": "12-V-Batterie", "Coolant temperature": "Kühlmitteltemperatur", "Oil temperature": "Öltemperatur",
     "Oil level": "Ölstand", "Oil warning": "Ölwarnung", "AdBlue level": "AdBlue-Stand", "AdBlue range": "AdBlue-Reichweite",
     "Last fill-up": "Letzte Tankung", "Last fill-up amount": "Menge der letzten Tankung", "Last price per unit": "Letzter Preis je Einheit",
+    "Average consumption gas": "Ø Verbrauch Gas", "Last consumption gas": "Letzter Verbrauch Gas", "Cost per 100 km gas": "Kosten je 100 km Gas",
+    "Fuel cost total gas": "Tankkosten Gas gesamt",
     "Last consumption": "Letzter Verbrauch", "Cost per 100 km": "Kosten je 100 km", "Fuel cost total": "Tankkosten gesamt",
     "Costs this year": "Kosten dieses Jahr", "Distance this month": "Strecke diesen Monat", "Distance this year": "Strecke dieses Jahr",
     "Days until next task": "Tage bis zur nächsten Aufgabe", "Distance to next task": "Strecke bis zur nächsten Aufgabe",
@@ -289,7 +296,8 @@ def _computed_values(conn: sqlite3.Connection, vehicle: sqlite3.Row, s: dict, st
 
     if "fuel" not in off:
         last = conn.execute(
-            "SELECT date, amount, price_per_unit FROM fuel WHERE vehicle_id = ? AND amount IS NOT NULL ORDER BY date DESC, COALESCE(odometer_km, 0) DESC, id DESC LIMIT 1",
+            "SELECT date, amount, price_per_unit FROM fuel WHERE vehicle_id = ? AND amount IS NOT NULL AND COALESCE(fuel_kind, 'main') = 'main'"
+            " ORDER BY date DESC, COALESCE(odometer_km, 0) DESC, id DESC LIMIT 1",
             (vid,),
         ).fetchone()
         out["last_fill_date"] = last["date"][:10] if last else None
@@ -298,6 +306,12 @@ def _computed_values(conn: sqlite3.Connection, vehicle: sqlite3.Row, s: dict, st
         out["last_consumption"] = num(stats["last_per_100"])
         out["cost_per_100km"] = num(stats["cost_per_100"], 2)
         out["fuel_spent_total"] = num(stats["total_spent"], 2) if stats["total_spent"] else None
+        if vehicle["fuel2_type"]:  # the gas of a bi-fuel car: its own consumption and cost, never mixed into the first fuel's
+            gas = fuelstats.overall(conn, vid, "second")
+            out["avg_consumption_second"] = num(gas["avg_per_100"])
+            out["last_consumption_second"] = num(gas["last_per_100"])
+            out["cost_per_100km_second"] = num(gas["cost_per_100"], 2)
+            out["fuel_spent_total_second"] = num(gas["total_spent"], 2) if gas["total_spent"] else None
     if "report" not in off:
         months = fuelstats.costs(conn, vid, "month", ref.month, ref)
         total = sum(m["fuel"] + m["service"] + m["mods"] + m["parts"] for m in months)
@@ -423,13 +437,15 @@ def discovery_payload(vehicle: sqlite3.Row, sensor: SensorDef) -> dict:
     unit = sensor.unit
     if sensor.key in ("avg_consumption", "last_consumption"):
         unit = consumption_unit(vehicle["fuel_type"])
-    elif sensor.key in ("fuel_spent_month", "fuel_spent_total", "costs_year"):
+    elif sensor.key in ("avg_consumption_second", "last_consumption_second"):
+        unit = consumption_unit(vehicle["fuel2_type"] or "")
+    elif sensor.key in ("fuel_spent_month", "fuel_spent_total", "fuel_spent_total_second", "costs_year"):
         unit = units.default_currency()
     elif sensor.key == "last_fill_amount":
         unit = {"electric": "kWh", "cng": "kg"}.get(vehicle["fuel_type"], "L")
     elif sensor.key == "last_fill_price":
         unit = f"{units.default_currency()}/{ {'electric': 'kWh', 'cng': 'kg'}.get(vehicle['fuel_type'], 'L') }"
-    elif sensor.key == "cost_per_100km":
+    elif sensor.key in ("cost_per_100km", "cost_per_100km_second"):
         unit = f"{units.default_currency()}/100 km"
     if unit == "d" and config.language() == "de":
         unit = "Tage"  # Home Assistant would show its own English "days" for "d"
@@ -486,7 +502,7 @@ GROUP_OF = {
         ),
         "service",
     ),
-    **dict.fromkeys(("avg_consumption", "fuel_spent_month"), "fuel"),
+    **dict.fromkeys(("avg_consumption", "avg_consumption_second", "fuel_spent_month"), "fuel"),
     **dict.fromkeys(
         (
             "last_fill_date",
@@ -495,6 +511,9 @@ GROUP_OF = {
             "last_consumption",
             "cost_per_100km",
             "fuel_spent_total",
+            "last_consumption_second",
+            "cost_per_100km_second",
+            "fuel_spent_total_second",
             "costs_year",
             "km_month",
             "km_year",
@@ -517,6 +536,10 @@ BELONGS_TO = {
     "inspection_days": "appointments",
     "inspection_date": "appointments",
     "avg_consumption": "fuel",
+    "avg_consumption_second": "fuel",
+    "last_consumption_second": "fuel",
+    "cost_per_100km_second": "fuel",
+    "fuel_spent_total_second": "fuel",
     "fuel_spent_month": "fuel",
     "last_fill_date": "fuel",
     "last_fill_amount": "fuel",

@@ -7,6 +7,7 @@ partial fills) are added up and divided by the distance. Intervals with a missin
 from __future__ import annotations
 
 import sqlite3
+from bisect import bisect_right
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
@@ -311,14 +312,15 @@ def kilometres(
     ):
         points += [(r["date"][:10], r["k"]) for r in conn.execute(sql, (vehicle_id,)) if r["date"] and r["k"] is not None]
     points.sort()
+    days = [when for when, _km in points]
+    # the highest value up to each point: one pass, then every period is a binary search (a car with years of readings)
+    highest: list[int] = []
+    for _when, km in points:
+        highest.append(km if not highest else max(highest[-1], km))
 
     def odo_until(day: date) -> int | None:
-        best = None
-        for when, km in points:
-            if when > day.isoformat():
-                break
-            best = km if best is None else max(best, km)
-        return best
+        n = bisect_right(days, day.isoformat())
+        return highest[n - 1] if n else None
 
     wins = windows(group, count, today)
     prev = odo_until(wins[0][1] - timedelta(days=1)) if wins else None

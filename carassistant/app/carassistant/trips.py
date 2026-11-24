@@ -332,20 +332,6 @@ MONTHS = {
 }
 
 
-def by_month(conn: sqlite3.Connection, vehicle_id: int, lang: str, limit: int = 2000) -> list[dict]:
-    """All trips of a vehicle grouped by month (newest first): ``{key, title, rows, km}``."""
-    names = MONTHS.get(lang, MONTHS["en"])
-    groups: dict[str, dict] = {}
-    for row in conn.execute("SELECT * FROM trips WHERE vehicle_id = ? ORDER BY date DESC, id DESC LIMIT ?", (vehicle_id, limit)):
-        key = (row["date"] or "")[:7] or "0000-00"
-        month = int(key[5:7] or 0)
-        title = f"{names[month - 1]} {key[:4]}" if 1 <= month <= 12 else key
-        group = groups.setdefault(key, {"key": key, "title": title, "rows": [], "km": 0.0})
-        group["rows"].append(row)
-        group["km"] += trip_distance(row) or 0.0
-    return list(groups.values())
-
-
 HARD_BRAKE_MS2 = 3.0  # a deceleration from here on counts as a hard braking
 IDLE_KMH = 3.0
 

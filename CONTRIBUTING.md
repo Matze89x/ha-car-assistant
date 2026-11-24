@@ -1,6 +1,6 @@
 # Contributing
 
-🇬🇧 English · [🇩🇪 Deutsch](CONTRIBUTING.de.md)
+🇬🇧 English · [🇩🇪 Deutsch](docs/community/contributing.de.md)
 
 Thank you for wanting to help. Car Assistant is made in spare time, so small, focused changes that follow the rules below are the easiest to review.
 

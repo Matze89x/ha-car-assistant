@@ -99,7 +99,8 @@ Everything on every page is built from this short list. A new page uses these; a
 | **Section label** | `.vd-group-h`, `.rec-month`: 28 px above, 10 px to the tile below | `--sp-label-*` |
 | **Card / tile** | `.card`, `.wd` (widget, the arrow top right when it is a link), `.rec` (list card) | `.card`, `.wd`, `.rec` |
 | **Buttons** | `.button` (+ `.primary`, `.danger`, `.small`), `.icon-btn` (round); bottom right of a card, one line | `.button`, `.icon-btn` |
-| **Fields / switch** | `input`, `select`, `textarea`, `.switch` rows | `app.css` |
+| **Fields / switch** | `input`, `select`, `textarea`; every on / off choice is a `switch_row()` (text left, Yes / No, the round switch right) - no loose checkbox | `app.css`, `_macros.html` |
+| **Odometer plate** | `odo_plate()`: the dark counter box with the label above; the digits roll down, a tap turns it over to the entry (the back IS the input box). `.odo-static` (fixed, nothing to turn) while a plugin reports the odometer and as the widget look *Counter box* | `_macros.html`, `.odo-flip` |
 | **Map** | `.tp-map` / `.pos-map`: full width, 16:9; the tiles come from our own tile address | `.pos-map` |
 
 A test (`tests/test_design_rules.py`) refuses a third kind of tab bar. Plugin pages (`kind: "frame"`) get the same look from the `kit` style sheet (see [plugins](plugins.md)).

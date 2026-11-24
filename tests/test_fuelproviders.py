@@ -123,8 +123,8 @@ def test_fuel_settings_live_on_the_fuel_page_and_keys_work_from_there(client):
     loc = r.headers["location"]
     assert r.status_code == 303 and back in loc and "fs=1" in loc and loc.endswith("#fuel-settings")  # back to the open panel
     assert config.tankerkoenig_key() == "abc-123"
-    client.post("/settings/fuel-defaults", data={"source": "fr", "radius": "12", "back": back})
-    assert config.stored_setting("fuel.source") == "fr" and config.stored_setting("fuel.radius") == "12.0"
+    client.post("/settings/fuel-defaults", data={"source": "fr", "back": back})
+    assert config.stored_setting("fuel.source") == "fr"
     client.post("/settings/fuelkey", data={"id": "tankerkoenig", "remove": "1", "back": back})
     assert config.tankerkoenig_key() == ""
     system = client.get("/settings/system").text

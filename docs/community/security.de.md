@@ -1,6 +1,6 @@
 # Sicherheitsrichtlinie
 
-[🇬🇧 English](SECURITY.md) · 🇩🇪 Deutsch
+[🇬🇧 English](../../SECURITY.md) · 🇩🇪 Deutsch
 
 Car Assistant entsteht in der Freizeit einer einzelnen Person. Sicherheitsmeldungen werden ernst genommen und zuerst gelesen.
 
@@ -27,4 +27,4 @@ Nur die neueste Version bekommt Korrekturen. Bitte aktualisiere zuerst und prüf
 - Pakete werden gelesen, nicht ausgeführt - mit **einer Ausnahme: ein Dienst**, der fremder Code ist. Er läuft nur aus einer von dir hinzugefügten Quelle, nur nachdem du freigegeben hast, was er tut, als eigenes Programm ohne Rechte und mit Grenzen, und sieht nie die Datenbank oder das Home-Assistant-Token. Gib nur Dienste aus Quellen frei, denen du vertraust.
 - Nichts wird von allein aus dem Internet geholt (Karte, Spritpreise und Quellen sind freiwillig).
 
-Mehr: [Plugins und Dienste](docs/plugins.de.md) · [Sicherung](docs/backup.de.md).
+Mehr: [Plugins und Dienste](../plugins.de.md) · [Sicherung](../backup.de.md).

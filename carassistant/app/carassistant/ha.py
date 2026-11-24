@@ -111,13 +111,6 @@ def call_service(domain: str, service: str, data: dict) -> tuple[bool, str]:
         return False, str(exc)
 
 
-def home_location() -> tuple[float, float] | None:
-    cfg = get_config()
-    if "latitude" in cfg and "longitude" in cfg:
-        return float(cfg["latitude"]), float(cfg["longitude"])
-    return None
-
-
 def country() -> str:
     return str(get_config().get("country") or "").upper()
 

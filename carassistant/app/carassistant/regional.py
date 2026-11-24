@@ -161,11 +161,6 @@ def zone_key() -> str:
     return chosen if chosen in zones() else "auto"
 
 
-def zone_name() -> str:
-    key = zone_key()
-    return automatic_zone() if key == "auto" else key
-
-
 def apply() -> str:
     """Make the whole process follow the zone (every ``datetime.now()``, ``date.today()``, ``astimezone()`` and local time of the pages, with summer
     and winter time from the time zone database). Automatic = the zone of Home Assistant; without one the machine's own zone is left alone.

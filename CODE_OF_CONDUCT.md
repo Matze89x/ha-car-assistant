@@ -1,6 +1,6 @@
 # Code of conduct
 
-🇬🇧 English · [🇩🇪 Deutsch](CODE_OF_CONDUCT.de.md)
+🇬🇧 English · [🇩🇪 Deutsch](docs/community/code-of-conduct.de.md)
 
 Car Assistant is a friendly project made in spare time. Everyone is welcome - whatever their experience, background or tools (a person, or a person working with an AI assistant).
 

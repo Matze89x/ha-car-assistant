@@ -134,7 +134,7 @@ select { -webkit-appearance: none; appearance: none; padding-right: 40px; backgr
 select option { background: var(--card2); color: var(--text); }
 label { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; gap: 6px; }
 label.check { text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 400; }
-.table-wrap { background: var(--glass); border: 1px solid var(--glass-b); border-radius: var(--r-m); }
+
 fieldset { border-color: var(--glass-b); border-radius: var(--r-m); }
 .chip { background: var(--glass2); border: 1px solid var(--glass-b); font-size: 12px; padding: 5px 11px; color: var(--muted); }
 .badge { font-weight: 600; letter-spacing: .02em; }

@@ -2,11 +2,11 @@
 
 [🇬🇧 English](screenshots.md) · 🇩🇪 Deutsch
 
-So sieht Car Assistant im Einsatz aus (Version 0.5.16 Beta). Alle Bilder zeigen ein **Demo-Auto mit ausgedachten Daten** (ein Diesel und ein Elektroauto mit zwei Jahren Historie); kein echtes Fahrzeug, keine echten Orte. Das Demo-Auto kannst du selbst anlegen: *Fahrzeug hinzufügen → Demo-Auto*.
+So sieht Car Assistant im Einsatz aus. Alle Bilder zeigen ein **Demo-Auto mit ausgedachten Daten** (ein Diesel und ein Elektroauto mit zwei Jahren Historie); kein echtes Fahrzeug, keine echten Orte. Das Demo-Auto kannst du selbst anlegen: *Fahrzeug hinzufügen → Demo-Auto*.
 
 ## Dashboard
 
-Das Auto auf einen Blick: Kilometerstand, Reichweite, Meldungen des Autos, nächste Hauptuntersuchung, offene Punkte und Widgets wie letzte Fahrt, Tanken und Verbrauch.
+Das Auto auf einen Blick: der Kilometerstand (mit dem Knopf *Stand ändern*), Reichweite, Meldungen des Autos, nächste Hauptuntersuchung, offene Punkte und Widgets wie letzte Fahrt, Tanken und Verbrauch.
 
 ![Dashboard](screenshots/de/dashboard.png)
 

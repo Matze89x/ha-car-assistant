@@ -1,6 +1,6 @@
 # Security policy
 
-🇬🇧 English · [🇩🇪 Deutsch](SECURITY.de.md)
+🇬🇧 English · [🇩🇪 Deutsch](docs/community/security.de.md)
 
 Car Assistant is made in spare time by one person. Security reports are taken seriously and read first.
 

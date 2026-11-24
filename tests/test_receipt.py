@@ -282,6 +282,34 @@ def test_the_odometer_list_marks_what_does_not_fit_and_a_plain_reading_can_be_de
         assert [r["odd"] for r in summary.odometer_readings(conn, vid)] == ["", ""]
 
 
+def test_a_long_odometer_list_shows_the_newest_rows_and_every_odd_one_with_a_link_to_all(client):
+    from datetime import date, timedelta
+
+    from tests.test_web import create_vehicle, slug
+
+    from carassistant import db, summary
+
+    vid = create_vehicle(client)
+    first = date(2024, 1, 1)
+    with db.tx() as conn:
+        conn.execute("DELETE FROM odometer WHERE vehicle_id = ?", (vid,))
+        for i in range(300):
+            km = 90_000 if i == 2 else 10_000 + i * 20  # an old typo far above its neighbours
+            conn.execute(
+                "INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, ?, ?, 'auto')",
+                (vid, (first + timedelta(days=i)).isoformat(), km),
+            )
+        rows = summary.odometer_readings(conn, vid)
+        shown = summary.trim_readings(rows)
+    assert len(rows) == 300 and len(shown) == 121 and shown[-1]["km"] == 90_000 and shown[-1]["odd"]  # the newest 120 and the old typo
+    page = client.get(f"/v/{slug(vid)}/edit").text
+    assert page.count("odo-hrow") == 121 and "edit?odo=all#odo-readings" in page and 'class="eq-n">300<' in page
+    assert (
+        client.get(f"/v/{slug(vid)}/edit?odo=all").text.count("odo-hrow") == 300
+        and "edit?odo=all#odo-readings" not in client.get(f"/v/{slug(vid)}/edit?odo=all").text
+    )
+
+
 def test_the_vehicle_passport_has_the_odometer_entry_when_no_plugin_reports_it(client):
     from tests.test_web import create_vehicle, slug
 

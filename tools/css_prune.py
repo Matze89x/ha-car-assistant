@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1] / "carassistant" / "app" / "carassistant"
-DYN = re.compile(r"^(wc-c\d|[bnilw]\d+|n\d|st-.*|sw-.*|s-(summer|winter|allseason)|leaflet-.*|c\d|a\d)$")
+DYN = re.compile(r"^(wc-c\d|[bnilw]\d+|n\d|t\d|st-.*|sw-.*|s-(summer|winter|allseason)|leaflet-.*|c\d|a\d)$")  # t1..t7: the tint of a plugin in the connection map
 src = ""
 for f in (
     glob.glob(str(root / "templates/**/*.html"), recursive=True) + glob.glob(str(root / "static/*.js")) + glob.glob(str(root / "*.py"))

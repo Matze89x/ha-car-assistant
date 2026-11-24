@@ -408,30 +408,6 @@ def previous_date(conn: sqlite3.Connection, entity: Entity, vehicle_id: int, pag
 __all__ = ["ENTITIES", "Entity", "Field", "FormError", "parse_form"]
 
 
-def group_by_month(rows, date_key: str, lang: str, sum_keys: tuple[str, ...] = ()) -> list[dict]:
-    """Rows (newest first) grouped by month: ``{key, title, rows, sums}``."""
-    from .trips import MONTHS
-
-    names = MONTHS.get(lang, MONTHS["en"])
-    groups: dict[str, dict] = {}
-    for row in rows:
-        key = (row[date_key] or "")[:7] or "0000-00"
-        month = int(key[5:7] or 0)
-        group = groups.setdefault(
-            key,
-            {
-                "key": key,
-                "title": f"{names[month - 1]} {key[:4]}" if 1 <= month <= 12 else key,
-                "rows": [],
-                "sums": dict.fromkeys(sum_keys, 0.0),
-            },
-        )
-        group["rows"].append(row)
-        for k in sum_keys:
-            group["sums"][k] += row[k] or 0
-    return list(groups.values())
-
-
 # the icon of an extra-work card follows what the job is about (words in English and German; anything else gets the wrench)
 TASK_ICONS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("brake", "brems"), "car-brake-parking"),

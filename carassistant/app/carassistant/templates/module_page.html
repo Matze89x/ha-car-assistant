@@ -1,8 +1,7 @@
 {% extends "base.html" %}
-{% from "_macros.html" import page_head, icon, form_bar, del_form with context %}
+{% from "_macros.html" import page_head, icon, form_bar, del_form, switch_row with context %}
 {% macro field_box(f, val, own, rid=0) -%}
   {% if f.type == 'textarea' %}<textarea name="{{ f.key }}" rows="3" maxlength="20000" {{ 'required' if f.required }}>{{ val }}</textarea>
-  {% elif f.type == 'bool' %}<input type="checkbox" name="{{ f.key }}" value="1" {{ 'checked' if val == '1' }}>
   {% elif f.type == 'select' %}<select name="{{ f.key }}" {{ 'required' if f.required }}><option value="">–</option>{% for o in f.options %}<option value="{{ o.value }}" {{ 'selected' if val == o.value }}>{{ o.label }}</option>{% endfor %}</select>
   {% elif f.type == 'number' %}<input type="text" inputmode="decimal" name="{{ f.key }}" value="{{ val }}" {{ 'required' if f.required }}>
   {% elif f.type == 'url' %}<input type="url" name="{{ f.key }}" value="{{ val }}" maxlength="500" placeholder="https://" {{ 'required' if f.required }}>
@@ -22,9 +21,10 @@
   <summary><span class="add-ic">{{ icon('plus', 18) }}</span><span>{{ _('btn.add') }}</span></summary>
   <form method="post" action="{{ base }}{{ base_url }}" class="grid">
     {% for f in page.fields %}
-      <label class="{{ 'check' if f.type == 'bool' }} {{ 'wide' if f.type in ('textarea', 'hex') }}">{{ f.label }}{{ ' *' if f.required }}
+      {% if f.type == 'bool' %}<div class="wide">{{ switch_row(f.key, f.label, form and not edit_id and form.get(f.key), hint=f.help or '') }}</div>
+      {% else %}<label class="{{ 'wide' if f.type in ('textarea', 'hex') }}">{{ f.label }}{{ ' *' if f.required }}
         {{ field_box(f, (form.get(f.key) if form and not edit_id else '') or '', true) }}
-        {% if f.help %}<small class="muted">{{ f.help }}</small>{% endif %}</label>
+        {% if f.help %}<small class="muted">{{ f.help }}</small>{% endif %}</label>{% endif %}
     {% endfor %}
     <div class="wide">{{ form_bar() }}</div>
   </form>
@@ -89,9 +89,10 @@
             {% set own = form if edit_id == r.id else none %}
             {% set val = (own.get(f.key) if own else r.data.get(f.key, '')) or '' %}
             {% if not (f.type in ('hex', 'textarea') and (f.compare or f.key == 'notes')) %}
-            <label class="{{ 'check' if f.type == 'bool' }} {{ 'wide' if f.type in ('textarea', 'hex') }}">{{ f.label }}{{ ' *' if f.required }}
+            {% if f.type == 'bool' %}<div class="wide">{{ switch_row(f.key, f.label, val == '1', hint=f.help or '') }}</div>
+            {% else %}<label class="{{ 'wide' if f.type in ('textarea', 'hex') }}">{{ f.label }}{{ ' *' if f.required }}
               {{ field_box(f, val, own, r.id) }}
-              {% if f.help %}<small class="muted">{{ f.help }}</small>{% endif %}</label>
+              {% if f.help %}<small class="muted">{{ f.help }}</small>{% endif %}</label>{% endif %}
             {% endif %}
           {% endfor %}
           </div>

@@ -440,7 +440,8 @@ def test_oil_change_due_fields(api):
 
 def test_trip_summary_goes_to_the_trip_that_ended_then(api):
     token = setup(api)
-    now = datetime.now(UTC).replace(microsecond=0)
+    # yesterday around noon (UTC): the drive never crosses local midnight, whatever the time zone and whenever the test runs
+    now = (datetime.now(UTC) - timedelta(days=1)).replace(hour=14, minute=0, second=0, microsecond=0)
     start = now - timedelta(hours=2)
     points = [
         {"ts": (start + timedelta(minutes=m)).isoformat(), "lat": 52.5 + m * 0.002, "lon": 13.4, "speed_kmh": 40} for m in range(0, 10)

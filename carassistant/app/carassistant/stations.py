@@ -250,15 +250,6 @@ def preferred_source() -> str:
     return (config.stored_setting("fuel.source") or "").strip()
 
 
-def default_radius() -> float | None:
-    """The search radius (km) the person chose to start with, or None."""
-    try:
-        v = float(config.stored_setting("fuel.radius") or "")
-    except ValueError:
-        return None
-    return min(max(v, 1.0), MAX_RADIUS_KM)
-
-
 def default_source(country: str = "") -> str:
     """The source used when none is chosen: the one the person prefers (if it can be used), else the first that fits the country and has its key,
     else OpenStreetMap."""

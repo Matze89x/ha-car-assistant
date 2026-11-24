@@ -737,11 +737,6 @@ def forget(addon: dict) -> None:
     _wake.set()
 
 
-def has_data(addon: dict) -> bool:
-    folder = run_dir(addon["addon_id"], addon["vehicle_id"])
-    return folder.is_dir() and any(p.name not in (".token", "settings.json") for p in folder.iterdir())
-
-
 # ------------------------------------------------------------------ the supervisor thread
 
 

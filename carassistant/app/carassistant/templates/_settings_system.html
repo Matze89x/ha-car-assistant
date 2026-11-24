@@ -179,7 +179,7 @@
   <h3 class="acct-sub">{{ _('settings.restore') }}</h3>
   <form method="post" enctype="multipart/form-data" action="{{ base }}/settings/restore" class="acct-form" data-confirm="{{ _('confirm.restore') }}">
     <label><input type="file" name="backup" accept=".zip" required></label>
-    <label class="check"><input type="checkbox" name="confirm" value="1" required> {{ _('settings.restore_confirm') }}</label>
+    {{ switch_row('confirm', _('settings.restore_confirm'), false, required=True) }}
     <div class="form-bar"><button class="danger">{{ icon('refresh', 16) }}<span>{{ _('btn.restore') }}</span></button></div>
   </form>
 </section>

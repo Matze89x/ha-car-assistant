@@ -2,11 +2,11 @@
 
 🇬🇧 English · [🇩🇪 Deutsch](screenshots.de.md)
 
-This is what Car Assistant looks like in use (version 0.5.16 Beta). All pictures show a **demo car with made-up data** (a diesel and an electric car with two years of history); no real vehicle, no real places. You can create the demo car yourself: *Add vehicle → Demo car*.
+This is what Car Assistant looks like in use. All pictures show a **demo car with made-up data** (a diesel and an electric car with two years of history); no real vehicle, no real places. You can create the demo car yourself: *Add vehicle → Demo car*.
 
 ## Dashboard
 
-The car at a glance: odometer, range, messages of the car, next inspection, open points and widgets such as the last trip, fuel and consumption.
+The car at a glance: the odometer (with a *Change odometer* button), range, messages of the car, next inspection, open points and widgets such as the last trip, fuel and consumption.
 
 ![Dashboard](screenshots/en/dashboard.png)
 

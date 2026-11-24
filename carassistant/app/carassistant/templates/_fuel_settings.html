@@ -31,7 +31,6 @@
     <form method="post" action="{{ base }}/settings/fuel-defaults" data-live class="grid">
       <input type="hidden" name="back" value="/v/{{ v.slug }}/e/fuel">
       <label>{{ _('stations.source') }}<select name="source"><option value="">{{ _('fs.auto') }}</option>{% for o in stn.sources %}<option value="{{ o.id }}" {{ 'selected' if fs_pref == o.id }}>{{ o.name }}</option>{% endfor %}</select></label>
-      <label>{{ _('stations.radius') }} ({{ units.dist_unit }})<input name="radius" type="number" min="1" max="25" step="1" value="{{ stn.radius|int }}"></label>
     </form>
   </div>
 

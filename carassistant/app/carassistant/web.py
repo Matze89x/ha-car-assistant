@@ -1026,6 +1026,7 @@ def vehicle_edit(request: Request, vid: int):
         if request.query_params.get("mode") == "form":
             return vehicle_form_page(request, vehicle)
         readings = summary.odometer_readings(conn, vid)
+        shown = readings if request.query_params.get("odo") == "all" else summary.trim_readings(readings)
         return render(
             request,
             "vehicle_data.html",
@@ -1035,7 +1036,8 @@ def vehicle_edit(request: Request, vid: int):
             odometer=summary.current_odometer(conn, vid),
             odo_from_car=summary.odometer_from_car(conn, vid),
             odo_scan_on=receipt_available(),
-            odo_readings=readings,
+            odo_readings=shown,
+            odo_total=len(readings),
             odo_odd=any(r["odd"] for r in readings),
             vin_year=None if vehicle["year"] else vin_info.model_year(vehicle["vin"]),
             insp_estimate=None if summary.next_inspection(conn, vid) else _iso(summary.inspection_estimate(vehicle["first_reg"])),
@@ -2000,14 +2002,20 @@ def fuel_export(vid: int, fmt: str, range: str | None = None, start: str | None 
         unit = unit_for(vehicle["fuel_type"])
         rows = fuel_export_mod.fills_in_range(conn, vid, first, last)
         conv = {"dist": shown.d, "vol": lambda x: shown.v(x, unit), "price": lambda x: shown.price_vol(x, unit)}
+        fuels = None
+        if vehicle["fuel2_type"]:  # a bi-fuel car: a column says which fuel each fill-up was, and the second fuel keeps its own unit
+            unit2 = unit_for(vehicle["fuel2_type"])
+            conv["vol2"], conv["price2"] = lambda x: shown.v(x, unit2), lambda x: shown.price_vol(x, unit2)
+            fuels = {"main": t(f"fuel_type.{vehicle['fuel_type']}"), "second": t(f"fuel_type.{vehicle['fuel2_type']}")}
         labels = {k: t(v) for k, v in {
             "date": "f.date", "odometer": "f.odometer", "amount": "f.amount", "price_unit": "f.price_unit", "price_total": "f.price_total",
-            "full_tank": "f.full_tank", "station": "f.station", "notes": "f.notes", "title": "fuel.title", "period": "exp.period", "all": "fx.r_all",
+            "full_tank": "f.full_tank", "station": "f.station", "notes": "f.notes", "fuel_kind": "f.fuel_kind", "title": "fuel.title",
+            "period": "exp.period", "all": "fx.r_all",
         }.items()}  # fmt: skip
         if fmt == "csv":
-            data, media = fuel_export_mod.csv_bytes(rows, labels, conv), "text/csv; charset=utf-8"
+            data, media = fuel_export_mod.csv_bytes(rows, labels, conv, fuels), "text/csv; charset=utf-8"
         else:
-            data, media = fuel_export_mod.pdf_bytes(vehicle, rows, first, last, labels, conv), "application/pdf"
+            data, media = fuel_export_mod.pdf_bytes(vehicle, rows, first, last, labels, conv, fuels), "application/pdf"
     name = "all" if first.startswith("0000") else f"{first}-{last}"
     return Response(data, media_type=media, headers={"Content-Disposition": f'attachment; filename="fuel-{name}.{fmt}"'})
 
@@ -2840,17 +2848,12 @@ async def settings_fuelkey(request: Request):
 
 @app.post("/settings/fuel-defaults")
 async def settings_fuel_defaults(request: Request):
-    """What the fuel page starts with: the preferred source and the search radius (in the distance unit shown)."""
+    """What the fuel page starts with: the preferred source (the search radius is fixed at 15 km)."""
     form = await form_dict(request)
     wanted = (form.get("source") or "")[:24]
     known = {s["id"] for s in stations.sources()}
-    try:
-        radius = units.of().from_d(float((form.get("radius") or "").replace(",", ".")))
-    except ValueError:
-        radius = None
     with db.tx() as conn:
         db.set_setting(conn, "fuel.source", wanted if wanted in known else None)
-        db.set_setting(conn, "fuel.radius", f"{min(max(radius, 1.0), stations.MAX_RADIUS_KM):.1f}" if radius else None)
     config.forget_settings()
     if form.get("ajax"):
         return Response(status_code=204)

@@ -15,7 +15,7 @@ Wie Meldungen und Beiträge zur nächsten Version werden. Beitragende ändern ni
 
 ## Versionsnummern
 
-`RELEASE.FEATURES.FEHLER` plus die Stufe (Alpha / Beta): Die erste Zahl zählt Releases, die zweite Features, die dritte Fehlerkorrekturen. Nur `release.json` hält den Wert; `tools/release.py` schreibt ihn überall hin. Siehe [CONTRIBUTING](../CONTRIBUTING.de.md).
+`RELEASE.FEATURES.FEHLER` plus die Stufe (Alpha / Beta): Die erste Zahl zählt Releases, die zweite Features, die dritte Fehlerkorrekturen. Nur `release.json` hält den Wert; `tools/release.py` schreibt ihn überall hin. Siehe [CONTRIBUTING](community/contributing.de.md).
 
 ## Die Developer-App
 

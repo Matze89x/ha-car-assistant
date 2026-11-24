@@ -99,7 +99,8 @@ Alles auf jeder Seite besteht aus dieser kurzen Liste. Eine neue Seite nutzt sie
 | **Abschnittsbeschriftung** | `.vd-group-h`, `.rec-month`: 28 px darüber, 10 px zur Kachel darunter | `--sp-label-*` |
 | **Karte / Kachel** | `.card`, `.wd` (Widget, Pfeil oben rechts, wenn es ein Link ist), `.rec` (Listenkarte) | `.card`, `.wd`, `.rec` |
 | **Knöpfe** | `.button` (+ `.primary`, `.danger`, `.small`), `.icon-btn` (rund); unten rechts in der Karte, eine Zeile | `.button`, `.icon-btn` |
-| **Felder / Schalter** | `input`, `select`, `textarea`, `.switch`-Zeilen | `app.css` |
+| **Felder / Schalter** | `input`, `select`, `textarea`; jede Ja/Nein-Wahl ist eine `switch_row()` (Text links, Ja / Nein, der runde Schalter rechts) - kein loses Kontrollkästchen | `app.css`, `_macros.html` |
+| **Kilometer-Zählwerk** | `odo_plate()`: der dunkle Zählwerk-Kasten mit der Beschriftung darüber; die Ziffern laufen durch, ein Tipp dreht ihn zur Eingabe um (die Rückseite IST das Eingabefeld). `.odo-static` (fest, nichts zum Umdrehen), solange ein Plugin den Kilometerstand meldet, und als Widget-Look *Zählwerk* | `_macros.html`, `.odo-flip` |
 | **Karte (Map)** | `.tp-map` / `.pos-map`: volle Breite, 16:9; die Kacheln kommen von unserer eigenen Kachel-Adresse | `.pos-map` |
 
 Ein Test (`tests/test_design_rules.py`) verweigert eine dritte Art von Tab-Leiste. Plugin-Seiten (`kind: "frame"`) bekommen denselben Look aus dem `kit`-Stylesheet (siehe [Plugins](plugins.de.md)).

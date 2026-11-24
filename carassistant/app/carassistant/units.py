@@ -133,10 +133,6 @@ class Units:
     def cur(self) -> str:
         return CURRENCY.get(self.currency, (self.currency, True))[0]
 
-    def money_unit(self, base: str = "L") -> str:
-        """e.g. "€/L"."""
-        return f"{self.cur}/{self.vol_unit(base)}"
-
 
 def default_currency() -> str:
     code = (config.stored_setting("region.currency") or (ha.currency() if ha.available() else "") or "EUR").upper()
