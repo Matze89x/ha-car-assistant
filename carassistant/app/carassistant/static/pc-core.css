@@ -1457,11 +1457,11 @@ details.pk-add:not([open]) { gap: 0; }
 /* a list setting: rows of a name and a value */
 .lf { display: grid; gap: 8px; }
 .lf-t { font-size: 12px; color: var(--muted); }
-.lf-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 6px 8px 6px 0; border-radius: var(--r-m); background: rgba(var(--fg-rgb),.04); border: 1px solid var(--glass-b); }  /* the look of a row in the navigation list */
-.lf-in { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; min-width: 0; }
-.lf-cols input:last-child:nth-child(odd) { grid-column: 1 / -1; }  /* the extra cells (a second line, a logo address) go in pairs under the name and the value; a last one alone takes the whole line */
+.lf-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 8px 6px 0; border-radius: var(--r-m); background: rgba(var(--fg-rgb),.04); border: 1px solid var(--glass-b); }  /* the look of a row in the navigation list */
+.lf-in { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 8px; min-width: 0; }
+.lf-cols > :last-child:nth-child(odd) { grid-column: 1 / -1; }  /* the extra cells (a second line, a logo address) go in pairs under the name and the value; a last one alone takes the whole line */
 .lf-del { width: 36px; height: 36px; min-height: 0; padding: 0; border-radius: var(--r-s); background: rgba(var(--fg-rgb),.07); color: var(--muted); align-self: start; }  /* on the first line of a row that has several (stacked cells), level with the handle */
-@media (max-width: 560px) { .lf-in { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .lf-in { grid-template-columns: minmax(0, 1fr); } }
 .lf-add { justify-self: start; }
 .pk-tile.pk-add:not(.pk-grid > *) { margin-top: 6px; }
 .pk-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin: 6px 0 12px; }
@@ -1506,6 +1506,10 @@ label.button.pk-btn { position: relative; }
 .addon-value:first-child { border-top: 0; padding-top: 0; }
 .addon-value .av-l { color: var(--muted); }
 .addon-value .av-v { min-width: 0; text-align: right; overflow-wrap: anywhere; }
+.av-dot { display: inline-block; width: 8px; height: 8px; margin: 0 8px 1px 0; border-radius: 50%; background: var(--dim); vertical-align: middle; }  /* a coloured dot in front of a value: the text says the same */
+.av-dot.ok { background: var(--ok); }
+.av-dot.warn { background: var(--soon); }
+.av-dot.bad { background: var(--overdue); }
 .addon-value .addon-help { flex-basis: 100%; margin: 0; }
 .fv { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: .85rem; color: var(--muted); }
 .fv b { color: var(--text); font-weight: 600; }

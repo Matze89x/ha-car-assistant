@@ -128,6 +128,26 @@ def check(target: Path) -> tuple[list[str], list[str]]:
         for other in tested(field.get("show_if")):
             if other not in keys:
                 errors.append(f"Setting '{field['key']}': show_if refers to '{other}', which is not a setting.")
+    for field in data.get("settings", []) if isinstance(data.get("settings"), list) else []:
+        if not isinstance(field, dict):
+            continue
+        for col in field.get("columns", []) if isinstance(field.get("columns"), list) else []:
+            kind = col.get("type") if isinstance(col, dict) else None
+            if kind is not None and kind not in addons.LIST_COLUMN_TYPES:
+                notes.append(
+                    f"Setting '{field.get('key')}': the column type '{kind}' is unknown (becomes text). Types: {', '.join(addons.LIST_COLUMN_TYPES)}"
+                )
+            elif kind == "select" and not addons._options(col):
+                notes.append(f"Setting '{field.get('key')}': the select column '{col.get('key')}' has no usable options (becomes text).")
+        if field.get("type") == "value":
+            if field.get("format") is not None and field.get("format") not in addons.VALUE_FORMATS:
+                notes.append(
+                    f"Setting '{field.get('key')}': format '{field.get('format')}' is unknown (ignored). Formats: {', '.join(addons.VALUE_FORMATS)}"
+                )
+            if field.get("state") is not None and not addons._value_states(field.get("state")):
+                notes.append(
+                    f"Setting '{field.get('key')}': state has no usable level (levels: {', '.join(addons.VALUE_LEVELS)}, each a list of texts)."
+                )
     cleaned = {f["key"]: f for f in manifest.get("settings", [])}
     for field in data.get("settings", []) if isinstance(data.get("settings"), list) else []:
         if (

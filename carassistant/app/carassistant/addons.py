@@ -1064,6 +1064,11 @@ def clean_setting_fields(raw) -> list[dict]:
         }
         if f.get("service_writable") is True and kind not in (*NO_VALUE, "list", "multiselect", "value"):
             field["service_writable"] = True  # the plugin's service may change this setting itself (the administrator approves the list)
+        if kind == "value":  # a value shown for information: how its text is written and which texts get a coloured dot
+            if f.get("format") in VALUE_FORMATS:
+                field["format"] = f["format"]
+            if states := _value_states(f.get("state")):
+                field["state"] = states
         if f.get("advanced") is True and kind not in NO_VALUE:
             field["advanced"] = True  # the set-up guide shows it folded under "Advanced settings"
         if _text(f, "default", 200) and kind not in NO_VALUE:
@@ -1478,9 +1483,30 @@ LIST_COLUMN_KEY = re.compile(r"[a-z][a-z0-9_]{0,19}")
 LIST_COLUMN_RESERVED = {"name", "value", "label", "l10n"}
 
 
+LIST_COLUMN_TYPES = ("text", "number", "date", "select")
+VALUE_FORMATS = (
+    "datetime",
+    "date",
+)  # a ``value`` holding a time (ISO text, UTC when it has no zone) is shown in the system's zone and writing
+VALUE_LEVELS = ("ok", "warn", "bad")  # the coloured dot in front of a ``value``: green, amber, red
+
+
+def _value_states(raw) -> dict:
+    """``{"ok": ["connected"], "warn": ["waiting"], "bad": ["error"]}``: which texts of a ``value`` get which dot (up to 8 texts for each level)."""
+    out: dict[str, list[str]] = {}
+    if isinstance(raw, dict):
+        for level in VALUE_LEVELS:
+            texts = [_show_text(v) for v in raw.get(level, [])[:8]] if isinstance(raw.get(level), list) else []
+            texts = [t for t in texts if t]
+            if texts:
+                out[level] = texts
+    return out
+
+
 def _list_columns(raw) -> list[dict]:
-    """The extra cells of a ``list`` row: ``[{"key", "label", "max", "l10n": {"de": {"label"}}}]``, at most 3; a column that is not usable (no key,
-    a key twice or taken, no list) is left out."""
+    """The extra cells of a ``list`` row: ``[{"key", "label", "max", "type", "options", "l10n": {"de": {"label"}}}]``, at most 3; a column that is not
+    usable (no key, a key twice or taken, no list) is left out. ``type`` is ``text`` (the default), ``number``, ``date`` (``YYYY-MM-DD``) or
+    ``select`` (with ``options``, like a choice setting)."""
     out: list[dict] = []
     for c in raw[:10] if isinstance(raw, list) else []:
         if len(out) == LIST_COLUMNS:
@@ -1499,6 +1525,15 @@ def _list_columns(raw) -> list[dict]:
             "label": _text(c, "label", 40) or key,
             "max": limit if isinstance(limit, int) and not isinstance(limit, bool) and 1 <= limit <= LIST_CELL_MAX else 120,
         }
+        kind = c.get("type") if c.get("type") in LIST_COLUMN_TYPES else "text"  # a cell that is a number, a date or one of a few choices
+        if kind == "select":
+            options = _options(c)
+            if options:
+                col["options"] = options
+            else:
+                kind = "text"  # a choice without options is a text
+        if kind != "text":
+            col["type"] = kind
         if _l10n(c.get("l10n"), {"label": 40}):
             col["l10n"] = _l10n(c.get("l10n"), {"label": 40})
         out.append(col)
@@ -1561,6 +1596,24 @@ def list_rows(value: str, columns: list[dict] | tuple = ()) -> list[dict]:
     return rows[:LIST_ROWS]
 
 
+def typed_rows(rows: list[dict], columns: list[dict] | tuple = ()) -> list[dict]:
+    """What a service gets of the rows: the cells of a ``number`` column as numbers (empty: ``null``), everything else as text."""
+    numbers = [c["key"] for c in columns if c.get("type") == "number"]
+    if not numbers:
+        return rows
+    out = []
+    for row in rows:
+        row = dict(row)
+        for k in numbers:
+            try:
+                n = float(str(row.get(k, "")).replace(",", "."))
+                row[k] = int(n) if n == int(n) else n
+            except (ValueError, OverflowError):
+                row[k] = None
+        out.append(row)
+    return out
+
+
 def _form_cells(key: str, form: dict, i: int, columns: list[dict] | tuple) -> list[str]:
     """The cells of row ``i`` as typed (tidied, not cut): fields ``<key>__<i>n``, ``__<i>v`` and ``__<i>c<j>``."""
     suffixes = ["n", "v", *[f"c{j}" for j in range(len(columns))]]
@@ -1573,6 +1626,9 @@ def _list_from_form(key: str, form: dict, columns: list[dict] | tuple = (), valu
     lines = []
     for i in range(LIST_ROWS):
         cells = [cell[:limit] for cell, limit in zip(_form_cells(key, form, i, columns), limits, strict=True)]
+        for j, c in enumerate(columns):
+            if c.get("type") == "number" and _cell_fits(cells[2 + j], c):
+                cells[2 + j] = cells[2 + j].strip().replace(",", ".")  # 3,5 is stored as 3.5
         if any(cells):
             lines.append(" | ".join(cells))
     return "\n".join(lines)
@@ -1583,6 +1639,29 @@ def list_too_long(key: str, form: dict, columns: list[dict] | tuple = (), value_
     Such a list is refused with a message - an address cut in the middle would lead nowhere."""
     limits = [80, value_max, *[c["max"] for c in columns]]
     return any(len(cell) > limit for i in range(LIST_ROWS) for cell, limit in zip(_form_cells(key, form, i, columns), limits, strict=True))
+
+
+def _cell_fits(cell: str, column: dict) -> bool:
+    """Does a filled cell fit the type of its column (``number``, ``date``, ``select``)? An empty cell always does."""
+    cell = cell.strip()
+    kind = column.get("type", "text")
+    if not cell or kind == "text":
+        return True
+    if kind == "number":
+        try:
+            float(cell.replace(",", "."))
+        except ValueError:
+            return False
+        return True
+    if kind == "date":
+        return bool(DATE.fullmatch(cell))
+    return cell in {o["value"] for o in column.get("options", [])}
+
+
+def list_cells_fit(key: str, form: dict, columns: list[dict] | tuple = ()) -> bool:
+    """Do all cells of the list fit their columns? (The page offers the right input for each type; this catches a request that did not come from it.)"""
+    typed = [(j, c) for j, c in enumerate(columns) if c.get("type")]
+    return all(_cell_fits(cells[2 + j], c) for i in range(LIST_ROWS) for cells in [_form_cells(key, form, i, columns)] for j, c in typed)
 
 
 HEX_COLOR = re.compile(r"#[0-9a-fA-F]{6}")
@@ -1620,6 +1699,8 @@ def check_settings(manifest: dict, form: dict, old: dict) -> dict[str, str]:
             errors[key] = "err.min_rows"
         if kind == "list" and _is_shown(f, manifest, form) and list_too_long(key, form, f.get("columns", ()), f.get("value_max", 200)):
             errors[key] = "err.cell_long"
+        elif kind == "list" and _is_shown(f, manifest, form) and not list_cells_fit(key, form, f.get("columns", ())):
+            errors[key] = "err.cell_type"
         if kind in NO_VALUE or kind in ("bool", "list", "value"):
             continue
         shown = _is_shown(f, manifest, form)
@@ -1736,7 +1817,7 @@ def typed_settings(manifest: dict, values: dict) -> dict:
         elif kind == "multiselect":
             out[key] = [x for x in raw.split(",") if x]
         elif kind == "list":
-            out[key] = list_rows(raw, f.get("columns", ()))
+            out[key] = typed_rows(list_rows(raw, f.get("columns", ())), f.get("columns", ()))
         else:
             out[key] = raw
     return out

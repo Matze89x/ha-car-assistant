@@ -759,7 +759,7 @@ document.addEventListener("sortchange", function (e) {
   function numbers(box) {
     var rows = box.querySelectorAll(".lf-row"), key = box.getAttribute("data-lf"), add = box.querySelector(".lf-add");
     Array.prototype.forEach.call(rows, function (row, i) {
-      Array.prototype.forEach.call(row.querySelectorAll("input[data-cell]"), function (input) { input.name = key + "__" + i + input.getAttribute("data-cell"); });
+      Array.prototype.forEach.call(row.querySelectorAll("[data-cell]"), function (input) { input.name = key + "__" + i + input.getAttribute("data-cell"); });
     });
     if (add) { add.setAttribute("data-n", String(rows.length)); }
   }
@@ -771,7 +771,7 @@ document.addEventListener("sortchange", function (e) {
       var tbox = addTpl.closest("[data-lf]"), pick = tbox.querySelector(".lf-pick"), ttpl = tbox.querySelector("template[data-lf-row]");
       if (!ttpl || !pick || !pick.selectedOptions.length || tbox.querySelectorAll(".lf-row").length >= 30) { return; }
       var chosen = pick.selectedOptions[0], trow = ttpl.content.firstElementChild.cloneNode(true);
-      Array.prototype.forEach.call(trow.querySelectorAll("input[data-cell]"), function (input) {  // n = name, v = value, c0.. = the extra cells
+      Array.prototype.forEach.call(trow.querySelectorAll("[data-cell]"), function (input) {  // n = name, v = value, c0.. = the extra cells (a text field, a number, a date or a choice)
         var cell = input.getAttribute("data-cell");
         input.value = chosen.getAttribute(cell === "n" ? "data-name" : cell === "v" ? "data-value" : "data-" + cell) || "";
       });
