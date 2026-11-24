@@ -385,6 +385,15 @@ document.addEventListener("change", function (event) {
   if (input.form.requestSubmit) { input.form.requestSubmit(); } else { input.form.submit(); }
 });
 
+// The cursor goes to the first field of a form that has just been opened - only on a screen with a mouse, and never into a date / time field.
+// On a phone the keyboard or the system's date sheet would jump up over the form before the person has even looked at it (and a tap on a card
+// to see its details would open the date picker).
+function focusFirstField(root) {
+  if (!root || (window.matchMedia && window.matchMedia("(pointer: coarse)").matches)) { return; }
+  var f = root.querySelector("input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=date]):not([type=month]):not([type=time]):not([type=datetime-local]):not([type=file]):not([type=range]):not([type=color]), textarea");
+  if (f && f.focus) { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } }
+}
+
 // The add button in the page header opens / closes the add form of the page and brings it into view.
 document.addEventListener("click", function (event) {
   var btn = event.target.closest && event.target.closest("[data-add-toggle]");
@@ -394,8 +403,7 @@ document.addEventListener("click", function (event) {
   card.open = !card.open;
   if (card.open) {
     card.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    var first = card.querySelector("input:not([type=hidden]):not([type=checkbox]), select, textarea");
-    if (first && first.focus) { try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); } }
+    focusFirstField(card);
   }
 });
 
@@ -942,15 +950,19 @@ document.addEventListener("click", function (e) {
 /* record cards: a tap opens the card for editing in place; Cancel or Escape closes it */
 (function () {
   function close(card) { card.classList.remove('editing'); }
+  function open(card) {  // the card turns into its form; the form is brought into view (it is taller than the card was), the cursor only where a mouse is
+    card.classList.add('editing');
+    var inline = card.querySelector('.rec-inline');
+    if (inline && card.scrollIntoView) { card.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    focusFirstField(inline);
+  }
   document.addEventListener('click', function (e) {
     var card = e.target.closest && e.target.closest('[data-rec-edit]');
     if (!card) return;
     if (e.target.closest('[data-rec-cancel]')) { close(card); return; }
-    if (e.target.closest('[data-rec-open]')) { card.classList.add('editing'); var f0 = card.querySelector('.rec-inline input, .rec-inline select, .rec-inline textarea'); if (f0) f0.focus(); return; }
+    if (e.target.closest('[data-rec-open]')) { open(card); return; }
     if (card.classList.contains('editing') || e.target.closest('a, button, input, select, textarea, label, form')) return;
-    card.classList.add('editing');
-    var first = card.querySelector('.rec-inline input, .rec-inline select, .rec-inline textarea');
-    if (first) first.focus();
+    open(card);
   });
   document.addEventListener('keydown', function (e) {
     var card = e.target.closest && e.target.closest('[data-rec-edit]');
