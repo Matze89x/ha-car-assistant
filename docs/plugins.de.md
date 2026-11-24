@@ -116,10 +116,11 @@ Ein Plugin oder eine Integration kann kleine **Werte-Kacheln** auf die Home-Seit
 ```
 "tiles": [
   {"id": "cabin", "label": "Innenraum", "icon": "weather-cloudy", "signal": "climate.temp", "unit": "°C", "decimals": 1},
-  {"id": "speed", "label": "Tempo", "data": "speed_kmh", "unit": "km/h", "l10n": {"en": {"label": "Speed"}}}
+  {"id": "speed", "label": "Tempo", "data": "speed_kmh", "unit": "km/h", "l10n": {"en": {"label": "Speed"}}},
+  {"id": "service_days", "label": "Service in", "data": "service_due_days", "unit": "Tage", "l10n": {"en": {"label": "Service in", "unit": "days"}}}
 ]
 ```
-Eine Kachel nimmt ihren Wert aus einem Rohsignal, das das Plugin geliefert hat (`signal`, siehe `POST …/signals`), **oder** aus einer Standardzahl der Plugin-API (`data`, zum Beispiel `speed_kmh`). Höchstens 8 Kacheln; `icon` stammt aus [icons.de.md](icons.de.md); `unit` und `decimals` (0-3) sind freiwillig. Eine Kachel erscheint nur, **solange das Plugin läuft und ein Wert da ist**; die Person kann sie wie jedes Widget verschieben, in der Größe ändern und ausblenden.
+Eine Kachel nimmt ihren Wert aus einem Rohsignal, das das Plugin geliefert hat (`signal`, siehe `POST …/signals`), **oder** aus einer Standardzahl der Plugin-API (`data`, zum Beispiel `speed_kmh`). Höchstens 8 Kacheln; `icon` stammt aus [icons.de.md](icons.de.md); `unit` und `decimals` (0-3) sind freiwillig. `l10n` übersetzt das `label` **und die `unit`** je Sprache (die Einheit aus der eigenen Übersetzung des Plugins gewinnt); ohne übersetzte Einheit übersetzt die App die Zeitwörter, die sie kennt - `days`, `hours`, `minutes`, `weeks`, `months`, `years` (auch im Singular) - selbst in die Sprache der App (*Tage*, *Std.* ...), jede andere Einheit steht so, wie sie geschrieben wurde. Eine Kachel erscheint nur, **solange das Plugin läuft und ein Wert da ist**; die Person kann sie wie jedes Widget verschieben, in der Größe ändern und ausblenden.
 
 ## Die Schnittstellen-Seite eines Pakets
 Jede Kachel unter *Verwaltung* hat den Knopf **Info**, und deren Abschnitt **Schnittstellen** ist eine Seite, die alles zeigt, was das Paket anbietet oder nutzt - so sieht jeder, wo eine Schnittstelle erreicht wird und was ein anderes Paket nutzen könnte. Sie hat drei Gruppen (*Sendet an Car Assistant*, *Liest von Car Assistant*, *Bietet selbst an*) und die Einstellungen, die es liest. Jede Zeile ist entweder vom Paket **angegeben** oder **gesehen** (das Paket hat sie wirklich genutzt: Adresse, die **Namen** der Felder, wie oft, wann zuletzt - nie ein Wert; das wird immer vermerkt, nicht nur bei Debug, und verschwindet mit dem Paket).

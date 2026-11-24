@@ -498,8 +498,8 @@ def clean_tiles(raw) -> list[dict]:
             tile["unit"] = _text(item, "unit", 16)
         if isinstance(item.get("decimals"), int) and 0 <= item["decimals"] <= 3:
             tile["decimals"] = item["decimals"]
-        if _l10n(item.get("l10n"), {"label": 40}):
-            tile["l10n"] = _l10n(item.get("l10n"), {"label": 40})
+        if _l10n(item.get("l10n"), {"label": 40, "unit": 16}):
+            tile["l10n"] = _l10n(item.get("l10n"), {"label": 40, "unit": 16})
         out.append(tile)
     return out
 

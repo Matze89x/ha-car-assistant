@@ -110,6 +110,21 @@ def tiles(conn: sqlite3.Connection, vehicle_id: int) -> list[Widget]:
     return out
 
 
+def tile_unit(tile: dict) -> str:
+    """The unit of a value tile in the language of the app: the plugin's own translation (``l10n`` -> ``unit``) first, else a word the app knows
+    (days, hours, minutes ... in every language the app has), else the unit as it was written."""
+    from . import config, i18n
+
+    lang = config.language()
+    unit = tile.get("unit", "")
+    own = ((tile.get("l10n") or {}).get(lang) or {}).get("unit")
+    if own:
+        return own
+    key = f"unit.{unit.strip().lower()}"
+    word = i18n.translator(lang)(key)
+    return unit if word == key else word
+
+
 def tile_values(conn: sqlite3.Connection, vehicle_id: int) -> dict[str, dict]:
     """The current value of every value tile of the car: ``{"<addon>-<id>": {"text", "updated"}}``."""
     from . import addons, connectors
@@ -132,7 +147,7 @@ def tile_values(conn: sqlite3.Connection, vehicle_id: int) -> dict[str, dict]:
             if "decimals" in t:
                 with contextlib.suppress(ValueError):  # not a number: shown as it is
                     text = f"{float(text):.{t['decimals']}f}"
-            out[f"{a['addon_id']}-{t['id']}"] = {"text": text[:40], "unit": t.get("unit", ""), "updated": found[1]}
+            out[f"{a['addon_id']}-{t['id']}"] = {"text": text[:40], "unit": tile_unit(t), "updated": found[1]}
     return out
 
 

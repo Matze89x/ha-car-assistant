@@ -116,10 +116,11 @@ A plugin or integration can put small **value tiles** on the Home page of the ca
 ```
 "tiles": [
   {"id": "cabin", "label": "Cabin", "icon": "weather-cloudy", "signal": "climate.temp", "unit": "°C", "decimals": 1},
-  {"id": "speed", "label": "Speed", "data": "speed_kmh", "unit": "km/h", "l10n": {"de": {"label": "Tempo"}}}
+  {"id": "speed", "label": "Speed", "data": "speed_kmh", "unit": "km/h", "l10n": {"de": {"label": "Tempo"}}},
+  {"id": "service_days", "label": "Service in", "data": "service_due_days", "unit": "days", "l10n": {"de": {"label": "Service in", "unit": "Tage"}}}
 ]
 ```
-A tile takes its value from a raw signal the plugin delivered (`signal`, see `POST …/signals`) **or** from a standard number of the Plugin API (`data`, for example `speed_kmh`). At most 8 tiles; `icon` is from [icons.md](icons.md); `unit` and `decimals` (0-3) are optional. A tile shows only **while the plugin is running and a value exists**; the person can move, resize and hide it like any widget.
+A tile takes its value from a raw signal the plugin delivered (`signal`, see `POST …/signals`) **or** from a standard number of the Plugin API (`data`, for example `speed_kmh`). At most 8 tiles; `icon` is from [icons.md](icons.md); `unit` and `decimals` (0-3) are optional. `l10n` translates the `label` **and the `unit`** per language (the unit of a plugin's own translation wins); without a translated unit the app translates the time words it knows itself - `days`, `hours`, `minutes`, `weeks`, `months`, `years` (singular too) - into the language of the app (*Tage*, *Std.* ...), any other unit is shown as written. A tile shows only **while the plugin is running and a value exists**; the person can move, resize and hide it like any widget.
 
 ## The Interfaces page of a package
 Every tile under *Manage* has the button **Info**, and its section **Interfaces** is one page that shows everything the package offers or uses - so anyone can see where an interface is reached and what another package could use. It has three groups (*Sends to Car Assistant*, *Reads from Car Assistant*, *Offers itself*) and the settings it reads. Each row is either **declared** by the package or **seen** (the package really used it: address, the **names** of the fields, how often, when last - never a value; this is noted always, not only in debug, and goes with the package when it is removed).

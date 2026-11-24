@@ -63,3 +63,26 @@ def test_partial_save_keeps_the_places_of_widgets_without_data(client):
     keys = [w.key for w in lay]
     assert keys.index("location") < keys.index("security") and len(keys) == len(widgets.REGISTRY)  # the two swapped, the rest kept
     assert next(w for w in lay if w.key == "location").size == "m"
+
+
+def test_the_unit_of_a_plugin_tile_is_shown_in_the_language_of_the_app(env):
+    """A plugin that writes "days" gets "Tage" in a German app; its own translation (l10n -> unit) wins; any other unit stays as written."""
+    from carassistant import addons, config, db, widgets
+
+    def tile(**kw):
+        return {"id": "t", "label": "Service in", "icon": "wrench", "data": "service_due_days", **kw}
+
+    with db.tx() as conn:
+        db.set_setting(conn, "language", "de")
+    config.forget_settings()
+    assert widgets.tile_unit(tile(unit="days")) == "Tage" and widgets.tile_unit(tile(unit="Hours")) == "Std."
+    assert widgets.tile_unit(tile(unit="days", l10n={"de": {"unit": "Tg."}})) == "Tg."  # the plugin's own word wins
+    assert widgets.tile_unit(tile(unit="km")) == "km" and widgets.tile_unit(tile(unit="°C")) == "°C" and widgets.tile_unit(tile()) == ""
+    with db.tx() as conn:
+        db.set_setting(conn, "language", "en")
+    config.forget_settings()
+    assert widgets.tile_unit(tile(unit="days")) == "days"
+    cleaned = addons.clean_tiles(
+        [{"id": "a", "label": "A", "data": "service_due_days", "unit": "days", "l10n": {"de": {"label": "A", "unit": "Tage", "junk": "x"}}}]
+    )
+    assert cleaned[0]["l10n"]["de"]["unit"] == "Tage" and "junk" not in cleaned[0]["l10n"]["de"]  # the unit is kept (and only known keys)
