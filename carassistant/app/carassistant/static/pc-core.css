@@ -1491,6 +1491,11 @@ label.button.pk-btn { position: relative; }
 .actions.fit > .button, .actions.fit > form { max-width: 100%; min-width: 0; }
 .actions.fit > form { margin: 0; }
 .actions.fit .button > span, .actions.fit button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* a long name is shortened with "...", never wrapped (the full name is the title) */
+.nm-thr { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; padding: 2px 0 14px; }
+.nm-thr label { display: grid; gap: 6px; min-width: 0; }
+.nm-thr .hint { grid-column: 1 / -1; margin: 0; }
+.nm-panel:has(.sw-row input[value="low_energy"]:not(:checked)) .nm-thr { display: none; }
+@media (max-width: 420px) { .nm-thr { grid-template-columns: 1fr; } }
 .addon-value { display: flex; align-items: baseline; justify-content: space-between; gap: 4px 14px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--glass-b); }
 .addon-value:first-child { border-top: 0; padding-top: 0; }
 .addon-value .av-l { color: var(--muted); }

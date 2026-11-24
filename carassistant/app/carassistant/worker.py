@@ -76,6 +76,12 @@ def run_once(state: dict[str, float], now: float) -> None:
                 notify.check_users(conn, only={"trip_end", "refuel"})
             except Exception:
                 log.exception("Trip notification failed")
+        pending = notify.take_energy_vehicles()
+        if pending:  # a reading about the tank or battery arrived: told at once when the level fell to somebody's threshold
+            try:
+                notify.check_energy(conn, pending)
+            except Exception:
+                log.exception("Low tank / battery notification failed")
         if now - state["notify"] >= NOTIFY_SECONDS:
             state["notify"] = now
             try:

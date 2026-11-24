@@ -1159,6 +1159,7 @@ def vehicle_delete(request: Request, vid: int):
         conn.execute(
             "DELETE FROM user_notify_vehicle WHERE vehicle_id = ?", (vid,)
         )  # the car disappears from everybody's notification matrix
+        conn.execute("DELETE FROM notify_energy WHERE vehicle_id = ?", (vid,))
     import shutil
 
     shutil.rmtree(config.files_dir() / str(vid), ignore_errors=True)

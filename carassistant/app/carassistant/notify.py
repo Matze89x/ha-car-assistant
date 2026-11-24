@@ -1,5 +1,6 @@
 """Reminders for every person who asked for them: through a Home Assistant ``notify.*`` service (no port set) or as web push (a port is set).
-Each item is announced at most every REPEAT_DAYS days."""
+Each item is announced at most every REPEAT_DAYS days. The low tank / battery message is different: it is told ONCE when the level falls to the
+person's threshold - right when the new reading arrives - and again only after the level was back above it by a margin (see ``energy_decision``)."""
 
 from __future__ import annotations
 
@@ -100,23 +101,66 @@ def prefs(conn: sqlite3.Connection, user_id: int, vehicle_id: int | None = None)
 
 
 def matrix(conn: sqlite3.Connection, user_id: int) -> dict:
-    """What the person gets, for the settings page: the choice for ``default`` (new cars), every car of the installation with its events, and the
-    general events. Cars come and go by themselves: a new car starts with the choice for new cars, a removed one disappears."""
-    row = conn.execute("SELECT events, general FROM user_notify WHERE user_id = ?", (user_id,)).fetchone()
+    """What the person gets, for the settings page: the choice for ``default`` (new cars), every car of the installation with its events and its
+    low tank / battery threshold, and the general events. Cars come and go by themselves: a new car starts with the choice for new cars, a removed
+    one disappears. Distances are given in the units of the system."""
+    row = conn.execute("SELECT events, general, energy_pct, energy_km FROM user_notify WHERE user_id = ?", (user_id,)).fetchone()
     default = set(_events_of(row["events"])) if row else set()
+
+    def shown(km):
+        return None if km is None else round(units.of().d(km))
+
     cars = []
-    for v in conn.execute("SELECT id, name FROM vehicles WHERE archived = 0 ORDER BY name COLLATE NOCASE").fetchall():
-        own = conn.execute("SELECT events FROM user_notify_vehicle WHERE user_id = ? AND vehicle_id = ?", (user_id, v["id"])).fetchone()
-        cars.append({"id": v["id"], "name": v["name"], "events": set(_events_of(own["events"])) if own else set(default)})
-    return {"default": default, "cars": cars, "general": set(_general_of(row["general"])) if row else set()}
+    for v in conn.execute("SELECT * FROM vehicles WHERE archived = 0 ORDER BY name COLLATE NOCASE").fetchall():
+        own = conn.execute(
+            "SELECT events, energy_pct, energy_km FROM user_notify_vehicle WHERE user_id = ? AND vehicle_id = ?", (user_id, v["id"])
+        ).fetchone()
+        base = own if own else row
+        lv = energy.levels(v)
+        cars.append(
+            {
+                "id": v["id"],
+                "name": v["name"],
+                "events": set(_events_of(own["events"])) if own else set(default),
+                "energy_pct": base["energy_pct"] if base else None,
+                "energy_km": shown(base["energy_km"]) if base else None,
+                "pct_ph": lv["warn_pct"],  # what an empty field means: the yellow level of the car
+                "km_ph": shown(lv["warn_km"]) or "",
+            }
+        )
+    return {
+        "default": default,
+        "cars": cars,
+        "general": set(_general_of(row["general"])) if row else set(),
+        "energy_pct": row["energy_pct"] if row else None,
+        "energy_km": shown(row["energy_km"]) if row else None,
+        "pct_ph": energy.DEFAULT_WARN_PCT,
+    }
+
+
+def _threshold(raw, high: int, base_from=None) -> int | None:
+    """A threshold typed into the matrix: empty or not a number = follow the car's own yellow level (NULL); 0 = not used; the rest is held to ``high``."""
+    raw = (raw or "").strip()
+    if not raw.isdigit():
+        return None
+    number = int(raw)
+    if base_from is not None:
+        number = round(base_from(number))
+    return min(number, high)
 
 
 def save_matrix(conn: sqlite3.Connection, user_id: int, form) -> None:
-    """The whole matrix from one form: ``ev_new`` (the choice for new cars), ``ev_<car id>`` per car, ``gen`` (general events)."""
+    """The whole matrix from one form: ``ev_new`` (the choice for new cars), ``ev_<car id>`` per car, ``gen`` (general events), and the low tank /
+    battery threshold ``ep_<car id>`` (per cent) and ``ek_<car id>`` (range; ``new`` for new cars) - only when the form carries them."""
     conn.execute("INSERT OR IGNORE INTO user_notify(user_id, service, events) VALUES(?, '', '[]')", (user_id,))
     default = [e for e in EVENTS if e in form.getlist("ev_new")]
     general = [e for e in GENERAL if e in form.getlist("gen")]
     conn.execute("UPDATE user_notify SET events = ?, general = ? WHERE user_id = ?", (json.dumps(default), json.dumps(general), user_id))
+    if "ep_new" in form or "ek_new" in form:
+        conn.execute(
+            "UPDATE user_notify SET energy_pct = ?, energy_km = ? WHERE user_id = ?",
+            (_threshold(form.get("ep_new"), 99), _threshold(form.get("ek_new"), 3000, units.of().from_d), user_id),
+        )
     for v in conn.execute("SELECT id FROM vehicles WHERE archived = 0").fetchall():
         chosen = [e for e in EVENTS if e in form.getlist(f"ev_{v['id']}")]
         conn.execute(
@@ -124,6 +168,16 @@ def save_matrix(conn: sqlite3.Connection, user_id: int, form) -> None:
             "ON CONFLICT(user_id, vehicle_id) DO UPDATE SET events = excluded.events, enabled = 1",
             (user_id, v["id"], json.dumps(chosen)),
         )
+        if f"ep_{v['id']}" in form or f"ek_{v['id']}" in form:
+            conn.execute(
+                "UPDATE user_notify_vehicle SET energy_pct = ?, energy_km = ? WHERE user_id = ? AND vehicle_id = ?",
+                (
+                    _threshold(form.get(f"ep_{v['id']}"), 99),
+                    _threshold(form.get(f"ek_{v['id']}"), 3000, units.of().from_d),
+                    user_id,
+                    v["id"],
+                ),
+            )
 
 
 def save_service(conn: sqlite3.Connection, user_id: int, service: str) -> None:
@@ -205,20 +259,6 @@ def _lines_for(
             keys.append(key)
             lines.append(t("notify.closures_open", n=len(opened)))
             pages.add("")
-    if "low_energy" in events:
-        capacity = vehicle["battery_kwh"] if vehicle["fuel_type"] == "electric" else vehicle["tank_l"]
-        mode = energy.mode(vehicle)
-        info = status.tank(live, capacity, mode)
-        hero = status.hero_range(live, t, capacity, "kWh" if mode == "charge" else "L", mode)
-        level = energy.state(vehicle, info["pct"] if info else None, hero["km"] if hero else None) if (info or hero) else "ok"
-        key = f"{user_key}:energy:{vid}:{level}"
-        if level in ("soon", "overdue") and not _recently_sent(conn, key, now):
-            keys.append(key)
-            parts = [f"{info['pct']} %"] if info and info["pct"] is not None else []
-            if hero:
-                parts.append(units.of().dist_str(hero["km"]))
-            lines.append(f"{t('notify.energy_charge') if mode == 'charge' else t('notify.energy_fuel')}: {' · '.join(parts)}")
-            pages.add("")
     if "tyre_pressure" in events:
         low = status.low_tyres(conn, vid, live)
         key = f"{user_key}:tyres:{vid}:{','.join(sorted(low))}"
@@ -256,6 +296,157 @@ def _lines_for(
                 )
                 pages.add(PAGE_OF["refuel"])
     return lines, keys, pages
+
+
+# ---- low tank / battery: told once, right with the reading, again only after the level was back above the threshold by a margin
+ENERGY_MARGIN_PCT = (
+    5  # percentage points above the threshold the level must reach before the next fall is told again (no hopping up and down)
+)
+ENERGY_MARGIN_RANGE = 0.2  # ... and a fifth of the threshold for a range (at least ENERGY_MARGIN_RANGE_MIN km)
+ENERGY_MARGIN_RANGE_MIN = 10
+_energy_pending: set[int] = set()
+_energy_lock = threading.Lock()
+
+
+def energy_margin(thr_pct: int | None, thr_km: int | None) -> tuple[int, int]:
+    """How far above the threshold the level must be again: (percentage points, km)."""
+    return ENERGY_MARGIN_PCT, max(ENERGY_MARGIN_RANGE_MIN, round((thr_km or 0) * ENERGY_MARGIN_RANGE))
+
+
+def energy_decision(pct, km, thr_pct: int | None, thr_km: int | None, fired: bool) -> str:
+    """What a new reading means for one person: ``"fire"`` (the level fell to the threshold and nobody was told yet), ``"rearm"`` (it is back above the
+    threshold by the margin: the next fall is told again) or ``""`` (nothing). Either threshold may be missing (not used); a reading that is
+    missing is ignored. A level between the threshold and the margin keeps whatever was told: it neither tells nor forgets."""
+    low = bool((thr_pct and pct is not None and pct <= thr_pct) or (thr_km and km is not None and km <= thr_km))
+    if not fired:
+        return "fire" if low else ""
+    margin_pct, margin_km = energy_margin(thr_pct, thr_km)
+    used = bool((thr_pct and pct is not None) or (thr_km and km is not None))
+    high_pct = not (thr_pct and pct is not None) or pct >= thr_pct + margin_pct
+    high_km = not (thr_km and km is not None) or km >= thr_km + margin_km
+    return "rearm" if used and high_pct and high_km else ""
+
+
+def energy_thresholds(conn: sqlite3.Connection, user_id: int, vehicle) -> tuple[int | None, int | None]:
+    """The threshold of one person for one car: (per cent, range in km). Their own value, else the car's yellow level; 0 = not used."""
+    row = conn.execute(
+        "SELECT energy_pct, energy_km FROM user_notify_vehicle WHERE user_id = ? AND vehicle_id = ?", (user_id, vehicle["id"])
+    ).fetchone()
+    if row is None:  # a car that came later: the choice for new cars
+        row = conn.execute("SELECT energy_pct, energy_km FROM user_notify WHERE user_id = ?", (user_id,)).fetchone()
+    lv = energy.levels(vehicle)
+    pct = row["energy_pct"] if row and row["energy_pct"] is not None else lv["warn_pct"]
+    km = row["energy_km"] if row and row["energy_km"] is not None else lv["warn_km"]
+    return (pct or None, km or None)
+
+
+def _energy_reading(conn: sqlite3.Connection, vehicle) -> tuple[int | None, float | None] | None:
+    """The level the car reported last: (per cent, range in km); None when it reported neither."""
+    live = status.rows(conn, vehicle["id"])
+    capacity = vehicle["battery_kwh"] if vehicle["fuel_type"] == "electric" else vehicle["tank_l"]
+    info = status.tank(live, capacity, energy.mode(vehicle))
+    km = status._num(live, "range_km")
+    pct = info["pct"] if info else None
+    return None if pct is None and km is None else (pct, km)
+
+
+def _energy_fired(conn: sqlite3.Connection, user_id: int, vehicle_id: int) -> bool:
+    """Was this person told about the current fall? Without a record of the new kind, the old way counts: a message of the last days means yes."""
+    row = conn.execute("SELECT fired FROM notify_energy WHERE user_id = ? AND vehicle_id = ?", (user_id, vehicle_id)).fetchone()
+    if row is not None:
+        return bool(row["fired"])
+    who = "ha" if user_id == 0 else f"u{user_id}"
+    return conn.execute("SELECT 1 FROM notify_state WHERE key LIKE ? LIMIT 1", (f"{who}:energy:{vehicle_id}:%",)).fetchone() is not None
+
+
+def _set_energy_fired(conn: sqlite3.Connection, user_id: int, vehicle_id: int, fired: bool, now: datetime) -> None:
+    conn.execute(
+        "INSERT INTO notify_energy(user_id, vehicle_id, fired, at) VALUES(?,?,?,?) "
+        "ON CONFLICT(user_id, vehicle_id) DO UPDATE SET fired = excluded.fired, at = excluded.at",
+        (user_id, vehicle_id, int(fired), now.isoformat()),
+    )
+
+
+def _energy_text(vehicle, pct, km, t) -> str:
+    parts = [f"{pct} %"] if pct is not None else []
+    if km is not None:
+        parts.append(units.of().dist_str(km))
+    return f"{t('notify.energy_charge') if energy.mode(vehicle) == 'charge' else t('notify.energy_fuel')}: {' · '.join(parts)}"
+
+
+def energy_changed(vehicle_id: int) -> None:
+    """A reading that tells the level changed: let the worker look at once whether somebody has to be told (not at the next regular check)."""
+    with _energy_lock:
+        _energy_pending.add(vehicle_id)
+    events.changed()
+
+
+def take_energy_vehicles() -> set[int]:
+    with _energy_lock:
+        got = set(_energy_pending)
+        _energy_pending.clear()
+    return got
+
+
+def check_energy(conn: sqlite3.Connection, vehicle_ids: set[int] | None = None, now: datetime | None = None) -> int:
+    """Tell everybody who asked for the low tank / battery message whose level just fell to their threshold. ``vehicle_ids`` = the cars with a new
+    reading (None = all, the safety net of the regular check). Returns the number of messages."""
+    with _run_lock:
+        return _check_energy(conn, vehicle_ids, now)
+
+
+def _check_energy(conn: sqlite3.Connection, vehicle_ids: set[int] | None, now: datetime | None) -> int:
+    from . import mqtt_ha
+
+    now = now or datetime.now(UTC)
+    t = i18n.translator(config.language())
+    by_push = push_mode()
+    sent = 0
+    for vehicle in conn.execute("SELECT * FROM vehicles WHERE archived = 0").fetchall():
+        if vehicle_ids is not None and vehicle["id"] not in vehicle_ids:
+            continue
+        reading = _energy_reading(conn, vehicle)
+        if reading is None:
+            continue
+        pct, km = reading
+        for row in conn.execute("SELECT user_id, service FROM user_notify").fetchall():
+            uid = row["user_id"]
+            if (not by_push and not row["service"]) or (by_push and not push.devices(conn, uid)):
+                continue
+            if "low_energy" not in prefs(conn, uid, vehicle["id"])["events"]:
+                continue
+            thr_pct, thr_km = energy_thresholds(conn, uid, vehicle)
+            what = energy_decision(pct, km, thr_pct, thr_km, _energy_fired(conn, uid, vehicle["id"]))
+            if what == "rearm":
+                _set_energy_fired(conn, uid, vehicle["id"], False, now)
+            elif what == "fire":
+                ok, error = _deliver(
+                    conn, uid, row["service"], vehicle["name"], _energy_text(vehicle, pct, km, t), link_for(vehicle, set()), vehicle["id"]
+                )
+                if ok:
+                    sent += 1
+                    _set_energy_fired(conn, uid, vehicle["id"], True, now)
+                else:
+                    log.warning("Notification for user %s failed: %s", uid, error)
+        if (
+            config.ha_notice_sensor_enabled() and config.mqtt_discovery_enabled() and mqtt_ha.publisher.connected
+        ):  # the sensor *Last notification*
+            thr = energy_thresholds_default(vehicle)
+            what = energy_decision(pct, km, *thr, _energy_fired(conn, 0, vehicle["id"]))
+            if what == "rearm":
+                _set_energy_fired(conn, 0, vehicle["id"], False, now)
+            elif what == "fire":
+                mqtt_ha.add_notice(conn, vehicle["id"], [_energy_text(vehicle, pct, km, t)], now)
+                _set_energy_fired(conn, 0, vehicle["id"], True, now)
+                mqtt_ha.publisher.publish_vehicle(conn, vehicle)
+                sent += 1
+    return sent
+
+
+def energy_thresholds_default(vehicle) -> tuple[int | None, int | None]:
+    """The threshold nobody chose: the yellow level of the car."""
+    lv = energy.levels(vehicle)
+    return (lv["warn_pct"] or None, lv["warn_km"] or None)
 
 
 _recent: dict[tuple[int, str, str], float] = {}
@@ -371,6 +562,8 @@ def _check_users(conn: sqlite3.Connection, now: datetime | None, only: set[str] 
                     sent += 1
                     _remember(conn, [k for k, _n, _v in fresh], now)
     sent += _feed_home_assistant(conn, now, t, only)
+    if only is None:
+        sent += _check_energy(conn, None, now)  # the safety net: a reading that arrived while the app was off; told once, never repeated
     return sent
 
 

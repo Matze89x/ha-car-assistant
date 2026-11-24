@@ -160,6 +160,7 @@ def _num(data: dict, key: str, low: float, high: float) -> float | None:
     return float(value)
 
 
+ENERGY_KEYS = ("fuel_level", "battery_pct", "fuel_amount", "range_km")  # readings that tell how full the tank or battery is
 WATCHED = ("fuel_level", "charging", "battery_pct", "charge_power_kw")  # readings whose change can mean a refuel or a charging session
 
 
@@ -201,6 +202,10 @@ def _store(conn: sqlite3.Connection, vehicle_id: int, key: str, value: str, at: 
     )
     if key in WATCHED:
         _watch(conn, vehicle_id, key, before, value)
+    if key in ENERGY_KEYS and value != before:
+        from . import notify
+
+        notify.energy_changed(vehicle_id)  # the low tank / battery message does not wait for the regular check
 
 
 def _watch(conn: sqlite3.Connection, vehicle_id: int, key: str, before, after) -> None:
