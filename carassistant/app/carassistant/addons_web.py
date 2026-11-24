@@ -122,6 +122,17 @@ def _integrations_page(request: Request, vid: int, tab: str):
         )
 
 
+def _hold_service_buttons(a: dict) -> None:
+    """A service that nobody approved does not run: what needs it (a button that calls it, a page it serves, its own downloads) is not offered yet -
+    the way to the approval (the card's main button) stays. Buttons that open a step of the set-up or a page of the app itself stay."""
+    frames = {p["id"] for p in a["m"].get("pages", []) if p.get("kind") == "frame"}
+    a["m"] = {
+        **a["m"],
+        "buttons": [{**b, "shown": False} if (b.get("action") or b.get("page") in frames) else b for b in a["m"].get("buttons", [])],
+        "downloads": [{**d, "shown": False} for d in a["m"].get("downloads", [])],
+    }
+
+
 def _with_service(items: list[dict]) -> list[dict]:
     """Plugins with a service get ``svc``: what the card shows (state, approval, routes)."""
     for a in items:
@@ -137,6 +148,8 @@ def _with_service(items: list[dict]) -> list[dict]:
             if service
             else None
         )
+        if service and not a["svc"]["approved"]:
+            _hold_service_buttons(a)
         has_files = bool(
             a["m"].get("files") or a["m"].get("bundles")
         )  # downloads the package brings: shown for approval, handed out once approved
@@ -428,6 +441,8 @@ def _token_page(request: Request, token: str, name: str, vid: int, addon: dict |
 
 
 def _settings_page(request: Request, vid: int, addon: dict, shown: dict, errors: dict, status: int = 200):
+    if pluginsvc.service_of(addon) and not pluginsvc.approved(addon):
+        _hold_service_buttons(addon)  # the actions on the tab General need the service, too
     with db.tx() as conn:
         vehicle = vehicle_or_404(conn, vid)
         ctx = vehicle_ctx(conn, vehicle, "integrations")

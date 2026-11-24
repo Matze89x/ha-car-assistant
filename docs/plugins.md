@@ -376,8 +376,10 @@ Every plugin has a **tile** under *Plugins → Manage* with ONE line of buttons 
 | **Logs** | the plugin's own log page (see [Logs and the debug button](#logs-and-the-debug-button-of-a-plugin)) |
 | **Settings** | the plugin's settings page |
 | *your own buttons* | up to **three**, see below |
-| *downloads* | every entry of `downloads` (a log, a data package) while the plugin runs |
+| *downloads* | every entry of `downloads` (a log, a data package) while the plugin runs and its service is approved |
 | **the main button** (right, red) | what is to be done next: *Review and approve*, *Update*, *Set up* (while the plugin has a `setup` that is not finished) or *Open* |
+
+**Before the approval of the service** nothing that needs it is offered: buttons with an `action` (they call the service), buttons that open a `frame` page (the service serves it) and the `downloads`. A button that opens a step of the set-up or a page of the app itself stays, and so does the way to the approval (*Review and approve*).
 
 The tile decides by its own width, not the window's: while there is room the buttons carry their words, then only their symbols (the name stays in `aria-label` / `title`), and with two or more extra buttons (own buttons plus downloads) on the smallest tile the main button becomes a symbol, too; a long name of the main button is shortened with "...". Nothing is ever cut off at the edge of the tile. Only a plugin with **three or more extra buttons** takes a second line on a phone - keep to one or two downloads and use the own buttons for what matters.
 

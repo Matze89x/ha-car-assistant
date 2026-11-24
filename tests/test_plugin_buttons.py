@@ -74,7 +74,8 @@ def _install_with_buttons(client, buttons, pages=PAGES, service=SERVICE):
     return vid, pk
 
 
-def test_the_tile_has_uninstall_as_a_symbol_then_logs_settings_and_the_free_buttons(client):
+def test_the_tile_has_uninstall_as_a_symbol_then_logs_settings_and_the_free_buttons(client, monkeypatch):
+    monkeypatch.setattr(pluginsvc, "approved", lambda addon: True)  # the service of this plugin was approved
     vid, pk = _install_with_buttons(
         client, [{"id": "docs", "label": "Documentation", "page": "docs"}, {"id": "ping", "label": "Wake", "action": "/priv/ping"}]
     )
@@ -92,7 +93,41 @@ def test_the_tile_has_uninstall_as_a_symbol_then_logs_settings_and_the_free_butt
     assert ">Logs<" in bar and ">Settings<" in bar and ">Documentation<" in bar and ">Wake<" in bar
 
 
-def test_the_tile_counts_the_downloads_too_so_the_bar_never_overflows(client):
+def test_what_needs_the_service_is_not_offered_before_the_service_is_approved(client, monkeypatch):
+    """A service nobody approved does not run: its action buttons, the pages it serves and its downloads wait. A page of the app itself stays, and so
+    does the way to the approval."""
+    manifest = {
+        **MANIFEST,
+        "id": "hold-demo",
+        "pages": [*PAGES, {"id": "units", "title": "Units", "item": "Unit", "fields": [{"key": "name", "label": "Name", "type": "text"}]}],
+        "service": SERVICE,
+        "buttons": [
+            {"id": "docs", "label": "Documentation", "page": "docs"},  # a page of the service
+            {"id": "ping", "label": "Wake", "action": "/priv/ping"},  # a call of the service
+            {"id": "units", "label": "The units", "page": "units"},  # a page of the app
+        ],
+        "downloads": [{"label": "Car log", "path": "/svc/car.log"}],
+    }
+    vid = create_vehicle(client)
+    with db.tx() as conn:
+        source = conn.execute("SELECT id FROM sources LIMIT 1").fetchone()["id"]
+        pk = addons.add(conn, vid, addons.parse_package(json.dumps(manifest).encode()), source, "0" * 64)
+        conn.execute("UPDATE vehicle_addons SET active = 1 WHERE id = ?", (pk,))
+    page = client.get(f"/v/{slug(vid)}/plugins").text
+    bar = page[page.index('class="abar-box"') :]
+    bar = bar[: bar.index("</div></div>")]
+    assert ">Documentation<" not in bar and ">Wake<" not in bar and ">Car log<" not in bar  # the service is not approved
+    assert ">The units<" in bar  # a page of the app itself does not need the service, it stays
+    assert f"/integrations/{pk}/service" in bar  # and the way to the approval
+    monkeypatch.setattr(pluginsvc, "approved", lambda addon: True)
+    bar = client.get(f"/v/{slug(vid)}/plugins").text
+    bar = bar[bar.index('class="abar-box"') :]
+    bar = bar[: bar.index("</div></div>")]
+    assert ">Documentation<" in bar and ">Wake<" in bar and ">Car log<" in bar
+
+
+def test_the_tile_counts_the_downloads_too_so_the_bar_never_overflows(client, monkeypatch):
+    monkeypatch.setattr(pluginsvc, "approved", lambda addon: True)
     """The widths at which the words go are chosen by how many extra buttons stand in the bar: the own buttons AND the downloads."""
     vid = create_vehicle(client)
     manifest = {
