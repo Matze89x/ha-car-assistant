@@ -119,13 +119,15 @@ A test (`tests/test_design_rules.py`) refuses a third kind of tab bar. Plugin pa
 - **Nothing online by default.** External services are opt-in and explained.
 - **Texts** go into `EN` and `DE` in `i18n.py`; templates never build keys by concatenation.
 - **No inline scripts or styles that need a script** (strict CSP). Behaviour lives in `static/*.js`.
+- **Back and the marked entry.** On a page of ONE plugin or integration (settings, log, set-up) the header *Back* leads to the list it belongs to (*Plugins* or *Integrations*) and, on wide screens, that entry stays marked in the side bar on every page of the package. A page that has its own entry in *More* (such as Coding) marks that entry and leads *Back* to *More*.
+- **Phones must not zoom.** Every text field is at least 16 px (iPhone Safari zooms into smaller text when it is touched); a grid that holds fields has `minmax(0, 1fr)` columns, so a field never pushes its box wider than the screen.
 
 ## 6. Checklist for a new page or component
 
 1. Is there already a component for it? Use it.
 2. Tokens only – no hard-coded colours, radii or spacing. A block that stands on its own on a page takes the ONE corner `--r-surface` by being added to the list in the single rule at the end of `pc-core.css` (no radius of its own); a test fails otherwise. Its first block starts level with the first card of the *More* list.
 3. `page_head`, correct spacing, works at 375 / 800 / 1100 / 1280 px. On / off choices are switches at the right end of their row.
-4. Empty state (the card with the symbol and one helpful sentence: `.card.empty-state`, never a bare line of text), one item, many items, very long text.
+4. Empty state (the card with the symbol and one helpful sentence: `.card.empty-state`, never a bare line of text), one item, many items, very long text - and the opened state (an editor, a folded group, a chosen item) with such data, not only the empty demo.
 5. EN and DE texts; icon from `icons.py`.
 6. A test (`tests/`) for the behaviour, a line in both changelogs, version up.
 

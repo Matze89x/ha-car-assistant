@@ -49,7 +49,7 @@ The description of one package, see [plugins.md](plugins.md) (id, name, version,
 
 1. **Sources** - add the address of a repository; a private repository needs an *access key* (a read-only token) which stays on the server.
 2. **Add** (per vehicle) - the packages of all sources, tap one to read its description, then *Install*.
-3. **Manage** (per vehicle) - settings, *Check for updates* (reads the sources and marks tiles that have a newer version) and *Update* on such a tile, *Start / Stop* (plugins only; integrations have no on/off), *Uninstall*; lists can be sorted.
+3. **Manage** (per vehicle) - settings, *Check for updates* (reads the sources and marks tiles that have a newer version) and *Update* on such a tile, *Start / Stop* (plugins only; integrations have no on/off), *Uninstall*.
 
 If GitHub answers "403" because its hourly limit for anonymous requests (60 per address) is used up, the app says so - the access key is not the problem; try again later.
 

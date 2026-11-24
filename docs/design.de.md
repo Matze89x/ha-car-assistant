@@ -119,13 +119,15 @@ Ein Test (`tests/test_design_rules.py`) verweigert eine dritte Art von Tab-Leist
 - **Standardmäßig nichts online.** Externe Dienste sind opt-in und werden erklärt.
 - **Texte** kommen in `EN` und `DE` in `i18n.py`; Vorlagen setzen Schlüssel nie zusammen.
 - **Keine Inline-Skripte oder Stile, die ein Skript brauchen** (strenge CSP). Verhalten liegt in `static/*.js`.
+- **Zurück und der markierte Eintrag.** Auf einer Seite EINES Plugins oder einer Integration (Einstellungen, Protokoll, Einrichtung) führt *Zurück* im Kopf zur Liste, zu der sie gehört (*Plugins* oder *Integrationen*), und auf breiten Bildschirmen bleibt dieser Eintrag in der Seitenleiste auf jeder Seite des Pakets markiert. Eine Seite mit eigenem Eintrag unter *Weiteres* (wie Coding) markiert diesen Eintrag und führt mit *Zurück* nach *Weiteres*.
+- **Handys dürfen nicht zoomen.** Jedes Textfeld hat mindestens 16 px (iPhone-Safari zoomt in kleineren Text hinein, wenn man ihn antippt); ein Raster mit Feldern hat `minmax(0, 1fr)`-Spalten, damit ein Feld seinen Kasten nie breiter als den Bildschirm macht.
 
 ## 6. Checkliste für eine neue Seite oder einen Baustein
 
 1. Gibt es dafür schon einen Baustein? Den nutzen.
 2. Nur Tokens – keine festen Farben, Radien oder Abstände. Ein Block, der auf einer Seite für sich steht, bekommt die EINE Ecke `--r-surface`, indem er in die Liste der einen Regel am Ende von `pc-core.css` kommt (kein eigener Radius); sonst schlägt ein Test fehl. Sein erster Block beginnt auf einer Linie mit der ersten Karte der *Weiteres*-Liste.
 3. `page_head`, richtige Abstände, funktioniert bei 375 / 800 / 1100 / 1280 px. An/Aus-Wahlen sind Schalter am rechten Ende ihrer Zeile.
-4. Leerzustand (die Karte mit Symbol und einem hilfreichen Satz: `.card.empty-state`, nie eine nackte Textzeile), ein Eintrag, viele Einträge, sehr langer Text.
+4. Leerzustand (die Karte mit Symbol und einem hilfreichen Satz: `.card.empty-state`, nie eine nackte Textzeile), ein Eintrag, viele Einträge, sehr langer Text - und der aufgeklappte Zustand (ein Editor, eine aufgeklappte Gruppe, ein gewählter Eintrag) mit solchen Daten, nicht nur die leere Demo.
 5. EN- und DE-Texte; Icon aus `icons.py`.
 6. Ein Test (`tests/`) für das Verhalten, eine Zeile in beiden Changelogs, Version hoch.
 
