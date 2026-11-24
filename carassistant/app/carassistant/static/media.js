@@ -67,20 +67,60 @@
   // picture - and the box is never empty. Only when there is no picture at all, the car photo takes over (as it always did).
   // A picture that is still ON ITS WAY (the poster, the last frame) is waited for (four seconds at most): a phone that refuses the video at once - before the
   // picture has arrived - must not fall back to the car photo and then show the picture on top of it.
-  var pending = 0, patience = null, tapped = false;
-  // Why the video does not play, in words the person can read out: the video's own error, else the name of what the browser refused with.
+  var pending = 0, patience = null, tapped = false, blobTried = false, blobBusy = false, diag = "";
+  // Why the video does not play, in words the person can read out: the video's own error, else the name of what the browser refused with, and what the
+  // server really answered for the address of the video (see probe()).
   var WHY = v.getAttribute("data-why") || "";
   function reason(e) {
-    var er = v.error;
-    if (er && er.code) { return { 1: "aborted", 2: "network", 3: "decode", 4: "format not supported" }[er.code] || ("code " + er.code); }
-    return (e && e.name) || "";
+    var er = v.error, r = "";
+    if (er && er.code) { r = { 1: "aborted", 2: "network", 3: "decode", 4: "format not supported" }[er.code] || ("code " + er.code); } else { r = (e && e.name) || ""; }
+    return r + (diag ? (r ? " - " : "") + diag : "");
   }
   function whyNote(e) {  // after a tap that did not help: a line over the picture for a few seconds (the phone's own answer is the one thing we cannot see from here)
     if (!WHY) { return; }
     var old = wrap.querySelector(".hero-why"); if (old) { old.parentNode.removeChild(old); }
     var n = document.createElement("span"), r = reason(e); n.className = "hero-why"; n.setAttribute("role", "status");
     n.textContent = WHY + (r ? " (" + r + ")" : "");
-    wrap.appendChild(n); setTimeout(function () { if (n.parentNode) { n.parentNode.removeChild(n); } }, 9000);
+    wrap.appendChild(n); setTimeout(function () { if (n.parentNode) { n.parentNode.removeChild(n); } }, 12000);
+  }
+  // What the server really delivers for the video's address, asked the way the page itself asks (same address, same sign-in): a phone's video player
+  // makes its own request, which can be refused (no sign-in, a proxy that ignores ranges) although the file is fine.
+  function probe(done_) {
+    if (!window.fetch) { done_(null); return; }
+    fetch(SRC, { headers: { Range: "bytes=0-4095" }, credentials: "same-origin", cache: "no-store" }).then(function (r) {
+      return r.arrayBuffer().then(function (buf) {
+        var b = new Uint8Array(buf), mp4 = b.length > 11 && String.fromCharCode(b[4], b[5], b[6], b[7]) === "ftyp";
+        var webm = b.length > 3 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3;
+        done_({ status: r.status, type: (r.headers.get("content-type") || "").split(";")[0], redirected: r.redirected, video: mp4 || webm });
+      });
+    }).catch(function () { done_(null); });
+  }
+  function said(p) { return p ? "server " + p.status + " " + (p.type || "?") + (p.redirected ? " (redirected)" : "") + (p.video ? "" : ", not a video") : "server not reached"; }
+  // The player refused the address, but the server delivers a real video: the page fetches the file itself and plays it from memory (it is at most
+  // 40 MB, and only done when the direct way failed).
+  function viaFetch(fromTap) {
+    blobTried = true; blobBusy = true; clearTimeout(watchdog);
+    probe(function (p) {
+      diag = said(p);
+      if (!p || !p.video || (p.status !== 200 && p.status !== 206)) { blobBusy = false; giveUp(); return; }
+      fetch(SRC, { credentials: "same-origin" }).then(function (r) {
+        if (!r.ok) { throw new Error("status " + r.status); }
+        return r.blob();
+      }).then(function (blob) {
+        var type = /^video\//.test(p.type) ? p.type : "video/mp4";
+        blobBusy = false; started = false; done = false; diag += ", from memory too";
+        v.muted = true; v.src = URL.createObjectURL(new Blob([blob], { type: type }));
+        watchdog = setTimeout(function () { if (!started && !done) { diag += ", still not playing"; giveUp(); } }, 9000);
+        if (fromTap) { shown = true; tapped = true; }
+        go();
+      }).catch(function () { blobBusy = false; diag += ", download failed"; giveUp(); });
+    });
+  }
+  function refuse() {  // the video could not start: first the way over fetch (once), then the picture stays
+    if (started || done || blobBusy) { return; }
+    var er = v.error;
+    if (!blobTried && ((er && (er.code === 2 || er.code === 4)) || (!er && v.readyState === 0 && v.networkState === 3))) { viaFetch(false); return; }
+    giveUp();
   }
   function giveUp() {
     clearTimeout(watchdog);
@@ -129,7 +169,7 @@
       else if (tries++ < 6) { setTimeout(reveal, 120); return; }
       else { wrap.classList.remove("adapt"); wrap.classList.add("black"); }  // could not read the edges: blend like "Black"
     }
-    wrap.classList.add("vplay");
+    wrap.classList.remove("failed"); wrap.classList.add("vplay");
   }
   function freeze() {
     if (canvas) { return true; }
@@ -213,17 +253,24 @@
     remember(false);
     if (kind === "adapt" && sampled) { try { var g = sampleBg(); if (g) { wrap.style.setProperty("--hero-bg", g); } } catch (e) { /* keep the first sample */ } }
   });
-  v.addEventListener("error", giveUp);
+  v.addEventListener("error", refuse);
   function go() {
     if (done || v.ended || !shown || document.hidden) { return; }
     v.muted = true;
-    var p = v.play(); if (p && p.catch) { p.catch(function () { if (!started) { giveUp(); } }); }
+    var p = v.play(); if (p && p.catch) { p.catch(function () { if (!started) { refuse(); } }); }
   }
   // From the page's start on: when the video has not really played after nine seconds, the picture stays (and a tap tries again).
-  watchdog = setTimeout(function () { if (!started && !done) { giveUp(); } }, 9000);
+  watchdog = setTimeout(function () {
+    if (started || done || blobBusy) { return; }
+    // The player asked and nothing arrived at all (loading, or no source): the page asks for the file itself. A phone that does not load on purpose (power
+    // or data saving: the player stands idle) is left alone - no download in the background.
+    if (!blobTried && v.readyState === 0 && (v.networkState === 2 || v.networkState === 3)) { viaFetch(false); } else { giveUp(); }
+  }, 9000);
   // Tap: plays again from the start (only when it is not running); the standing last frame is replaced at that very moment.
   wrap.addEventListener("click", function () {
     if (!v.parentNode) { return; }
+    if (blobBusy) { return; }
+    if (v.error && !blobTried) { tapped = true; viaFetch(true); return; }  // the player refused the address: ask for the file ourselves
     if (v.ended || v.paused) {
       var retry = wrap.classList.contains("failed");  // nothing could be shown: the tap is a new try, from the start
       if (!v.getAttribute("src")) { v.src = v.getAttribute("data-src"); }

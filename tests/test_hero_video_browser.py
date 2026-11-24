@@ -234,6 +234,41 @@ def test_a_tap_that_does_not_help_says_why(hero):
     assert hero.b.run("!!document.querySelector('video.hero-video')")  # the video stays: the next tap tries again
 
 
+def _player_refused(blob_too: bool = False) -> str:
+    """The video player's OWN request for the file is refused - a phone's player that carries no sign-in, a proxy that cannot do ranges: it gets a page instead
+    of a video (error 4, "format not supported"), while a request of the page itself (fetch) is answered as always. ``blob_too``: the file is bad for
+    the player however it comes."""
+    keep = "false" if blob_too else "/^blob:/.test(v)"
+    return (
+        "var _ms = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');"
+        "Object.defineProperty(HTMLMediaElement.prototype, 'src', { get: function () { return _ms.get.call(this); },"
+        f" set: function (v) {{ _ms.set.call(this, {keep} ? v : '/healthz'); }} }});"
+    )
+
+
+def test_a_video_the_player_refuses_is_fetched_by_the_page_and_plays(hero):
+    """Home showed "format not supported" and a black box on a phone although the file is fine: the player's own request was refused. The page now asks
+    for the file itself (same address, same sign-in) and plays it from memory."""
+    hero.visit(_player_refused(), keep_last=False)
+    hero.b.wait_for(
+        "(function () { var v = document.querySelector('video.hero-video'); return v && v.src.indexOf('blob:') === 0 && v.currentTime > 0.1; })()",
+        seconds=25,
+    )
+    s = hero.state()
+    assert "vplay" in s["classes"] and "failed" not in s["classes"]
+    assert hero.b.run("document.querySelector('video.hero-video').error === null")
+
+
+def test_a_file_the_browser_cannot_decode_says_what_the_server_delivered(hero):
+    hero.visit(_player_refused(blob_too=True), keep_last=False)
+    hero.b.wait_for("document.querySelector('.hero-media .hero-frozen')", seconds=15)  # the picture stands
+    time.sleep(1.5)  # the page tried the file itself, too
+    _tap(hero)
+    hero.b.wait_for("document.querySelector('.hero-why')", seconds=8)
+    note = hero.b.run("document.querySelector('.hero-why').textContent")
+    assert "format not supported" in note and "server 206 video/webm" in note and "from memory too" in note, note
+
+
 def test_with_no_picture_at_all_the_video_stays_and_a_tap_tries_again(hero):
     pictures = {f: f.read_bytes() for f in (hero.data / "app").rglob("*.jpg")}  # the video's own picture: taken away for this test only
     for f in pictures:
