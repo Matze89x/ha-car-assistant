@@ -270,6 +270,10 @@ dialog.vsw::backdrop { background: rgba(5,7,11,.84); -webkit-backdrop-filter: bl
   /* ... also when the (empty) notice slot sits between the header and the page: it still counts as a neighbour */
   .vpage.with-more > main > .page-head + .notice-slot + *, .vpage.with-more > main > .page-head + .notice-slot + .vd > :first-child, .vpage.with-more > main > .page-head + .notice-slot + .cards > .card { margin-top: 0; }
 
+  /* ... and when the page is built in columns (the About page: a grid of two columns inside a wrapper), the first card of EACH column starts on that line too:
+     a margin inside a grid cell does not collapse away, so it is taken off here (tools/check_alignment.py measures every page; a test guards it) */
+  .vpage.with-more > main > .page-head + .about-wrap .ab-col > :first-child, .vpage.with-more > main > .page-head + .notice-slot + .about-wrap .ab-col > :first-child { margin-top: 0; }
+
   /* ... and the "More" title on the left sits on exactly the same line */
   .more-pane .mgroup-wrap { margin-top: 0; margin-bottom: var(--sp-block); }
   .more-pane .mi.sel, .more-pane .mi.sel:hover { background: rgba(var(--fg-rgb),.10); }

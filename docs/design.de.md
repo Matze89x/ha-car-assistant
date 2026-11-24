@@ -54,7 +54,7 @@ Jede Seite außer Home beginnt mit `page_head(icon, title)` (Makro in `_macros.h
 
 Die Führungsseiten der Ersteinrichtung (`/setup/*`) haben gar keine Navigation; die erste Seite *Fahrzeug hinzufügen* behält sie.
 
-Neben der *Weiteres*-Liste beginnt das erste Element der Seite auf derselben Linie wie die erste Karte der Liste.
+Neben der *Weiteres*-Liste beginnt das erste Element der Seite auf derselben Linie wie die erste Karte der Liste - **auf jeder Seite, bei jeder Breite, mit Meldung darüber oder leerer Seite**. Eine Karte mit eigenem oberen Rand in einer Grid-Zelle (eine Spalte der Seite „Über“) bricht das: ein Rand in einer Grid-Zelle fällt nicht zusammen. `python tools/check_alignment.py` misst jede Seite der *Weiteres*-Liste in einem Chrome ohne Fenster (erster Block, Titelzeile, Abstand zur Liste) und `tests/test_page_alignment.py` führt das aus, wo Chrome installiert ist; nach jeder Änderung an Seitenkopf, Meldung oder Spalte ausführen.
 
 ## 4. Bausteine
 

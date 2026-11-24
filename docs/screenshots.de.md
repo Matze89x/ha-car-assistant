@@ -2,7 +2,7 @@
 
 [🇬🇧 English](screenshots.md) · 🇩🇪 Deutsch
 
-So sieht Car Assistant im Einsatz aus. Alle Bilder zeigen ein **Demo-Auto mit ausgedachten Daten** (ein Diesel und ein Elektroauto mit zwei Jahren Historie); kein echtes Fahrzeug, keine echten Orte. Das Demo-Auto kannst du selbst anlegen: *Fahrzeug hinzufügen → Demo-Auto*.
+So sieht Car Assistant im Einsatz aus. Alle Bilder zeigen ein **Demo-Auto mit ausgedachten Daten** (ein Diesel und ein Elektroauto mit zwei Jahren Historie und ein Kleinwagen mit wenig Daten); kein echtes Fahrzeug, keine echten Orte. Das Demo-Auto kannst du selbst anlegen: *Fahrzeug hinzufügen → Demo-Auto*.
 
 ## Dashboard
 

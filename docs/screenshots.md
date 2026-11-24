@@ -2,7 +2,7 @@
 
 🇬🇧 English · [🇩🇪 Deutsch](screenshots.de.md)
 
-This is what Car Assistant looks like in use. All pictures show a **demo car with made-up data** (a diesel and an electric car with two years of history); no real vehicle, no real places. You can create the demo car yourself: *Add vehicle → Demo car*.
+This is what Car Assistant looks like in use. All pictures show a **demo car with made-up data** (a diesel and an electric car with two years of history, and a compact car with little data); no real vehicle, no real places. You can create the demo car yourself: *Add vehicle → Demo car*.
 
 ## Dashboard
 

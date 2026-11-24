@@ -17,6 +17,7 @@ import base64
 import json
 import os
 import socket
+import shutil
 import struct
 import subprocess
 import tempfile
@@ -24,7 +25,15 @@ import time
 import urllib.request
 from pathlib import Path
 
-CHROME = os.environ.get("CHROME") or "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+def find_chrome() -> str | None:
+    """Google Chrome or Chromium: ``CHROME`` (a path), the Mac application, or a program of that name on the path; None when there is none."""
+    candidates = [os.environ.get("CHROME") or "", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
+    candidates += [shutil.which(name) or "" for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "chrome")]
+    return next((c for c in candidates if c and Path(c).exists()), None)
+
+
+CHROME = find_chrome() or "chrome"
 
 
 class _Socket:
@@ -100,6 +109,7 @@ class Browser:
                 "--disable-gpu",
                 "--hide-scrollbars",
                 "--no-first-run",
+                *(["--no-sandbox"] if hasattr(os, "geteuid") and os.geteuid() == 0 else []),  # a root user (a container) cannot use the sandbox
                 f"--remote-debugging-port={self.port}",
                 f"--user-data-dir={self.tmp.name}",
                 "about:blank",
@@ -148,7 +158,11 @@ class Browser:
     def open(self, url: str, width: int, height: int, scale: int = 1, settle: float = 2.5) -> None:
         self.call("Emulation.setDeviceMetricsOverride", width=width, height=height, deviceScaleFactor=scale, mobile=False)
         self.call("Page.navigate", url=url)
-        time.sleep(settle)  # the page, its scripts and the first animations
+        time.sleep(0.2)  # the old page is gone
+        end = time.time() + 20
+        while time.time() < end and self.run("document.readyState") != "complete":
+            time.sleep(0.1)
+        time.sleep(settle)  # the scripts and the first animations
 
     def run(self, js: str):
         """Run a script in the page (a promise is awaited); the value it returns comes back."""

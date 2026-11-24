@@ -54,7 +54,7 @@ Every page except Home starts with `page_head(icon, title)` (macro in `_macros.h
 
 First-start guide pages (`/setup/*`) have no navigation at all; the first *Add vehicle* page keeps it.
 
-Next to the *More* list the first element of the page starts on the same line as the first card of the list.
+Next to the *More* list the first element of the page starts on the same line as the first card of the list - **on every page, at every width, with a message above or an empty page**. A card with a top margin of its own inside a grid cell (a column of the About page) breaks it: a margin inside a grid cell does not collapse. `python tools/check_alignment.py` measures every page of the *More* list in a headless Chrome (first block, title line, gap to the list) and `tests/test_page_alignment.py` runs it where Chrome is installed; run it after every change of a page header, a notice or a column.
 
 ## 4. Components
 

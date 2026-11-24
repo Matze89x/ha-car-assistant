@@ -101,6 +101,8 @@ def seed(data: Path, lang: str) -> None:
 
     from carassistant import accounts, config, db, mcp, slugs
 
+    config.forget_external()  # a second language in the same process must not inherit the first one's address (the password rules are strict with one)
+    config.forget_settings()
     db.migrate()
     with db.tx() as conn:
         db.set_setting(conn, "setup.language", "1")
