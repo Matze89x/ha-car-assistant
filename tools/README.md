@@ -13,3 +13,4 @@ Site colours: accent `#e2001a`, status green `#4ade80`, background `#0d1016`, te
 
 - `release.py` - the one place of the version and the stage (`release.json`); writes them into every file and both changelogs (`python tools/release.py` shows the state, `set` / `fix` / `feature` change it).
 - `make_screenshots.py` - makes every picture of `docs/screenshots/` again from the made-up demo cars with a headless Google Chrome (`--only dashboard,report`, `--langs en`); it runs the app itself on a temporary data folder and reads nothing of a real installation.
+  The two *quick entry* pictures (`odometer-photo`, `fuel-scan`) need a tap and a photo first: `cdp.py` (a small DevTools client, standard library only) drives the same Chrome, `demo_photos.py` draws the made-up receipt and instrument cluster that are read by the real text recognition (Tesseract must be installed).

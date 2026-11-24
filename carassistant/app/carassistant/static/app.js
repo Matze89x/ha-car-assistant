@@ -679,6 +679,15 @@ document.addEventListener("click", function (event) {
     var scope = scopeOf(open), form = scope.querySelector(".odo-entry");
     if (form) { show(scope, scope.classList.contains("odo-flip") ? !scope.classList.contains("open") : form.hidden); }
   });
+  function fromHash() {  /* a link to #odometer (the start list, a shortcut) turns the plate over to the entry right away */
+    if (location.hash !== "#odometer") { return; }
+    var flip = document.querySelector(".odo-flip:not(.odo-static)");
+    if (flip) { show(flip, true); flip.scrollIntoView({ block: "center" }); return; }
+    var open = document.querySelector("[data-odo-open]");
+    if (open) { open.click(); }
+  }
+  fromHash();
+  window.addEventListener("hashchange", fromHash);
   document.addEventListener("keydown", function (e) {
     if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("odo-front")) { e.preventDefault(); e.target.click(); return; }  /* the figure is a button */
     if (e.key !== "Escape") { return; }
@@ -687,11 +696,19 @@ document.addEventListener("click", function (event) {
   });
 })();
 
-// The list of odometer readings is a section of the vehicle passport: a link to #odo-readings (the plate, the confirm page, an old address) opens it.
+// A link that points at a folded part of a page opens it: #odo-readings (the list of odometer readings in the vehicle passport), #addcard (the add card of a
+// page) and #fuel-add (the form of a new fill-up with its Scan receipt button).
 (function () {
   function openReadings() {
-    var d = location.hash === "#odo-readings" ? document.getElementById("odo-readings") : null;
+    var d = location.hash === "#odo-readings" ? document.getElementById("odo-readings") : (location.hash === "#addcard" ? document.getElementById("addcard") : null);
     if (d && d.tagName === "DETAILS") { d.open = true; d.scrollIntoView(); }
+    var panel = location.hash === "#fuel-add" ? document.getElementById("fuel-add") : null;
+    if (panel) {  /* after the rest of this script has set its handlers up */
+      setTimeout(function () {
+        if (panel.hidden) { var b = document.querySelector('[data-toggle-panel="#fuel-add"]'); if (b) { b.click(); } }
+        panel.scrollIntoView();
+      }, 0);
+    }
   }
   openReadings();
   window.addEventListener("hashchange", openReadings);

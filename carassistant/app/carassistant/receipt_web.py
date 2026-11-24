@@ -12,8 +12,9 @@ from . import db, odometer_scan, receipt, summary, units
 from .web import app, unit_for, vehicle_or_404
 
 
-def shown(result: dict, u: units.Units, base: str) -> dict:
-    """The numbers of a receipt (litres, price per litre) in the units this app shows, as text for the form fields."""
+def shown(result: dict, u: units.Units, base: str, last_km: int | None = None) -> dict:
+    """The numbers of a receipt (litres, price per litre, the odometer) in the units this app shows, as text for the form fields. An odometer
+    on the receipt is only offered when it fits the last reading of the car (not below it, not impossibly far above)."""
     out = {
         "found": result["found"],
         "checked": result["checked"],
@@ -27,6 +28,11 @@ def shown(result: dict, u: units.Units, base: str) -> dict:
     out["amount"] = f"{amount:.2f}" if amount is not None else ""
     out["price_per_unit"] = f"{price:.3f}" if price is not None else ""
     out["price_total"] = f"{result['price_total']:.2f}" if result["price_total"] is not None else ""
+    km = result.get("odometer")
+    if km and odometer_scan.plausible(km, last_km):
+        out["odometer_km"] = str(round(u.d(km)))
+    else:
+        out["found"] = [k for k in out["found"] if k != "odometer"]
     return out
 
 
@@ -37,6 +43,7 @@ async def fuel_scan(request: Request, vid: int):
     with db.tx() as conn:
         vehicle = vehicle_or_404(conn, vid)
         base = unit_for(vehicle["fuel_type"])
+        last_km = summary.current_odometer(conn, vid)
     try:
         if int(request.headers.get("content-length") or 0) > receipt.MAX_BYTES:
             raise HTTPException(413, "photo too large")
@@ -47,7 +54,7 @@ async def fuel_scan(request: Request, vid: int):
         result = await asyncio.to_thread(receipt.scan, data)
     except ValueError:
         raise HTTPException(400, "not a photo") from None
-    out = shown(result, units.of(vehicle), base)
+    out = shown(result, units.of(vehicle), base, last_km)
     if vehicle["fuel2_type"] == "lpg" and re.search(r"autogas|\blpg\b", result["notes"] or "", re.I):
         out["fuel_kind"] = "second"  # the receipt says gas and the car has gas as its second fuel: the fill-up is one of that
     return JSONResponse(out, headers={"Cache-Control": "no-store"})

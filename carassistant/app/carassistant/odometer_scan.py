@@ -45,21 +45,65 @@ def pick(found: list[int], last: int | None) -> tuple[int | None, bool]:
     return best, bool(ok)
 
 
+# a number with a unit behind it ("86020 km", "86.020 km", "53 450 mi") is the odometer; "24.5 km" has a decimal and is a trip counter
+LABELLED = re.compile(r"(?<![\d.,])(\d{1,3}(?:[ .,'’]\d{3})+|\d{3,7})(?![\d])\s*(?:km|mi|kilometer)\b(?!\s*/)", re.I)  # not "km/h"
+LOWER = 0.5  # the odometer sits in the lower half of a cluster; the dial numbers (0 ... 260) are above it
+
+
+def labelled(text: str) -> list[int]:
+    """The numbers of a text that stand right before ``km`` / ``mi`` and have no decimals (thousands groups are joined): the odometer, not a trip counter."""
+    text = re.sub(r"(?<=\d)[Oo](?=\d)|(?<=\d)[Oo](?=\s*km)", "0", text)  # a letter O inside a number
+    found = []
+    for m in LABELLED.finditer(text):
+        value = int(re.sub(r"\D", "", m.group(1)))
+        if MIN_VALUE <= value < 10**MAX_DIGITS:
+            found.append(value)
+    return found
+
+
 def read(data: bytes, last: int | None = None) -> dict:
-    """A photo -> ``{"value": int | None, "plausible": bool}``. ValueError for a file that is no photo."""
+    """A photo -> ``{"value": int | None, "plausible": bool}``. ValueError for a file that is no photo.
+
+    The lower half is read first (the odometer is there, away from the dial numbers), with the unit as a clue: a number before "km" counts more.
+    Then the whole photo (somebody may have photographed only the little display). Every reading is one vote per number; two different readings
+    that agree on a plausible number end the search."""
     if len(data) > receipt.MAX_BYTES:
         raise ValueError("too large")
     cleaned = receipt.clean(data)
-    variants = [cleaned, receipt.inverted(cleaned)]
-    found: list[int] = []
+    votes: Counter = Counter()  # number -> weighted votes
+    readings: Counter = Counter()  # number -> how many different readings found it
+    tagged: set[int] = set()  # numbers that stood right before their unit
+
+    def add(numbers_found, weight: int) -> None:
+        for n in set(numbers_found):
+            votes[n] += weight
+            readings[n] += 1
+
+    def best() -> tuple[int | None, bool]:
+        everything = list(
+            tagged or votes
+        )  # a number with its unit beats every other (even one below the last reading: it is shown, flagged)
+        pool = [n for n in everything if plausible(n, last)] or everything
+        if not pool:
+            return None, False
+        value = max(pool, key=lambda n: (votes[n], len(str(n)), n))
+        return value, plausible(value, last)
+
     with receipt._one_at_a_time:
-        for psm in (6, 11, 7):  # page layouts: several lines first (a trip counter confuses the single-line reading)
-            seen: set[int] = set()
-            for image in variants:
-                seen.update(numbers(receipt.read_text(image, psm, digits=True)))
-            found += sorted(seen)  # one vote per page layout: the same wrong reading of both copies is still one vote
-            value, ok = pick(found, last)
-            if value is not None and ok and found.count(value) >= 2:  # two layouts agree on a plausible number: good enough
-                return {"value": value, "plausible": True}
-    value, ok = pick(found, last)
+        for part, weight in ((receipt.lower(cleaned, LOWER), 2), (cleaned, 1)):
+            variants = [part, receipt.inverted(part)]
+            if weight == 2:  # the unit as a clue, read as text (not only digits)
+                for image in variants:
+                    found = labelled(receipt.read_text(image, 6))
+                    tagged.update(found)
+                    add(found, 4)
+            for psm in (6, 11, 7):  # page layouts: several lines first (a trip counter confuses the single-line reading)
+                seen: set[int] = set()
+                for image in variants:
+                    seen.update(numbers(receipt.read_text(image, psm, digits=True)))
+                add(seen, weight)  # one vote per page layout: the same wrong reading of both copies is still one vote
+                value, ok = best()
+                if value is not None and ok and readings[value] >= 2:  # two readings agree on a plausible number: good enough
+                    return {"value": value, "plausible": True}
+    value, ok = best()
     return {"value": value, "plausible": ok}

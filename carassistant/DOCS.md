@@ -15,6 +15,7 @@ More cars: *Settings → Vehicles → Add vehicle*; a **Switch vehicle** menu th
 
 ## What it does
 - **Per car:** vehicle passport with equipment, fuel or charging, service, appointments, tasks, parts, tyres, modifications, documents, trips with km counters, the manual, photos and videos. Everything works for combustion, hybrid and electric cars.
+- **Quick entry:** tap the odometer on the dashboard to type the number or photograph the cluster; *Scan receipt* on the fuel page fills in a fill-up from a photo of the receipt (date, station, fuel, amount, price, total, odometer). Read on your own server, never stored, no plugin needed.
 - **Reminders:** maintenance, appointments and your own reminders; open points show as a dot on the tab. Notifications go to your phone through your own Home Assistant notify service, per user.
 - **Plugins and integrations:** a plugin connects anything outside (a car, a cloud account, a web service) through the Plugin API; an integration adds pages (for example coding values or a fuel additive reminder). Both are installed from *sources* you add yourself; nothing is fetched on its own.
 - **Units and currency:** one choice for the whole app under *Settings → System → Region* (km / miles, litres / gallons, mpg, psi, any currency). Everything is stored in base units, so you can switch back and forth.

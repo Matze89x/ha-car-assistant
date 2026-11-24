@@ -19,6 +19,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,8 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 CHROME = os.environ.get("CHROME") or "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 DIESEL, EV = "demo-diesel", "demo-electric"
+COMPACT = "demo-compact"  # a plain car with no data from the car: its dashboard shows the odometer plate you can turn over and type on
+SCENES = ("odometer-photo", "fuel-scan")  # pictures that need a tap and a photo first (tools/cdp.py)
 
 # name, path, width, height (desktop pictures; the height cuts the page where it is still worth looking at)
 DESKTOP = (
@@ -35,11 +38,22 @@ DESKTOP = (
     ("dashboard-ev", f"/v/{EV}", 1200, 1250),
     ("fuel", f"/v/{DIESEL}/e/fuel", 1200, 1300),
     ("trips", f"/v/{DIESEL}/e/trips?ap=all", 1200, 2300),
-    ("trip-map", f"/v/{DIESEL}/e/trips?ap=all&open=1", 1200, 3600, (1590, 2740)),  # the first trip of the demo car is open: its route on the map, coloured by speed
+    (
+        "trip-map",
+        f"/v/{DIESEL}/e/trips?ap=all&open=1",
+        1200,
+        3600,
+        (1590, 2740),
+    ),  # the first trip of the demo car is open: its route on the map, coloured by speed
     ("service", f"/v/{DIESEL}/e/service", 1200, 1300),
     ("tires", f"/v/{DIESEL}/e/tires", 1200, 1300),
     ("mods", f"/v/{DIESEL}/e/mods", 1200, 1100),
-    ("notice", f"/v/{DIESEL}/docs?m=err.required", 1200, 800),  # the one notice tile under the page header: an error message (red) above the page introduction
+    (
+        "notice",
+        f"/v/{DIESEL}/docs?m=err.required",
+        1200,
+        800,
+    ),  # the one notice tile under the page header: an error message (red) above the page introduction
     ("tasks", f"/v/{DIESEL}/e/tasks", 1200, 1300),
     ("appointments", f"/v/{DIESEL}/e/appointments", 1200, 1000),
     ("parts", f"/v/{DIESEL}/e/parts", 1200, 1000),
@@ -94,11 +108,30 @@ def seed(data: Path, lang: str) -> None:
         for electric, name in ((False, "Demo Diesel"), (True, "Demo Electric")):
             vid = demo_data.create(conn, electric=electric)
             conn.execute("UPDATE vehicles SET name = ?, slug = ? WHERE id = ?", (name, slugs.unique(conn, name, vid), vid))
-            for title, category in (("Quick guide (example)", "manual"), ("Service plan (example)", "inspection"), ("Insurance policy (example)", "insurance")):
+            for title, category in (
+                ("Quick guide (example)", "manual"),
+                ("Service plan (example)", "inspection"),
+                ("Insurance policy (example)", "insurance"),
+            ):
                 conn.execute(
                     "INSERT INTO documents(vehicle_id, category, title, filename, mime, size) VALUES(?,?,?,?,?,?)",
                     (vid, category, title, "example.txt", "text/plain", 120),
                 )
+        vid = conn.execute(
+            "INSERT INTO vehicles (name, make, model, fuel_type, plate) VALUES ('Demo Compact', 'Example', 'Compact', 'diesel', 'EF-GH 456')"
+        ).lastrowid
+        conn.execute("UPDATE vehicles SET slug = ? WHERE id = ?", (slugs.unique(conn, "Demo Compact", vid), vid))
+        today = date.today()
+        for days, km in ((70, 84_200), (35, 84_900), (3, 85_640)):  # the last reading is a little below what the photo of the cluster shows
+            conn.execute(
+                "INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, ?, ?, 'manual')",
+                (vid, (today - timedelta(days=days)).isoformat(), km),
+            )
+        for days, km, litres in ((36, 84_250, 41.2), (12, 85_150, 39.8)):
+            conn.execute(
+                "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_per_unit, price_total, full_tank, station) VALUES (?, ?, ?, ?, 1.659, ?, 1, 'Example Fuel')",
+                (vid, (today - timedelta(days=days)).isoformat(), km, litres, round(litres * 1.659, 2)),
+            )
         accounts.create_user(conn, "demo", "correct horse battery staple", admin=True)
         db.set_setting(conn, "ext.url", "https://car.example.com")
         db.set_setting(conn, "map.tiles", "1")  # the maps of the trips and the position show real map tiles in the pictures
@@ -135,7 +168,9 @@ def shot(base: str, path: str, out: Path, width: int, height: int, scale: int, c
         base + path,
     ]
     subprocess.run(cmd, check=True, capture_output=True, timeout=90)
-    if crop:  # a tall picture of which only a band is worth showing (the open trip with its map); needs Pillow, else the whole picture stays
+    if (
+        crop
+    ):  # a tall picture of which only a band is worth showing (the open trip with its map); needs Pillow, else the whole picture stays
         try:
             from PIL import Image
 
@@ -143,6 +178,72 @@ def shot(base: str, path: str, out: Path, width: int, height: int, scale: int, c
                 im.crop((0, crop[0] * scale, im.width, min(im.height, crop[1] * scale))).save(out)
         except ImportError:
             pass
+
+
+def compose(photo: bytes, screen: Path, out: Path, photo_height: int | None = 760) -> None:
+    """The photo on the left, an arrow, the picture of the app on the right: what the person holds up and what the app makes of it."""
+    import io
+
+    from PIL import Image, ImageDraw
+
+    left = Image.open(io.BytesIO(photo)).convert("RGB")
+    right = Image.open(screen).convert("RGB")
+    photo_height = photo_height or right.height  # None: the photo is as tall as the picture of the app
+    left = left.resize((round(left.width * photo_height / left.height), photo_height), Image.LANCZOS)
+    if right.height > photo_height:  # the picture of the app is never taller than the photo
+        right = right.crop((0, 0, right.width, photo_height))
+    gap = 110
+    height = max(left.height, right.height) + 60
+    sheet = Image.new("RGB", (left.width + gap + right.width + 80, height), (13, 16, 22))
+    sheet.paste(left, (30, (height - left.height) // 2))
+    sheet.paste(right, (30 + left.width + gap, (height - right.height) // 2))
+    d = ImageDraw.Draw(sheet)
+    x0, x1, y = 30 + left.width + 24, 30 + left.width + gap - 24, height // 2
+    d.line((x0, y, x1, y), fill=(226, 0, 26), width=8)
+    d.polygon([(x1 + 12, y), (x1 - 14, y - 22), (x1 - 14, y + 22)], fill=(226, 0, 26))
+    if sheet.width > 1800:  # the pictures of the documentation are not wider than they are shown
+        sheet = sheet.resize((1800, round(sheet.height * 1800 / sheet.width)), Image.LANCZOS)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(out, optimize=True)
+
+
+def scenes(base: str, out_root: Path, lang: str, only: set[str]) -> None:
+    """The pictures that show a tap and a photo: the odometer plate turned over with a photo of the cluster read, the fill-up form with a receipt read."""
+    from cdp import Browser, upload_script
+
+    import demo_photos
+
+    note = "(function(){var n=document.querySelector('%s');return !!n && !n.hidden && !n.classList.contains('busy');})()"
+    with Browser() as b, tempfile.TemporaryDirectory() as tmp:
+        if not only or "odometer-photo" in only:
+            b.open(f"{base}/v/{COMPACT}", 520, 900, 2)
+            b.run("document.querySelector('.odo-front').click()")  # a tap on the odometer turns it over to the entry
+            time.sleep(1.2)
+            photo = demo_photos.cluster_photo(odometer=86_020, trip=24.5)
+            b.run(upload_script(".odo-flip [data-scan-file]", photo, "cluster.jpg", "image/jpeg"))
+            b.wait_for(note % ".odo-flip [data-scan-note]")
+            time.sleep(1.0)
+            x, y, w, h = b.run(
+                "(function(){var f=document.querySelector('.odo-flip').getBoundingClientRect(),n=document.querySelector('.odo-flip [data-scan-note]').getBoundingClientRect();"
+                "return [f.left+scrollX,f.top+scrollY,f.width,Math.max(f.bottom,n.bottom)-f.top];})()"
+            )
+            screen = Path(tmp) / "odo.png"
+            b.shot(screen, clip=(max(0, x - 18), max(0, y - 6), min(520, w + 36), h + 10), scale=2)
+            compose(photo, screen, out_root / lang / "odometer-photo.png")
+            print(lang, "odometer-photo", flush=True)
+        if not only or "fuel-scan" in only:
+            b.open(f"{base}/v/{COMPACT}/e/fuel#fuel-add", 520, 1000, 2, settle=3.5)  # the link opens the form of a new fill-up
+            photo = demo_photos.receipt_photo(lang=lang, odometer=86_020)
+            b.run(upload_script("#fuel-add [data-scan-file]", photo, "receipt.jpg", "image/jpeg"))
+            b.wait_for(note % "#fuel-add [data-scan-note]")
+            time.sleep(0.8)
+            x, y, w, h = b.run(
+                "(function(){var r=document.getElementById('fuel-add').getBoundingClientRect();return [r.left+scrollX,r.top+scrollY,r.width,r.height];})()"
+            )
+            screen = Path(tmp) / "fuel.png"
+            b.shot(screen, clip=(max(0, x - 10), max(0, y - 10), min(520, w + 20), h + 20), scale=2)
+            compose(photo, screen, out_root / lang / "fuel-scan.png", photo_height=None)
+            print(lang, "fuel-scan", flush=True)
 
 
 def main() -> None:
@@ -172,6 +273,8 @@ def main() -> None:
                     if not only or name in only:
                         shot(base, path, out_root / lang / f"{name}.png", w, h, 2, *crop)
                         print(lang, name, flush=True)
+                if not only or only & set(SCENES):
+                    scenes(base, out_root, lang, only)
                 db = sqlite3.connect(data / "carassistant.db")
                 for name, theme, accent in DESIGNS:
                     if only and name not in only:

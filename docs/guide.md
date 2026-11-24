@@ -19,6 +19,29 @@ A short guide asks for a language, then your first car (or a demo car), then whi
 ## Dashboard
 *Edit page* lets you move, hide and resize the widgets, and *Edit video or photo* opens the picture window.
 
+## Quick entry: the odometer and fill-ups
+The two things you enter most need **no plugin and no typing marathon**. Both work on a car that is connected to nothing.
+
+**Update the odometer on the dashboard - five seconds.**
+1. Open the dashboard of the car and tap the odometer: it turns over to a box. (A link to `…/v/<car>#odometer` opens it at once - the *Get started* list of a new car uses it.)
+2. Type the number and press the arrow - **or** tap the camera button: take a photo of the instrument cluster (the *lower* part is enough, where the odometer and the trip counter sit) or pick a photo from your phone.
+3. The server reads the photo, puts the number in the box and says *Read from the photo - please check the number before you save*. The number is compared with the last reading: a warning appears when it is lower or far higher. Nothing is saved until you press the arrow.
+
+The reading looks at the lower half of the photo first and trusts a number that stands right before *km* (or *mi*); a trip counter such as *24.5 km* (it has a decimal) and the numbers of the dials (0 ... 260) are not taken for the odometer. A photo of only the little display works as well. Tips: the display in the picture, no reflections, the unit visible. While a plugin reports the odometer the box is fixed - there is nothing to type.
+
+![The odometer turned over: a photo of the cluster was read](screenshots/en/odometer-photo.png)
+
+**Fill up - three taps.**
+1. *Fuel* → the plus button (or *Get started → Add your first fill-up*; the link `…/e/fuel#fuel-add` opens the form).
+2. *Scan receipt* → take a photo of the fuel receipt. The form fills in: **date, station, fuel, amount, price per unit, total** and - when the station printed it (*KM-Stand*, *Odometer*) - the **odometer**. The filled fields are marked.
+3. Look at the marked fields and save. Amount × price = total is checked to the cent: a misread digit is found, a missing value is calculated and the form says so.
+
+The reading is patient: when the first try does not add up, it tries again with another page layout, a sharper and bigger copy, black and white (faded thermal paper) and the photo turned back a little (a crooked receipt) - and keeps the best. The odometer of a receipt is only offered when it fits the last reading of the car.
+
+![A fuel receipt read: the form is filled in](screenshots/en/fuel-scan.png)
+
+Both photos are read **on your own server** (text recognition with Tesseract, nothing goes online) and are never stored. The add-on has the text recognition built in; on a manual install the buttons appear when Tesseract is installed.
+
 ## Vehicle data
 *More → Vehicle data* shows everything about the car; the pencil opens the form. The form is split into boxes (*Your vehicle, Identification, Technical, Energy, Papers*) and has one **Save** in the page header. Photo, video, design, icon, Home Assistant entities and backup are not on this page: they sit on the **Car** tab of the settings.
 
@@ -41,7 +64,7 @@ A short guide asks for a language, then your first car (or a demo car), then whi
 
 **Fuel** holds the **fuel station search** on top and the fill-ups below, by month. The search is deliberately simple: it knows what your car needs (diesel or petrol), looks within 15 km and lists each station in one line - name, distance and price, the cheapest one marked in green; two tabs choose *around the car* or *my position*. **Tyres** has a tab per season (summer, winter, all-season) with **one set per season**: the name is the heading (a must), then size, the recommended pressures (normal and fully loaded), what the car last measured and where the set is stored; the set that is mounted carries a shield symbol. **Extra work** shows the odometer and a card per job (the icon follows the job) with interval, progress bar and *last* / *next*; there are no ready-made jobs because every car is different. *Edit* (bottom right of the card) opens *Done now - at odometer* with *Reset* on top and the form below. **Modifications** are cards grouped by year with the sum of the year; the plus button opens the form like on every other page. **Appointments** are one compact column with an *Edit* button each; the groups *Upcoming* and *Completed* show only when there is such an appointment (completed = marked done); the date can be a month or a day, written as set under Settings → System → Date & time. **Parts & purchases** look like till receipts (date and shop, item and price, details). **Documents** are cards with *Open* and *Edit*: title, category, document date, valid until (a badge shows when it runs out) and a note. **Manual** imports a PDF (with a text layer), an EPUB, a text / Markdown file or a [package with page images](manual-package.md), shows the pages as image or text, lists the chapters, searches, remembers where you stopped and exports an EPUB - the file stays on your server.
 
-**Scan a receipt.** When you add a fill-up, *Scan receipt* takes a photo of the fuel receipt (the phone opens its camera). The photo is read **on your own server** (text recognition with Tesseract, nothing goes online) and is thrown away at once; it only fills in the form: date, amount, price per unit, total, station name and the product (for example *Super E10*). The fields it filled are marked; check them and save. The app checks that *amount x price = total*, finds a misread digit that way and calculates one missing value (and tells you when it did). Without the text recognition on the server the button is simply not there.
+**Scan a receipt.** When you add a fill-up, *Scan receipt* takes a photo of the fuel receipt (the phone opens its camera). The photo is read **on your own server** (text recognition with Tesseract, nothing goes online) and is thrown away at once; it only fills in the form: date, amount, price per unit, total, station name, the product (for example *Super E10*) and - when the station printed it - the odometer. The fields it filled are marked; check them and save. The app checks that *amount x price = total*, finds a misread digit that way and calculates one missing value (and tells you when it did). Without the text recognition on the server the button is simply not there. More in *Quick entry* above.
 
 **Odometer: a counter box you can turn over.** The odometer on the dashboard is a dark counter box with its label above it: the digits roll down through it like a mechanical counter. Tap anywhere on it and it turns over to the entry, which shows the last reading as a hint: type the number, or take a photo of the cluster (camera button) or pick one (upload button). The photo is read on your own server, like a receipt, and never stored. The number it finds is only a suggestion: it is compared with the last reading and a warning appears when it is lower or far higher. Nothing is saved until you press the check mark; a tap anywhere else turns the box back. While a plugin reports the odometer the box is fixed - there is nothing to edit. On a car without any reading yet the dashboard offers the same entry for the first one. The *Odometer* widget has three looks to choose from in its settings under *Edit page*: *Drums*, *Tile* and *Counter box* (the same box without turning over, following the width of its slot).
 

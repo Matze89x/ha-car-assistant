@@ -13,6 +13,7 @@ Weitere Autos: *Einstellungen → Fahrzeuge → Fahrzeug hinzufügen*; oben ersc
 
 ## Was sie kann
 - **Je Auto:** Fahrzeugpass mit Ausstattung, Tanken oder Laden, Service, Termine, Aufgaben, Teile, Reifen, Umbauten, Dokumente, Fahrten mit Km-Zählern, das Handbuch, Fotos und Videos. Alles funktioniert für Verbrenner, Hybride und Elektroautos.
+- **Schnell eintragen:** Tippe auf den Kilometerstand im Dashboard, um die Zahl zu tippen oder den Tacho zu fotografieren; *Beleg scannen* auf der Tank-Seite füllt eine Tankung aus einem Foto des Belegs (Datum, Tankstelle, Sorte, Menge, Preis, Betrag, Kilometerstand). Auf deinem eigenen Server gelesen, nie gespeichert, kein Plugin nötig.
 - **Erinnerungen:** Wartung, Termine und eigene Erinnerungen; offene Punkte zeigen sich als Punkt auf dem Reiter. Benachrichtigungen kommen aufs Handy über deinen eigenen Home-Assistant-Notify-Dienst, je Benutzer.
 - **Plugins und Integrationen:** Ein Plugin verbindet etwas von außen (ein Auto, ein Cloud-Konto, einen Webdienst) über die Plugin-API; eine Integration fügt Seiten hinzu (zum Beispiel Coding-Werte oder eine Kraftstoff-Additiv-Erinnerung). Beide kommen aus *Quellen*, die du selbst hinzufügst; nichts wird von allein geholt.
 - **Einheiten und Währung:** eine Wahl für die ganze App unter *Einstellungen → System → Region* (km / Meilen, Liter / Gallonen, mpg, psi, jede Währung). Gespeichert wird in Basiseinheiten, du kannst also hin- und herschalten.

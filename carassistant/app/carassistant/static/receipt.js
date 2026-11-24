@@ -1,6 +1,6 @@
 /* Fuel receipt: a photo fills in the form of a new refuel (the server reads it, see receipt.py). Nothing is saved before the person presses save. */
 (function () {
-  var FIELDS = ['date', 'amount', 'price_per_unit', 'price_total', 'station', 'notes', 'odometer', 'fuel_kind'];
+  var FIELDS = ['date', 'amount', 'price_per_unit', 'price_total', 'station', 'notes', 'odometer', 'odometer_km', 'fuel_kind'];
 
   function shrink(file, done) { /* longest side 2000 px, as JPEG: a small upload; the server cleans it up again */
     var url = URL.createObjectURL(file), img = new Image();
@@ -40,7 +40,7 @@
           FIELDS.forEach(function (name) {
             var el = form.elements[name], v = d[name];
             if (!el || !v) return;
-            if (name === 'notes' && el.value) return; /* never overwrite what somebody typed */
+            if ((name === 'notes' || name === 'odometer_km') && el.value) return; /* never overwrite what somebody typed */
             el.value = v;
             el.classList.add('scan-hit');
             el.addEventListener('input', function () { el.classList.remove('scan-hit'); }, { once: true });

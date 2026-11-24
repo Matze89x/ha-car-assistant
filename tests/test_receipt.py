@@ -367,3 +367,94 @@ def test_the_plate_is_fixed_while_a_plugin_reports_the_odometer_and_the_hidden_s
     assert (
         "odo-flip odo-static" in page and "odo-face odo-back" not in page and "data-odo-open" not in page
     )  # reported by the car: just shown
+
+
+# ------------------------------------------------------------------ the lower half of a cluster, the odometer on a receipt, real photos
+
+
+def test_a_number_before_its_unit_is_the_odometer_and_a_trip_counter_or_a_speed_is_not():
+    from carassistant import odometer_scan as o
+
+    assert o.labelled("TRIP A 24.5 km\n86020 km") == [86020]  # the trip counter has a decimal
+    assert o.labelled("86.020 km  53 450 mi") == [86020, 53450]  # thousands groups are joined
+    assert o.labelled("86O20 km") == [86020]  # a letter O inside the number
+    assert o.labelled("260 km/h  12 km") == []  # a speed is no odometer, 12 is no number of an odometer
+
+
+def test_the_lower_half_of_a_photo_is_read_first_and_the_dial_numbers_above_do_not_win(monkeypatch):
+    import io
+
+    from PIL import Image
+
+    from carassistant import odometer_scan as o
+    from carassistant import receipt as rc
+
+    img = Image.new("L", (600, 600), 30)
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    png = buf.getvalue()
+    monkeypatch.setattr(rc, "clean", lambda data: png)
+
+    def fake(image, psm=6, digits=False):  # the lower half is 300 px high, the whole photo 600
+        height = Image.open(io.BytesIO(image)).height
+        if height <= 300:
+            return "86020\n245" if digits else "TRIP A 24.5 km\n86020 km"
+        return "20 40 60 80 100 120 140 160 180 173195 86020" if digits else "km/h 260 220"  # the dial numbers run together
+
+    monkeypatch.setattr(rc, "read_text", fake)
+    assert o.read(png, 85500) == {"value": 86020, "plausible": True}
+    assert o.read(png, None) == {"value": 86020, "plausible": True}
+    low = o.read(png, 86500)  # below the last reading: the number on the display is shown, flagged - not a made-up "plausible" one
+    assert low == {"value": 86020, "plausible": False}
+
+
+def test_a_receipt_that_prints_the_odometer_gives_it_and_one_without_does_not():
+    text = ARAL + "\nKM-Stand: 86.020\n"
+    r = receipt.parse(text, TODAY)
+    assert r["odometer"] == 86020 and "odometer" in r["found"]
+    assert receipt.parse(ARAL, TODAY)["odometer"] is None
+    assert receipt.parse("Aral\nSuper E10\nMenge 40,00 l\nPreis 1,800 EUR/l\nKilometerstand 123456\n", TODAY)["odometer"] == 123456
+    assert (
+        receipt.parse("Aral\nSuper E10\nMenge 40,00 l\nPreis 1,800 EUR/l\nKunden-Nr 7777777\n", TODAY)["odometer"] is None
+    )  # only a labelled number
+
+
+def test_the_odometer_of_a_receipt_is_offered_only_when_it_fits_the_last_reading():
+    from carassistant import receipt_web, units
+
+    shown = receipt_web.shown(receipt.parse(ARAL + "\nKM-Stand: 86020\n", TODAY), units.of(None), "L", 85500)
+    assert shown["odometer_km"] == "86020" and "odometer" in shown["found"]
+    low = receipt_web.shown(receipt.parse(ARAL + "\nKM-Stand: 86020\n", TODAY), units.of(None), "L", 90000)  # below the last reading
+    assert "odometer_km" not in low and "odometer" not in low["found"]
+    assert receipt_web.shown(receipt.parse(ARAL + "\nKM-Stand: 86020\n", TODAY), units.of(None), "L", None)["odometer_km"] == "86020"
+
+
+def test_the_start_list_opens_the_odometer_plate_and_the_fill_up_form(client):
+    from tests.test_web import create_vehicle, slug
+
+    vid = create_vehicle(client)
+    from carassistant import db
+
+    with db.tx() as conn:  # a car with nothing on it shows the start list
+        for table in ("odometer", "fuel", "service", "trips", "mods", "parts", "tasks", "appointments"):
+            conn.execute(f"DELETE FROM {table} WHERE vehicle_id = ?", (vid,))
+    page = client.get(f"/v/{slug(vid)}").text
+    assert "wd-start" in page
+    assert f"/v/{slug(vid)}#odometer" in page and f"/v/{slug(vid)}/e/fuel#fuel-add" in page
+
+
+def test_photos_are_read_by_the_real_text_recognition_when_it_is_installed():
+    import pytest
+
+    if not receipt.available():
+        pytest.skip("Tesseract is not installed")
+    import demo_photos
+
+    from carassistant import odometer_scan as o
+
+    cluster = demo_photos.cluster_photo(odometer=86_020, trip=24.5)
+    assert o.read(cluster, 85_500) == {"value": 86020, "plausible": True}
+    assert o.read(cluster, None)["value"] == 86020  # the dial numbers (0 ... 260) and the trip counter are not it
+    r = receipt.scan(demo_photos.receipt_photo(odometer=86_020))
+    assert (r["amount"], r["price_per_unit"], r["price_total"], r["notes"], r["odometer"]) == (42.7, 1.649, 70.41, "Diesel", 86020)
+    assert r["checked"] and r["station"].lower().startswith("example")

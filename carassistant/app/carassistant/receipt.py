@@ -25,6 +25,21 @@ TIMEOUT = 45
 _one_at_a_time = threading.Semaphore(1)  # a small device reads one photo at a time
 _langs: list[str] | None = None
 
+FIELDS = (
+    "date",
+    "amount",
+    "price_per_unit",
+    "price_total",
+    "station",
+    "notes",
+    "odometer",
+)  # what a receipt can fill in, in the order of the form
+# the odometer, when the station printed it (typed at the pump, fleet and company cards): "KM-Stand: 86020", "Kilometerstand 86.020", "Odometer 86020"
+ODOMETER_LABEL = re.compile(
+    r"\b(?:km[\s.\-]*stand|kilometer[\s.\-]*stand|kilometerstand|tachostand|odometer|mileage|fzg\.?[\s\-]*km)\b[\s.:=]*(\d{1,3}(?:[ .,'’]\d{3})+|\d{3,7})(?!\d)",
+    re.I,
+)
+
 NUMBER = re.compile(r"(?<![\d.,])(\d{1,4})[.,](\d{1,3})(?![\d])")
 LITRE_LABEL = re.compile(r"\b(menge|liter|litre|volumen|volume|quantity|qty|zapfmenge|getankt|kraftstoffmenge|kwh)\b", re.I)
 PRICE_LABEL = re.compile(r"(preis|price|literpreis|prix|/\s*l\b|/\s*ltr|/\s*liter|je\s*liter|pro\s*liter|eur\s*/|€\s*/)", re.I)
@@ -139,11 +154,42 @@ def clean(data: bytes) -> bytes:
     return out.getvalue()
 
 
+def lower(data: bytes, fraction: float = 0.5) -> bytes:
+    """The lower part of a cleaned photo: the odometer of a car sits in the lower half of the cluster, away from the dial numbers."""
+    from PIL import Image
+
+    img = Image.open(io.BytesIO(data))
+    top = min(max(int(img.height * (1 - fraction)), 0), img.height - 1)
+    out = io.BytesIO()
+    img.crop((0, top, img.width, img.height)).save(out, "PNG")
+    return out.getvalue()
+
+
 def inverted(data: bytes) -> bytes:
     """The same cleaned photo with light and dark swapped (a cluster shows light digits on dark: the recognition prefers dark on light)."""
     from PIL import Image, ImageOps
 
     img = ImageOps.invert(Image.open(io.BytesIO(data)).convert("L"))
+    out = io.BytesIO()
+    img.save(out, "PNG")
+    return out.getvalue()
+
+
+def variant(data: bytes, kind: str) -> bytes:
+    """Another view of a cleaned photo for a second try: ``sharp`` (a soft photo: bigger and sharper), ``bin`` (faded thermal paper: black and white),
+    ``left`` / ``right`` (a receipt held a little crooked: turned back by 5 and 10 degrees)."""
+    from PIL import Image, ImageFilter, ImageOps
+
+    img = Image.open(io.BytesIO(data)).convert("L")
+    if kind == "sharp":
+        img = img.resize((round(img.width * 1.5), round(img.height * 1.5)), Image.LANCZOS).filter(
+            ImageFilter.UnsharpMask(radius=3, percent=220, threshold=2)
+        )
+    elif kind == "bin":
+        img = ImageOps.autocontrast(img, cutoff=8).point(lambda v: 255 if v > 150 else 0)
+    elif kind.startswith(("left", "right")):
+        angle = {"left": 5, "right": -5, "left2": 10, "right2": -10}[kind]
+        img = img.rotate(angle, resample=Image.BICUBIC, expand=True, fillcolor=255)
     out = io.BytesIO()
     img.save(out, "PNG")
     return out.getvalue()
@@ -179,17 +225,48 @@ def read_text(data: bytes, psm: int = 6, digits: bool = False) -> str:
     return run.stdout if run.returncode == 0 else ""
 
 
+def _score(result: dict) -> int:
+    """How much a reading is worth: the fields found, a lot more when amount x price = total holds, less for a value that was calculated."""
+    return len(result["found"]) + (8 if result["checked"] else 0) - 2 * len(result["derived"])
+
+
+def _good(result: dict) -> bool:
+    return result["checked"] and not result["derived"] and len(result["found"]) >= 5
+
+
 def scan(data: bytes, today: date | None = None) -> dict:
-    """A photo -> the fields of a refuel. ValueError for a file that is no photo; an empty result (``found == []``) when nothing could be read."""
+    """A photo -> the fields of a refuel. ValueError for a file that is no photo; an empty result (``found == []``) when nothing could be read.
+
+    One reading first. When it is not complete and does not add up (amount x price = total), more tries follow with another page layout, a sharper
+    and bigger copy, black and white (faded thermal paper) and the photo turned back a little (a crooked receipt); the best reading wins and
+    what only another try found (date, product, odometer) is added."""
     if len(data) > MAX_BYTES:
         raise ValueError("too large")
     cleaned = clean(data)
+    seen: dict[int, int] = {}  # odometer readings found and how many readings found each
+
+    def note(result: dict) -> dict:
+        if result["odometer"]:
+            seen[result["odometer"]] = seen.get(result["odometer"], 0) + 1
+        return result
+
     with _one_at_a_time:
-        best = parse(read_text(cleaned, 6), today)
-        if len(best["found"]) < 3:  # a second reading with another page layout: keep the better one
-            other = parse(read_text(cleaned, 4), today)
-            if len(other["found"]) > len(best["found"]):
-                best = other
+        first = best = note(parse(read_text(cleaned, 6), today))
+        if not _good(best):
+            tries = ((None, 4), ("sharp", 6), ("bin", 6), ("left", 6), ("right", 6), ("left2", 6), ("right2", 6))
+            for kind, psm in tries:
+                other = note(parse(read_text(cleaned if kind is None else variant(cleaned, kind), psm), today))
+                better, worse = (other, best) if _score(other) > _score(best) else (best, other)
+                for key in ("date", "notes"):  # what only the other reading found is kept
+                    if not better[key] and worse[key]:
+                        better[key] = worse[key]
+                best = better
+                if _good(best):
+                    break
+    # one digit wrong in a kilometre figure would go unnoticed: it is taken from a clean first reading (everything added up), or when two readings agree
+    agreed = [n for n, c in seen.items() if c >= 2]
+    best["odometer"] = first["odometer"] if _good(first) else (agreed[0] if agreed else None)
+    best["found"] = [k for k in FIELDS if best.get(k)]
     return best
 
 
@@ -274,6 +351,17 @@ def _product(lines: list[str]) -> str:
     return ""
 
 
+def _odometer(lines: list[str]) -> int | None:
+    """The odometer reading the station printed (only a labelled number: a receipt is full of other numbers), in kilometres."""
+    for line in lines:
+        m = ODOMETER_LABEL.search(re.sub(r"(?<=\d)[Oo](?=\d)", "0", line))
+        if m:
+            value = int(re.sub(r"\D", "", m.group(1)))
+            if 100 <= value <= 9_999_999:
+                return value
+    return None
+
+
 def _candidates(lines: list[str]) -> tuple[list, list, list]:
     """Plausible amounts, prices per unit and totals: ``(value, weight)`` - the weight is higher when the line says what the number is."""
     amounts: dict[float, int] = {}
@@ -317,7 +405,7 @@ def _one_digit_apart(a: str, b: str) -> bool:
 
 def parse(text: str, today: date | None = None) -> dict:
     """The refuel in the text of a receipt: ``date``, ``amount``, ``price_per_unit``, ``price_total`` (numbers), ``station``, ``notes`` (the
-    product, for example *Super E10*) and ``found`` - the names of the fields that were found (``derived`` says which of them were calculated from the other two, not read)."""
+    product, for example *Super E10*), ``odometer`` (kilometres, only when the station printed it) and ``found`` - the names of the fields that were found (``derived`` says which of them were calculated from the other two, not read)."""
     today = today or date.today()
     lines = _clean_text(text)
     out: dict = {
@@ -327,6 +415,7 @@ def parse(text: str, today: date | None = None) -> dict:
         "price_total": None,
         "station": "",
         "notes": "",
+        "odometer": None,
         "found": [],
         "checked": False,
         "derived": [],
@@ -358,5 +447,6 @@ def parse(text: str, today: date | None = None) -> dict:
     out["date"] = _dates(lines, today)
     out["station"] = _station(lines)
     out["notes"] = _product(lines)
-    out["found"] = [k for k in ("date", "amount", "price_per_unit", "price_total", "station", "notes") if out[k]]
+    out["odometer"] = _odometer(lines)
+    out["found"] = [k for k in FIELDS if out[k]]
     return out

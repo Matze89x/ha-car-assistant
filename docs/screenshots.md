@@ -22,6 +22,18 @@ The same page for an electric car: charging, battery and range instead of a tank
 
 ![Dashboard (electric)](screenshots/en/dashboard-ev.png)
 
+## Quick entry: the odometer from a photo
+
+Tap the odometer on the dashboard: it turns over to a box. Type the number or tap the camera and photograph the lower part of the cluster - the server reads the number (the trip counter and the dial numbers are ignored), shows it for you to check and saves it only when you press the arrow. No plugin needed.
+
+![The odometer turned over, a photo of the cluster read](screenshots/en/odometer-photo.png)
+
+## Quick entry: a fill-up from a receipt
+
+*Fuel → plus → Scan receipt*: date, station, fuel, amount, price per unit, total and - when the receipt prints it - the odometer are filled in and marked; amount × price = total is checked.
+
+![A fuel receipt read: the form is filled in](screenshots/en/fuel-scan.png)
+
 ## Fuel
 
 All fill-ups by month with consumption and prices. The **station search** on top is deliberately simple: the car decides the fuel, the radius is 15 km, each station is one line with name, distance and price, and the cheapest is marked in green.

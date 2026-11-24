@@ -22,6 +22,18 @@ Dieselbe Seite für ein Elektroauto: Laden, Akku und Reichweite statt Tank.
 
 ![Dashboard (Elektro)](screenshots/de/dashboard-ev.png)
 
+## Schnell eintragen: der Kilometerstand per Foto
+
+Tippe auf den Kilometerstand im Dashboard: Er dreht sich zu einem Eingabefeld um. Zahl tippen oder auf die Kamera tippen und den unteren Teil des Tachos fotografieren - der Server liest die Zahl (Tageszähler und Skalenzahlen werden ignoriert), zeigt sie zum Prüfen und speichert erst mit dem Pfeil. Kein Plugin nötig.
+
+![Der umgedrehte Kilometerstand, ein Foto vom Tacho wurde gelesen](screenshots/de/odometer-photo.png)
+
+## Schnell eintragen: eine Tankung vom Beleg
+
+*Tanken → Plus → Beleg scannen*: Datum, Tankstelle, Sorte, Menge, Preis je Einheit, Betrag und - wenn der Beleg ihn aufdruckt - der Kilometerstand werden eingetragen und markiert; Menge × Preis = Betrag wird geprüft.
+
+![Ein Tankbeleg wurde gelesen: das Formular ist ausgefüllt](screenshots/de/fuel-scan.png)
+
 ## Tanken
 
 Alle Tankungen nach Monaten mit Verbrauch und Preisen. Die **Tankstellensuche** oben ist bewusst einfach: Das Auto bestimmt den Kraftstoff, der Umkreis sind 15 km, jede Tankstelle ist eine Zeile mit Name, Entfernung und Preis, die günstigste ist grün markiert.
