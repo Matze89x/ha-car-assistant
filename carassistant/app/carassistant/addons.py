@@ -247,7 +247,12 @@ def version_state(have: str, offered: str) -> str:
 
     if not have or not offered:
         return ""
-    a, b = version_key(have), version_key(offered)
+
+    def plain(text: str) -> str:  # "v8", "V8" and "8" are the same version; so are "V1.21" and "1.21"
+        text = text.strip().lower()
+        return text[1:] if text[:1] == "v" and text[1:2].isdigit() else text
+
+    a, b = version_key(plain(have)), version_key(plain(offered))
     return "current" if a == b else "update" if b > a else "newer"
 
 

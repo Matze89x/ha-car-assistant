@@ -170,6 +170,10 @@ def test_the_car_version_is_compared_with_the_offered_one():
     assert addons.version_state("1.4", "1.4") == "current"
     assert addons.version_state("1.10", "1.9") == "newer"  # numbers are compared as numbers
     assert addons.version_state("", "1.4") == "" and addons.version_state("1.2", "") == ""  # nothing known = nothing said
+    assert (
+        addons.version_state("v8", "V8") == "current" and addons.version_state("v7", "v8") == "update"
+    )  # a leading v and the case do not matter
+    assert addons.version_state("V1.20", "V1.21") == "update" and addons.version_state("1.21", "V1.21") == "current"
 
 
 FULL = {

@@ -29,7 +29,7 @@
 <details class="card fgroup pkg-fold" open>
   <summary><span class="mi-ic c4">{{ icon('swap-vertical', 17) }}</span><span class="fg-t">{{ _('pkg.does_title') }}</span>{{ icon('chevron-down', 20) }}</summary>
   {% macro group(title, rows) %}{% if rows %}<li class="pkg-sec"><b>{{ title }}</b></li>{% for r in rows %}<li class="pkg-row"><b>{{ r.name }}</b><small>{% if r.path %}<code>{{ r.path }}</code>{% endif %}{% for f in r.fields %} <code>{{ f }}</code>{% endfor %}{% if r.note %} {{ r.note }}{% endif %}</small></li>{% endfor %}{% endif %}{% endmacro %}
-  {% if does.has_any %}<ul class="pkg-rows pkg-body">{{ group(_('pkg.sends'), does.rows.sends) }}{{ group(_('pkg.reads'), does.rows.reads) }}{{ group(_('pkg.offers'), does.rows.offers) }}{{ group(_('pkg.brings'), does.rows.brings) }}</ul>
+  {% if does.has_any %}<p class="hint pkg-body">{{ _('pkg.does_hint') }}</p><ul class="pkg-rows pkg-body">{{ group(_('pkg.sends'), does.rows.sends) }}{{ group(_('pkg.reads'), does.rows.reads) }}{{ group(_('pkg.offers'), does.rows.offers) }}{{ group(_('pkg.brings'), does.rows.brings) }}</ul>
   {% else %}<p class="hint pkg-body">{{ _('pkg.does_nothing') }}</p>{% endif %}
 </details>
 {% endif %}
