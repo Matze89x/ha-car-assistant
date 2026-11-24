@@ -17,7 +17,7 @@ Jede Seite beginnt mit demselben Kopf: Symbol und Name der Seite, darunter der N
 Eine kurze Einführung fragt nach der Sprache, dann nach deinem ersten Auto (oder einem Demo-Auto) und danach, welche Funktionen du möchtest. Alles lässt sich später ändern.
 
 ## Dashboard
-*Dashboard anpassen* lässt dich Widgets verschieben, ausblenden und in der Größe ändern, *Video oder Foto bearbeiten* öffnet das Bild-Fenster.
+*Dashboard anpassen* lässt dich Widgets verschieben, ausblenden und in der Größe ändern, *Video oder Foto bearbeiten* öffnet das Bild-Fenster. Jede Änderung wird sofort gespeichert: ein Tipp auf die Seite neben den Widgets (oder Escape) beendet das Bearbeiten - es gibt nichts zu bestätigen.
 
 ## Schnell eintragen: Kilometerstand und Tanken
 Die zwei Dinge, die du am häufigsten einträgst, brauchen **kein Plugin und keine lange Tipperei**. Beides geht bei einem Auto, das mit nichts verbunden ist.

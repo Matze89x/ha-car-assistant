@@ -1,31 +1,41 @@
-// Home: edit the widgets live. "Edit widgets" turns Home into an editor: drag a widget by its grip to move it (the others
-// shift), drag the bar on its right edge to make it small or wide, tap the eye to hide it. Every change is saved at once.
+// Home: edit the widgets live. "Customise dashboard" turns Home into an editor: drag a widget by its grip to move it (the others
+// shift), drag the bar on its right edge to make it small or wide, tap the eye to hide it. Every change is saved at once; a tap beside
+// the widgets (or Escape, or the button) ends the editing - nothing else has to be pressed.
 (function () {
   var grid = document.getElementById("wgrid");
   var btn = document.getElementById("wd-toggle");
   var tpl = document.getElementById("wd-tpl");
   if (!grid || !btn || !tpl || !window.fetch) { return; }
 
-  var saveTimer = null;
+  var saveTimer = null, dirty = false;
   function slots() { return Array.prototype.slice.call(grid.querySelectorAll(".wd-slot")); }
 
-  function save() {
+  function send() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () {
-      var fd = new FormData();
-      fd.append("ajax", "1");
-      slots().forEach(function (s) {
-        var k = s.getAttribute("data-k");
-        fd.append("k", k);
-        fd.append("size_" + k, s.classList.contains("m") ? "m" : "s");
-        if (!s.classList.contains("off")) { fd.append("on_" + k, "1"); }
-        if (s.hasAttribute("data-opts")) {  // settings of the widget (its edit button)
-          JSON.parse(s.getAttribute("data-opts")).forEach(function (o) { fd.append("opt_" + k + "_" + o.key, s.getAttribute("data-opt-" + o.key)); });
-        }
-      });
-      fetch(grid.getAttribute("data-save"), { method: "POST", body: fd, credentials: "same-origin" });
-    }, 250);
+    saveTimer = null;
+    if (!dirty) { return; }
+    dirty = false;
+    var fd = new FormData();
+    fd.append("ajax", "1");
+    slots().forEach(function (s) {
+      var k = s.getAttribute("data-k");
+      fd.append("k", k);
+      fd.append("size_" + k, s.classList.contains("m") ? "m" : "s");
+      if (!s.classList.contains("off")) { fd.append("on_" + k, "1"); }
+      if (s.hasAttribute("data-opts")) {  // settings of the widget (its edit button)
+        JSON.parse(s.getAttribute("data-opts")).forEach(function (o) { fd.append("opt_" + k + "_" + o.key, s.getAttribute("data-opt-" + o.key)); });
+      }
+    });
+    fetch(grid.getAttribute("data-save"), { method: "POST", body: fd, credentials: "same-origin", keepalive: true });  // keepalive: it also arrives when the page is left right now
   }
+  function save() {  // a change is sent a moment later (several in a row become one request) ...
+    dirty = true;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(send, 250);
+  }
+  // ... but never later than the end of the editing or the end of the page: what was changed is saved when the editor is left
+  window.addEventListener("pagehide", send);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") { send(); } });
 
   // Smooth reflow: remember where every slot was, change the layout, slide each one from its old place.
   function flip(change) {
@@ -82,13 +92,34 @@
     slots().forEach(function (s) { if (!s.querySelector(".wd-ctl")) { s.appendChild(tpl.content.cloneNode(true)); } });
     setLabel(true);
   }
-  function leave() { grid.classList.remove("editing"); document.body.classList.remove("page-editing"); setLabel(false); }
+  function leave() { send(); grid.classList.remove("editing"); document.body.classList.remove("page-editing"); setLabel(false); }
 
   // "Edit page" turns the dashboard itself into the editor (widgets can be moved, resized, hidden; the picture gets an "Edit" button); the same button finishes.
   btn.addEventListener("click", function (e) {
     e.preventDefault();
     if (grid.classList.contains("editing")) { leave(); } else { enter(); }
   });
+  // A tap beside the widgets ends the editing (and saves): on the page behind, in a gap of the grid - not on a widget with its controls, a button,
+  // a link, a field or a window. Pointer events, not "click": a phone does not send a click for an empty area. A drag (moving, resizing, scrolling) is no tap.
+  var tapStart = null, lastDrag = 0;
+  var KEEP = ".wd-slot, a.wd-addtile, #wd-toggle, dialog, a, button, input, select, textarea, label, summary, [role=button]";
+  document.addEventListener("pointerdown", function (e) {
+    var t = e.target;
+    tapStart = grid.classList.contains("editing") && !drag && e.isPrimary && t && t.closest && !t.closest(KEEP)
+      ? { x: e.clientX, y: e.clientY, id: e.pointerId, at: Date.now() } : null;
+  });
+  document.addEventListener("pointerup", function (e) {
+    var t = tapStart;
+    tapStart = null;
+    if (!t || e.pointerId !== t.id || drag || Date.now() - lastDrag < 400 || !grid.classList.contains("editing")) { return; }
+    if (Math.abs(e.clientX - t.x) + Math.abs(e.clientY - t.y) > 10 || Date.now() - t.at > 600) { return; }
+    leave();
+  });
+  document.addEventListener("pointercancel", function () { tapStart = null; });  // the browser took the touch over (scrolling)
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && grid.classList.contains("editing") && !document.querySelector("dialog[open]")) { leave(); }
+  });
+
   // coming back from an upload / delete inside the picture window: stay in edit mode and open the window again
   if (/[?&]edit=1/.test(location.search)) {
     enter();
@@ -176,6 +207,7 @@
     if (drag.ghost) { drag.ghost.parentNode.removeChild(drag.ghost); }
     drag.slot.classList.remove("dragging");
     drag = null;
+    lastDrag = Date.now();
     save();
   }
   document.addEventListener("pointerup", finish);

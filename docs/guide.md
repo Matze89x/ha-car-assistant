@@ -17,7 +17,7 @@ Each page starts with the same header: the page's symbol and name, the car's nam
 A short guide asks for a language, then your first car (or a demo car), then which functions you want. You can change all of it later.
 
 ## Dashboard
-*Customise dashboard* lets you move, hide and resize the widgets, and *Edit video or photo* opens the picture window.
+*Customise dashboard* lets you move, hide and resize the widgets, and *Edit video or photo* opens the picture window. Every change is saved at once: tap on the page beside the widgets (or press Escape) and the editing is finished - there is nothing to confirm.
 
 ## Quick entry: the odometer and fill-ups
 The two things you enter most need **no plugin and no typing marathon**. Both work on a car that is connected to nothing.
