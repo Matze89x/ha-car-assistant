@@ -9,7 +9,7 @@
 [🇬🇧 English](README.md) · 🇩🇪 Deutsch
 
 <!-- release:start -->
-[![Release](https://img.shields.io/badge/release-0.5.24%20Beta-orange.svg)](carassistant/CHANGELOG.de.md) Die öffentliche Testversion. Bitte ausprobieren und melden, was dir auffällt.
+[![Release](https://img.shields.io/badge/release-0.5.25%20Beta-orange.svg)](carassistant/CHANGELOG.de.md) Die öffentliche Testversion. Bitte ausprobieren und melden, was dir auffällt.
 <!-- release:end -->
 
 **Das Logbuch und Dashboard für dein Auto.** Car Assistant bewahrt **alle Dokumente und Daten deiner Fahrzeuge an einem Ort** auf – Unterlagen, Rechnungen und Handbücher digital abgelegt, dazu die Daten des Autos selbst, sobald ein Plugin sie liefert (es läuft als App in Home Assistant) – ein Auto oder mehrere, Verbrenner, Hybrid oder Elektro:
