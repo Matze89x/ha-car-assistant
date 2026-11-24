@@ -9,7 +9,8 @@
 # GITHUB_TOKEN or the file ~/.config/car-assistant/github-token. A token for PUBLIC data needs no rights at all (GitHub -> Settings -> Developer settings ->
 # Fine-grained tokens -> "Public repositories (read-only)"); with it the limit is 5000 an hour. Never put the token into the repository or a chat.
 #
-# Exit code: 0 green, 1 red, 2 it could not be found out (limit reached, no network).
+# When the API limit is used up it reads the normal web page of the runs instead (green / red / running only).
+# Exit code: 0 green, 1 red, 2 it could not be found out (no network).
 set -u
 cd "$(dirname "$0")/.." || exit 2
 SHA=${1:-$(git rev-parse HEAD)}
@@ -55,7 +56,23 @@ for a in json.load(sys.stdin):
         print("  " + t); print("    " + m[:900].replace("\n", "\n    "))
 '
       exit 1 ;;
-    LIMIT*) echo "GitHub limit reached ($verdict) - set GITHUB_TOKEN or ~/.config/car-assistant/github-token, or try again later"; exit 2 ;;
+    LIMIT*)  # the API limit is used up: the normal web page of the runs has no such limit and says green / red / running for the commit's title
+      subject=$(git log -1 --format=%s "$SHA" 2>/dev/null | cut -c1-40)
+      web=$(curl -s "https://github.com/$REPO/actions/workflows/ci.yml" | SUBJECT="$subject" python3 -c '
+import html, os, re, sys
+page, subject = sys.stdin.read(), os.environ["SUBJECT"]
+for m in re.finditer(r"aria-label=\"((?:completed successfully|failed|in progress|queued|cancelled)[^\"]*)\"", page):
+    label = html.unescape(m.group(1))
+    if subject and subject in label:
+        print("GREEN" if label.startswith("completed successfully") else "RED" if label.startswith(("failed", "cancelled")) else "RETRY running")
+        break
+else:
+    print("RETRY not listed yet")
+')
+      case "$web" in
+        GREEN) echo "CI green for $SHA (read from the web page: the API limit is used up)"; exit 0 ;;
+        RED) echo "CI RED for $SHA (read from the web page) - open https://github.com/$REPO/actions for the failed tests, or try again when the API limit is back"; exit 1 ;;
+      esac ;;
   esac
   sleep "$wait_s"; [ "$wait_s" -lt 45 ] && wait_s=$((wait_s + 5))
 done
