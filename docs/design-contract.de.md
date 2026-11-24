@@ -58,4 +58,4 @@ Vorhanden: *Klassisch rot* (dunkel, der Standard) sowie *Hell*, *Dunkel* und *Au
 - **Paketseite** (`kind: "frame"`): der übliche Kopf mit der Version des Pakets rechts, darunter die eigene Seite des Pakets, die das Kit (`/frame-kit.css`) nutzt und so zum Design passt.
 
 ## 6. Regeln, die immer gelten
-Leichte Buttons, **eine Zeile**; eine Haupt-Aktion je Seite; Einstellungen, die etwas Sichtbares ändern, wirken sofort (kein Speichern-Button); kein Inline-Skript (die CSP verbietet es); jeder Text auf Englisch und Deutsch; eine abgeschaltete Funktion zeigt nichts und löst nichts aus.
+Leichte Buttons, **eine Zeile**; eine Haupt-Aktion je Seite; Einstellungen, die etwas Sichtbares ändern, wirken sofort (kein Speichern-Button); kein Inline-Skript (die CSP verbietet es); jeder Text auf Englisch und Deutsch; **Schalter stehen immer am rechten Ende ihrer Zeile, wie beim iPhone** (die App zeichnet jeden Schalter; ein Plugin kann keinen verschieben); eine abgeschaltete Funktion zeigt nichts und löst nichts aus.

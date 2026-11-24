@@ -8,7 +8,8 @@
 * **every button has a name** (text, ``aria-label`` or ``title``) and **every field a label**,
 * **nothing is wider than the screen** (no sideways scrolling) and **no text runs out of its own box or is cut off by it**,
 * **the space below the last thing in a card is only the card's padding** (the same distance below as at its left),
-* **cards one under the other stand `--sp-col` apart** (no margin on top of the gap).
+* **cards one under the other stand `--sp-col` apart** (no margin on top of the gap),
+* **a switch is the last thing at the right end of its row** (like the settings of an iPhone; never on the left).
 
 Folded forms (the add form, the edit form of a card) are opened first so that the buttons inside are measured, too. German has the longest words, a
 phone the least room: ``tests/test_page_ui.py`` runs German at phone width and English wide, when Chrome is installed.
@@ -178,6 +179,18 @@ MEASURE = r"""
     if (!(e.labels && e.labels.length) && !e.getAttribute('aria-label') && !e.getAttribute('aria-labelledby') && !e.getAttribute('title') && !e.closest('label')) {
       out.push('a field without a label: ' + e.tagName.toLowerCase() + '[' + (e.name || e.type) + '] (in ' + where(e) + ')');
     }
+  });
+  /* a switch is always the LAST thing at the right end of its row, like the settings of an iPhone - never on the left, never with a label or button
+     to its right (docs/design.md, "Switch"); the row is the switch row, the line of a list or the label around it */
+  document.querySelectorAll('.switch').forEach(function (sw) {
+    if (!vis(sw)) { return; }
+    var row = sw.closest('.nm-row, .sw-row, .navrow, .fn-row, [data-sort-item], li') || sw.parentElement, rr = row.getBoundingClientRect(), sr = sw.getBoundingClientRect();
+    var label = (row.textContent || sw.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 24);
+    if (rr.right - sr.right > 28) { out.push('a switch is not at the right end of its row (' + Math.round(rr.right - sr.right) + ' px from it): "' + label + '"'); return; }
+    var beside = Array.prototype.some.call(row.querySelectorAll('*'), function (e) {
+      return !sw.contains(e) && !e.contains(sw) && vis(e) && e.getBoundingClientRect().left >= sr.right - 1 && (e.matches('button, a, input, select') || (e.children.length === 0 && (e.textContent || '').trim()));
+    });
+    if (beside) { out.push('something stands to the right of a switch: "' + label + '"'); }
   });
   return JSON.stringify(out);
 })()

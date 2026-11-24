@@ -292,3 +292,18 @@ def test_the_rows_of_a_widget_never_end_in_a_line():
     assert "border-bottom" not in re.search(r"\.wd-li \{([^}]*)\}", css).group(
         1
     )  # the other list of the widgets: the line sits above, the first row has none
+
+
+def test_a_switch_always_sits_at_the_right_end_of_its_row_no_style_moves_it():
+    """docs/design.md, "Switch": like the settings of an iPhone, the switch is always the last thing at the RIGHT end of its row - on every page, in
+    every theme, also for the switches of a plugin (the app draws them). No rule of a style sheet may reorder, reverse or float a switch row;
+    ``tools/check_ui.py`` measures the same on every page in a real browser."""
+    static = TEMPLATES.parent / "static"
+    for sheet in sorted(static.glob("*.css")):
+        css = re.sub(r"/\*.*?\*/", "", sheet.read_text(encoding="utf-8"), flags=re.S)
+        for selector, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+            if re.search(r"\.switch\b|\.sw-row\b|\.nm-row\b|\.addon-sw\b", selector):
+                assert not re.search(r"row-reverse|\border\s*:|float\s*:", body), f"{sheet.name}: {selector.strip()} moves a switch"
+    macros = (TEMPLATES / "_macros.html").read_text(encoding="utf-8")
+    row = macros[macros.index("macro switch_row") : macros.index("endmacro", macros.index("macro switch_row"))]
+    assert row.index('class="nm-t"') < row.index('class="nm-state"') < row.index('class="switch"')  # text, Yes / No, then the switch

@@ -152,7 +152,7 @@ A plugin that logs in to a web service keeps the credentials in its settings (a 
 | `password` | hidden; blank = keep the saved secret | `required` |
 | `number` | a number, checked against the bounds | `min`, `max`, `step`, `unit`, `required` |
 | `slider` | a slider with its value shown | `min` (0), `max` (100), `step`, `unit` |
-| `bool` | a switch | |
+| `bool` | a switch, drawn by the app at the right end of its row (like on an iPhone; a plugin cannot place it elsewhere) | |
 | `select` | a dropdown | `options`: `[{"value": "eco", "label": "Economy"}]` (at most 30; a value has no comma) |
 | `radio` | choose one of a few, all visible | `options` |
 | `multiselect` | tick any of a few (checkboxes) | `options`; stored as `a,b` |

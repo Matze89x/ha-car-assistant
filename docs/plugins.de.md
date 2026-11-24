@@ -152,7 +152,7 @@ Ein Plugin, das sich bei einem Webdienst anmeldet, hält die Zugangsdaten in sei
 | `password` | verdeckt; leer = gespeichertes Geheimnis behalten | `required` |
 | `number` | eine Zahl, gegen die Grenzen geprüft | `min`, `max`, `step`, `unit`, `required` |
 | `slider` | ein Schieberegler mit angezeigtem Wert | `min` (0), `max` (100), `step`, `unit` |
-| `bool` | ein Schalter | |
+| `bool` | ein Schalter, von der App am rechten Ende seiner Zeile gezeichnet (wie beim iPhone; ein Plugin kann ihn nicht anders setzen) | |
 | `select` | ein Auswahlfeld | `options`: `[{"value": "eco", "label": "Sparsam"}]` (höchstens 30; ein Wert hat kein Komma) |
 | `radio` | eines von wenigen, alle sichtbar | `options` |
 | `multiselect` | beliebig viele ankreuzen (Kontrollkästchen) | `options`; gespeichert als `a,b` |

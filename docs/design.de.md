@@ -74,7 +74,7 @@ Neben der *Weiteres*-Liste beginnt das erste Element der Seite auf derselben Lin
 | Leerzustand | `.card.empty-state` | Icon, ein Satz, der sagt, was zu tun ist |
 | Felder | `input`, `select`, `textarea`, `.tf-field` / `.tf-l` | Beschriftung 11 px Großbuchstaben darüber, 48-px-Felder, Beispielwerte als Platzhalter (neutral, nie eine Marke) |
 | Auswahl-Kacheln | `.season-pick` / `.sp` | große wählbare Kacheln mit Icon statt Dropdown bei 2–4 Optionen |
-| Schalter | `.switch`, Makro `switch_row()` | an = Akzent; jede An/Aus-Einstellung ist eine Schalter-Zeile mit Linie oben und unten (zwei Zeilen teilen sich eine Linie; nie eine zweite Linie über einer Button-Leiste) Eine Schalter-Zeile hat keinen äußeren Abstand: Eine Regel für untereinander stehende Beschriftungen muss `.sw-row` ausnehmen (ein Test prüft das), damit jede Zeile mittig zwischen ihren zwei Linien steht. |
+| Schalter | `.switch`, Makro `switch_row()` | **immer rechts** (siehe Regel unten); an = Akzent; jede An/Aus-Einstellung ist eine Schalter-Zeile mit Linie oben und unten (zwei Zeilen teilen sich eine Linie; nie eine zweite Linie über einer Button-Leiste) Eine Schalter-Zeile hat keinen äußeren Abstand: Eine Regel für untereinander stehende Beschriftungen muss `.sw-row` ausnehmen (ein Test prüft das), damit jede Zeile mittig zwischen ihren zwei Linien steht. |
 | Name + Slogan | `.brand-lock`, `.sb-brand`, `.about-id` | immer EINE Einheit: Slogan halb so groß, exakt so breit wie der Name (Seitenleiste: füllt die Leiste), überall gleicher Abstand |
 | Datum und Uhrzeit | `regional.py` | angezeigt wie unter Einstellungen → System → Datum & Uhrzeit; gespeichert ISO / 24 h |
 | Chips / Marken | `.badge`, `.pos-chip`, `.schip` | Pillen (`999px`), nur Statusfarben |
@@ -113,6 +113,7 @@ Ein Test (`tests/test_design_rules.py`) verweigert eine dritte Art von Tab-Leist
 
 - **Pro Fahrzeug.** Alles, was zu einem Auto gehört, liegt unter diesem Auto; nur Konto, Fahrzeuge, Einstellungen und Systemdienste sind global. Fahrzeuge werden über den Namen angesprochen (`/v/<name>/…`).
 - **Nur zeigen, was es gibt.** Keine Daten → keine Kachel, keine leere Zeile, kein Platzhalter-Kasten. Ein einzelner `-` in einem Textfeld gilt als leer.
+- **Schalter stehen immer rechts** - überall, wie in den Einstellungen eines iPhones (Entscheidung des Besitzers vom 24.11.2026, nicht neu zu verhandeln). Ein Schalter ist das Letzte am rechten Ende seiner Zeile: links der Text (mit seinem Hinweis), dann Ja / Nein, dann der Schalter. Nie links, nie lose im Satz, nie von einem Design, einer Seite oder einem Plugin umgestellt; ein Plugin kann einen Schalter gar nicht platzieren - seine `bool`-Felder zeichnet die App. Jede An/Aus-Wahl ist eine `switch_row()` (oder, in einer Liste von Funktionen, derselbe Schalter am rechten Ende der Zeile). Zwei Wachen halten das: `tools/check_ui.py` misst jeden Schalter jeder Seite in einem echten Browser (*a switch is not at the right end of its row*), und ein Test in `tests/test_design_rules.py` verbietet jede Stilregel, die einen Schalter umordnet, spiegelt oder umfließen lässt.
 - **Zerstörende Aktionen** nutzen den Bestätigungsdialog und sagen, was verloren geht.
 - **Jetzt manuell, später Plugin.** Werte, die ein Plugin liefern wird (Reichweite, Tankstand, Türen, Position …), erscheinen nur, wenn sie über die Plugin-API kommen; die manuelle Eingabe bleibt der Rückfall und nutzt dieselben Felder.
 - **Standardmäßig nichts online.** Externe Dienste sind opt-in und werden erklärt.
@@ -123,7 +124,7 @@ Ein Test (`tests/test_design_rules.py`) verweigert eine dritte Art von Tab-Leist
 
 1. Gibt es dafür schon einen Baustein? Den nutzen.
 2. Nur Tokens – keine festen Farben, Radien oder Abstände. Ein Block, der auf einer Seite für sich steht, bekommt die EINE Ecke `--r-surface`, indem er in die Liste der einen Regel am Ende von `pc-core.css` kommt (kein eigener Radius); sonst schlägt ein Test fehl. Sein erster Block beginnt auf einer Linie mit der ersten Karte der *Weiteres*-Liste.
-3. `page_head`, richtige Abstände, funktioniert bei 375 / 800 / 1100 / 1280 px.
+3. `page_head`, richtige Abstände, funktioniert bei 375 / 800 / 1100 / 1280 px. An/Aus-Wahlen sind Schalter am rechten Ende ihrer Zeile.
 4. Leerzustand (die Karte mit Symbol und einem hilfreichen Satz: `.card.empty-state`, nie eine nackte Textzeile), ein Eintrag, viele Einträge, sehr langer Text.
 5. EN- und DE-Texte; Icon aus `icons.py`.
 6. Ein Test (`tests/`) für das Verhalten, eine Zeile in beiden Changelogs, Version hoch.

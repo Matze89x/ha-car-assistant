@@ -74,7 +74,7 @@ Next to the *More* list the first element of the page starts on the same line as
 | Empty state | `.card.empty-state` | icon, one sentence that says what to do |
 | Fields | `input`, `select`, `textarea`, `.tf-field` / `.tf-l` | uppercase 11 px label above, 48 px fields, example values as placeholders (neutral, never a brand) |
 | Choice tiles | `.season-pick` / `.sp` | big selectable tiles with an icon instead of a drop-down for 2–4 options |
-| Switch | `.switch`, `switch_row()` macro | on = accent; every on/off setting is a switch row with a line above and below (two rows share one line; never a second line above a button bar) A switch row has no outer gap: a rule for stacked labels must exclude `.sw-row` (a test guards it), so every row is centred between its two lines. |
+| Switch | `.switch`, `switch_row()` macro | **always on the right** (see rule below); on = accent; every on/off setting is a switch row with a line above and below (two rows share one line; never a second line above a button bar) A switch row has no outer gap: a rule for stacked labels must exclude `.sw-row` (a test guards it), so every row is centred between its two lines. |
 | Name + slogan | `.brand-lock`, `.sb-brand`, `.about-id` | always ONE unit: slogan half the size, exactly as wide as the name (side bar: fills the bar), same gap everywhere |
 | Dates and times | `regional.py` | shown as set under Settings → System → Date & time; stored ISO / 24 h |
 | Chips / badges | `.badge`, `.pos-chip`, `.schip` | pills (`999px`), status colours only |
@@ -113,6 +113,7 @@ A test (`tests/test_design_rules.py`) refuses a third kind of tab bar. Plugin pa
 
 - **Per vehicle.** Anything that belongs to a car lives under that car; only Account, Vehicles, Settings and System services are global. Vehicles are addressed by name (`/v/<name>/…`).
 - **Only show what exists.** No data → no tile, no empty row, no placeholder box. A lone `-` in a text field counts as empty.
+- **Switches are always on the right** - everywhere, like the settings of an iPhone (decided by the owner on 2026-11-24, not to be reopened). A switch is the last thing at the right end of its row: the text (and its hint) stands on the left, then Yes / No, then the switch. Never on the left, never loose inside a sentence, never reordered by a theme, a page or a plugin; a plugin cannot place a switch at all - its `bool` fields are drawn by the app. Every on / off choice is a `switch_row()` (or, in a list of functions, the same switch at the right end of the line). Two guards keep it: `tools/check_ui.py` measures every switch of every page in a real browser (*a switch is not at the right end of its row*), and a test in `tests/test_design_rules.py` forbids any style rule that orders, reverses or floats a switch row.
 - **Destructive actions** use the confirmation dialog and say what is lost.
 - **Manual now, plugin later.** Values that a plugin will deliver (range, tank level, doors, position …) are shown only when they arrive via the Plugin API; the manual entry stays as the fallback and uses the same fields.
 - **Nothing online by default.** External services are opt-in and explained.
@@ -123,7 +124,7 @@ A test (`tests/test_design_rules.py`) refuses a third kind of tab bar. Plugin pa
 
 1. Is there already a component for it? Use it.
 2. Tokens only – no hard-coded colours, radii or spacing. A block that stands on its own on a page takes the ONE corner `--r-surface` by being added to the list in the single rule at the end of `pc-core.css` (no radius of its own); a test fails otherwise. Its first block starts level with the first card of the *More* list.
-3. `page_head`, correct spacing, works at 375 / 800 / 1100 / 1280 px.
+3. `page_head`, correct spacing, works at 375 / 800 / 1100 / 1280 px. On / off choices are switches at the right end of their row.
 4. Empty state (the card with the symbol and one helpful sentence: `.card.empty-state`, never a bare line of text), one item, many items, very long text.
 5. EN and DE texts; icon from `icons.py`.
 6. A test (`tests/`) for the behaviour, a line in both changelogs, version up.

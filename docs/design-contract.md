@@ -58,4 +58,4 @@ Available: *Classic red* (dark, the default) and *Light*, *Dark* and *Auto* (fol
 - **Package page** (`kind: "frame"`): the usual header with the package's version on the right, the package's own page below it, using the kit (`/frame-kit.css`) so it matches the design.
 
 ## 6. Rules that always apply
-Light buttons, **one line**; one main action per page; settings that change something visible apply at once (no Save button); no inline script (the CSP forbids it); every text in English and German; a switched-off function shows nothing, raises nothing.
+Light buttons, **one line**; one main action per page; settings that change something visible apply at once (no Save button); no inline script (the CSP forbids it); every text in English and German; **switches always sit at the right end of their row, like on an iPhone** (the app draws every switch; a plugin cannot move one); a switched-off function shows nothing, raises nothing.
