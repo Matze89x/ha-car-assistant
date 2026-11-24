@@ -54,6 +54,7 @@ CHECKS = (
     ("--text", "--card", 4.5),
     ("--muted", "--card", 4.5),
     ("--dim", "--card", 3.0),
+    ("--dim", "--bg", 3.0),  # the section labels stand on the page, not on a card
     ("--accent-text", "--accent", 3.0),
     ("--accent", "--card", 3.0),
     ("--ok", "--card", 3.0),

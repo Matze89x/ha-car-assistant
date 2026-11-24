@@ -2,7 +2,7 @@
 :root[data-theme="light"], :root[data-theme="auto"] {
   color-scheme: light;
   --bg: #eef0f4; --card: #ffffff; --card2: #f4f6f9; --line: #dfe3ea; --line2: #cbd1db;
-  --text: #151922; --muted: #566070; --dim: #8892a2; --strong: #0a0d13;
+  --text: #151922; --muted: #566070; --dim: #7b8596; --strong: #0a0d13;
   --fg-rgb: 21, 25, 34; --shade-rgb: 21, 25, 34; --panel-rgb: 255, 255, 255; --panel-deep-rgb: 244, 246, 249;
   --glass: rgba(255,255,255,.78); --glass2: rgba(21,25,34,.045); --btn-hi: rgba(var(--hi-rgb), .85); --glass-b: rgba(21,25,34,.095);
   --accent: #e2001a; --accent-rgb: 226, 0, 26; --accent-hi: #c40017; --accent-top: #f3213b; --accent-bot: #d4001b; --accent-top-h: #ff2f49; --accent-bot-h: #e0001d;

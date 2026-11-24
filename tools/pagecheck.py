@@ -27,8 +27,11 @@ OPEN_ALL = (
 )
 
 
-def sweep(script: str, *, width: int = 1200, lang: str = "en", open_all: bool = False, height: int = 900) -> Iterator[tuple[str, object]]:
-    """``(page, answer)`` for every page: ``script`` is run in the page and must return a JSON text (``JSON.stringify(...)``)."""
+def sweep(
+    script: str, *, width: int = 1200, lang: str = "en", open_all: bool = False, height: int = 900, theme: str = "", accent: str = ""
+) -> Iterator[tuple[str, object]]:
+    """``(page, answer)`` for every page: ``script`` is run in the page and must return a JSON text (``JSON.stringify(...)``).
+    ``theme`` / ``accent`` set the design of the whole installation (``light``, ``custom-dark`` ...), ``""`` is the classic one."""
     import check_alignment
     import make_screenshots as ms
     from cdp import Browser
@@ -36,6 +39,15 @@ def sweep(script: str, *, width: int = 1200, lang: str = "en", open_all: bool = 
     with tempfile.TemporaryDirectory() as tmp:
         data = Path(tmp)
         check_alignment._seed(data, lang)
+        if theme:
+            import sqlite3
+
+            db = sqlite3.connect(data / "carassistant.db")
+            db.execute("INSERT OR REPLACE INTO settings(key, value) VALUES('ui.theme', ?)", (theme,))
+            if accent:
+                db.execute("INSERT OR REPLACE INTO settings(key, value) VALUES('ui.accent', ?)", (accent,))
+            db.commit()
+            db.close()
         port = ms.free_port()
         env = {**os.environ, "CARASSISTANT_DATA": str(data), "CARASSISTANT_DEV": "1", "CARASSISTANT_PORT": str(port)}
         env["PYTHONPATH"] = str(ROOT / "carassistant" / "app")

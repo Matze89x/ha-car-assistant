@@ -1,5 +1,7 @@
 """Home widgets: one uniform grid, arranged per vehicle (order, size, visibility)."""
 
+from pathlib import Path
+
 from tests.test_web import create_vehicle, slug
 
 from carassistant import db, widgets
@@ -158,3 +160,9 @@ def test_weekday_of_a_date():
 
     assert regional.weekday("2026-11-24") == 1 and regional.weekday(date(2026, 11, 22)) == 6
     assert regional.weekday(datetime(2026, 11, 23, 9, 0)) == 0 and regional.weekday(None) is None and regional.weekday("soon") is None
+
+
+def test_an_overdue_tile_is_red_and_a_soon_tile_amber_like_everywhere_else():
+    css = (Path(widgets.__file__).parent / "static" / "pc-core.css").read_text(encoding="utf-8")
+    assert ".wd.st-warn .wd-v { color: var(--overdue); }" in css and ".wd.st-soon .wd-v { color: var(--soon); }" in css
+    assert ".wd.st-warn .wd-v, .wd.st-soon .wd-v" not in css  # they once shared the amber: an overdue tile looked like a "soon" one

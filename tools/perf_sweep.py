@@ -19,7 +19,7 @@ import re
 import sys
 import tempfile
 import time
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -93,7 +93,7 @@ def build(data: Path, cars: int, scale: float) -> list[str]:
             per = max(1, int(VOLUME["trip_points"] * scale) // max(1, len(trip_ids) // 12))
             for t in trip_ids[:: 12]:
                 conn.executemany("INSERT OR IGNORE INTO trip_points(trip_id, seq, lat, lon, ts) VALUES(?,?,?,?,?)", [(t, s, 52.5 + s * 1e-4, 13.4 + s * 1e-4, None) for s in range(per)])
-            now = datetime.now().replace(microsecond=0)
+            now = datetime.now(UTC).replace(microsecond=0)  # stored with its zone, like everything the app writes
             conn.executemany(
                 "INSERT INTO vehicle_track(vehicle_id, ts, lat, lon, speed_kmh) VALUES(?,?,?,?,?)",
                 [(vid, (now - timedelta(seconds=10 * i)).isoformat(), 52.5 + i * 1e-5, 13.4 + i * 1e-5, 50.0) for i in range(int(VOLUME["vehicle_track"] * scale))],
