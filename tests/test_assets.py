@@ -132,7 +132,18 @@ def test_files_wait_for_approval_then_download_with_the_right_headers(client, in
     info = client.get(f"/v/{vid}/integrations/{item['id']}/info?tab=interfaces").text  # the info page only describes the files
     assert 'href="/plugins/files-pkg/files/carassistant.jar"' not in info and 'href="/plugins/files-pkg/files/install.zip"' not in info
     general = client.get(f"/v/{vid}/integrations/{item['id']}/settings").text  # the tab General offers them, now that they are approved
-    assert 'href="/plugins/files-pkg/files/carassistant.jar"' in general and 'href="/plugins/files-pkg/files/install.zip"' in general
+    import re
+
+    jar = re.search(
+        r'href="(/v/[^"]+/integrations/\d+/get/)carassistant\.jar"', general
+    )  # through the car's own address: the app notes the hand-out
+    assert jar and f'href="{jar.group(1)}install.zip"' in general
+    mine = jar.group(1)
+    got = client.get(f"{mine}carassistant.jar")
+    assert got.status_code == 200 and got.content == JAR and "no-store" in got.headers["cache-control"]
+    assert client.get(f"{mine}install.zip").status_code == 200 and client.get(f"{mine}nothing.zip").status_code == 404
+    again = client.get(f"/v/{vid}/integrations/{item['id']}/settings").text
+    assert "Last downloaded" in again  # and the page says so
     stored = pluginsvc.asset_dir("files-pkg", item["pkg_sha"]) / "carassistant.jar"
     assert oct(stored.stat().st_mode & 0o777) == oct(0o444)  # read-only, never executable
 

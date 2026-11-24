@@ -76,6 +76,7 @@ MIGRATIONS: list[str] = [
     (SCHEMA_DIR / "migrations_57.sql").read_text(encoding="utf-8"),  # trip values of the car's on-board computer
     (SCHEMA_DIR / "migrations_58.sql").read_text(encoding="utf-8"),  # connection map: signal state and history per plugin
     (SCHEMA_DIR / "migrations_59.sql").read_text(encoding="utf-8"),  # bi-fuel cars: the second fuel and the fuel of each fill-up
+    (SCHEMA_DIR / "migrations_60.sql").read_text(encoding="utf-8"),  # addon_deliveries: files of a package handed out per car
 ]
 
 

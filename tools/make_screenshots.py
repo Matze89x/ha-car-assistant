@@ -201,6 +201,7 @@ def _demo_plugins(conn, vid: int) -> None:
             "done_when": [{"token": True}, {"key": "user", "set": True}],
             "settings_after": True,
         },
+        "buttons": [{"id": "login", "label": "Change the login", "icon": "account", "step": "login", "place": "settings"}],
     }
     addons.add(conn, vid, addons.parse_package(json.dumps(cloud).encode()))
 

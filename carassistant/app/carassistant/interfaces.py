@@ -69,16 +69,31 @@ def preview(m: dict, t) -> dict:
             t("pkg.row_bundle", label=b["label"]),
             b["name"],
             None,
-            " · ".join(x for x in (b.get("version", ""), b.get("note", "")) if x),
+            " · ".join(
+                x
+                for x in (
+                    b.get("version", ""),
+                    b.get("note", ""),
+                    t("pkg.note_bundle_cfg" if b.get("connection_file_to") else "pkg.note_bundle", n=len(b.get("entries", []))),
+                )
+                if x
+            ),
         )
     if m.get("connection_file"):
         add("brings", t("pkg.row_connfile"), m["connection_file"]["name"], None, t("pkg.note_connfile"))
     writes = [f["key"] for f in m.get("settings", []) if f.get("service_writable") or f.get("type") == "value"]
     if writes:
         add("brings", t("pkg.row_writes"), "", writes)
-    if m.get("kind", "plugin") == "plugin":
+    is_plugin = m.get("kind", "plugin") == "plugin"
+    if is_plugin and addons.needs_token(m):
         add("brings", t("pkg.row_token"), "", None, t("pkg.note_token"))
-    return {"rows": rows, "has_any": any(rows.values())}
+    return {
+        "rows": rows,
+        "has_any": any(rows.values()),
+        # the package says so itself: an empty list of interfaces = it sends nothing and reads nothing
+        "declared_none": m.get("interfaces") == [] and not (rows["sends"] or rows["reads"] or rows["offers"]),
+        "no_token": is_plugin and not addons.needs_token(m),
+    }
 
 
 def view(conn: sqlite3.Connection, vehicle_id: int, addon: dict, base_url: str) -> dict:

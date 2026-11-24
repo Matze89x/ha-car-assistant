@@ -12,9 +12,10 @@ import io
 import re
 import sqlite3
 import zipfile
+from datetime import UTC, datetime
 from pathlib import Path
 
-from . import addons, config, pluginsvc
+from . import addons, config, connectors, pluginsvc, regional
 
 _bundle_cache: dict[tuple[str, str, str], dict] = {}
 PLACEHOLDER = re.compile(r"\{file:([A-Za-z0-9][A-Za-z0-9._-]{0,79})\}")
@@ -163,3 +164,50 @@ def docs_parts(addon: dict, offered: bool) -> list[dict]:
     if last < len(text):
         parts.append({"text": text[last:]})
     return parts or ([{"text": text}] if text else [])
+
+
+def record_delivery(conn: sqlite3.Connection, addon: dict, name: str) -> None:
+    """Note that this file of the package was handed out for this car: when, which version it had and which settings it was built from."""
+    item = next((x for x in [*addon["m"].get("files", []), *addon["m"].get("bundles", [])] if x["name"] == name), {})
+    conn.execute(
+        "INSERT INTO addon_deliveries(addon_pk, name, version, delivered_at, settings_hash) VALUES(?,?,?,?,?) "
+        "ON CONFLICT(addon_pk, name) DO UPDATE SET version = excluded.version, delivered_at = excluded.delivered_at, "
+        "settings_hash = excluded.settings_hash",
+        (
+            addon["id"],
+            name,
+            item.get("version", ""),
+            datetime.now(UTC).isoformat(timespec="seconds"),
+            addons.settings_hash(addon["m"], addon["vals"]),
+        ),
+    )
+
+
+def general_rows(conn: sqlite3.Connection, addon: dict, slug: str, offered: bool) -> list[dict]:
+    """The files and bundles for the tab *General*: every row downloads through the car's own address (so the app notes it), and says what was last
+    handed out (``last_version``, ``last_at``) and whether the settings changed since (``stale``: only for a package that carries the connection file).
+    A package with a connection file that holds the token is built here only when the app keeps the token; otherwise the set-up guide does it."""
+    seen = {
+        r["name"]: r
+        for r in conn.execute("SELECT name, version, delivered_at, settings_hash FROM addon_deliveries WHERE addon_pk = ?", (addon["id"],))
+    }
+    now = addons.settings_hash(addon["m"], addon["vals"])
+    can_token = not addons.file_has_secret(addon["m"]) or bool(connectors.remembered(conn, addon.get("token_id")))
+    out = []
+    for row in listing(addon, offered):
+        row = {**row, "entries": []}  # the list of entries belongs on the Info page
+        row["href"] = (
+            f"/v/{slug}/integrations/{addon['id']}/get/{row['name']}" if offered and (not row.get("with_token") or can_token) else ""
+        )
+        row["guide_only"] = bool(row.get("with_token")) and not row["href"]
+        last = seen.get(row["name"])
+        if last:
+            row["last_version"] = last["version"]
+            row["last_at"] = regional.fdatetime(last["delivered_at"])
+            row["stale"] = bool(row.get("with_token")) and last["settings_hash"] != now
+            if not row.get("state") and last["version"] and row.get("version"):
+                row["state"] = addons.version_state(
+                    last["version"], row["version"]
+                )  # no word from the car: compare with what was last handed out
+        out.append(row)
+    return out

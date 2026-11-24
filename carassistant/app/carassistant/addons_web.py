@@ -437,17 +437,18 @@ def _settings_page(request: Request, vid: int, addon: dict, shown: dict, errors:
         fingerprint = (
             connectors.fingerprint(conn, addon.get("token_id")) if addon.get("token_id") and addon["status"] == "configured" else ""
         )
+        car_files = (
+            assets.general_rows(conn, addon, vehicle["slug"], pluginsvc.approved(addon))
+            if addon["m"].get("files") or addon["m"].get("bundles")
+            else []
+        )
     t = i18n.translator(config.language())
     set_tabs = addons.settings_tabs(addon["m"]["settings"], frozenset(errors))
     return render(
         request,
         "addon_settings.html",
         set_tabs=set_tabs,
-        car_files=[
-            {**r, "entries": []} for r in assets.listing(addon, pluginsvc.approved(addon))
-        ]  # the list of entries belongs on the Info page
-        if addon["m"].get("files") or addon["m"].get("bundles")
-        else [],
+        car_files=car_files,
         set_tab_on=next((g["id"] for g in set_tabs if g["err"]), set_tabs[0]["id"] if set_tabs else ""),
         kept_token=kept,
         token_fp=fingerprint,
@@ -580,6 +581,8 @@ def _guide_page(
         pkg_offered=offered,
         has_file=bool(addon["m"].get("connection_file")),
         file_name=(addon["m"].get("connection_file") or {}).get("name", ""),
+        tokenless=not addons.needs_token(addon["m"]),
+        token_free=not addons.file_has_secret(addon["m"]),
         back_to=_manage(addon["kind"], vid),
     )
 
@@ -642,6 +645,12 @@ async def addon_guide_next(request: Request, vid: int, aid: int):
     have = (form.get("have_token") or "").strip()[:200]
     adopt = (form.get("adopt_token") or "").strip()[:200]
     mode = (form.get("token_mode") or "").strip()  # the three boxes of step 2: saved | existing | new (empty = older form)
+    with db.tx() as conn:
+        _a = addons.get(conn, vid, aid)
+    if _a is not None and not addons.needs_token(
+        _a["m"]
+    ):  # a plugin that never reports has no token to choose: only the settings are saved
+        carried = have = adopt = mode = ""
     use_saved = bool(form.get("use_saved")) or mode == "saved"
     if mode in ("saved", "new"):
         have = adopt = ""
@@ -730,11 +739,12 @@ async def addon_guide_file(request: Request, vid: int, aid: int):
         addon = addons.get(conn, vid, aid)
         if addon is None or addon["kind"] != "plugin" or not addon["m"].get("connection_file"):
             return go(request, f"/v/{vid}/plugins", "addon.err_id")
-        bad = _guide_token_ok(conn, aid, addon, candidate)
+        secret = addons.file_has_secret(addon["m"])
+        bad = _guide_token_ok(conn, aid, addon, candidate) if secret else ""
         if bad:
             return _guide_page(request, vid, aid, 3, "", errors={"__token": bad}, status=429 if bad == "err.token_rate" else 400)
         text = addons.connection_file_text(
-            addon["m"], addon["vals"], token=candidate, vehicle=vid, url=config.external_url() or "", vin=_vin(vid)
+            addon["m"], addon["vals"], token=candidate if secret else "", vehicle=vid, url=config.external_url() or "", vin=_vin(vid)
         )
         name = addon["m"]["connection_file"]["name"]
     return Response(
@@ -766,18 +776,59 @@ async def addon_guide_bundle(request: Request, vid: int, aid: int):
             or not pluginsvc.approved(addon)
         ):
             return go(request, f"/v/{vid}/plugins", "addon.err_id")
-        bad = _guide_token_ok(conn, aid, addon, candidate)
+        secret = addons.file_has_secret(addon["m"])
+        bad = _guide_token_ok(conn, aid, addon, candidate) if secret else ""
         if bad:
             return _guide_page(request, vid, aid, 3, "", errors={"__token": bad}, status=429 if bad == "err.token_rate" else 400)
         text = addons.connection_file_text(
-            addon["m"], addon["vals"], token=candidate, vehicle=vid, url=config.external_url() or "", vin=_vin(vid)
+            addon["m"], addon["vals"], token=candidate if secret else "", vehicle=vid, url=config.external_url() or "", vin=_vin(vid)
         )
-    data = assets.build_bundle(addon, bundle, text)
+        data = assets.build_bundle(addon, bundle, text)
+        if data is not None:
+            assets.record_delivery(conn, addon, name)
     if data is None:
         return go(request, f"/v/{vid}/plugins", "addon.err_id")
     return Response(
         data,
         media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+    )
+
+
+@app.get("/v/{vid}/integrations/{aid}/get/{name}")
+def addon_get_file(request: Request, vid: int, aid: int, name: str):
+    """A file or a package of the plugin from the tab *General*: handed out through this car's own address, so the app notes what was handed out and
+    when (``addon_deliveries``). A package that carries the token is built with the kept token; when the app keeps none, the set-up guide does it.
+    Administrator only, only while the package is approved."""
+    if (denied := _guard(request, vid)) is not None:
+        return denied
+    if not addons.FILE_NAME.fullmatch(name):
+        raise HTTPException(404)
+    with db.tx() as conn:
+        addon = addons.get(conn, vid, aid)
+        if addon is None or not pluginsvc.approved(addon):
+            return go(request, f"/v/{vid}/plugins", "addon.err_id")
+        bundle = next((b for b in addon["m"].get("bundles", []) if b["name"] == name), None)
+        secret = addons.file_has_secret(addon["m"])
+        if bundle is not None and bundle.get("connection_file_to"):
+            token = connectors.remembered(conn, addon.get("token_id")) if secret else ""
+            if secret and not token:
+                return go(request, f"/v/{vid}/integrations/{aid}/guide?step=3", "addon.get_via_guide")
+            text = addons.connection_file_text(
+                addon["m"], addon["vals"], token=token, vehicle=vid, url=config.external_url() or "", vin=_vin(vid)
+            )
+            data, ctype = assets.build_bundle(addon, bundle, text), addons.FILE_TYPES[".zip"]
+        elif bundle is not None:
+            data, ctype = assets.build_bundle(addon, bundle), addons.FILE_TYPES[".zip"]
+        else:
+            found = assets.read_file(addon, name)
+            data, ctype = found if found else (None, "")
+        if data is None:
+            raise HTTPException(404)
+        assets.record_delivery(conn, addon, name)
+    return Response(
+        data,
+        media_type=ctype,
         headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
     )
 

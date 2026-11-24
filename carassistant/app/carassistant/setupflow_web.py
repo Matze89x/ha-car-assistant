@@ -157,6 +157,7 @@ def page(
         fingerprint=fingerprint,
         bundle_rows=[{**rows[n], "entries": []} for n in cur.get("bundles", []) if n in rows],
         pkg_offered=offered,
+        token_free=not addons.file_has_secret(addon["m"]),
         has_file=bool(cur.get("connection_file")),
         texts={"files": ""},  # the text of a step is shown above the step's own block
         file_name=(addon["m"].get("connection_file") or {}).get("name", ""),

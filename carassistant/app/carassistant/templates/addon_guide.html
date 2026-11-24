@@ -7,7 +7,7 @@
 {% set base_url = base ~ '/v/' ~ v.slug ~ '/integrations/' ~ addon.id %}
 <ol class="guide-bar">
   <li class="{{ 'cur' if step == 1 }}{{ ' done' if step > 1 }}"><span class="gnum">1</span><b>{{ _('guide.s1') }}</b></li>
-  <li class="{{ 'cur' if step == 2 }}{{ ' done' if step > 2 }}"><span class="gnum">2</span><b>{{ _('guide.s2') }}</b></li>
+  <li class="{{ 'cur' if step == 2 }}{{ ' done' if step > 2 }}"><span class="gnum">2</span><b>{{ _('guide.s2_plain') if tokenless else _('guide.s2') }}</b></li>
   <li class="{{ 'cur' if step == 3 }}{{ ' done' if step > 3 }}"><span class="gnum">3</span><b>{{ _('guide.s3') }}</b></li>
   {% for x in extra_steps %}<li class="{{ 'cur' if step == 4 + loop.index0 }}{{ ' done' if step > 4 + loop.index0 }}"><span class="gnum">{{ 4 + loop.index0 }}</span><b>{{ x.title }}</b></li>{% endfor %}
 </ol>
@@ -31,9 +31,9 @@
 {% elif step == 2 %}
 <div class="guide-stack">
 <section class="card guide-step">
-  <h2>{{ icon('lock', 20) }} {{ _('guide.token_title') }}</h2>
+  <h2>{{ icon('settings' if tokenless else 'lock', 20) }} {{ _('addon.settings') if tokenless else _('guide.token_title') }}</h2>
   {% if texts.token %}<div class="guide-text">{{ texts.token|safe }}</div>{% endif %}
-  {% if token and fresh %}
+  {% if token and fresh and not tokenless %}
     <p class="hint">{{ _('api.token_once') }}</p>
     <ul class="codes"><li class="mono token-line">{{ token }}</li></ul>
     <p class="hint">{{ _('guide.token_fresh_hint') }}</p>
@@ -43,8 +43,8 @@
   {% set mode0 = 'saved' if saved_token else ('existing' if has_token else 'new') %}
   <form method="post" action="{{ base_url }}/guide/next" class="guide-stack" id="gform">
   <input type="hidden" name="token" value="{{ token }}">
-  {% if has_token and not saved_token %}<p class="guide-fp"><b>{{ _('guide.token_have') }}</b> <code>•••• {{ fingerprint }}</code></p>{% endif %}
-  <div class="guide-opts">
+  {% if has_token and not saved_token and not tokenless %}<p class="guide-fp"><b>{{ _('guide.token_have') }}</b> <code>•••• {{ fingerprint }}</code></p>{% endif %}
+  {% if not tokenless %}<div class="guide-opts">
     {% if saved_token %}<label class="guide-opt pick">
       <span class="pick-h"><input type="radio" name="token_mode" value="saved" {{ 'checked' if mode0 == 'saved' }}><b>{{ _('guide.token_saved_use') }}</b></span>
       <span class="hint">{{ _('guide.token_have') }} <code>•••• {{ fingerprint }}</code></span>
@@ -58,10 +58,10 @@
       <span class="hint">{{ _('guide.token_reuse_hint2') if has_token else _('guide.adopt_hint') }}</span>
       <input type="password" name="{{ 'have_token' if has_token else 'adopt_token' }}" maxlength="200" autocomplete="off" placeholder="ca_..." aria-label="{{ _('addon.token_have_field') }}">
     </label>
-  </div>
+  </div>{% endif %}
   {% if main_fields or adv_fields %}
   <section class="addon-fields set-form guide-set">
-    <h2>{{ icon('settings', 20) }} {{ _('addon.settings') }}</h2>
+    {% if not tokenless %}<h2>{{ icon('settings', 20) }} {{ _('addon.settings') }}</h2>{% endif %}
     {% for f in main_fields %}{{ addon_field(f, shown.get(f.key, ''), errors.get(f.key, ''), shown, addon) }}{% endfor %}
     {% if adv_fields %}
     <details class="guide-adv"{{ ' open' if adv_fields|selectattr('key', 'in', errors)|list }}><summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('guide.advanced') }}</span></summary>

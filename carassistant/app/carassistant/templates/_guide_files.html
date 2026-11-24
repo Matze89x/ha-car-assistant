@@ -7,7 +7,7 @@
   {% if row.note %}<p class="hint">{{ row.note }}</p>{% endif %}
   <small class="muted">{% if row.size %}{{ row.size|filesizeformat }}{% endif %}</small>
   {% if row.with_token %}
-    {% if token %}<form method="post" action="{{ base_url }}/guide/bundle" class="inline"><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="name" value="{{ row.name }}"><button class="primary">{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>
+    {% if token or token_free %}<form method="post" action="{{ base_url }}/guide/bundle" class="inline">{% if token %}<input type="hidden" name="token" value="{{ token }}">{% endif %}<input type="hidden" name="name" value="{{ row.name }}"><button class="primary">{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>
     {% else %}<button class="primary" name="name" value="{{ row.name }}" form="gagain">{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button>{% endif %}
   {% elif row.href %}<a class="button primary" href="{{ base }}{{ row.href }}" download>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></a>{% endif %}
 </div>
@@ -16,9 +16,9 @@
   <div class="guide-fileline">
     <span class="mi-ic c4">{{ icon('download', 19) }}</span>
     <span class="gf-t"><b>{{ file_name }}</b><small>{{ _('guide.file_hint') }}</small></span>
-    {% if token %}<form method="post" action="{{ base_url }}/guide/file" class="inline"><input type="hidden" name="token" value="{{ token }}"><button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>{% endif %}
+    {% if token or token_free %}<form method="post" action="{{ base_url }}/guide/file" class="inline">{% if token %}<input type="hidden" name="token" value="{{ token }}">{% endif %}<button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>{% endif %}
   </div>
-  {% if token %}{% if fresh %}<p class="hint">{{ _('guide.file_new_hint') }}</p>{% endif %}
+  {% if token or token_free %}{% if fresh and token %}<p class="hint">{{ _('guide.file_new_hint') }}</p>{% endif %}
   {% else %}
   <form method="post" action="{{ base_url }}/guide/file" class="guide-again">
     <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
@@ -29,7 +29,7 @@
   {% endif %}
   {% if bundle_rows %}
     {% if not pkg_offered %}<p class="flash err">{{ _('fil.not_approved') }} <a href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service">{{ _('svc.review') }}</a></p>{% endif %}
-    {% if tb and not token and pkg_offered %}
+    {% if tb and not token and not token_free and pkg_offered %}
     <form method="post" action="{{ base_url }}/guide/bundle" class="guide-again" id="gagain">
       <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
     </form>
