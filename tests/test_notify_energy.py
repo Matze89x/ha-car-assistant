@@ -203,7 +203,7 @@ def test_the_settings_keep_one_way_to_be_told_and_show_it_under_the_switch(clien
     assert (
         page.index(f'name="ev_{vid}" value="low_energy"')
         < page.index(f'name="em_{vid}"')
-        < page.index(f'name="ev_{vid}" value="tyre_pressure"')
+        < page.index("Only what this car really delivers is offered")
     )  # right under its switch
     # a range
     client.post(

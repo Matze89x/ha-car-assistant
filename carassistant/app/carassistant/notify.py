@@ -100,6 +100,40 @@ def prefs(conn: sqlite3.Connection, user_id: int, vehicle_id: int | None = None)
     return {"service": row["service"], "events": events, "enabled": True}
 
 
+def offered_events(conn: sqlite3.Connection, vehicle) -> set[str]:
+    """What THIS car can really tell: judged by what its plugins and entities delivered (the live values, the track) - a car that never reported tyre
+    pressures is not offered the tyre message, one without door data not the open-door message. What the person enters themselves (maintenance,
+    appointments) is always offered; reminders only while an integration with reminders runs. The choice for new cars offers everything."""
+    from . import reminders
+
+    vid = vehicle["id"]
+    live = status.rows(conn, vid)
+
+    def has(*keys: str) -> bool:
+        return any(k in live for k in keys)
+
+    out = {"maint_due", "appointment"}
+    if has("warnings"):
+        out.add("car_message")
+    if has("doors", "windows"):
+        out.add("open_closure")
+    if has("fuel_level", "battery_pct", "fuel_amount", "range_km"):
+        out.add("low_energy")
+    if has("tyre_pressure_bar"):
+        out.add("tyre_pressure")
+    if has("fuel_level", "battery_pct", "charging"):
+        out.add("refuel")  # a fill-up or a charge is noticed from the level
+    if (
+        has("position")
+        or conn.execute("SELECT 1 FROM trips WHERE vehicle_id = ? AND source != 'manual' LIMIT 1", (vid,)).fetchone()
+        or conn.execute("SELECT 1 FROM vehicle_track WHERE vehicle_id = ? LIMIT 1", (vid,)).fetchone()
+    ):
+        out.add("trip_end")
+    if reminders.running(conn, vid):
+        out.add("reminder")
+    return out
+
+
 def matrix(conn: sqlite3.Connection, user_id: int) -> dict:
     """What the person gets, for the settings page: the choice for ``default`` (new cars), every car of the installation with its events and its
     low tank / battery threshold, and the general events. Cars come and go by themselves: a new car starts with the choice for new cars, a removed
@@ -123,6 +157,7 @@ def matrix(conn: sqlite3.Connection, user_id: int) -> dict:
                 "id": v["id"],
                 "name": v["name"],
                 "events": set(_events_of(own["events"])) if own else set(default),
+                "offered": offered_events(conn, v),
                 **_energy_choice(base["energy_pct"] if base else None, base["energy_km"] if base else None, shown),
                 "pct_ph": lv["warn_pct"],  # what an empty field means: the yellow level of the car
                 "km_ph": shown(lv["warn_km"]) or "",

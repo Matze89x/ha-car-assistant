@@ -56,7 +56,9 @@
     <div id="nm-panels">
       {% for c in notify_matrix.cars %}
       <div class="nm-panel" data-panel="p{{ c.id }}">
-        {% for key in notify_events %}{{ switch_row('ev_' ~ c.id, EV[key], key in c.events, key) }}{% if key == 'low_energy' %}{{ thr_block(c.id, c.mode, c.energy_pct, c.energy_km, c.pct_ph, c.km_ph) }}{% endif %}{% endfor %}
+        {% set shown = notify_events|select('in', c.offered|list + c.events|list)|list %}  {# only what this car delivers - and what is switched on already, so it can be switched off #}
+        {% for key in shown %}{{ switch_row('ev_' ~ c.id, EV[key], key in c.events, key) }}{% if key == 'low_energy' %}{{ thr_block(c.id, c.mode, c.energy_pct, c.energy_km, c.pct_ph, c.km_ph) }}{% endif %}{% endfor %}
+        {% if shown|length < notify_events|length %}<p class="hint nm-later">{{ icon('info', 14) }} {{ _('notify.more_later') }}</p>{% endif %}
       </div>
       {% endfor %}
       <div class="nm-panel" data-panel="pnew" hidden>

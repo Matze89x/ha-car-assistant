@@ -185,3 +185,37 @@ def test_a_message_never_shows_raw_coordinates_as_a_place():
 
     assert notify._readable_place("49.33276, 7.09618") == "" and notify._readable_place("-12.5,130.1") == ""
     assert notify._readable_place("Neunkirchen") == "Neunkirchen" and notify._readable_place(None) == ""
+
+
+def test_only_what_a_car_really_delivers_is_offered_for_notifications(client):
+    from carassistant import connectors, notify
+
+    uid = _admin(client)
+    vid = create_vehicle(client, "Plain Car")
+    client.post("/settings/notifications", data={"service": "mobile_app_x"})
+    with db.tx() as conn:
+        car = conn.execute("SELECT * FROM vehicles WHERE id = ?", (vid,)).fetchone()
+        assert notify.offered_events(conn, car) == {
+            "maint_due",
+            "appointment",
+        }  # the person's own entries only: no plugin reported anything
+    page = client.get("/settings/user").text
+    assert f'name="ev_{vid}" value="maint_due"' in page and f'name="ev_{vid}" value="appointment"' in page
+    assert (
+        f'name="ev_{vid}" value="tyre_pressure"' not in page and f'name="ev_{vid}" value="open_closure"' not in page
+    )  # no tyre system, no door data
+    assert "Only what this car really delivers is offered" in page
+    assert 'name="ev_new" value="tyre_pressure"' in page  # the choice for new cars offers everything
+    with db.tx() as conn:  # a plugin reports tyre pressures and the doors
+        connectors._store(conn, vid, "tyre_pressure_bar", '{"fl": 2.4, "fr": 2.4, "rl": 2.4, "rr": 2.4}')
+        connectors._store(conn, vid, "doors", '{"driver": false}')
+        car = conn.execute("SELECT * FROM vehicles WHERE id = ?", (vid,)).fetchone()
+        assert {"tyre_pressure", "open_closure"} <= notify.offered_events(conn, car)
+        assert not {"low_energy", "car_message", "refuel", "trip_end"} & notify.offered_events(conn, car)
+    page = client.get("/settings/user").text
+    assert f'name="ev_{vid}" value="tyre_pressure"' in page and f'name="ev_{vid}" value="open_closure"' in page
+    assert f'name="ev_{vid}" value="low_energy"' not in page  # still no level reported
+    # something switched on already stays visible, so that it can be switched off
+    client.post("/settings/notifications/matrix", data={f"ev_{vid}": ["low_energy"]})
+    assert f'name="ev_{vid}" value="low_energy"' in client.get("/settings/user").text
+    assert uid
