@@ -53,7 +53,7 @@ def test_one_source_serves_both_kinds_and_shows_in_both_tabs(client):
     plugins = client.get(f"/v/{slug}/plugins/sources").text
     integrations = client.get(f"/v/{slug}/integrations/sources").text
     assert "Examples" in plugins and "Examples" in integrations  # the same source in both tabs
-    assert 'class="seg-tabs"' in plugins and 'class="seg-tabs"' in integrations
+    assert 'class="seg-tabs' in plugins and 'class="seg-tabs' in integrations
     client.post("/sources", data={"kind": "integration", "url": "https://example.com/pkgs"})  # twice: refused
     with db.tx() as conn:
         assert conn.execute("SELECT COUNT(*) FROM sources").fetchone()[0] == 2
