@@ -1,12 +1,12 @@
 """The standing rules of the design on every page, measured in a headless Chrome (tools/pagecheck.py) - the things that kept slipping through by hand:
 
-* **a button never wraps its label** and **a row of buttons stays on ONE line** (docs/design.md, "Light buttons, one line"),
+* **a button never wraps its label and the label stays inside the button** and **a row of buttons stays on ONE line** (docs/design.md, "Light buttons, one line"),
 * **the buttons of one row are the same height**,
 * **one main action** (``.primary``) per card or form,
 * **the buttons of a form bar sit bottom right** (the bar is right aligned; only the guide's Back / Next bars spread out),
 * **a thing you tap is big enough**: 30 px at least (the area that takes a tap counts, a ``::after`` that grows it too),
 * **every button has a name** (text, ``aria-label`` or ``title``) and **every field a label**,
-* **nothing is wider than the screen** (no sideways scrolling) and **no text runs out of its own box**.
+* **nothing is wider than the screen** (no sideways scrolling) and **no text runs out of its own box or is cut off by it**.
 
 Folded forms (the add form, the edit form of a card) are opened first so that the buttons inside are measured, too. German has the longest words, a
 phone the least room: ``tests/test_page_ui.py`` runs German at phone width and English wide, when Chrome is installed.
@@ -41,6 +41,13 @@ MEASURE = r"""
       if (tops.length && Math.max.apply(null, tops) - Math.min.apply(null, tops) > 4) { lines = 2; }
     }
     if (lines > 1) { out.push('the label of a button wraps: "' + name(e) + '" (in ' + where(e) + ')'); }
+    var br = e.getBoundingClientRect(), tw2 = document.createTreeWalker(e, NodeFilter.SHOW_TEXT), tx;  /* the label must stay inside its button (squeezed buttons print over each other) */
+    while ((tx = tw2.nextNode())) {
+      if (!tx.textContent.trim() || tx.parentElement.closest('.sr, .sr-only')) { continue; }  /* text for screen readers only is no label */
+      var rr = document.createRange(); rr.selectNodeContents(tx);
+      var lr = rr.getBoundingClientRect();
+      if (lr.width && (lr.right > br.right + 1.5 || lr.left < br.left - 1.5)) { out.push('the label of a button runs out of the button: "' + name(e) + '" (in ' + where(e) + ')'); break; }
+    }
     if (!name(e)) { out.push('a button without a name (in ' + where(e) + ')'); }
     var b = e.getBoundingClientRect(), w2 = b.width, h2 = b.height, ps = getComputedStyle(e, '::after');
     if (ps.content !== 'none' && ps.position === 'absolute') {  /* an ::after that grows the area that takes a tap */
@@ -68,6 +75,29 @@ MEASURE = r"""
     if (own && te.clientWidth > 0 && te.scrollWidth > te.clientWidth + 6) {  /* 6 px: the trailing letter spacing of a spaced-out word is no spill */
       var k = te.tagName.toLowerCase() + '.' + String(te.className).split(' ').slice(0, 2).join('.');
       if (!spilled[k]) { spilled[k] = 1; out.push('text runs out of its box (' + te.scrollWidth + ' > ' + te.clientWidth + ' px): ' + k + ' "' + te.textContent.trim().slice(0, 30) + '"'); }
+    }
+  }
+
+  var cw2 = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), tn, cut = {};  /* text that is cut off by a box with overflow hidden (not an ellipsis, not a scroll area) */
+  while ((tn = cw2.nextNode())) {
+    if (!tn.textContent.trim()) { continue; }
+    var holder = tn.parentElement;
+    if (!holder || holder.closest('svg, template, [hidden], dialog:not([open]), script, style, .wd-ghost, .odo-drum, .odo-plate, .odo-flip, .lmz-stage, .sr, .sr-only')) { continue; }
+    var rg = document.createRange(); rg.selectNodeContents(tn);
+    var tr = rg.getBoundingClientRect(); if (!tr.width) { continue; }
+    var ellipsis = false;
+    for (var a = holder; a && a !== document.body; a = a.parentElement) {
+      var as = getComputedStyle(a);
+      if (as.textOverflow === 'ellipsis') { ellipsis = true; }
+      if (as.overflowX === 'auto' || as.overflowX === 'scroll') { break; }  /* a scroll area: nothing is cut off, it scrolls */
+      if (as.overflowX === 'hidden' || as.overflowX === 'clip') {
+        var ar = a.getBoundingClientRect();
+        if (!ellipsis && (tr.right > ar.right + 1.5 || tr.left < ar.left - 1.5) && ar.width > 0) {
+          var ck = a.tagName.toLowerCase() + '.' + String(a.className).split(' ').slice(0, 2).join('.');
+          if (!cut[ck]) { cut[ck] = 1; out.push('text is cut off by its box: ' + ck + ' "' + tn.textContent.trim().slice(0, 30) + '"'); }
+        }
+        break;
+      }
     }
   }
 

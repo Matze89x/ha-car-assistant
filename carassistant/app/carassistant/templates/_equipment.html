@@ -53,5 +53,5 @@
     <div class="eq-col">{% for c in equip %}{% if loop.index0 % 2 == 0 %}{{ cat(c) }}{% endif %}{% endfor %}</div>
     <div class="eq-col">{% for c in equip %}{% if loop.index0 % 2 == 1 %}{{ cat(c) }}{% endif %}{% endfor %}</div>
   </div>
-  <p class="eq-legend"><span class="eq-mk ok">{{ icon('check', 14) }}</span>{{ _('eq.l_fitted') }}<span class="eq-mk retro">{{ icon('check', 14) }}</span>{{ _('eq.retrofit') }}<span class="eq-mk no">{{ icon('close', 14) }}</span>{{ _('eq.missing') }}</p>
+  <p class="eq-legend"><span class="eq-lg"><span class="eq-mk ok">{{ icon('check', 14) }}</span>{{ _('eq.l_fitted') }}</span><span class="eq-lg"><span class="eq-mk retro">{{ icon('check', 14) }}</span>{{ _('eq.retrofit') }}</span><span class="eq-lg"><span class="eq-mk no">{{ icon('close', 14) }}</span>{{ _('eq.missing') }}</span></p>
 </section>

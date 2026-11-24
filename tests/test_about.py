@@ -15,7 +15,10 @@ def test_about_in_more_list(client):
     assert "/about" in client.get("/more").text
 
 
-def test_human_size():
+def test_human_size(monkeypatch):
+    from carassistant import config
+
+    monkeypatch.setattr(config, "language", lambda: "en")
     assert about.human(512) == "512 B"
     assert about.human(2048) == "2.0 KB"
 
@@ -75,3 +78,12 @@ def test_documents_are_paged_too(client):
             )
     page = client.get(f"/v/{vid}/docs").text
     assert page.count('class="rec doc-rec"') == lists.size() and 'data-into="#doclist"' in page
+
+
+def test_sizes_use_the_decimal_comma_in_german(monkeypatch):
+    from carassistant import about, config
+
+    monkeypatch.setattr(config, "language", lambda: "de")
+    assert about.human(2048) == "2,0 KB" and about.human(512) == "512 B"
+    monkeypatch.setattr(config, "language", lambda: "en")
+    assert about.human(2048) == "2.0 KB"

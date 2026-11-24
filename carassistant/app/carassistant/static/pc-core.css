@@ -1709,9 +1709,8 @@ li.miss .eq-tx { color: var(--muted); }
 .eq-edit { display: grid; gap: 10px; margin-top: 10px; padding: 12px; border-radius: var(--r-m); background: rgba(var(--fg-rgb), .04); }
 .eq-edit[hidden] { display: none; }
 .eq-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.eq-legend { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; white-space: nowrap; overflow: hidden; font-size: 12px; color: var(--muted); }
-.eq-legend .eq-mk { margin: 0 0 0 8px; }
-.eq-legend .eq-mk:first-child { margin-left: 0; }
+.eq-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.eq-lg { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }  /* a mark and its word stay together; the three wrap as a whole on a narrow phone */
 
 /* a last value that stands alone on the left runs over the full width (also the odd one out in a group) */
 
@@ -2594,10 +2593,11 @@ svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5
 
 /* Sensors card: what the two refresh buttons do is written above them; the buttons share ONE line */
 .mqtt-what { margin: 6px 0; }
-.mqtt-bar { display: flex; flex-wrap: nowrap; gap: 8px; margin-top: 10px; }
+.mqtt-bar { display: flex; flex-wrap: nowrap; gap: 8px; margin-top: 10px; container: mqttbar / inline-size; }
 .mqtt-bar > button { flex: 1 1 0; min-width: 0; width: auto; padding-inline: 10px; white-space: nowrap; justify-content: center; }
 /* four actions never fit in one line with their words on a phone: then all four are symbols only (the hints above name them; a tooltip too) */
-@media (max-width: 640px) { .mqtt-bar.icons4 > button { gap: 0; font-size: 0; line-height: 0; } .mqtt-bar.icons4 > button .ico { width: 22px; height: 22px; } }
+/* the card decides, not the window: a card of 390 px in a wide window is as narrow as a phone */
+@container mqttbar (max-width: 760px) { .mqtt-bar.icons4 > button { gap: 0; font-size: 0; line-height: 0; } .mqtt-bar.icons4 > button .ico { width: 22px; height: 22px; } }
 .ha-check { margin-top: 12px; }
 .ha-check li { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; }
 .ha-check li.ok .ico { color: var(--ok); }
@@ -3401,3 +3401,4 @@ html.lmz-lock { overflow: hidden; }
 .wd-look-plate .odo-front .odo-drum i { width: min(34px, 10.5cqw); }
 .wd-look-plate .odo-front .odo-drum i, .wd-look-plate .odo-strip span { font-size: min(32px, 9.5cqw); }
 @media (prefers-reduced-motion: reduce) { .odo-card3d, .odo-flip { transition: none; } .odo-strip { animation: none; } }
+.tg b .badge { max-width: 100%; white-space: normal; line-height: 1.25; }  /* a status in a figure tile ("no MQTT broker found") wraps inside the tile instead of being cut off */

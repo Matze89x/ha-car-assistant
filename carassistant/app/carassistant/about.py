@@ -50,10 +50,12 @@ def _size(path: Path) -> int:
 
 
 def human(num: int) -> str:
+    """A size as people read it (``472.0 KB``, in German ``472,0 KB``)."""
     value = float(num)
     for unit in ("B", "KB", "MB", "GB"):
         if value < 1024 or unit == "GB":
-            return f"{value:.0f} {unit}" if unit == "B" else f"{value:.1f} {unit}"
+            text = f"{value:.0f} {unit}" if unit == "B" else f"{value:.1f} {unit}"
+            return text.replace(".", ",") if config.language() == "de" else text
         value /= 1024
     return ""
 
