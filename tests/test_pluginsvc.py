@@ -844,3 +844,19 @@ def test_a_plugin_with_a_guide_gets_no_token_before_step_2_and_the_token_can_be_
         addons.set_up(conn, vid, addons.get(conn, vid, pk), {"greeting": "hi"})
     page = client.get(f"/v/{vid}/integrations/{pk}/settings").text
     assert "Token of this plugin" in page and made in page  # readable again
+
+
+def test_a_prefix_the_app_answers_is_never_free_for_a_service(env):
+    from carassistant import pluginsvc
+
+    for prefix in (
+        "/settings/",
+        "/v/",
+        "/api/",
+        "/stations/",
+        "/about/",
+        "/healthz/",
+        "/plugins/x/",
+    ):  # the app's own pages, also the ones a later version added
+        assert not pluginsvc.prefix_is_free(prefix), prefix
+    assert pluginsvc.prefix_is_free("/mycar/") and pluginsvc.prefix_is_free("/my-car/api/")

@@ -234,11 +234,21 @@ def approved(addon: dict) -> bool:
     return bool(fingerprint) and addon.get("svc_ok") == fingerprint
 
 
-def check_routes(conn, addon: dict) -> list[str]:
-    """Reasons the routes of this service may not be used (empty = fine): a prefix that would cover a page of the app, or one another service has."""
+def app_segments() -> set[str]:
+    """The first path segments the app itself answers (its pages and routes): a service may never take one of them."""
     from . import web
 
-    taken_by_app = {r.path.split("/")[1] for r in web.app.routes if getattr(r, "path", "").startswith("/") and len(r.path.split("/")) > 1}
+    return {r.path.split("/")[1] for r in web.app.routes if getattr(r, "path", "").startswith("/") and len(r.path.split("/")) > 1}
+
+
+def prefix_is_free(prefix: str) -> bool:
+    """False for a prefix that would cover a page of the app (also one a later version of the app has taken since the service was approved)."""
+    first = prefix.split("/")[1]
+    return first not in RESERVED and first not in app_segments()
+
+
+def check_routes(conn, addon: dict) -> list[str]:
+    """Reasons the routes of this service may not be used (empty = fine): a prefix that would cover a page of the app, or one another service has."""
     problems: list[str] = []
     mine = (service_of(addon) or {}).get("routes", [])
     others = []
@@ -246,8 +256,7 @@ def check_routes(conn, addon: dict) -> list[str]:
         others += [r["prefix"] for r in (json.loads(row["manifest"]).get("service") or {}).get("routes", [])]
     for route in mine:
         prefix = route["prefix"]
-        first = prefix.split("/")[1]
-        if first in RESERVED or first in taken_by_app:
+        if not prefix_is_free(prefix):
             problems.append(f"{prefix} (app)")
         elif any(prefix.startswith(o) or o.startswith(prefix) for o in others):
             problems.append(f"{prefix} (taken)")
@@ -606,6 +615,9 @@ def _rebuild_routes() -> None:
     for pk, info in _procs.items():
         if info["proc"].poll() is None and pk in rows:
             for route in (json.loads(rows[pk]).get("service") or {}).get("routes", []):
+                if not prefix_is_free(route["prefix"]):  # a page the app has taken since: the app wins, the service never shadows it
+                    log.warning("route %s of a service is taken by the app and is not handed on", route["prefix"])
+                    continue
                 _routes[route["prefix"]] = {"port": info["port"], "public": route["public"], "pk": pk}
 
 

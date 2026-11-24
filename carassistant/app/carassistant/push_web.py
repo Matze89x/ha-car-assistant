@@ -8,6 +8,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse, Response
 
 from . import auth_web, config, db, i18n, push
+from .jsonbody import json_dict
 from .web import app, go
 
 SW = Path(__file__).parent / "static" / "sw.js"
@@ -40,7 +41,7 @@ def push_key(request: Request):
 async def push_subscribe(request: Request):
     t = i18n.translator(config.language())
     try:
-        body = await request.json()
+        body = await json_dict(request)
         with db.tx() as conn:
             me = _me(request, conn)
             if me is None:
@@ -54,7 +55,7 @@ async def push_subscribe(request: Request):
 @app.post("/push/status")
 async def push_status(request: Request):
     """Is this device (its subscription) registered for the signed-in person? The notification card asks it to show the right button."""
-    body = await request.json()
+    body = await json_dict(request)
     with db.tx() as conn:
         me = _me(request, conn)
         on = bool(
@@ -69,7 +70,7 @@ async def push_status(request: Request):
 @app.post("/push/unsubscribe")
 async def push_unsubscribe(request: Request):
     """Switch this device off completely."""
-    body = await request.json()
+    body = await json_dict(request)
     with db.tx() as conn:
         me = _me(request, conn)
         if me is not None:

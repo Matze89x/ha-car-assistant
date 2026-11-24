@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from . import __version__, accounts, config, db, i18n
 from . import icons as icon_set
+from .jsonbody import json_dict
 from .web import app, go, render, templates
 
 COOKIE = "ca_session"
@@ -260,7 +261,7 @@ async def login_passkey_verify(request: Request):
     if left := _locked(ip):
         return JSONResponse({"ok": False, "error": _translate("acct.locked").replace("{min}", str(left // 60 + 1))}, status_code=429)
     try:
-        body = await request.json()
+        body = await json_dict(request)
         rp_id, origin = _rp(request)
 
         def work():
@@ -600,7 +601,7 @@ async def account_passkey_register(request: Request):
     if not _is_external(request) and not config.dev_mode():
         return JSONResponse({"ok": False, "error": _translate("acct.passkey_external")}, status_code=400)
     try:
-        body = await request.json()
+        body = await json_dict(request)
         rp_id, origin = _rp(request)
 
         def work():
