@@ -341,11 +341,13 @@ def test_the_odometer_list_of_the_passport_loads_in_batches_like_every_list_and_
     assert 'id="odo-readings"' not in client.get(f"/v/{slug(vid)}/edit").text
 
 
-def test_the_vehicle_passport_has_the_odometer_entry_when_no_plugin_reports_it(client):
+def test_the_vehicle_passport_has_the_odometer_entry_when_no_plugin_reports_it(client, monkeypatch):
     from tests.test_web import create_vehicle, slug
 
     from carassistant import db
+    from carassistant import receipt as rc
 
+    monkeypatch.setattr(rc, "available", lambda: True)  # the photo button needs the text recognition (not installed in every environment)
     vid = create_vehicle(client)
     page = client.get(f"/v/{slug(vid)}/edit").text
     assert (
