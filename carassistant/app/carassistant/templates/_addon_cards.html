@@ -32,9 +32,13 @@
       <button class="danger icon-lbl" form="adel-{{ a.id }}" aria-label="{{ _('addon.uninstall') }}" title="{{ _('addon.uninstall') }}">{{ icon('delete', 18) }}<span class="lbl2">{{ _('addon.uninstall') }}</span></button>
     </div>
   {% else %}
-    <div class="addon-bar">
-      <button class="danger lite-lbl" form="adel-{{ a.id }}" aria-label="{{ _('addon.uninstall') }}" title="{{ _('addon.uninstall') }}">{{ icon('delete', 18) }}<span class="lbl2">{{ _('addon.uninstall') }}</span></button>
+    {% set free = (a.m.buttons or []) if a.active else [] %}
+    <div class="addon-bar fb{{ free|length }}">
+      <button class="danger ico-only" form="adel-{{ a.id }}" aria-label="{{ _('addon.uninstall') }}" title="{{ _('addon.uninstall') }}">{{ icon('delete', 18) }}</button>
+      <a class="button lite-lbl" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/logs" aria-label="{{ _('addon.logs') }}" title="{{ _('addon.logs') }}">{{ icon('list', 18) }}<span class="lbl2">{{ _('addon.logs') }}</span></a>
       {% if a.m.settings or plugin %}<a class="button lite-lbl" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/settings" aria-label="{{ _('addon.settings') }}" title="{{ _('addon.settings') }}">{{ icon('settings', 18) }}<span class="lbl2">{{ _('addon.settings') }}</span></a>{% endif %}
+      {% for b in free %}{% if b.page %}<a class="button lite-lbl" href="{{ base }}/v/{{ v.slug }}/m/{{ a.addon_id }}/{{ b.page }}" aria-label="{{ b.label }}" title="{{ b.label }}">{{ icon(b.icon, 18) }}<span class="lbl2">{{ b.label }}</span></a>
+      {% else %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/button/{{ b.id }}"{% if b.confirm %} data-confirm="{{ b.confirm }}"{% endif %}><button class="lite-lbl" aria-label="{{ b.label }}" title="{{ b.label }}">{{ icon(b.icon, 18) }}<span class="lbl2">{{ b.label }}</span></button></form>{% endif %}{% endfor %}
       {% if a.active %}{% for d in a.m.downloads %}<a class="button lite-lbl" href="{{ base }}{{ d.path }}" download aria-label="{{ d.label }}" title="{{ d.note or d.label }}">{{ icon('download', 18) }}<span class="lbl2">{{ d.label }}</span></a>{% endfor %}{% endif %}
       {% if need_review %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/service">{{ icon('shield', 18) }}<span>{{ _('svc.review') }}</span></a>
       {% elif a.has_update %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/update"><button class="primary">{{ icon('refresh', 18) }}<span>{{ _('addon.update') }}</span></button></form>

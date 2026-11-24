@@ -717,14 +717,15 @@ def record_traffic(
     detail: str,
 ) -> None:
     """One call to watch (debug only: the caller checks the switch). Only the shape is kept - addresses, sizes, times, the names of the fields -
-    never the values. The newest lines up to the log limit stay."""
+    never the values. The newest lines up to the log limit stay - PER PLUGIN: a plugin that calls a lot never pushes out the lines of another."""
     conn.execute(
         "INSERT INTO vehicle_traffic(vehicle_id, addon_id, ts, kind, method, path, status, bytes, ms, detail) VALUES(?,?,?,?,?,?,?,?,?,?)",
         (vehicle_id, addon_id, _now(), kind, method[:8], path[:200], status, max(0, nbytes), max(0, ms), detail[:200]),
     )
     conn.execute(
-        "DELETE FROM vehicle_traffic WHERE vehicle_id = ? AND id NOT IN (SELECT id FROM vehicle_traffic WHERE vehicle_id = ? ORDER BY id DESC LIMIT ?)",
-        (vehicle_id, vehicle_id, log_keep(conn)),
+        "DELETE FROM vehicle_traffic WHERE vehicle_id = ? AND addon_id IS ? AND id NOT IN "
+        "(SELECT id FROM vehicle_traffic WHERE vehicle_id = ? AND addon_id IS ? ORDER BY id DESC LIMIT ?)",
+        (vehicle_id, addon_id, vehicle_id, addon_id, log_keep(conn)),
     )
 
 

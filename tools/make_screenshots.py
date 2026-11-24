@@ -93,6 +93,51 @@ def free_port() -> int:
         return s.getsockname()[1]
 
 
+def _demo_plugins(conn, vid: int) -> None:
+    """Two installed plugins, so that the checks and the pictures measure the TILE of a plugin: one with a service and three free buttons (the widest
+    bar there is: Uninstall, Logs, Settings, three own buttons and the main button), one plain plugin that still has to be set up."""
+    import json
+
+    from carassistant import addons
+
+    source = conn.execute("SELECT id FROM sources ORDER BY id LIMIT 1").fetchone()[0]
+    gateway = {
+        "id": "demo-gateway",
+        "kind": "plugin",
+        "name": "Demo gateway",
+        "version": "1.0",
+        "author": "Example",
+        "icon": "plug",
+        "description": "A made-up plugin with a service, three buttons of its own and a log - it only exists to show the tile of a plugin.",
+        "settings": [{"key": "host", "label": "Address", "type": "text"}],
+        "service": {
+            "entry": "service/main.py",
+            "python": ">=3.9",
+            "requirements": [],
+            "routes": [{"prefix": "/demo/", "public": False}],
+        },
+        "pages": [{"id": "docs", "kind": "frame", "title": "Documentation", "icon": "file-document-outline", "route": "/demo/docs/"}],
+        "buttons": [
+            {"id": "docs", "label": "Documentation", "icon": "file-document-outline", "page": "docs"},
+            {"id": "wake", "label": "Wake the car", "icon": "power", "action": "/demo/wake"},
+            {"id": "sync", "label": "Sync now", "icon": "refresh", "action": "/demo/sync", "confirm": "Fetch everything again?"},
+        ],
+    }
+    addons.add(conn, vid, addons.parse_package(json.dumps(gateway).encode()), source, "0" * 64)
+    cloud = {
+        "id": "demo-cloud",
+        "kind": "plugin",
+        "name": "Demo cloud",
+        "version": "1.0",
+        "author": "Example",
+        "icon": "cloud",
+        "description": "A made-up plugin that logs in to an account; it still has to be set up.",
+        "settings": [{"key": "user", "label": "User name", "type": "text"}, {"key": "password", "label": "Password", "type": "password"}],
+        "setup": {"steps": [{"id": "check", "title": "Check"}, {"id": "token", "title": "Token", "token": True}]},
+    }
+    addons.add(conn, vid, addons.parse_package(json.dumps(cloud).encode()))
+
+
 def seed(data: Path, lang: str) -> None:
     """The demo cars, a user and an MCP key (so the settings pages show their full cards), in the language of the pictures."""
     os.environ["CARASSISTANT_DATA"] = str(data)
@@ -138,6 +183,7 @@ def seed(data: Path, lang: str) -> None:
                 (vid, (today - timedelta(days=days)).isoformat(), km, litres, round(litres * 1.659, 2)),
             )
         accounts.create_user(conn, "demo", "correct horse battery staple", admin=True)
+        _demo_plugins(conn, conn.execute("SELECT id FROM vehicles WHERE name = 'Demo Diesel'").fetchone()[0])
         db.set_setting(conn, "ext.url", "https://car.example.com")
         db.set_setting(conn, "map.tiles", "1")  # the maps of the trips and the position show real map tiles in the pictures
     config.forget_external()

@@ -37,6 +37,8 @@ Verschachtelte Radien: innen = außen − Innenabstand (eine 32-px-Kachel in ein
 
 **Leichte Knöpfe, eine Zeile (feste Regel).** Jede Nebenaktion – Speichern in einem Feld, Löschen, Abbrechen, Hinzufügen, Bearbeiten – ist ein *leichter* Knopf (`.ghost-btn` / umrandet, `.danger` ist rot umrandet, nie ein gefüllter Block), und eine Reihe von Knöpfen bleibt IMMER in EINER Zeile (`flex-wrap: nowrap`, kurze Beschriftung). Nur die eine Hauptaktion einer Seite darf `.primary` sein.
 
+**Die Leiste einer Plugin-Kachel (`.addon-bar`).** Eine Zeile, unten in der Kachel, immer in derselben Reihenfolge: *Deinstallieren* als Mülleimer ohne Text (`.ico-only`, der einzige Knopf, der bei jeder Breite ein Symbol ist), *Logs*, *Einstellungen*, bis zu drei Knöpfe des Plugins selbst (`buttons` im Manifest, [plugins.de.md](plugins.de.md#die-kachel-eines-plugins-und-seine-knöpfe-buttons)), rechts der eine Hauptknopf. Die Leiste ist ein Größen-Container (`container: abar`): Die Knöpfe verlieren ihre Wörter nach der Breite der KACHEL (nicht des Fensters; `fb0`-`fb3` = Zahl der eigenen Knöpfe des Plugins), dann weichen sie bis auf 32 px aus, und nur bei zwei oder drei eigenen Knöpfen auf einer Kachel unter 330 px wird auch der Hauptknopf zum Symbol. Nie umbrechen, nie eine zweite Zeile, nie ein *Mehr*-Menü.
+
 **Ein Knopf, eine Regel** (`app.css`): keine Seite, Karte oder Maske überschreibt Höhe, Abstand oder Schriftgröße – sie wählt nur `.primary`, `.danger` oder `.small`. Der **Bearbeiten**-Link eines Eintrags ist immer `.rec-edit` (Stift-Icon + *Bearbeiten*).
 
 ## 2. Breakpoints

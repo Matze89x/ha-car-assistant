@@ -19,7 +19,7 @@ from carassistant import addons, i18n, icons
 
 KNOWN = {
     "id", "kind", "name", "version", "description", "author", "homepage", "icon", "nav", "settings", "pages", "reminders", "tiles", "interfaces", "docs", "downloads",
-    "l10n", "connection_file", "simulation", "service", "setup", "bundles", "files", "capabilities", "settings_page",
+    "l10n", "connection_file", "simulation", "service", "setup", "bundles", "files", "capabilities", "settings_page", "buttons",
 }  # fmt: skip
 READABLE = {
     ".py",

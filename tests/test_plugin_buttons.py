@@ -1,0 +1,150 @@
+"""The tile of a plugin: Uninstall as a symbol, Logs, Settings, first-time Set up, the plugin's own free buttons, and the log page."""
+
+import json
+
+from tests.test_addons import MANIFEST, upload
+from tests.test_web import create_vehicle, slug
+
+from carassistant import addons, connectors, db, pluginsvc
+
+SERVICE = {
+    "entry": "service/main.py",
+    "python": ">=3.9",
+    "requirements": [],
+    "routes": [{"prefix": "/svc/", "public": True}, {"prefix": "/priv/", "public": False}],
+}
+PAGES = [{"id": "docs", "kind": "frame", "title": "Documentation", "route": "/priv/docs/"}]
+
+
+def test_buttons_open_a_page_of_the_package_or_call_a_private_route_of_its_service():
+    got = addons.clean_buttons(
+        [
+            {"id": "docs", "label": "Documentation", "icon": "book-open-variant", "page": "docs"},
+            {
+                "id": "ping",
+                "label": "Wake the car",
+                "icon": "not-an-icon",
+                "action": "/priv/ping",
+                "confirm": "Sure?",
+                "l10n": {"de": {"label": "Auto wecken"}},
+            },
+            {"id": "open", "label": "Public", "action": "/svc/open"},  # a public route: anybody could press it
+            {"id": "far", "label": "Away", "action": "/priv/../x"},
+            {"id": "nopage", "label": "Missing", "page": "nothing"},
+            {"id": "Bad Id", "label": "x", "page": "docs"},
+            {"id": "docs", "label": "Twice", "page": "docs"},
+            {"id": "nolabel", "page": "docs"},
+            "nonsense",
+        ],
+        PAGES,
+        SERVICE,
+    )
+    assert [b["id"] for b in got] == ["docs", "ping"]
+    assert got[0]["page"] == "docs" and "action" not in got[0]
+    assert got[1]["action"] == "/priv/ping" and got[1]["confirm"] == "Sure?" and got[1]["icon"] == "play-circle-outline"
+    assert got[1]["l10n"] == {"de": {"label": "Auto wecken"}}
+    assert addons.clean_buttons("nonsense", PAGES, SERVICE) == [] and addons.clean_buttons(None, [], None) == []
+
+
+def test_three_buttons_at_most_because_the_tile_is_one_line():
+    many = [{"id": f"b{i}", "label": f"B{i}", "page": "docs"} for i in range(8)]
+    assert len(addons.clean_buttons(many, PAGES, SERVICE)) == addons.MAX_BUTTONS == 3
+
+
+def test_the_manifest_keeps_the_buttons_and_the_language_of_the_page_picks_the_label(client):
+    manifest = {
+        **MANIFEST,
+        "id": "btn-demo",
+        "pages": PAGES,
+        "service": SERVICE,
+        "buttons": [{"id": "docs", "label": "Docs", "page": "docs", "l10n": {"de": {"label": "Anleitung"}}}],
+    }
+    parsed = addons.parse_package(json.dumps(manifest).encode())
+    assert parsed["buttons"][0]["id"] == "docs"
+    assert "buttons" not in addons.parse_package(json.dumps(MANIFEST).encode())  # nothing added when the package has none
+
+
+def _install_with_buttons(client, buttons, pages=PAGES, service=SERVICE):
+    vid = create_vehicle(client)
+    manifest = {**MANIFEST, "id": "btn-demo", "pages": pages, "service": service, "buttons": buttons}
+    with db.tx() as conn:
+        source = conn.execute("SELECT id FROM sources LIMIT 1").fetchone()["id"]
+        pk = addons.add(conn, vid, addons.parse_package(json.dumps(manifest).encode()), source, "0" * 64)
+    return vid, pk
+
+
+def test_the_tile_has_uninstall_as_a_symbol_then_logs_settings_and_the_free_buttons(client):
+    vid, pk = _install_with_buttons(
+        client, [{"id": "docs", "label": "Documentation", "page": "docs"}, {"id": "ping", "label": "Wake", "action": "/priv/ping"}]
+    )
+    page = client.get(f"/v/{slug(vid)}/plugins").text
+    bar = page[page.index('class="addon-bar fb2"') :]
+    bar = bar[: bar.index("</div>")]
+    first = bar.index("<button")
+    assert 'class="danger ico-only"' in bar[first : first + 80] and "Uninstall" in bar[first : first + 260]
+    assert "lbl2" not in bar[first : bar.index("</button>", first)]  # no text on the first button, only the symbol
+    positions = [
+        bar.index(x)
+        for x in (f"/integrations/{pk}/logs", f"/integrations/{pk}/settings", "/m/btn-demo/docs", f"/integrations/{pk}/button/ping")
+    ]
+    assert positions == sorted(positions)  # Logs, Settings, free buttons, in this order
+    assert ">Logs<" in bar and ">Settings<" in bar and ">Documentation<" in bar and ">Wake<" in bar
+
+
+def test_a_plugin_without_free_buttons_has_the_same_tile_with_fb0(client):
+    client.post("/vehicles", data={"name": "Plain", "fuel_type": "petrol"})
+    vid = create_vehicle(client, name="Plain two")
+    assert upload(client, vid, json.dumps(MANIFEST).encode()).status_code == 303
+    page = client.get(f"/v/{slug(vid)}/plugins").text
+    assert 'class="addon-bar fb0"' in page and "/logs" in page and "ico-only" in page
+
+
+def test_the_log_page_shows_everything_or_only_the_problems_and_gives_a_text_file(client):
+    vid, pk = _install_with_buttons(client, [])
+    with db.tx() as conn:
+        connectors.write_logs(
+            conn,
+            vid,
+            "btn-demo",
+            [
+                ("2026-11-24T10:00:00+00:00", "info", "svc", "all is fine"),
+                ("2026-11-24T10:01:00+00:00", "error", "svc", "the login failed"),
+                ("2026-11-24T10:02:00+00:00", "warn", "svc", "slow answer"),
+            ],
+        )
+    base = f"/v/{slug(vid)}/integrations/{pk}/logs"
+    everything = client.get(base).text
+    assert "all is fine" in everything and "the login failed" in everything and "slow answer" in everything
+    assert "Problems · 2" in everything  # the number of warnings and errors is on the filter
+    problems = client.get(base + "?level=problems").text
+    assert "the login failed" in problems and "slow answer" in problems and "all is fine" not in problems
+    text = client.get(base + ".txt")
+    assert (
+        text.status_code == 200
+        and text.headers["content-type"].startswith("text/plain")
+        and "attachment" in text.headers["content-disposition"]
+    )
+    assert "the login failed" in text.text and "all is fine" in text.text
+    assert client.get(f"/v/{slug(vid)}/integrations/{pk}/info?tab=logs").status_code == 200  # the old address still works
+
+
+def test_an_action_button_calls_the_private_route_and_shows_what_the_service_said(client, monkeypatch):
+    vid, pk = _install_with_buttons(client, [{"id": "ping", "label": "Wake", "action": "/priv/ping"}])
+    with db.tx() as conn:
+        conn.execute("UPDATE vehicle_addons SET active = 1 WHERE id = ?", (pk,))
+    calls = []
+
+    def fake_call(pk_, path, payload, vehicle_id, user="ha", timeout=10.0):
+        calls.append((pk_, path, payload, vehicle_id))
+        return True, "The car is awake."
+
+    monkeypatch.setattr(pluginsvc, "call", fake_call)
+    monkeypatch.setattr(pluginsvc, "approved", lambda addon: True)
+    r = client.post(f"/v/{slug(vid)}/integrations/{pk}/button/ping")
+    assert r.status_code == 200 and 'class="addon-status ok"' in r.text and "The car is awake." in r.text
+    assert calls == [(pk, "/priv/ping", {"vehicle": vid, "button": "ping", "language": "en"}, vid)]
+    monkeypatch.setattr(pluginsvc, "call", lambda *a, **k: (False, "no answer"))
+    assert "does not answer" in client.post(f"/v/{slug(vid)}/integrations/{pk}/button/ping").text
+    assert client.post(f"/v/{slug(vid)}/integrations/{pk}/button/nothing").status_code == 404  # only buttons the package declared
+    monkeypatch.setattr(pluginsvc, "approved", lambda addon: False)
+    assert "approved" in client.post(f"/v/{slug(vid)}/integrations/{pk}/button/ping").text  # a plugin that is not approved is never called

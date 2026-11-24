@@ -285,10 +285,10 @@ Zwei Dinge erscheinen auf der *Protokolle*-Seite jedes Plugins (*Info* auf seine
 
 ### Protokolle und der Debug-Knopf eines Plugins
 Jede Kachel unter *Verwaltung* (auch eine gestoppte) hat zwei Knöpfe:
-- **Protokolle** öffnet die eigene Seite des Plugins: der Schalter für mehr Details, nur SEINE Log-Zeilen, was das Add-on mit seinem Dienst getan hat und der Verkehr (eingeklappt), mit *Leeren*.
+- **Logs** öffnet die eigene Seite des Plugins (`/v/<Auto>/integrations/<id>/logs`): der Schalter für mehr Details, nur SEINE Log-Zeilen - *Alle* oder nur *Probleme* (Warnungen und Fehler, mit ihrer Anzahl) -, was das Add-on mit seinem Dienst getan hat und der Verkehr (eingeklappt), mit *Leeren* und *Als Text laden* (`logs.txt`, die letzten 1000 Zeilen, zum Offline-Lesen oder als Anhang zu einer Fehlermeldung). Hier schaut man zuerst nach, wenn etwas nicht funktioniert.
 - **Debug** schaltet mehr Details **nur für dieses Plugin** ein: Solange er an ist, wird das Plugin informiert (`control.debug` ist `true`, es schickt also seine Log-Zeilen), seine Aufrufe werden im Verkehr vermerkt und die Ausgabe seines Dienstes wird gespeichert. Er bleibt an, bis du den Knopf wieder drückst. Der Schalter für das ganze Auto auf der Seite *Debug & Log* wirkt auf jedes Plugin des Autos.
 
-Protokolle bleiben **1, 7 oder 30 Tage** erhalten (*Einstellungen → System → Plugin-Protokolle*, Standard 7) und höchstens die eingestellte Zeilenzahl je Plugin; ältere Zeilen verschwinden von selbst. Beim Entfernen eines Plugins werden seine Zeilen gelöscht.
+Protokolle bleiben **1, 7 oder 30 Tage** erhalten (*Einstellungen → System → Plugin-Protokolle*, Standard 7) und höchstens die eingestellte Zeilenzahl je Plugin - **jedes Plugin hat sein eigenes Protokoll**: seine Zeilen, seine beobachteten Aufrufe und was es genutzt hat gehören ihm allein, werden nur für dieses gekürzt und verdrängen nie die eines anderen Plugins; ältere Zeilen verschwinden von selbst. Beim Entfernen eines Plugins werden seine Zeilen, seine Aufrufe und seine Verlaufsdaten der Anbindungskarte gelöscht - und nichts von einem anderen Plugin.
 
 ### Was der Dienst bekommt
 **Token:** Ein Plugin mit Dienst und **ohne** `connection_file` bekommt vom Add-on ein eigenes Token (`CA_API_TOKEN`). Ein Plugin mit Dienst **und** `connection_file` hat **ein** Token: Es wird beim Einrichten einmal angezeigt (für die Datei, die das Auto braucht; *Ich habe das Token schon* und *Neues Token* funktionieren wie bei jedem Plugin), und dasselbe Token bekommt der Dienst - ein neues Token erreicht den Dienst von selbst und startet ihn neu.
@@ -318,6 +318,38 @@ Ein Paket mit Dienst kann eine Seite seines eigenen Dienstes als **eigene Seite*
 **Karten:** Die App hat eine eigene Kachel-Adresse für OpenStreetMap, `tiles` + `/{z}/{x}/{y}.png`, dieselbe wie die Standortkarte und die Fahrtenkarten: gleiche Herkunft, nur für angemeldete Personen, zwischengespeichert, und nur, solange die Person Karten eingeschaltet hat (*Einstellungen → System*, standardmäßig aus – sonst antwortet sie mit `404`). Bring dein eigenes Karten-Skript mit (zum Beispiel Leaflet) und richte dessen Kachelebene dorthin aus; deine Seite lädt nichts aus dem Internet.
 
 **Regel:** Eine Integration darf einen Dienst nur für eine eigene Seite in der App tragen (ein Werkzeug im Add-on); um ein Gerät oder Auto anzubinden, bleibt es ein Plugin.
+
+## Die Kachel eines Plugins und seine Knöpfe (`buttons`)
+Jedes Plugin hat unter *Plugins → Verwaltung* eine **Kachel** mit EINER Knopfzeile unten, immer in dieser Reihenfolge:
+
+| Knopf | Was er ist |
+|---|---|
+| **Deinstallieren** (ein Mülleimer, ohne Text) | entfernt das Plugin nach einer Rückfrage (sein Token wird widerrufen) |
+| **Logs** | die eigene Log-Seite des Plugins (siehe [Protokolle und der Debug-Knopf](#protokolle-und-der-debug-knopf-eines-plugins)) |
+| **Einstellungen** | die Einstellungsseite des Plugins |
+| *deine eigenen Knöpfe* | bis zu **drei**, siehe unten |
+| **der Hauptknopf** (rechts, rot) | was als Nächstes dran ist: *Prüfen und freigeben*, *Aktualisieren*, *Einrichten* (solange das Plugin ein `setup` hat, das noch nicht fertig ist) oder *Öffnen* |
+
+Die Kachel entscheidet nach ihrer eigenen Breite, nicht nach der des Fensters: Solange Platz ist, tragen die Knöpfe ihre Wörter, danach nur ihre Symbole (der Name bleibt in `aria-label` / `title`), und bei drei eigenen Knöpfen auf der kleinsten Kachel wird auch der Hauptknopf zum Symbol. Sie bricht nie um.
+
+**Eigene Knöpfe.** Ein Paket darf bis zu drei eigene Knöpfe aufführen (`buttons`). Ein Knopf **öffnet eine Seite** des Pakets oder **löst eine Aktion** seines Dienstes aus und zeigt die Antwort:
+
+```json
+"pages": [{ "id": "docs", "kind": "frame", "title": "Dokumentation", "route": "/priv/docs/" }],
+"buttons": [
+  { "id": "docs", "label": "Dokumentation", "icon": "file-document-outline", "page": "docs" },
+  { "id": "wake", "label": "Auto wecken", "icon": "power", "action": "/priv/wake",
+    "confirm": "Auto jetzt wecken?", "l10n": { "en": { "label": "Wake the car", "confirm": "Wake the car now?" } } }
+]
+```
+- `id` (`a-z0-9_-`, eindeutig), `label` (bis zu 40 Zeichen), `icon` (eines der Symbole der App; unbekannte Namen zeigen ein rundes *Play*-Symbol) und **genau eines von**:
+  - `page`: die `id` einer `kind: "frame"`-Seite desselben Pakets. Der Knopf öffnet sie wie der Eintrag *Öffnen* - die Seite **gestaltet das Plugin völlig frei** (Dokumentation, ein Formular, das Daten sammelt, eine Ansicht, die Informationen aus dem Dienst liest, ...). Sie kann das Design-Kit der App nutzen (`kit`, siehe oben).
+  - `action`: eine Route des eigenen Dienstes des Plugins, die unter einem **nicht öffentlichen** `routes`-Präfix liegt (dieselbe Regel wie bei `capabilities`). Ein Druck sendet `POST <action>` mit `{"vehicle": <id>, "button": "<id>", "language": "de"}` und den beiden Identitäts-Headern (`X-CA-Vehicle`, `X-CA-User`) und zeigt eine Ergebnisseite: **2xx** (optional `{"ok": true, "message": "Text für die Person"}`) = erledigt, alles andere oder `{"ok": false, "message": "warum"}` = der Grund, aus `message` / `error` (höchstens 200 Zeichen). Der Dienst hat 10 Sekunden. Ein Plugin, das nicht läuft oder nicht freigegeben ist, wird nie aufgerufen; die Ergebnisseite sagt es.
+- `confirm` (optional, nur bei `action`): eine Frage, die die Person erst bestätigen muss.
+- `l10n`: `label` und `confirm` je Sprache.
+- Die Knöpfe erscheinen, solange das Plugin eingeschaltet ist; nur wer Pakete verwalten darf, kann sie drücken. Ein Knopf, der diese Regeln nicht erfüllt, wird beim Lesen des Pakets verworfen (kein Fehler), mehr als drei werden abgeschnitten - alles Weitere gehört auf eine eigene Seite, die überallhin verlinken darf.
+
+Wie alles in der Schnittstelle ist das eine Ergänzung: Ein Paket ohne `buttons` hat dieselbe Kachel mit *Deinstallieren*, *Logs* und *Einstellungen*.
 
 ## Fähigkeiten (`capabilities`): was ein Plugin für die App tun kann
 

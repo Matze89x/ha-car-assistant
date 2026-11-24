@@ -323,6 +323,48 @@ def _l10n(raw, limits: dict[str, int]) -> dict[str, dict[str, str]]:
     return out
 
 
+MAX_BUTTONS = 3  # what fits in the ONE line of the tile on the smallest phone (docs/plugins.md, Buttons)
+BUTTON_ID = re.compile(r"[a-z][a-z0-9_-]{0,30}")
+
+
+def clean_buttons(raw, pages: list[dict], service: dict | None) -> list[dict]:
+    """Free buttons a plugin puts on its tile (docs/plugins.md, "Buttons"): ``{"id", "label", "icon", "page": "<id of a page of the package>"}`` opens a
+    page of the plugin, ``{"id", "label", "icon", "action": "/route"}`` makes the app call a route of the plugin's own service (NOT public) and show the
+    answer. At most 3; anything that does not fit is dropped."""
+    from . import icons
+
+    out: list[dict] = []
+    page_ids = {p["id"] for p in pages if isinstance(p, dict) and p.get("id")}
+    prefixes = [r["prefix"] for r in (service or {}).get("routes", []) if not r.get("public")]
+    for item in raw[:MAX_BUTTONS] if isinstance(raw, list) else []:
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("id"), str)
+            or not BUTTON_ID.fullmatch(item["id"])
+            or any(b["id"] == item["id"] for b in out)
+        ):
+            continue
+        label = _text(item, "label", 40)
+        if not label:
+            continue
+        btn = {"id": item["id"], "label": label, "icon": item.get("icon") if item.get("icon") in icons.ICONS else "play-circle-outline"}
+        if item.get("page") in page_ids:
+            btn["page"] = item["page"]
+        else:
+            path = item.get("action")
+            if not (
+                isinstance(path, str) and CAPABILITY_PATH.fullmatch(path) and ".." not in path and any(path.startswith(p) for p in prefixes)
+            ):
+                continue
+            btn["action"] = path
+            if _text(item, "confirm", 160):
+                btn["confirm"] = _text(item, "confirm", 160)
+        if _l10n(item.get("l10n"), {"label": 40, "confirm": 160}):
+            btn["l10n"] = _l10n(item.get("l10n"), {"label": 40, "confirm": 160})
+        out.append(btn)
+    return out
+
+
 def _docs_text(value) -> str:
     """A longer text with its paragraphs: every line is tidied (blanks collapsed), at most one empty line in a row, at most 3000 characters."""
     if not isinstance(value, str):
@@ -848,6 +890,7 @@ def parse_package(raw: bytes) -> dict:
     bundles = clean_bundles(data.get("bundles"), files)
     downloads = clean_downloads(data.get("downloads"), service)
     capabilities = clean_capabilities(data.get("capabilities"), service)
+    buttons = clean_buttons(data.get("buttons"), pages, service)
     setup = clean_setup(
         data.get("setup"), bundles, bool(conn_file), {f["key"] for f in fields}, {p["id"] for p in pages if p.get("kind") == "frame"}
     )
@@ -860,6 +903,7 @@ def parse_package(raw: bytes) -> dict:
         **({"tiles": tiles} if tiles else {}),
         **({"downloads": downloads} if downloads else {}),
         **({"capabilities": capabilities} if capabilities else {}),
+        **({"buttons": buttons} if buttons else {}),
         **({"files": files} if files else {}),
         **({"bundles": bundles} if bundles else {}),
         **({"setup": setup} if setup else {}),
@@ -1020,6 +1064,11 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
             {**f, **{k: v for k, v in ((f.get("l10n") or {}).get(lang) or {}).items() if k in ("label", "help")}}
             for f in manifest.get("settings", [])
         ]
+        if manifest.get("buttons"):  # the labels of the free buttons in the language of the page
+            manifest["buttons"] = [
+                {**b, **{k: v for k, v in ((b.get("l10n") or {}).get(lang) or {}).items() if k in ("label", "confirm")}}
+                for b in manifest["buttons"]
+            ]
         for f in manifest["settings"]:
             if f.get("templates"):  # the ready-made rows of a list in the language of the page
                 f["templates"] = [{**t, "label": ((t.get("l10n") or {}).get(lang) or {}).get("label", t["label"])} for t in f["templates"]]

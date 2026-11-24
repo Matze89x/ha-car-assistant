@@ -37,6 +37,8 @@ Nested radii: inner = outer − padding (a 32 px chip in a 16 px list row with 8
 
 **Light buttons, one line (standing rule).** Every secondary action - save inside a panel, delete, cancel, add, edit - is a *light* button (`.ghost-btn` / outlined, `.danger` is outlined red, never a filled block), and a row of buttons always stays on ONE line (`flex-wrap: nowrap`, labels short). Only the single main action of a page may be `.primary`.
 
+**The bar of a plugin tile (`.addon-bar`).** One line, bottom of the tile, always in the same order: *Uninstall* as a bin without text (`.ico-only`, the only button that is a symbol at every width), *Logs*, *Settings*, up to three buttons of the plugin itself (`buttons` in the manifest, [plugins.md](plugins.md#the-tile-of-a-plugin-and-its-buttons-buttons)), the one main button on the right. The bar is a size container (`container: abar`): the buttons lose their words by the width of the TILE (not the window; `fb0`-`fb3` = number of the plugin's own buttons), then they give way down to 32 px, and only with two or three own buttons on a tile narrower than 330 px does the main button become a symbol. Never wrap, never a second row, never a *More* menu.
+
 **One button, one rule** (`app.css`): no page, card or form overrides its height, padding or type size - it only picks `.primary`, `.danger` or `.small`. The **edit** link of a record is always `.rec-edit` (pencil icon + *Edit*).
 
 ## 2. Breakpoints

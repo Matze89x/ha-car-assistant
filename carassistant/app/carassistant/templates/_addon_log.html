@@ -1,5 +1,10 @@
 {% from "_macros.html" import icon with context %}
 
+<nav class="seg-tabs ad-lvl" aria-label="{{ _('addon.logs') }}">
+  <a href="{{ base }}{{ log_url }}" class="{{ 'on' if log_level == 'all' }}"{% if log_level == 'all' %} aria-current="page"{% endif %}>{{ icon('list', 18) }}<span>{{ _('log.all') }}</span></a>
+  <a href="{{ base }}{{ log_url }}?level=problems" class="{{ 'on' if log_level == 'problems' }}"{% if log_level == 'problems' %} aria-current="page"{% endif %}>{{ icon('alert', 18) }}<span>{{ _('log.problems') }}{% if log_problems %} · {{ log_problems }}{% endif %}</span></a>
+</nav>
+
 <section class="tp-sec">
   <div class="card ad-log">
     <div class="ad-row"><div class="ad-t"><b>{{ _('addon.debug_on') if debug_on else _('addon.debug') }}</b><small>{{ _('dbg.state_on') if debug_on else _('dbg.state_off') }}</small></div>
@@ -9,7 +14,7 @@
       {% for l in lines %}<div class="dbg-line lv-{{ l.level }}"><span class="dbg-ts">{{ flog(l.ts) }}</span><span class="dbg-lv">{{ l.level }}</span><span class="dbg-msg">{{ l.message }}</span></div>{% endfor %}
     </div>
     <p class="hint">{{ _('dbg.keep', n=keep) }}</p>
-    {% else %}<p class="hint">{{ _('dbg.empty') }}</p>{% endif %}
+    {% else %}<p class="hint">{{ _('log.problems_empty') if log_level == 'problems' else _('dbg.empty') }}</p>{% endif %}
   </div>
 </section>
 
@@ -25,7 +30,10 @@
   </details>
 </section>
 
-{% if lines or traffic %}
-<form method="post" action="{{ base }}/v/{{ v.slug }}/debug/clear" class="ad-clear" data-confirm="{{ _('dbg.confirm_clear') }}"><input type="hidden" name="plugin" value="{{ addon.addon_id }}">
-  <button class="ghost-btn small warn">{{ icon('delete-outline', 16) }}<span>{{ _('dbg.clear') }}</span></button></form>
+{% if lines or traffic or log_problems %}
+<div class="addon-bar ad-clear">
+  <form method="post" action="{{ base }}/v/{{ v.slug }}/debug/clear" data-confirm="{{ _('dbg.confirm_clear') }}"><input type="hidden" name="plugin" value="{{ addon.addon_id }}">
+    <button class="danger ico-only" aria-label="{{ _('dbg.clear') }}" title="{{ _('dbg.clear') }}">{{ icon('delete-outline', 18) }}</button></form>
+  <a class="button lite-lbl" href="{{ base }}{{ log_url }}.txt" download aria-label="{{ _('log.download') }}" title="{{ _('log.download') }}">{{ icon('download', 18) }}<span class="lbl2">{{ _('log.download') }}</span></a>
+</div>
 {% endif %}

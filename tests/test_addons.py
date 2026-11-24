@@ -132,7 +132,7 @@ def test_settings_window_has_all_field_types_and_keeps_values_only_after_save(cl
     assert "aset-dlg" not in card  # no pop-up window of its own: the settings are a page
     page = client.get(f"/v/rich-car/integrations/{row['id']}/settings").text
     assert "How it runs" in page and "<select" in page and 'type="number"' in page and "<textarea" in page
-    assert card.count('class="addon-bar"') == 1 and "addon-menu" not in card  # one bar at the bottom, nothing hidden under "More"
+    assert card.count('class="addon-bar fb') == 1 and "addon-menu" not in card  # one bar at the bottom, nothing hidden under "More"
     assert "Uninstall" in card and card.count("addon-bar") == 1  # uninstalling stays on the card
 
 

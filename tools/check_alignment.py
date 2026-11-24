@@ -77,6 +77,11 @@ def page_list(b, base: str, ms) -> list[str]:
         f"/v/{ms.DIESEL}/plugins/sources",
         f"/v/{ms.DIESEL}/integrations/add",
         f"/v/{ms.DIESEL}/integrations/sources",
+        # the two demo plugins of make_screenshots.seed (the first two packages of the car: ids 1 and 2): the pages that belong to a plugin's tile
+        f"/v/{ms.DIESEL}/integrations/1/logs",
+        f"/v/{ms.DIESEL}/integrations/1/info",
+        f"/v/{ms.DIESEL}/integrations/1/settings",
+        f"/v/{ms.DIESEL}/integrations/2/guide",
     ]
 
 

@@ -282,10 +282,10 @@ Two things show on the *Logs* page of each plugin (*Info* on its tile, section *
 
 ### Logs and the debug button of a plugin
 Every tile under *Manage* (also a stopped one) has two buttons:
-- **Logs** opens the plugin's own page: the switch for more detail, only ITS log lines, what the add-on did with its service, and the traffic (folded), with *Clear*.
+- **Logs** opens the plugin's own page (`/v/<car>/integrations/<id>/logs`): the switch for more detail, only ITS log lines - *All* or only *Problems* (warnings and errors, with their number) -, what the add-on did with its service, and the traffic (folded), with *Clear* and *Download as text* (`logs.txt`, the last 1000 lines, to read offline or to send along with a bug report). This is the place to look first when something does not work.
 - **Debug** switches more detail on **for this plugin only**: while it is on, the plugin is told (`control.debug` is `true`, so it sends its log lines), its calls are noted in the traffic view and the output of its service is kept. It stays on until you press the button again. The switch for the whole car on the *Debug & log* page does the same for every plugin of the car.
 
-Logs are kept for **1, 7 or 30 days** (*Settings → System → Plugin logs*, default 7) and at most the set number of lines per plugin; older lines are removed by themselves. Removing a plugin deletes its lines.
+Logs are kept for **1, 7 or 30 days** (*Settings → System → Plugin logs*, default 7) and at most the set number of lines per plugin - **every plugin has its own log**: its lines, its watched calls and what it used belong to it alone, are cut down for it alone and never push out those of another plugin; older lines are removed by themselves. Removing a plugin deletes its lines, its calls and its connection-map history - and nothing of any other plugin.
 
 ### What the service gets
 **Token:** a plugin with a service and **no** `connection_file` gets a token of its own from the add-on (`CA_API_TOKEN`). A plugin with a service **and** a `connection_file` has **one** token: it is shown once on setup (for the file the car needs; *I already have the token* and *New token* work as for any plugin) and the same token is given to the service - a new token reaches the service by itself and restarts it.
@@ -315,6 +315,38 @@ A package with a service can show a page of its own service as a **page of its o
 **Maps:** the app has its own tile address for OpenStreetMap, `tiles` + `/{z}/{x}/{y}.png`, the same one the location map and the trip maps use: same origin, only for signed-in people, cached, and only while the person switched maps on (*Settings → System*, off by default - then it answers `404`). Bring your own map script (for example Leaflet) and point its tile layer there; nothing is loaded from the internet by your page.
 
 **Rule:** an integration may carry a service only for a page of its own inside the app (a tool in the add-on); to connect a device or a car it stays a plugin.
+
+## The tile of a plugin and its buttons (`buttons`)
+Every plugin has a **tile** under *Plugins → Manage* with ONE line of buttons at the bottom, always in this order:
+
+| Button | What it is |
+|---|---|
+| **Uninstall** (a bin, no text) | removes the plugin after a confirmation (its token is revoked) |
+| **Logs** | the plugin's own log page (see [Logs and the debug button](#logs-and-the-debug-button-of-a-plugin)) |
+| **Settings** | the plugin's settings page |
+| *your own buttons* | up to **three**, see below |
+| **the main button** (right, red) | what is to be done next: *Review and approve*, *Update*, *Set up* (while the plugin has a `setup` that is not finished) or *Open* |
+
+The tile decides by its own width, not the window's: while there is room the buttons carry their words, then only their symbols (the name stays in `aria-label` / `title`), and with three buttons of your own on the smallest tile the main button becomes a symbol, too. It never wraps.
+
+**Your own buttons.** A package may list up to three buttons of its own (`buttons`). A button either **opens a page** of the package or **triggers an action** of its service and shows the answer:
+
+```json
+"pages": [{ "id": "docs", "kind": "frame", "title": "Documentation", "route": "/priv/docs/" }],
+"buttons": [
+  { "id": "docs", "label": "Documentation", "icon": "file-document-outline", "page": "docs" },
+  { "id": "wake", "label": "Wake the car", "icon": "power", "action": "/priv/wake",
+    "confirm": "Wake the car now?", "l10n": { "de": { "label": "Auto wecken", "confirm": "Auto jetzt wecken?" } } }
+]
+```
+- `id` (`a-z0-9_-`, unique), `label` (up to 40 characters), `icon` (one of the app's symbols; unknown names show a round *play* symbol) and **exactly one of**:
+  - `page`: the `id` of a `kind: "frame"` page of the same package. The button opens it like the *Open* entry does - the page is **freely designed by the plugin** (documentation, a form that collects data, a view that reads information from the service, ...). It can use the app's design kit (`kit`, see above).
+  - `action`: a route of the plugin's own service that lies under a **non-public** `routes` prefix (the same rule as for `capabilities`). A press sends `POST <action>` with `{"vehicle": <id>, "button": "<id>", "language": "en"}` and the two identity headers (`X-CA-Vehicle`, `X-CA-User`) and shows a result page: **2xx** (optionally `{"ok": true, "message": "text for the person"}`) = done, anything else or `{"ok": false, "message": "why"}` = the reason, taken from `message` / `error` (200 characters at most). The service has 10 seconds. A plugin that is not running or not approved is never called; the result page says so.
+- `confirm` (optional, `action` only): a question the person has to confirm first.
+- `l10n`: `label` and `confirm` per language.
+- Buttons are shown while the plugin is switched on; only people who may manage packages can press them. A button that does not fit these rules is dropped when the package is read (no error), and more than three are cut off - put everything else on one of your own pages, which can link anywhere.
+
+Like everything in the interface this is an addition: a package without `buttons` has the same tile with *Uninstall*, *Logs* and *Settings*.
 
 ## Capabilities (`capabilities`): what a plugin can do for the app
 

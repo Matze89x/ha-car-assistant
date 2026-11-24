@@ -1422,7 +1422,7 @@ details.add-card-top > summary, details.add-card-top:not([open]) { display: none
 /* ---- packages as tiles (Plugins / Integrations: Manage, Add, Sources) - like the apps of Home Assistant: icon, name, short text, state */
 .pk-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 4px 0 10px; }
 .pk-bar .hint { margin: 0; flex: 1 1 220px; }
-.pk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin: 8px 0 14px; align-items: stretch; }
+.pk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--sp-col); margin: 8px 0 14px; align-items: stretch; }
 .pk-grid > .card { margin: 0; }
 .pk-grid > .empty-state, .pk-grid > details[open] { grid-column: 1 / -1; }
 .pk-tile { display: flex; flex-direction: column; gap: 10px; padding: 16px; color: var(--text); text-decoration: none; transition: transform .15s ease, border-color .15s ease; }
@@ -2192,7 +2192,7 @@ body { cursor: default; }
 :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="file"]):not([type="button"]), textarea) { cursor: text; }
 
 /* Plugin and integration cards: a bar of three clear buttons with words, the main action (Open) on the right, the rest under "More" with a line each */
-.addon-bar { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: auto; padding-top: 14px; }
+.addon-bar { container: abar / inline-size; display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: auto; padding-top: 14px; }
 
 /* ONE line at the bottom of the tile, never wrapped */
 .addon-bar > a.button, .addon-bar > button, .addon-bar > details > summary { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; white-space: nowrap; cursor: pointer; }
@@ -2208,15 +2208,27 @@ body { cursor: default; }
 .addon-status { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
 .addon-status .ico { flex: 0 0 auto; margin-top: 1px; }
 .addon-status.err { color: var(--overdue); }
+.addon-status.ok { color: var(--ok); }
+.addon-result .addon-status { font-size: 15px; font-weight: 600; margin: 4px 0 0; }
 .addon-status.upd { margin: 12px 0 0; padding: 8px 12px; border-radius: var(--r-s); color: var(--strong); font-weight: 600; background: rgba(var(--accent-rgb), .14); border: 1px solid rgba(var(--accent-rgb), .4); align-items: center; }
 .addon-status.upd .ico { color: var(--accent); margin: 0; }
 .addon.upd { border-color: rgba(var(--accent-rgb), .45); }
 .addon-bar > .danger { margin-right: auto; }
+/* A button that is only a symbol (Uninstall, the bin): 44 px, and it gives way a little on the narrowest phone so that the whole line still fits */
+.addon-bar > .ico-only, .addon-bar > form > .ico-only { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; }
+.addon-bar.ad-clear > form { margin-right: auto; }
+/* Words on the buttons only while the TILE (not the window) has the room: every free button of a plugin needs about 110 px more; the symbols share what is left */
+@container abar (max-width: 440px) { .addon-bar.fb0 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb0 .lite-lbl .lbl2 { display: none; } }
+@container abar (max-width: 560px) { .addon-bar.fb1 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb1 .lite-lbl .lbl2 { display: none; } }
+@container abar (max-width: 670px) { .addon-bar.fb2 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb2 .lite-lbl .lbl2 { display: none; } }
+@container abar (max-width: 780px) { .addon-bar.fb3 :is(a, button).lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; } .addon-bar.fb3 .lite-lbl .lbl2 { display: none; } }
+/* three free buttons or two on the smallest tile: the main button is a symbol, too (its name stays in aria-label / title) */
+@container abar (max-width: 330px) { .addon-bar:is(.fb2, .fb3) > .primary > span, .addon-bar:is(.fb2, .fb3) > form > .primary > span { display: none; } .addon-bar:is(.fb2, .fb3) > .primary, .addon-bar:is(.fb2, .fb3) > form > .primary { padding: 0 10px; } }
 @media (max-width: 480px) {
   .addon-st { display: none; }
-  .addon-bar > .lite-lbl .lbl2 { display: none; }
-  .addon-bar > .lite-lbl { width: 44px; padding: 0; justify-content: center; }
-  .addon-bar > .lite-lbl svg { display: inline-block; }
+  .addon-bar > .lite-lbl .lbl2, .addon-bar > form > .lite-lbl .lbl2 { display: none; }
+  .addon-bar > .lite-lbl, .addon-bar > form > .lite-lbl { flex: 0 1 44px; width: 44px; min-width: 32px; padding: 0; justify-content: center; }
+  .addon-bar > .lite-lbl svg, .addon-bar > form > .lite-lbl svg { display: inline-block; }
 }
 
 /* Set-up guide of a plugin: numbered steps on one page */

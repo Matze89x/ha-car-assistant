@@ -77,7 +77,7 @@ def test_the_map_draws_zooms_and_opens_the_details_in_a_browser():
                     drawn["rows"] >= 50
                     and drawn["live"] == 2
                     and drawn["open"] == drawn["rows"] - 2
-                    and drawn["plugins"] == 1
+                    and drawn["plugins"] == 3  # Plugin One and the two plugins the demo data always carries (they have not talked yet)
                     and drawn["wires"] == 2
                 )
                 before = b.run("document.querySelector('.lmz-world').getAttribute('transform')")

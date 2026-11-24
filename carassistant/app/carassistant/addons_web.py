@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import contextlib
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 
 from . import (
     addons,
     assets,
+    auth_web,
     config,
     connectors,
     db,
@@ -762,6 +763,38 @@ async def addon_guide_bundle(request: Request, vid: int, aid: int):
 @app.get("/v/{vid}/integrations/{aid}/info")
 def addon_info(request: Request, vid: int, aid: int):
     """Everything about ONE plugin / integration on one page: overview, what it offers and uses (interfaces, files), its log with the debug switch."""
+    return _info_page(request, vid, aid, request.query_params.get("tab", "overview"))
+
+
+@app.get("/v/{vid}/integrations/{aid}/logs")
+def addon_logs(request: Request, vid: int, aid: int):
+    """The log page of a plugin (button *Logs* on its tile): what it and its service noted, newest first - all of it, or only warnings and errors."""
+    return _info_page(request, vid, aid, "logs")
+
+
+@app.get("/v/{vid}/integrations/{aid}/logs.txt")
+def addon_logs_text(request: Request, vid: int, aid: int):
+    """The same log as a plain text file (to read offline or to send along with a bug report); only people who may manage packages."""
+    if (denied := _guard(request, vid)) is not None:
+        return denied
+    with db.tx() as conn:
+        addon = addons.get(conn, vid, aid)
+        if addon is None:
+            return go(request, f"/v/{vid}/plugins", "addon.err_id")
+        rows = conn.execute(
+            "SELECT ts, level, source, message FROM vehicle_logs WHERE vehicle_id = ? AND addon_id = ? ORDER BY id DESC LIMIT 1000",
+            (vid, addon["addon_id"]),
+        ).fetchall()
+    text = "\n".join(f"{regional.flog(r['ts'])}  {r['level']:<5}  {r['source'] or ''}  {r['message']}" for r in rows) + "\n"
+    name = f"{addon['addon_id']}-log.txt"
+    return Response(
+        text,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+    )
+
+
+def _info_page(request: Request, vid: int, aid: int, info_tab: str):
     with db.tx() as conn:
         vehicle = vehicle_or_404(conn, vid)
         addon = addons.get(conn, vid, aid)
@@ -770,10 +803,16 @@ def addon_info(request: Request, vid: int, aid: int):
         ctx = vehicle_ctx(conn, vehicle, "integrations")
         data = interfaces.view(conn, vid, addon, config.external_url() or "")
         pid = addon["addon_id"]
+        level = "problems" if request.query_params.get("level") == "problems" else "all"
         lines = conn.execute(
-            "SELECT ts, level, source, message FROM vehicle_logs WHERE vehicle_id = ? AND addon_id = ? ORDER BY id DESC LIMIT 300",
+            "SELECT ts, level, source, message FROM vehicle_logs WHERE vehicle_id = ? AND addon_id = ?"
+            + (" AND level IN ('warn', 'error')" if level == "problems" else "")
+            + " ORDER BY id DESC LIMIT 300",
             (vid, pid),
         ).fetchall()
+        problems = conn.execute(
+            "SELECT COUNT(*) FROM vehicle_logs WHERE vehicle_id = ? AND addon_id = ? AND level IN ('warn', 'error')", (vid, pid)
+        ).fetchone()[0]
         traffic = conn.execute(
             "SELECT ts, kind, method, path, status, bytes, ms, detail FROM vehicle_traffic WHERE vehicle_id = ? AND addon_id = ? ORDER BY id DESC LIMIT 150",
             (vid, pid),
@@ -791,12 +830,17 @@ def addon_info(request: Request, vid: int, aid: int):
         "error": "svc.state_error",
     }
     svc = with_svc.get("svc")
-    info_tab = request.query_params.get("tab", "overview")
     if info_tab not in ("overview", "interfaces", "logs"):
         info_tab = "overview"
     info_base = f"/v/{ctx['v']['slug']}/integrations/{aid}/info"
     info_tabs = [
-        {"key": k, "href": info_base if k == "overview" else f"{info_base}?tab={k}", "title": t_(title), "on": k == info_tab, "icon": ic}
+        {
+            "key": k,
+            "href": info_base if k == "overview" else (f"{info_base[: -len('info')]}logs" if k == "logs" else f"{info_base}?tab={k}"),
+            "title": t_(title),
+            "on": k == info_tab,
+            "icon": ic,
+        }
         for k, title, ic in (
             ("overview", "info.overview", "info"),
             ("interfaces", "ifc.title", "swap-vertical"),
@@ -814,6 +858,9 @@ def addon_info(request: Request, vid: int, aid: int):
         data=data,
         vid=vid,
         lines=lines,
+        log_level=level,
+        log_problems=problems,
+        log_url=f"{info_base.rsplit('/', 1)[0]}/logs",
         traffic=traffic,
         keep=keep,
         debug_on=debug_on,
@@ -903,6 +950,42 @@ async def addons_connection_file(request: Request, vid: int, aid: int):
         text,
         media_type="text/plain; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store"},
+    )
+
+
+@app.post("/v/{vid}/integrations/{aid}/button/{bid}")
+async def addon_button(request: Request, vid: int, aid: int, bid: str):
+    """A free button of a plugin (``buttons`` in its plugin.json) that triggers an action: the app calls the route of the plugin's own service - it is
+    never public - and shows what the service answers (done, or the reason it did not work). Only for a running plugin and only for people who may manage."""
+    if (denied := _guard(request, vid)) is not None:
+        return denied
+    with db.tx() as conn:
+        vehicle = vehicle_or_404(conn, vid)
+        addon = addons.get(conn, vid, aid)
+        if addon is None:
+            return go(request, f"/v/{vid}/plugins", "addon.err_id")
+        button = next((b for b in addon["m"].get("buttons", []) if b["id"] == bid and b.get("action")), None)
+        if button is None:
+            raise HTTPException(404)
+        ctx = vehicle_ctx(conn, vehicle, "integrations")
+        who = auth_web._acting_user(request, conn)
+    if not addon["active"] or not pluginsvc.approved(addon):
+        ok, message = False, "addon.button_off"
+    else:
+        payload = {"vehicle": vid, "button": bid, "language": config.language()}
+        ok, message = pluginsvc.call(addon["id"], button["action"], payload, vid, (who["name"] if who else "ha"))
+        if not ok and message in ("not running", "no answer"):
+            message = "addon.button_down"
+    return render(
+        request,
+        "addon_button.html",
+        **ctx,
+        hide_hero=True,
+        addon=addon,
+        button=button,
+        ok=ok,
+        message=message,
+        back_to=_manage(addon["kind"], vid),
     )
 
 

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{{ page_head(button.icon or 'play-circle-outline', button.label) }}
+<section class="card addon-result">
+  <h2>{{ icon(addon.m.icon or ('plug' if addon.kind == 'plugin' else 'puzzle'), 20) }} {{ addon.m.name }}</h2>
+  {% if ok %}<p class="addon-status ok" role="status">{{ icon('check', 16) }}<span>{{ message or _('addon.button_done') }}</span></p>
+  {% else %}<p class="addon-status err" role="alert">{{ icon('alert', 16) }}<span>{{ _(message) if message.startswith('addon.') else (message or _('addon.button_failed')) }}</span></p>{% endif %}
+  <div class="addon-bar">
+    <a class="button" href="{{ base }}{{ back_to }}">{{ icon('chevron-left', 18) }}<span>{{ _('btn.back') }}</span></a>
+    <a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/logs">{{ icon('list', 18) }}<span>{{ _('addon.logs') }}</span></a>
+  </div>
+</section>
+{% endblock %}
