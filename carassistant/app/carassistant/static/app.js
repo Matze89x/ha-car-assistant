@@ -767,7 +767,15 @@ document.addEventListener("sortchange", function (e) {
   document.addEventListener("sortchange", function (e) { if (e.target.hasAttribute && e.target.hasAttribute("data-lf")) { numbers(e.target); } });
   document.addEventListener("click", function (event) {
     var add = event.target.closest && event.target.closest(".lf-add"), del = event.target.closest && event.target.closest(".lf-row .lf-del");
-    if (add) {
+    var addTpl = event.target.closest && event.target.closest(".lf-addtpl");
+    if (addTpl) {  // a ready-made row of the package: the chosen one is appended, then it is an ordinary row
+      var tbox = addTpl.closest("[data-lf]"), pick = tbox.querySelector(".lf-pick"), ttpl = tbox.querySelector("template[data-lf-row]");
+      if (!ttpl || !pick || !pick.selectedOptions.length || tbox.querySelectorAll(".lf-row").length >= 30) { return; }
+      var chosen = pick.selectedOptions[0], trow = ttpl.content.firstElementChild.cloneNode(true), tin = trow.querySelectorAll("input");
+      tin[0].value = chosen.getAttribute("data-name") || ""; tin[1].value = chosen.getAttribute("data-value") || "";
+      tbox.insertBefore(trow, ttpl);
+      numbers(tbox);
+    } else if (add) {
       var box = add.closest("[data-lf]"), tpl = box.querySelector("template[data-lf-row]");
       if (!tpl || box.querySelectorAll(".lf-row").length >= 30) { return; }
       var row = tpl.content.firstElementChild.cloneNode(true);
@@ -776,6 +784,7 @@ document.addEventListener("sortchange", function (e) {
       row.querySelector("input").focus();
     } else if (del) {
       var holder = del.closest("[data-lf]");
+      if (holder.querySelectorAll(".lf-row").length <= (parseInt(holder.getAttribute("data-min"), 10) || 0)) { return; }  // at least min_rows stay
       del.closest(".lf-row").remove();
       numbers(holder);
     }

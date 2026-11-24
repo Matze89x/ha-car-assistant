@@ -156,12 +156,16 @@ Ein Plugin, das sich bei einem Webdienst anmeldet, hält die Zugangsdaten in sei
 | `select` | ein Auswahlfeld | `options`: `[{"value": "eco", "label": "Sparsam"}]` (höchstens 30; ein Wert hat kein Komma) |
 | `radio` | eines von wenigen, alle sichtbar | `options` |
 | `multiselect` | beliebig viele ankreuzen (Kontrollkästchen) | `options`; gespeichert als `a,b` |
-| `list` | Zeilen aus Name und Wert (zum Beispiel Nachrichten-Feeds und ihre Adressen), hinzufügen / entfernen und mit dem **Griff links in jeder Zeile** in die Reihenfolge bringen (mit Maus oder Finger ziehen, oder die Pfeiltasten auf ihm), höchstens 30; der Dienst bekommt sie in der angezeigten Reihenfolge als `[{"name", "value"}]` | `name_label`, `value_label` |
+| `list` | Zeilen aus Name und Wert (zum Beispiel Nachrichten-Feeds und ihre Adressen), hinzufügen / entfernen und mit dem **Griff links in jeder Zeile** in die Reihenfolge bringen (mit Maus oder Finger ziehen, oder die Pfeiltasten auf ihm), höchstens 30; der Dienst bekommt sie in der angezeigten Reihenfolge als `[{"name", "value"}]` | `name_label`, `value_label`, `min_rows`, `templates`, `default` (siehe unten) |
 | `url` | eine Webadresse (http / https), geprüft | `required` |
 | `email` | eine E-Mail-Adresse, geprüft | `required` |
 | `time` | eine Uhrzeit `HH:MM` | |
 | `date` | ein Datum `JJJJ-MM-TT` | |
 | `color` | eine Farbauswahl; gespeichert als `#rrggbb` | |
+
+**Mehr zu `list`.** `min_rows` (1 bis 30): Speichern mit weniger Zeilen wird mit einer einfachen Meldung verweigert, und die letzten Zeilen lassen sich nicht entfernen. `templates` (höchstens 30): `[{"label": "Comfort <-> Dynamic", "name": "ADS Comfort Dynamic", "value": "comfort_dynamic", "l10n": {"de": {"label": "..."}}}]` - die Seite zeigt eine Auswahl der vorbereiteten Zeilen und einen Knopf *Hinzufügen*, der die gewählte Zeile anhängt; danach ist es eine gewöhnliche Zeile, die man ändern, entfernen und sortieren kann. `default` einer `list` darf die Zeilen sein, mit denen eine Neuinstallation startet: `[{"name": "...", "value": "..."}]` (höchstens 30; ein `|` in einem Text wird zu einem Leerzeichen). Apps, die diese Schlüssel nicht kennen, ignorieren sie: die Liste bleibt eine gewöhnliche Liste.
+
+**`docs` und seine Übersetzung.** `docs` (3000 Zeichen) behält seine Absätze: Zeilen werden aufgeräumt, höchstens eine Leerzeile hintereinander, Zeilenumbrüche bleiben und werden angezeigt. `l10n.<Sprache>.docs` ist derselbe Text in einer anderen Sprache und wird statt `docs` gezeigt, wenn die Seite diese Sprache hat.
 
 **Längen von Texten - längere werden in der App ohne Meldung abgeschnitten.** `label` 60 Zeichen (die Beschriftung eines Reiters 40), `help` 300 (in den Feldern einer Seite, `pages[].fields`: 200), alle auch in `l10n.<Sprache>`; Zeilenumbrüche werden zu Leerzeichen. `tools/check_plugin.py` warnt vor einem Text, der abgeschnitten würde - ein Hilfetext, der mitten im Satz endet, wurde abgeschnitten.
 | `section` | eine Überschrift (mit `help` als Text), die die Felder darunter gruppiert | |

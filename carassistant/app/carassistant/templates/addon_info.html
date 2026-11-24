@@ -17,7 +17,7 @@
   </div>
   {% if desc %}<p class="pkg-lead">{{ lead }}</p>
   {% if rest %}<details class="pkg-more"><summary>{{ _('pkg.more') }}</summary><p>{{ rest }}</p></details>{% endif %}{% endif %}
-  {% if addon.m.docs %}<details class="pkg-more"><summary>{{ _('info.docs') }}</summary><p>{{ addon.m.docs }}</p></details>{% endif %}
+  {% if addon.m.docs %}<details class="pkg-more"><summary>{{ _('info.docs') }}</summary><p class="pre">{{ addon.m.docs }}</p></details>{% endif %}
   {% if addon.m.homepage %}<p class="pkg-link"><a href="{{ addon.m.homepage }}" target="_blank" rel="noopener noreferrer">{{ icon('globe', 14) }} {{ addon.m.homepage }}</a></p>{% endif %}
 </section>
 {% elif info_tab == 'interfaces' %}

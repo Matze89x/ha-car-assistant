@@ -156,12 +156,16 @@ A plugin that logs in to a web service keeps the credentials in its settings (a 
 | `select` | a dropdown | `options`: `[{"value": "eco", "label": "Economy"}]` (at most 30; a value has no comma) |
 | `radio` | choose one of a few, all visible | `options` |
 | `multiselect` | tick any of a few (checkboxes) | `options`; stored as `a,b` |
-| `list` | rows of a name and a value (for example news feeds and their addresses), add / remove, and put in order with the **handle on the left of each row** (drag it with the mouse or a finger, or press the arrow keys on it), at most 30; the service gets them in the order shown as `[{"name", "value"}]` | `name_label`, `value_label` |
+| `list` | rows of a name and a value (for example news feeds and their addresses), add / remove, and put in order with the **handle on the left of each row** (drag it with the mouse or a finger, or press the arrow keys on it), at most 30; the service gets them in the order shown as `[{"name", "value"}]` | `name_label`, `value_label`, `min_rows`, `templates`, `default` (see below) |
 | `url` | a web address (http / https), checked | `required` |
 | `email` | an e-mail address, checked | `required` |
 | `time` | a time `HH:MM` | |
 | `date` | a date `YYYY-MM-DD` | |
 | `color` | a colour picker; stored as `#rrggbb` | |
+
+**More on `list`.** `min_rows` (1 to 30): saving with fewer rows is refused with a plain message and the last rows cannot be removed. `templates` (at most 30): `[{"label": "Comfort <-> Dynamic", "name": "ADS Comfort Dynamic", "value": "comfort_dynamic", "l10n": {"de": {"label": "..."}}}]` - the page shows a select of the ready-made rows and a button *Add* that appends the chosen row; after that it is an ordinary row, which the person can change, remove and put in order. `default` of a `list` may be the rows a new installation starts with: `[{"name": "...", "value": "..."}]` (at most 30; a `|` in a text is replaced by a blank). Apps that do not know these keys ignore them: the list stays an ordinary list.
+
+**`docs` and its translation.** `docs` (3000 characters) keeps its paragraphs: lines are tidied, at most one empty line in a row, line breaks stay and are shown. `l10n.<language>.docs` is the same text in another language and is shown instead of `docs` when the page has that language.
 
 **Lengths of texts - longer ones are cut without a message in the app.** `label` 60 characters (the label of a tab 40), `help` 300 (in the fields of a page, `pages[].fields`: 200), all of them also in `l10n.<language>`; line breaks become spaces. `tools/check_plugin.py` warns about a text that would be cut - a help text that ends in the middle of a sentence has been cut.
 | `section` | a heading (with `help` as text) that groups the fields below it | |

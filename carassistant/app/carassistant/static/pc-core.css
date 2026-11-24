@@ -3418,3 +3418,6 @@ html.lmz-lock { overflow: hidden; }
 :is(.wd-li, .about-row, .icon-row):not(:has(~ :not([hidden], template, dialog, script, style))) { padding-bottom: 0; }
 .wd .cd-grid { margin-bottom: -7px; }  /* the last row of the live data: its 7 px of padding below are not space of their own (as specific as the rule above: it must win) */
 .card > .empty-state { padding: 10px 0 6px; }  /* a message inside a card: the card's padding is enough */
+.pkg-more p.pre { white-space: pre-line; }  /* the paragraphs and line breaks of a plugin's docs */
+.lf-tpl { display: flex; gap: 8px; margin: 6px 0 8px; }
+.lf-tpl select { flex: 1 1 auto; min-width: 0; }

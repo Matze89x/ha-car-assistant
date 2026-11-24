@@ -323,6 +323,32 @@ def _l10n(raw, limits: dict[str, int]) -> dict[str, dict[str, str]]:
     return out
 
 
+def _docs_text(value) -> str:
+    """A longer text with its paragraphs: every line is tidied (blanks collapsed), at most one empty line in a row, at most 3000 characters."""
+    if not isinstance(value, str):
+        return ""
+    lines, blank = [], False
+    for raw in value.replace("\r\n", "\n").split("\n"):
+        line = " ".join(raw.split())
+        if not line:
+            if lines and not blank:
+                lines.append("")
+            blank = True
+            continue
+        lines.append(line)
+        blank = False
+    return "\n".join(lines).strip()[:3000]
+
+
+def _package_l10n(raw) -> dict[str, dict[str, str]]:
+    """The translations of the package itself: name, description and - with its line breaks - docs."""
+    out = _l10n(raw, {"name": 80, "description": 300})
+    for lang, texts in list((raw if isinstance(raw, dict) else {}).items())[:12]:
+        if isinstance(lang, str) and LANG.match(lang) and isinstance(texts, dict) and _docs_text(texts.get("docs")):
+            out.setdefault(lang, {})["docs"] = _docs_text(texts.get("docs"))
+    return out
+
+
 FRAME_ROUTE = re.compile(r"/[A-Za-z0-9_./~%+-]{1,150}")
 
 
@@ -746,6 +772,17 @@ def clean_setting_fields(raw) -> list[dict]:
         if kind == "list":  # rows of a name and a value (for example stations and their addresses), at most 30
             field["name_label"] = _text(f, "name_label", 40) or "Name"
             field["value_label"] = _text(f, "value_label", 40) or "Address"
+            if isinstance(f.get("min_rows"), int) and not isinstance(f.get("min_rows"), bool) and 1 <= f["min_rows"] <= LIST_ROWS:
+                field["min_rows"] = f["min_rows"]  # saving with fewer rows is refused
+            tpls = _list_templates(f.get("templates"))
+            if tpls:
+                field["templates"] = tpls  # a select of ready-made rows and a button that appends the chosen one
+            if isinstance(f.get("default"), list):  # the rows a new installation starts with: [{"name", "value"}], at most 30
+                rows = _list_default(f["default"])
+                if rows:
+                    field["default"] = rows
+                else:
+                    field.pop("default", None)
         if kind in ("number", "slider"):  # optional bounds: min, max, step
             for bound in ("min", "max", "step"):
                 with contextlib.suppress(KeyError, TypeError, ValueError):
@@ -814,9 +851,7 @@ def parse_package(raw: bytes) -> dict:
     setup = clean_setup(
         data.get("setup"), bundles, bool(conn_file), {f["key"] for f in fields}, {p["id"] for p in pages if p.get("kind") == "frame"}
     )
-    docs = (
-        " ".join(str(data["docs"]).split())[:3000] if isinstance(data.get("docs"), str) else ""
-    )  # a longer description for the Interfaces page
+    docs = _docs_text(data.get("docs"))  # a longer description for the Interfaces page (paragraphs and line breaks stay)
     icon = data.get("icon") if data.get("icon") in icons.ICONS else ""  # one of the app's icons (docs/icons.md); shown on the plugin's tile
     return {
         **({"icon": icon} if icon else ({"icon": "puzzle"} if pages else {})),
@@ -831,7 +866,7 @@ def parse_package(raw: bytes) -> dict:
         **({"docs": docs} if docs else {}),
         **({"reminders": reminders} if reminders else {}),
         **({"pages": pages, "nav": data.get("nav") is not False} if pages else {}),
-        **({"l10n": _l10n(data.get("l10n"), {"name": 80, "description": 300})} if data.get("l10n") else {}),
+        **({"l10n": _package_l10n(data.get("l10n"))} if data.get("l10n") else {}),
         **(
             {"settings_page": data["settings_page"]}
             if isinstance(data.get("settings_page"), str) and data["settings_page"] in {p["id"] for p in pages if p.get("kind") == "frame"}
@@ -979,12 +1014,15 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
         texts = (manifest.get("l10n") or {}).get(lang) or {}
         manifest = {
             **manifest,
-            **{k: texts[k] for k in ("name", "description") if k in texts},
+            **{k: texts[k] for k in ("name", "description", "docs") if k in texts},
         }  # the package's own translation, when it has one
         manifest["settings"] = [
             {**f, **{k: v for k, v in ((f.get("l10n") or {}).get(lang) or {}).items() if k in ("label", "help")}}
             for f in manifest.get("settings", [])
         ]
+        for f in manifest["settings"]:
+            if f.get("templates"):  # the ready-made rows of a list in the language of the page
+                f["templates"] = [{**t, "label": ((t.get("l10n") or {}).get(lang) or {}).get("label", t["label"])} for t in f["templates"]]
         if manifest.get("setup") and manifest["setup"].get("title"):
             manifest["setup"] = {
                 **manifest["setup"],
@@ -1018,6 +1056,36 @@ def get(conn: sqlite3.Connection, vehicle_id: int, addon_pk: int) -> dict | None
 
 
 LIST_ROWS = 30
+
+
+def _row_text(value, limit: int) -> str:
+    return " ".join(str(value or "").replace("|", " ").split())[:limit]
+
+
+def _list_default(rows: list) -> str:
+    """``[{"name", "value"}, ...]`` as the stored lines ``name | value`` (at most 30; a row without a name and a value is dropped)."""
+    lines = []
+    for r in rows[:LIST_ROWS]:
+        if isinstance(r, dict) and (_row_text(r.get("name"), 80) or _row_text(r.get("value"), 200)):
+            lines.append(f"{_row_text(r.get('name'), 80)} | {_row_text(r.get('value'), 200)}")
+    return "\n".join(lines)
+
+
+def _list_templates(raw) -> list[dict]:
+    """The ready-made rows of a ``list``: ``[{"label", "name", "value", "l10n": {"de": {"label"}}}]``, at most 30."""
+    out = []
+    for t in raw[:LIST_ROWS] if isinstance(raw, list) else []:
+        if not isinstance(t, dict) or not (_row_text(t.get("name"), 80) or _row_text(t.get("value"), 200)):
+            continue
+        item = {
+            "label": _text(t, "label", 60) or _row_text(t.get("name"), 80),
+            "name": _row_text(t.get("name"), 80),
+            "value": _row_text(t.get("value"), 200),
+        }
+        if _l10n(t.get("l10n"), {"label": 60}):
+            item["l10n"] = _l10n(t.get("l10n"), {"label": 60})
+        out.append(item)
+    return out
 
 
 def list_rows(value: str) -> list[dict]:
@@ -1066,6 +1134,13 @@ def check_settings(manifest: dict, form: dict, old: dict) -> dict[str, str]:
     errors: dict[str, str] = {}
     for f in manifest["settings"]:
         key, kind = f["key"], f["type"]
+        if (
+            kind == "list"
+            and f.get("min_rows")
+            and _is_shown(f, manifest, form)
+            and len(list_rows(_list_from_form(key, form))) < f["min_rows"]
+        ):
+            errors[key] = "err.min_rows"
         if kind in NO_VALUE or kind in ("bool", "list", "value"):
             continue
         shown = _is_shown(f, manifest, form)

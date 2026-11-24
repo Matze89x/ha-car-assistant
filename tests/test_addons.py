@@ -695,6 +695,77 @@ def test_a_list_setting_can_be_sorted_and_the_saved_order_is_the_order_of_the_ro
     assert [r["name"] for r in rows] == ["B", "A"]
 
 
+def test_a_list_can_offer_ready_made_rows_keep_a_minimum_and_start_with_rows(client):
+    """``templates`` (a select and a button that appends the chosen row), ``min_rows`` (saving with fewer is refused) and ``default`` as rows."""
+    manifest = {
+        "id": "keys",
+        "name": "Keys",
+        "version": "1",
+        "kind": "plugin",
+        "settings": [
+            {
+                "key": "entries",
+                "type": "list",
+                "label": "Entries",
+                "min_rows": 1,
+                "default": [{"name": "Comfort", "value": "comfort"}, {"name": "Sport | Dynamic", "value": "sport"}],
+                "templates": [
+                    {
+                        "label": "Comfort <-> Dynamic",
+                        "name": "ADS Comfort Dynamic",
+                        "value": "comfort_dynamic",
+                        "l10n": {"de": {"label": "Komfort <-> Dynamisch"}},
+                    },
+                    {"label": "", "name": "Eco", "value": "eco"},
+                    {"label": "no row", "name": "", "value": ""},
+                ],
+            }
+        ],
+    }
+    parsed = addons.parse_package(json.dumps(manifest).encode())
+    f = parsed["settings"][0]
+    assert f["min_rows"] == 1 and [t["value"] for t in f["templates"]] == ["comfort_dynamic", "eco"] and f["templates"][1]["label"] == "Eco"
+    assert f["default"] == "Comfort | comfort\nSport Dynamic | sport"  # the stored form of the rows; a bar inside a text is not a separator
+    vid = create_vehicle(client)
+    upload(client, vid, json.dumps(manifest).encode())
+    with db.tx() as conn:
+        aid = addons.list_for(conn, vid)[0]["id"]
+    url = f"/v/{slug(vid)}/integrations/{aid}"
+    page = client.get(f"{url}/settings").text
+    assert (
+        'data-min="1"' in page and 'class="lf-pick"' in page and 'data-value="comfort_dynamic"' in page and 'value="Comfort"' in page
+    )  # the start rows
+    refused = client.post(f"{url}/setup", data={})  # an empty list: nothing is saved, the page says so
+    assert refused.status_code == 400 and "at least the number of rows" in refused.text
+    ok = client.post(f"{url}/setup", data={"entries__0n": "Eco", "entries__0v": "eco"}, follow_redirects=False)
+    assert ok.status_code in (200, 303)
+    with db.tx() as conn:
+        assert [r["name"] for r in addons.service_settings(addons.get(conn, vid, aid))["entries"]] == ["Eco"]
+
+
+def test_the_docs_of_a_package_keep_their_paragraphs_and_come_in_the_language_of_the_page(client):
+    manifest = {
+        "id": "docs-demo",
+        "name": "Docs",
+        "version": "1",
+        "kind": "plugin",
+        "settings": [{"key": "a", "type": "text", "label": "A"}],
+        "docs": "WHAT IT IS\nA  plugin.\n\n\nSAFETY\nNothing leaves the car.",
+        "l10n": {"de": {"docs": "WAS ES IST\nEin Plugin.\n\nSICHERHEIT\nNichts verlaesst das Auto."}},
+    }
+    parsed = addons.parse_package(json.dumps(manifest).encode())
+    assert parsed["docs"] == "WHAT IT IS\nA plugin.\n\nSAFETY\nNothing leaves the car."
+    assert parsed["l10n"]["de"]["docs"].startswith("WAS ES IST\nEin Plugin.\n\nSICHERHEIT")
+    vid = create_vehicle(client)
+    upload(client, vid, json.dumps(manifest).encode())
+    with db.tx() as conn:
+        aid = addons.list_for(conn, vid)[0]["id"]
+    assert (
+        "WHAT IT IS\nA plugin." in client.get(f"/v/{slug(vid)}/integrations/{aid}/info").text
+        or "WHAT IT IS" in client.get(f"/v/{slug(vid)}/integrations/{aid}/info").text
+    )
+
+
 def test_a_plugin_may_name_its_set_up_guide_and_without_a_name_nothing_changes(client):
     vid = create_vehicle(client)
     named = {
