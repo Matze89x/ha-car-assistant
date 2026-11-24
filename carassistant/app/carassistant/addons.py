@@ -660,21 +660,94 @@ def _long(value, limit: int) -> str:
     return re.sub(r"\n{3,}", "\n\n", value.replace("\r", "")).strip()[:limit]
 
 
+FLOW_TYPES = ("text", "requirements", "form", "check", "token", "files", "page", "download")
+MAX_FLOW = 12
+
+
+def clean_flow(
+    raw,
+    bundles: list[dict],
+    has_file: bool,
+    setting_keys: frozenset[str] | set[str],
+    frame_ids: frozenset[str] | set[str],
+    service: dict | None,
+) -> list[dict]:
+    """The free set-up flow (``setup.flow``): up to 12 steps, each of ONE type (docs/plugins.md, "The set-up flow"): ``text``, ``requirements``
+    (``requires`` the app can check, ``filled`` settings that must have a value), ``form`` (``settings`` to fill in), ``check`` (the service checks what
+    was typed: ``action``), ``token``, ``files`` (``bundles``, the connection file), ``page`` (a frame page of the plugin) and ``download`` (the service
+    makes a file: ``action``). A step that does not fit its type is dropped."""
+    out: list[dict] = []
+    names = {b["name"] for b in bundles}
+    prefixes = [r["prefix"] for r in (service or {}).get("routes", []) if not r.get("public")]
+    for st in raw[:MAX_FLOW] if isinstance(raw, list) else []:
+        if (
+            not isinstance(st, dict)
+            or not isinstance(st.get("id"), str)
+            or not STEP_ID.fullmatch(st["id"])
+            or st.get("type") not in FLOW_TYPES
+            or any(x["id"] == st["id"] for x in out)
+        ):
+            continue
+        kind = st["type"]
+        step = {"id": st["id"], "type": kind, "title": _text(st, "title", 80), "text": _long(st.get("text"), 3000)}
+        if kind in ("form", "check", "download") and isinstance(st.get("settings"), list):
+            step["settings"] = [k for k in dict.fromkeys(st["settings"]) if isinstance(k, str) and k in setting_keys][:60]
+        if kind in ("check", "download"):
+            path = st.get("action")
+            if not (
+                isinstance(path, str) and CAPABILITY_PATH.fullmatch(path) and ".." not in path and any(path.startswith(p) for p in prefixes)
+            ):
+                continue  # the service's own route, never a public one
+            step["action"] = path
+            if _text(st, "label", 40):
+                step["label"] = _text(st, "label", 40)
+        if kind == "form" and not step.get("settings"):
+            continue
+        if kind == "requirements":
+            wanted = st.get("requires") if isinstance(st.get("requires"), list) else []
+            step["requires"] = [r for r in SETUP_REQUIRES if r in wanted]
+            step["filled"] = [
+                k
+                for k in dict.fromkeys(st.get("filled") if isinstance(st.get("filled"), list) else [])
+                if isinstance(k, str) and k in setting_keys
+            ][:30]
+            if not step["requires"] and not step["filled"]:
+                continue
+        if kind == "page":
+            if not (isinstance(st.get("page"), str) and st["page"] in frame_ids):
+                continue
+            step["page"] = st["page"]
+        if kind == "files":
+            step["bundles"] = [
+                n for n in (st.get("bundles") if isinstance(st.get("bundles"), list) else []) if isinstance(n, str) and n in names
+            ][:8]
+            step["connection_file"] = st.get("connection_file") is True and has_file
+        own = _l10n(st.get("l10n"), {"title": 80, "text": 3000, "label": 40})
+        if own:
+            step["l10n"] = own
+        out.append(step)
+    return out
+
+
 def clean_setup(
     raw,
     bundles: list[dict],
     has_file: bool,
     setting_keys: frozenset[str] | set[str] = frozenset(),
     frame_ids: frozenset[str] | set[str] = frozenset(),
+    service: dict | None = None,
 ) -> dict | None:
     """The ``setup`` of a manifest: a guide in steps (docs/plugins.md). ``requires`` lists what must be there first (an https address under System,
     a VIN in the vehicle data); a step may offer the token, the connection file and ``bundles`` of the package, and brings its own text."""
-    if not isinstance(raw, dict) or not isinstance(raw.get("steps"), list):
+    if not isinstance(raw, dict):
+        return None
+    flow = clean_flow(raw.get("flow"), bundles, has_file, setting_keys, frame_ids, service)
+    if not flow and not isinstance(raw.get("steps"), list):
         return None
     wanted = raw.get("requires") if isinstance(raw.get("requires"), list) else []
     names = {b["name"] for b in bundles}
     steps: list[dict] = []
-    for st in raw["steps"][:8]:
+    for st in (raw["steps"] if isinstance(raw.get("steps"), list) else [])[:8]:
         if (
             not isinstance(st, dict)
             or not isinstance(st.get("id"), str)
@@ -708,9 +781,11 @@ def clean_setup(
         if l10n:
             step["l10n"] = l10n
         steps.append(step)
-    if not steps:
+    if not steps and not flow:
         return None
     guide = {"requires": [r for r in SETUP_REQUIRES if r in wanted], "steps": steps}
+    if flow:  # the free flow takes the place of the three fixed steps
+        guide["flow"] = flow
     if _text(raw, "title", 60):  # the name of the guide (its button and heading); without it the app's own name is used
         guide["title"] = _text(raw, "title", 60)
     if _l10n(raw.get("l10n"), {"title": 60}):
@@ -892,7 +967,12 @@ def parse_package(raw: bytes) -> dict:
     capabilities = clean_capabilities(data.get("capabilities"), service)
     buttons = clean_buttons(data.get("buttons"), pages, service)
     setup = clean_setup(
-        data.get("setup"), bundles, bool(conn_file), {f["key"] for f in fields}, {p["id"] for p in pages if p.get("kind") == "frame"}
+        data.get("setup"),
+        bundles,
+        bool(conn_file),
+        {f["key"] for f in fields},
+        {p["id"] for p in pages if p.get("kind") == "frame"},
+        service,
     )
     docs = _docs_text(data.get("docs"))  # a longer description for the Interfaces page (paragraphs and line breaks stay)
     icon = data.get("icon") if data.get("icon") in icons.ICONS else ""  # one of the app's icons (docs/icons.md); shown on the plugin's tile
@@ -1385,6 +1465,12 @@ def set_up(conn: sqlite3.Connection, vehicle_id: int, addon: dict, form: dict, o
         (json.dumps(_sealed(addon["m"], _guide_values(addon, form, only))), token_id, addon["id"]),
     )
     return token
+
+
+def save_flow_values(conn: sqlite3.Connection, addon: dict, form: dict, keys: set[str]) -> None:
+    """A step of the set-up flow saves the settings it showed (and only those); the plugin is NOT marked as configured by it - the last step does that."""
+    new = _guide_values(addon, form, keys)
+    conn.execute("UPDATE vehicle_addons SET settings = ? WHERE id = ?", (json.dumps(_sealed(addon["m"], new)), addon["id"]))
 
 
 def writable_keys(addon: dict) -> set[str]:

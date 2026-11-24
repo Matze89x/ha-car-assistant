@@ -133,7 +133,20 @@ def _demo_plugins(conn, vid: int) -> None:
         "icon": "cloud",
         "description": "A made-up plugin that logs in to an account; it still has to be set up.",
         "settings": [{"key": "user", "label": "User name", "type": "text"}, {"key": "password", "label": "Password", "type": "password"}],
-        "setup": {"steps": [{"id": "check", "title": "Check"}, {"id": "token", "title": "Token", "token": True}]},
+        "setup": {
+            "title": "Connect the account",
+            "flow": [
+                {
+                    "id": "intro",
+                    "type": "text",
+                    "title": "Welcome",
+                    "text": "Log in with the account you use in the car app.\n\n- Your details stay on this server.\n- Nothing is sent anywhere else.",
+                },
+                {"id": "login", "type": "form", "title": "Your account", "settings": ["user", "password"]},
+                {"id": "needs", "type": "requirements", "requires": ["external_https"], "filled": ["user"]},
+                {"id": "token", "type": "token", "text": "The token lets the plugin talk to Car Assistant."},
+            ],
+        },
     }
     addons.add(conn, vid, addons.parse_package(json.dumps(cloud).encode()))
 
@@ -278,16 +291,34 @@ def connect_demo_plugins() -> None:
 
         for km, ign, fuel in ((86020, "on", 42), (86031, "off", 41), (86044, "off", 40)):
             linkmap._seen.clear()
-            call("demo-connector", "POST", "data", {"odometer_km": km, "ignition": ign, "fuel_level_pct": fuel, "range_km": 520 - (42 - fuel) * 12})
+            call(
+                "demo-connector",
+                "POST",
+                "data",
+                {"odometer_km": km, "ignition": ign, "fuel_level_pct": fuel, "range_km": 520 - (42 - fuel) * 12},
+            )
         linkmap._seen.clear()
-        call("demo-connector", "POST", "data", {"position": {"lat": 52.52, "lon": 13.405}, "speed_kmh": 0, "doors": {"fl": "closed", "fr": "closed"}, "tyre_pressure_bar": {"fl": 2.4, "fr": 2.4, "rl": 2.5, "rr": 2.5}})
+        call(
+            "demo-connector",
+            "POST",
+            "data",
+            {
+                "position": {"lat": 52.52, "lon": 13.405},
+                "speed_kmh": 0,
+                "doors": {"fl": "closed", "fr": "closed"},
+                "tyre_pressure_bar": {"fl": 2.4, "fr": 2.4, "rl": 2.5, "rr": 2.5},
+            },
+        )
         call("demo-connector", "GET", "control")
         call("demo-connector", "POST", "logs", {"lines": ["connected", "reading"]})
         call("cloud-account", "POST", "data", {"battery_12v_v": 12.6, "outside_temp_c": 7.5, "service_due_km": 4200})
         call("cloud-account", "GET", "data")
         call("cloud-account", "POST", "track", {"points": [{"lat": 52.5, "lon": 13.4}]})
         call("cloud-account", "POST", "refuel", {"amount": 41.2, "price_per_unit": 1.659})
-        conn.execute("UPDATE signal_state SET last_ts = ? WHERE addon_id = 'cloud-account' AND name = 'service_due_km'", ((date.today() - timedelta(days=3)).isoformat() + "T10:00:00+00:00",))
+        conn.execute(
+            "UPDATE signal_state SET last_ts = ? WHERE addon_id = 'cloud-account' AND name = 'service_due_km'",
+            ((date.today() - timedelta(days=3)).isoformat() + "T10:00:00+00:00",),
+        )
 
 
 def scenes(base: str, out_root: Path, lang: str, only: set[str]) -> None:
@@ -319,10 +350,14 @@ def scenes(base: str, out_root: Path, lang: str, only: set[str]) -> None:
             b.open(f"{base}/v/{DIESEL}/plugins/connections", 1800, 1500, 1, settle=1.0)  # a wide window: the whole map fits and reads well
             b.wait_for("document.getElementById('lmz').classList.contains('ready')")
             time.sleep(0.4)
-            b.run("document.querySelector('.lmz-ch[data-id=\"odometer_km\"]').dispatchEvent(new MouseEvent('click',{bubbles:true}))")  # a click opens everything about it below
+            b.run(
+                "document.querySelector('.lmz-ch[data-id=\"odometer_km\"]').dispatchEvent(new MouseEvent('click',{bubbles:true}))"
+            )  # a click opens everything about it below
             b.wait_for("document.querySelectorAll('.lmz-sig').length > 0")
             time.sleep(0.8)
-            x, y, w, h = b.run("(function(){var r=document.getElementById('lmz').getBoundingClientRect();return [r.left+scrollX,r.top+scrollY,r.width,r.height];})()")
+            x, y, w, h = b.run(
+                "(function(){var r=document.getElementById('lmz').getBoundingClientRect();return [r.left+scrollX,r.top+scrollY,r.width,r.height];})()"
+            )
             screen = Path(tmp) / "map.png"
             b.shot(screen, clip=(x - 8, y - 8, w + 16, h + 16), scale=1)
             out = out_root / lang / "connections-map.png"

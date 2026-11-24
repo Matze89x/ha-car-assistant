@@ -72,3 +72,25 @@ Ein Plugin mit Anbindungsdatei kann eine **Einrichtungsanleitung** (`setup`) mit
 Eine *Integration* hat kein Programm und keinen Token: sie beschreibt nur, was die App zeichnen soll. Seiten mit typisierten Feldern (auch der Byte-für-Byte-Vergleich für Codierungen), Erinnerungen nach Kilometern oder Tankungen, **Pläne** (ein Wechsel, der mit jeder Tankung weiterrückt), Wert-Kacheln für die Startseite und Widgets stehen alle in der `plugin.json` – siehe [integrations.de.md](integrations.de.md). Ein Plugin desselben Autos kann die Einträge einer Integrationsseite über die [Plugin-API](api.de.md) lesen und schreiben.
 
 **Später weitermachen?** Alles, was ein Paket bieten kann, ist in diesem Ordner beschrieben: [plugins.de.md](plugins.de.md) (Format, Einstellungen, Dateien, Dienste, Kacheln, Schnittstellen), [integrations.de.md](integrations.de.md) (Seiten, Erinnerungen, Pläne), [api.de.md](api.de.md) (was ein Plugin sendet und liest), [sources.de.md](sources.de.md) (Veröffentlichen) und [icons.de.md](icons.de.md). Offizielle Beispiele: das [Quellen-Repository](https://github.com/Matze89x/ha-car-assistant-sources).
+
+## 10. Die Struktur auf einen Blick - und wie man ein Plugin darauf umbaut
+Jedes Plugin sieht für die Person gleich aus, egal mit welchem Auto, Cloud-Konto, welcher App oder Home-Assistant-Funktion es spricht. **Du** bestimmst nur, was darin steckt:
+
+| Ort | Was es ist | Wo du es festlegst |
+|---|---|---|
+| **Kachel** (*Plugins → Verwaltung*) | eine Knopfzeile: *Deinstallieren* (Mülleimer), *Logs*, *Einstellungen*, bis zu drei eigene Knöpfe, der Hauptknopf (beim ersten Mal *Einrichten*, danach *Öffnen*) | `buttons` ([plugins.de.md](plugins.de.md#die-kachel-eines-plugins-und-seine-knöpfe-buttons)) |
+| **Einrichten** (erstes Mal) | deine eigenen Schritte: Text, Voraussetzungen, ein Formular (Benutzername / Kennwort), eine Prüfung durch deinen Dienst, das Token (nur wenn du eins willst), Dateien, eine Seite von dir, eine Datei, die dein Dienst erstellt (eine ZIP) | `setup.flow` ([plugins.de.md](plugins.de.md#der-einrichten-ablauf-setupflow)) |
+| **Einstellungen** | die Felder, die die Person später ändern kann; dein Dienst darf `value` / `service_writable`-Felder selbst schreiben | `settings`, `settings_page` |
+| **Logs** | seine eigene Log-Seite: alle Zeilen oder nur Probleme, ein Text-Download; geschrieben von dir über `POST /logs` oder von der Ausgabe deines Dienstes, solange Debug an ist | nichts festzulegen - sie ist da |
+| **Deine Seiten** | jede Seite deines Dienstes, frei gestaltet, darf Daten sammeln oder Informationen lesen | `pages` (`kind: "frame"`), erreichbar über einen `page`-Knopf oder einen `page`-Schritt |
+
+**Ein bestehendes Plugin umbauen - Checkliste** (nichts muss sich ändern, damit ein Plugin weiter funktioniert; so bekommt es die neue Struktur):
+1. **Behalte, was funktioniert.** Jeder Schlüssel der `plugin.json`, den du heute nutzt, wird weiter genauso gelesen. Neue Schlüssel sind Ergänzungen: `buttons`, `setup.flow`.
+2. **Ersetze die feste Anleitung durch einen Ablauf**, nur wenn du mehr als *Prüfen / Token / Dateien* brauchst: Verschiebe die Texte der Schritte in `flow`-Schritte (`text`, `requirements`, `form` / `check`, `token`, `files`) in der Reihenfolge, die du willst. Eine Anmeldung mit Benutzername und Kennwort ist ein `check`-Schritt mit `"settings": ["user", "password"]` und einer Route in deinem Dienst, die die Anmeldung versucht und `{"ok": true, "message": "Angemeldet als ..."}` oder `{"ok": false, "message": "Kennwort falsch."}` antwortet.
+3. **Lege, was die Person lesen muss, in Seiten, nicht in Texte**: Eine Dokumentationsseite ist eine `kind: "frame"`-Seite plus ein `buttons`-Eintrag (`"page": "docs"`); eine Seite, die Daten sammelt, sendet an deinen Dienst.
+4. **Mach jede Route, die etwas tut, nicht öffentlich** (`public: false`): `check`, `download`, die `action` eines Knopfs und die Routen der Frame-Seiten müssen unter einem nicht öffentlichen Präfix liegen, sonst verwirft die App sie.
+5. **Protokolliere, was zählt**: `POST /api/v1/vehicles/<id>/logs` mit einem `level` (`warn` / `error` für das, was die Person zuerst ansehen soll - die Log-Seite filtert danach). Jedes Plugin hat sein eigenes Protokoll; nichts von dir steht im Protokoll eines anderen und nichts von ihnen in deinem.
+6. **Prüfe das Paket**: `python tools/check_plugin.py <Ordner>` nennt jeden Schlüssel, den die App stillschweigend ignorieren würde (ein falsch geschriebener Schlüssel, ein Knopf ohne gültige Seite / Route, ein Schritt, der nicht zu seinem Typ passt). Dann in einem **Demo-Auto** (*Nur mal ansehen*) oder auf einer Entwicklungsinstanz installieren und *Einrichten*, jeden Knopf und die Log-Seite bei 320 px und in Desktop-Breite durchgehen.
+7. **Veröffentliche**: `package.zip` bauen (Dienst-Plugins), `version` und `sha256` in `index.json` erhöhen, `python tools/check_source.py <Quelle>`. Ein *Aktualisieren*, das der Administrator drückt, behält die Freigabe; eine geänderte Dienstbeschreibung fragt erneut.
+
+Nichts davon berührt die autospezifischen Teile: Wie du mit dem Auto, der Cloud oder dem Gerät sprichst, bleibt ganz deine Sache.

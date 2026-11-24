@@ -234,6 +234,38 @@ Everything below is **optional** and only an addition; the security stays with t
   - **The list of writable keys belongs to what the administrator approves:** a new version that changes it needs a new approval. A change is noted in the plugin's log (the names of the keys, never the values).
 - `GET /api/v1` lists `features` (`measured_at`, `plugin-settings`) so a plugin can check before it uses them.
 
+### The set-up flow (`setup.flow`)
+The three fixed steps above suit a plugin with a token and a connection file. A plugin that has to **log in somewhere, ask for details, check them and hand out something at the end** (a ZIP, say) needs more freedom - and gets it with a **flow**: *you* decide the steps, their order and their texts. A package without `flow` keeps the three fixed steps exactly as before; with a `flow` the flow takes their place (`steps` may stay for older apps).
+
+```json
+"setup": { "title": "Connect the account", "flow": [
+  { "id": "intro",  "type": "text", "title": "Welcome", "text": "Log in with the account you use in the car app." },
+  { "id": "login",  "type": "check", "action": "/priv/login", "settings": ["user", "password"], "label": "Check the login",
+    "l10n": { "de": { "label": "Anmeldung prüfen" } } },
+  { "id": "needs",  "type": "requirements", "requires": ["external_https"], "filled": ["user"] },
+  { "id": "pack",   "type": "download", "action": "/priv/zip", "label": "Create the install ZIP" },
+  { "id": "docs",   "type": "page", "page": "docs" }
+] }
+```
+Every step has `id` (`a-z0-9_`), `type`, `title` (80 characters; without it the app names the type), `text` (3000; paragraphs, lists, `**bold**`, https links) and `l10n` (`title`, `text`, `label` per language); up to **12 steps**. The page shows numbered steps with *Back* and *Next*; the last step ends with *Finish* and the plugin then counts as **set up** (the *Set up* button of its tile goes away). A step that does not fit its type is dropped when the package is read.
+
+| `type` | What the person sees / what happens | Fields |
+|---|---|---|
+| `text` | only the text | - |
+| `requirements` | a list of what must be there; **nothing behind this step opens until everything is met** | `requires` (`external_https`, `vehicle_vin`: checked by the app), `filled` (settings that need a value) |
+| `form` | the listed settings as fields (a user name and a password are just settings of the type `text` / `password`); *Next* saves them | `settings` |
+| `check` | the fields (optional), then the main button: **the app asks the plugin's service** to check them | `action`, `settings`, `label` |
+| `token` | *Make a new token* (shown once; the old one becomes invalid) - the token is **one option, not a must** | - |
+| `files` | the plugin's `bundles` and its connection file, as step 3 of the fixed guide | `bundles`, `connection_file` |
+| `page` | a button that opens a `kind: "frame"` page of the plugin (freely designed: documentation, a wizard of its own ...) | `page` |
+| `download` | the main button: **the service makes a file** (a ZIP made for exactly this person's input) and the person downloads it | `action`, `settings`, `label` |
+
+**`check`** - `POST <action>` (a route of the plugin's own service that is **not** public, the same rule as for `capabilities`) with `{"vehicle": 3, "step": "login", "language": "en", "values": {"user": "max", "password": "..."}, "settings": {...all settings, with what was just typed...}}` and the identity headers. The service answers within 10 seconds: **2xx** (or `{"ok": true}`) = fine, anything else or `{"ok": false, "message": "Wrong password."}` = the person stays on the step and reads `message` (200 characters at most). **Nothing the person typed is stored when the check fails.** On success the typed settings are stored (passwords sealed), and the answer may carry `"settings": {"status": "Connected", "token": "..."}`: the keys the service may write itself (`service_writable` / `value`, see above) are stored - a refused key counts as a failed check. `message` of a success is shown on the next step ("Logged in as Max.").
+
+**`download`** - the same request; the service answers with the **file**: at most **8 MB**, 30 seconds; `Content-Type` `application/zip`, `application/octet-stream`, `text/plain`, `text/csv` or `application/json` (anything else is handed out as `application/octet-stream` - never as a page), a name in `Content-Disposition` (cleaned to letters, digits, `.`, `_`, `-`). An error answer (`{"ok": false, "message": "..."}`) is shown on the step. Because the service builds the file, it can contain anything the person typed - and the token the service itself holds. The app stores nothing of it.
+
+Both types need a **running, approved** service; the step says so when it is not. A password typed in a step is only ever sent to the plugin's own service (which reads the same settings anyway). The token of a `token` step travels from step to step inside the page only (never stored), exactly as in the fixed guide.
+
 ## Plugins with a service
 Some plugins need a program of their own, for example to serve pages or data to a device in the car. They can bring one as a **service**. It runs **inside this add-on** (never in a second container): you install the plugin and that is all.
 

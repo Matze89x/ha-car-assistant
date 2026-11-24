@@ -237,6 +237,38 @@ Alles Folgende ist **optional** und nur eine Ergänzung; die Sicherheit bleibt b
   - **Die Liste der schreibbaren Schlüssel gehört zu dem, was der Administrator freigibt:** eine neue Version, die sie ändert, braucht eine neue Freigabe. Eine Änderung steht im Protokoll des Plugins (die Namen der Schlüssel, nie die Werte).
 - `GET /api/v1` nennt `features` (`measured_at`, `plugin-settings`), damit ein Plugin vor der Nutzung prüfen kann.
 
+### Der Einrichten-Ablauf (`setup.flow`)
+Die drei festen Schritte oben passen zu einem Plugin mit Token und Verbindungsdatei. Ein Plugin, das sich **irgendwo anmelden, Angaben erfragen, prüfen und am Ende etwas herausgeben** muss (zum Beispiel eine ZIP-Datei), braucht mehr Freiheit - und bekommt sie mit einem **Ablauf** (`flow`): *Du* bestimmst die Schritte, ihre Reihenfolge und ihre Texte. Ein Paket ohne `flow` behält die drei festen Schritte genau wie bisher; mit einem `flow` tritt der Ablauf an ihre Stelle (`steps` darf für ältere Apps stehen bleiben).
+
+```json
+"setup": { "title": "Konto verbinden", "flow": [
+  { "id": "intro",  "type": "text", "title": "Willkommen", "text": "Melde dich mit dem Konto an, das du in der Auto-App nutzt." },
+  { "id": "login",  "type": "check", "action": "/priv/login", "settings": ["user", "password"], "label": "Anmeldung prüfen",
+    "l10n": { "en": { "label": "Check the login" } } },
+  { "id": "needs",  "type": "requirements", "requires": ["external_https"], "filled": ["user"] },
+  { "id": "pack",   "type": "download", "action": "/priv/zip", "label": "Installations-ZIP erstellen" },
+  { "id": "docs",   "type": "page", "page": "docs" }
+] }
+```
+Jeder Schritt hat `id` (`a-z0-9_`), `type`, `title` (80 Zeichen; ohne ihn nennt die App den Typ), `text` (3000; Absätze, Listen, `**fett**`, https-Links) und `l10n` (`title`, `text`, `label` je Sprache); bis zu **12 Schritte**. Die Seite zeigt nummerierte Schritte mit *Zurück* und *Weiter*; der letzte Schritt endet mit *Beenden*, und das Plugin gilt dann als **eingerichtet** (der Knopf *Einrichten* seiner Kachel verschwindet). Ein Schritt, der nicht zu seinem Typ passt, wird beim Lesen des Pakets verworfen.
+
+| `type` | Was die Person sieht / was passiert | Felder |
+|---|---|---|
+| `text` | nur der Text | - |
+| `requirements` | eine Liste dessen, was da sein muss; **nichts hinter diesem Schritt öffnet sich, bis alles erfüllt ist** | `requires` (`external_https`, `vehicle_vin`: von der App geprüft), `filled` (Einstellungen, die einen Wert brauchen) |
+| `form` | die aufgeführten Einstellungen als Felder (Benutzername und Kennwort sind einfach Einstellungen vom Typ `text` / `password`); *Weiter* speichert sie | `settings` |
+| `check` | die Felder (optional), dann der Hauptknopf: **die App fragt den Dienst des Plugins**, sie zu prüfen | `action`, `settings`, `label` |
+| `token` | *Neues Token erstellen* (einmal gezeigt; das alte wird ungültig) - das Token ist **eine Möglichkeit, kein Muss** | - |
+| `files` | die `bundles` des Plugins und seine Verbindungsdatei, wie Schritt 3 der festen Anleitung | `bundles`, `connection_file` |
+| `page` | ein Knopf, der eine `kind: "frame"`-Seite des Plugins öffnet (frei gestaltet: Dokumentation, ein eigener Assistent ...) | `page` |
+| `download` | der Hauptknopf: **der Dienst erstellt eine Datei** (eine ZIP, genau für die Eingaben dieser Person) und die Person lädt sie herunter | `action`, `settings`, `label` |
+
+**`check`** - `POST <action>` (eine Route des eigenen Dienstes des Plugins, die **nicht** öffentlich ist, dieselbe Regel wie bei `capabilities`) mit `{"vehicle": 3, "step": "login", "language": "de", "values": {"user": "max", "password": "..."}, "settings": {...alle Einstellungen, mit dem gerade Getippten...}}` und den Identitäts-Headern. Der Dienst antwortet innerhalb von 10 Sekunden: **2xx** (oder `{"ok": true}`) = in Ordnung, alles andere oder `{"ok": false, "message": "Kennwort falsch."}` = die Person bleibt auf dem Schritt und liest `message` (höchstens 200 Zeichen). **Wenn die Prüfung scheitert, wird nichts von dem gespeichert, was die Person getippt hat.** Bei Erfolg werden die getippten Einstellungen gespeichert (Kennwörter versiegelt), und die Antwort darf `"settings": {"status": "Verbunden", "token": "..."}` tragen: Die Schlüssel, die der Dienst selbst schreiben darf (`service_writable` / `value`, siehe oben), werden gespeichert - ein abgelehnter Schlüssel zählt als gescheiterte Prüfung. Die `message` eines Erfolgs steht auf dem nächsten Schritt ("Angemeldet als Max.").
+
+**`download`** - dieselbe Anfrage; der Dienst antwortet mit der **Datei**: höchstens **8 MB**, 30 Sekunden; `Content-Type` `application/zip`, `application/octet-stream`, `text/plain`, `text/csv` oder `application/json` (alles andere wird als `application/octet-stream` ausgeliefert - nie als Seite), ein Name in `Content-Disposition` (bereinigt auf Buchstaben, Ziffern, `.`, `_`, `-`). Eine Fehlerantwort (`{"ok": false, "message": "..."}`) steht auf dem Schritt. Weil der Dienst die Datei baut, kann sie alles enthalten, was die Person getippt hat - und das Token, das der Dienst selbst hält. Die App speichert nichts davon.
+
+Beide Typen brauchen einen **laufenden, freigegebenen** Dienst; der Schritt sagt es, wenn er es nicht ist. Ein in einem Schritt getipptes Kennwort wird immer nur an den eigenen Dienst des Plugins gesendet (der dieselben Einstellungen ohnehin liest). Das Token eines `token`-Schritts wandert nur innerhalb der Seite von Schritt zu Schritt (nie gespeichert), genau wie in der festen Anleitung.
+
 ## Plugins mit Dienst
 Manche Plugins brauchen ein eigenes Programm, zum Beispiel um einem Gerät im Auto Seiten oder Daten zu liefern. Sie können es als **Dienst** mitbringen. Er läuft **im Add-on selbst** (nie in einem zweiten Container): Du installierst das Plugin, mehr nicht.
 

@@ -475,12 +475,28 @@ def _guide_page(
     notice: str = "",
 ):
     """The set-up guide in three fixed steps: 1 check (address, VIN), 2 token and settings, 3 files and instructions.
-    The token travels from step to step inside the page only (never stored): it is shown once when new, or typed again and compared with the fingerprint."""
+    The token travels from step to step inside the page only (never stored): it is shown once when new, or typed again and compared with the fingerprint.
+    A package with a free ``setup.flow`` is handled by ``setupflow_web`` instead (the older routes of the token and the files land there, too)."""
     with db.tx() as conn:
         vehicle = vehicle_or_404(conn, vid)
         addon = addons.get(conn, vid, aid)
         if addon is None or not addon["m"].get("setup"):
             return go(request, f"/v/{vid}/plugins", "addon.err_id")
+        if addon["m"]["setup"].get("flow"):
+            from . import setupflow_web
+
+            return setupflow_web.page(
+                request,
+                vid,
+                aid,
+                step,
+                token,
+                fresh=fresh,
+                errors=errors,
+                shown=shown,
+                status=status,
+                kind={2: "token", 3: "files"}.get(step, "") if errors or token else "",
+            )
         ctx = vehicle_ctx(conn, vehicle, "integrations")
         vin = vehicle["vin"] or ""
         # a token the service made by itself when it first started (the plugin was never set up) is nobody's token yet: the guide offers no
@@ -579,7 +595,7 @@ async def addon_guide_token(request: Request, vid: int, aid: int):
         return denied
     with db.tx() as conn:
         addon = addons.get(conn, vid, aid)
-        if addon is None or addon["kind"] != "plugin" or not addon["m"].get("setup"):
+        if addon is None or addon["kind"] != "plugin" or not addon["m"].get("setup") or addon["m"]["setup"].get("flow"):
             return go(request, f"/v/{vid}/plugins", "addon.err_id")
         token = addons.new_token(conn, vid, addon)
     if pluginsvc.service_of(addon):
@@ -627,7 +643,7 @@ async def addon_guide_next(request: Request, vid: int, aid: int):
         use_saved = False
     with db.tx() as conn:
         addon = addons.get(conn, vid, aid)
-        if addon is None or addon["kind"] != "plugin" or not addon["m"].get("setup"):
+        if addon is None or addon["kind"] != "plugin" or not addon["m"].get("setup") or addon["m"]["setup"].get("flow"):
             return go(request, f"/v/{vid}/plugins", "addon.err_id")
         keys = addons.guide_keys(addon)  # None = the package lists no settings per step: the guide shows (and saves) all of them
         errors = addons.check_settings(addons.guide_manifest(addon, keys), addons.guide_form(addon, form, keys), addon["vals"])
@@ -973,7 +989,7 @@ async def addon_button(request: Request, vid: int, aid: int, bid: str):
         ok, message = False, "addon.button_off"
     else:
         payload = {"vehicle": vid, "button": bid, "language": config.language()}
-        ok, message = pluginsvc.call(addon["id"], button["action"], payload, vid, (who["name"] if who else "ha"))
+        ok, message = pluginsvc.call(addon["id"], button["action"], payload, vid, str(who["id"]) if who else "ha")
         if not ok and message in ("not running", "no answer"):
             message = "addon.button_down"
     return render(

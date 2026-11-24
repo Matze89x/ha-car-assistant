@@ -53,7 +53,11 @@ MEASURE = r"""
 
 
 def _seed(data: Path, lang: str = "en") -> None:
-    code = "import sys; from pathlib import Path; sys.path.insert(0, %r); import make_screenshots as ms; ms.seed(Path(%r), %r)" % (str(ROOT / "tools"), str(data), lang)
+    code = "import sys; from pathlib import Path; sys.path.insert(0, %r); import make_screenshots as ms; ms.seed(Path(%r), %r)" % (
+        str(ROOT / "tools"),
+        str(data),
+        lang,
+    )
     env = {**os.environ, "PYTHONPATH": str(ROOT / "carassistant" / "app") + os.pathsep + str(ROOT / "tools")}
     subprocess.run([sys.executable, "-c", code], check=True, env=env, capture_output=True, timeout=120)  # noqa: S603
 
@@ -63,7 +67,11 @@ def page_list(b, base: str, ms) -> list[str]:
     pages: list[str] = []
     for car in (ms.DIESEL, ms.COMPACT):  # a car with much data and one with little
         b.open(f"{base}/v/{car}/more", 1200, 900, 1, settle=2.0)
-        pages += json.loads(b.run("JSON.stringify(Array.prototype.map.call(document.querySelectorAll('.more-pane a.mi[href]'), function (a) { return a.getAttribute('href'); }))"))
+        pages += json.loads(
+            b.run(
+                "JSON.stringify(Array.prototype.map.call(document.querySelectorAll('.more-pane a.mi[href]'), function (a) { return a.getAttribute('href'); }))"
+            )
+        )
     return pages + [
         "/about",
         "/vehicles",
@@ -81,7 +89,9 @@ def page_list(b, base: str, ms) -> list[str]:
         f"/v/{ms.DIESEL}/integrations/1/logs",
         f"/v/{ms.DIESEL}/integrations/1/info",
         f"/v/{ms.DIESEL}/integrations/1/settings",
-        f"/v/{ms.DIESEL}/integrations/2/guide",
+        *(
+            f"/v/{ms.DIESEL}/integrations/2/guide?step={n}" for n in (1, 2, 3, 4)
+        ),  # the set-up flow of the second one: text, form, requirements, token
     ]
 
 
@@ -113,12 +123,20 @@ def run(widths: tuple[int, ...] = (1000, 1200, 1440)) -> list[str]:
                         else:
                             diff = got["top"] - got["left"]
                             if abs(diff) > TOLERANCE:
-                                problems.append(f"{page} at {width} px: {abs(diff):.1f} px {'lower' if diff > 0 else 'higher'} than the More list ({got['what']})")
+                                problems.append(
+                                    f"{page} at {width} px: {abs(diff):.1f} px {'lower' if diff > 0 else 'higher'} than the More list ({got['what']})"
+                                )
                             if abs(got["headDiff"]) > TOLERANCE:
-                                problems.append(f"{page} at {width} px: the title is {abs(got['headDiff']):.1f} px off the line of the word More")
+                                problems.append(
+                                    f"{page} at {width} px: the title is {abs(got['headDiff']):.1f} px off the line of the word More"
+                                )
                             gaps[page] = round(got["gap"], 1)
                     common = max(set(gaps.values()), key=list(gaps.values()).count) if gaps else 0
-                    problems += [f"{p} at {width} px: {g} px between the list and the page (the others: {common} px)" for p, g in gaps.items() if abs(g - common) > TOLERANCE]
+                    problems += [
+                        f"{p} at {width} px: {g} px between the list and the page (the others: {common} px)"
+                        for p, g in gaps.items()
+                        if abs(g - common) > TOLERANCE
+                    ]
         finally:
             server.terminate()
             server.wait(timeout=10)

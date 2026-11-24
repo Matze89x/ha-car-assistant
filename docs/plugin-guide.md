@@ -72,3 +72,25 @@ A plugin with a connection file can bring a **set-up guide** (`setup`): three fi
 An *integration* has no program and no token: it only describes what the app should draw. Pages with typed fields (also the byte-by-byte comparison for codings), reminders after kilometres or refuels, **plans** (a rotation that moves on with every refuel), value tiles for Home and widgets are all described in `plugin.json` - see [integrations.md](integrations.md). A plugin of the same car can read and write the entries of an integration page through the [Plugin API](api.md).
 
 **Continuing later?** Everything a package can offer is described in this folder: [plugins.md](plugins.md) (format, settings, files, services, tiles, interfaces), [integrations.md](integrations.md) (pages, reminders, plans), [api.md](api.md) (what a plugin sends and reads), [sources.md](sources.md) (publishing) and [icons.md](icons.md). Official examples: the [sources repository](https://github.com/Matze89x/ha-car-assistant-sources).
+
+## 10. The structure at a glance - and how to rebuild a plugin for it
+Every plugin looks the same to the person, whatever car, cloud account, app or Home Assistant function it talks to. What **you** decide is only what goes inside:
+
+| Place | What it is | Where you define it |
+|---|---|---|
+| **Tile** (*Plugins → Manage*) | one line of buttons: *Uninstall* (a bin), *Logs*, *Settings*, up to three buttons of your own, the main button (*Set up* the first time, then *Open*) | `buttons` ([plugins.md](plugins.md#the-tile-of-a-plugin-and-its-buttons-buttons)) |
+| **Set up** (first time) | your own steps: text, requirements, a form (user name / password), a check by your service, the token (only if you want one), files, a page of yours, a file your service makes (a ZIP) | `setup.flow` ([plugins.md](plugins.md#the-set-up-flow-setupflow)) |
+| **Settings** | the fields the person can change later; your service may write `value` / `service_writable` fields itself | `settings`, `settings_page` |
+| **Logs** | its own log page: all lines or only problems, a text download; written by you through `POST /logs` or by your service's output while debug is on | nothing to define - it is there |
+| **Your pages** | any page of your service, freely designed, may collect data or read information | `pages` (`kind: "frame"`), reached by a `page` button or a `page` step |
+
+**Rebuilding an existing plugin - checklist** (nothing has to change for a plugin to keep working; this is how it gets the new structure):
+1. **Keep what works.** Every key of `plugin.json` that you use today is still read the same way. New keys are additions: `buttons`, `setup.flow`.
+2. **Replace the fixed guide by a flow** only if you need more than *check / token / files*: move the texts of the steps into `flow` steps (`text`, `requirements`, `form` / `check`, `token`, `files`) in the order you want. A login with a user name and password is a `check` step with `"settings": ["user", "password"]` and a route in your service that tries the login and answers `{"ok": true, "message": "Logged in as ..."}` or `{"ok": false, "message": "Wrong password."}`.
+3. **Put what the person must read into pages, not into texts**: a documentation page is a `kind: "frame"` page plus a `buttons` entry (`"page": "docs"`); a page that collects data posts to your service.
+4. **Make every route that does something private** (`public: false`): `check`, `download`, button `action` and frame page routes must all lie under a non-public prefix, otherwise the app drops them.
+5. **Log what matters**: `POST /api/v1/vehicles/<id>/logs` with a `level` (`warn` / `error` for what the person should look at first - the log page filters on them). Every plugin has its own log; nothing of yours appears in another plugin's and nothing of theirs in yours.
+6. **Check the package**: `python tools/check_plugin.py <folder>` names every key the app would silently ignore (a misspelt key, a button without a valid page / route, a step that does not fit its type). Then install it in a **demo car** (*Just have a look*) or on a dev instance and walk through *Set up*, every button and the log page at 320 px and at desktop width.
+7. **Publish**: build `package.zip` (service plugins), raise `version` and the `sha256` in `index.json`, `python tools/check_source.py <source>`. An *Update* the administrator presses keeps the approval; a changed service description asks again.
+
+Nothing here touches the car-specific parts: how you talk to the car, the cloud or the device stays entirely your business.

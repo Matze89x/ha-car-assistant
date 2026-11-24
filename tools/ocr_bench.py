@@ -29,7 +29,9 @@ def check(case: pp.Case, data: bytes) -> tuple[bool, str]:
     """Is the reading of this photo right? (and what was read, for the list of failures)"""
     if case.kind == "odometer":
         got = odometer_scan.read(data, case.last)
-        return got["value"] == case.truth["value"], f"read {got['value']} ({'plausible' if got['plausible'] else 'odd'}), right {case.truth['value']}"
+        return got["value"] == case.truth[
+            "value"
+        ], f"read {got['value']} ({'plausible' if got['plausible'] else 'odd'}), right {case.truth['value']}"
     got = receipt.scan(data, date(2026, 11, 24))
     wrong = []
     for key in ("amount", "price_per_unit", "price_total"):
@@ -76,6 +78,7 @@ def main() -> int:
         for tag in case.tags:
             per_tag[tag].append(ok)
         per_tag[case.name.split("/")[0]].append(ok)
+
     def pct(v: list[bool]) -> str:
         return f"{100 * sum(v) / len(v):5.1f} % ({sum(v)}/{len(v)})"
 

@@ -44,7 +44,13 @@ def _jpeg(img: Image.Image, quality: int = 88) -> bytes:
 
 def shown(km: int, style: str) -> str:
     """The odometer written the way a cluster writes it."""
-    return {"plain": f"{km}", "zero": f"{km:06d}", "space": f"{km:,}".replace(",", " "), "dot": f"{km:,}".replace(",", "."), "comma": f"{km:,}"}[style]
+    return {
+        "plain": f"{km}",
+        "zero": f"{km:06d}",
+        "space": f"{km:,}".replace(",", " "),
+        "dot": f"{km:,}".replace(",", "."),
+        "comma": f"{km:,}",
+    }[style]
 
 
 # ------------------------------------------------------------------ instrument clusters
@@ -54,7 +60,11 @@ def _dial(d: ImageDraw.ImageDraw, cx: int, cy: int, r: int, top: int, steps: int
     d.ellipse((cx - r - 14, cy - r - 14, cx + r + 14, cy + r + 14), outline=ink, width=6)
     for i in range(steps):
         a = math.radians(135 + i * 270 / (steps - 1))
-        d.line((cx + (r - 8) * math.cos(a), cy + (r - 8) * math.sin(a), cx + (r - 44) * math.cos(a), cy + (r - 44) * math.sin(a)), fill=ink, width=5)
+        d.line(
+            (cx + (r - 8) * math.cos(a), cy + (r - 8) * math.sin(a), cx + (r - 44) * math.cos(a), cy + (r - 44) * math.sin(a)),
+            fill=ink,
+            width=5,
+        )
         d.text((cx + (r - 86) * math.cos(a), cy + (r - 86) * math.sin(a)), str(round(i * top / (steps - 1))), fill=ink, font=f, anchor="mm")
     a = math.radians(135 + 0.31 * 270)
     d.line((cx, cy, cx + (r - 70) * math.cos(a), cy + (r - 70) * math.sin(a)), fill=(226, 0, 26), width=9)
@@ -82,7 +92,9 @@ def cluster(style: str, km: int = 86_020, trip: float = 24.5, unit: str = "km", 
     elif style == "window":
         _dial(d, 800, 430, 380, 260, 14, ink, num)
         d.rectangle((690, 560, 910, 610), fill=(0, 0, 0), outline=dim, width=2)
-        d.text((800, 586), f"{km:06d}", fill=(240, 240, 240), font=dp.font(40, True), anchor="mm")  # a small window in the dial: the digits are small
+        d.text(
+            (800, 586), f"{km:06d}", fill=(240, 240, 240), font=dp.font(40, True), anchor="mm"
+        )  # a small window in the dial: the digits are small
         d.text((800, 632), unit, fill=dim, font=dp.font(26), anchor="mm")
         d.text((800, 668), trip_text, fill=dim, font=dp.font(26), anchor="mm")
     else:  # digital panel
@@ -115,7 +127,14 @@ def cluster_cases() -> list[Case]:
     ]
     for i, (style, km, unit, fmt) in enumerate(spec):
         cases.append(
-            Case(f"cluster/{style}-{km}-{unit}-{fmt}", "odometer", cluster(style, km, 24.5, unit, fmt, seed=i + 1), {"value": km}, last=km - 640, tags=[style, unit])
+            Case(
+                f"cluster/{style}-{km}-{unit}-{fmt}",
+                "odometer",
+                cluster(style, km, 24.5, unit, fmt, seed=i + 1),
+                {"value": km},
+                last=km - 640,
+                tags=[style, unit],
+            )
         )
     return cases
 
@@ -123,7 +142,16 @@ def cluster_cases() -> list[Case]:
 # ------------------------------------------------------------------ receipts
 
 
-def receipt(lang: str = "de", product: str = "Diesel", amount: float = 42.70, price: float = 1.649, odometer: int | None = 86_020, extra: bool = False, narrow: bool = False, seed: int = 4) -> bytes:
+def receipt(
+    lang: str = "de",
+    product: str = "Diesel",
+    amount: float = 42.70,
+    price: float = 1.649,
+    odometer: int | None = 86_020,
+    extra: bool = False,
+    narrow: bool = False,
+    seed: int = 4,
+) -> bytes:
     """A receipt as a till prints it. ``lang``: de, en, fr, pl. ``extra``: a coffee and water on it; ``narrow``: a thin till roll."""
     total = round(amount * price, 2)
     vat = total / 119 * 19
@@ -136,16 +164,38 @@ def receipt(lang: str = "de", product: str = "Diesel", amount: float = 42.70, pr
         "fr": ("Date", "Pompe", "Volume", "Prix/L", "TOTAL EUR", "TVA 20%", "Carte", "Kilometrage", "Merci de votre visite"),
         "pl": ("Data", "Dystrybutor", "Ilosc", "Cena/l", "RAZEM EUR", "VAT 23%", "Karta", "Przebieg", "Dziekujemy"),
     }[lang]
-    head = {"de": ("EXAMPLE FUEL", "Musterstrasse 12", "12345 Musterstadt"), "en": ("EXAMPLE FUEL", "12 Sample Street", "Exampletown"), "fr": ("EXAMPLE CARBURANT", "12 rue Exemple", "75001 Exempleville"), "pl": ("EXAMPLE PALIWA", "ul. Przykladowa 12", "00-001 Przykladowo")}[lang]
+    head = {
+        "de": ("EXAMPLE FUEL", "Musterstrasse 12", "12345 Musterstadt"),
+        "en": ("EXAMPLE FUEL", "12 Sample Street", "Exampletown"),
+        "fr": ("EXAMPLE CARBURANT", "12 rue Exemple", "75001 Exempleville"),
+        "pl": ("EXAMPLE PALIWA", "ul. Przykladowa 12", "00-001 Przykladowo"),
+    }[lang]
     size = 27 if narrow else 31
     big, text, small = dp.font(size + 9, True), dp.font(size, True), dp.font(size - 6, True)
     paper = Image.new("RGB", (480 if narrow else 640, 1150 if extra else 1020), (244, 243, 238))
     d = ImageDraw.Draw(paper)
     unit = "l"
-    lines = [(big, head[0]), (text, head[1]), (text, head[2]), (small, ""), (text, f"{words[0]}: {TODAY.day:02d}.{TODAY.month:02d}.{TODAY.year}  17:42"), (text, f"{words[1]} 4"), (small, "")]
+    lines = [
+        (big, head[0]),
+        (text, head[1]),
+        (text, head[2]),
+        (small, ""),
+        (text, f"{words[0]}: {TODAY.day:02d}.{TODAY.month:02d}.{TODAY.year}  17:42"),
+        (text, f"{words[1]} 4"),
+        (small, ""),
+    ]
     if extra:
         lines += [(text, n("Kaffee 2.50")), (text, n("Wasser 1.29")), (small, "")]
-    lines += [(text, product), (text, n(f"{words[2]}  {d2(amount)} {unit}")), (text, n(f"{words[3]}  {price:.3f} EUR/l")), (small, "-" * 28), (big, n(f"{words[4]} {d2(total)}")), (small, "-" * 28), (text, n(f"{words[5]}  {d2(vat)} EUR")), (text, words[6])]
+    lines += [
+        (text, product),
+        (text, n(f"{words[2]}  {d2(amount)} {unit}")),
+        (text, n(f"{words[3]}  {price:.3f} EUR/l")),
+        (small, "-" * 28),
+        (big, n(f"{words[4]} {d2(total)}")),
+        (small, "-" * 28),
+        (text, n(f"{words[5]}  {d2(vat)} EUR")),
+        (text, words[6]),
+    ]
     if odometer is not None:
         lines += [(small, ""), (text, f"{words[7]}: {odometer}")]
     lines += [(small, ""), (small, words[8])]
@@ -171,10 +221,34 @@ def receipt_cases() -> list[Case]:
         ("fr", "Gazole", 40.15, 1.789, 86_020, False, False),
         ("pl", "ON Diesel", 45.50, 1.629, None, False, False),
     ]
-    labels = {"Diesel": "Diesel", "Super E10": "Super E10", "V-Power Diesel": "V-Power Diesel", "Autogas": "Autogas", "Unleaded": "", "Gazole": "", "ON Diesel": ""}
+    labels = {
+        "Diesel": "Diesel",
+        "Super E10": "Super E10",
+        "V-Power Diesel": "V-Power Diesel",
+        "Autogas": "Autogas",
+        "Unleaded": "",
+        "Gazole": "",
+        "ON Diesel": "",
+    }
     for i, (lang, product, amount, price, odo, extra, narrow) in enumerate(spec):
-        truth = {"amount": amount, "price_per_unit": price, "price_total": round(amount * price, 2), "date": TODAY.isoformat(), "odometer": odo, "notes": labels[product] or None}
-        cases.append(Case(f"receipt/{lang}-{product.replace(' ', '-')}", "receipt", receipt(lang, product, amount, price, odo, extra, narrow, seed=i + 2), truth, last=(odo - 400) if odo else 86_000, tags=[lang]))
+        truth = {
+            "amount": amount,
+            "price_per_unit": price,
+            "price_total": round(amount * price, 2),
+            "date": TODAY.isoformat(),
+            "odometer": odo,
+            "notes": labels[product] or None,
+        }
+        cases.append(
+            Case(
+                f"receipt/{lang}-{product.replace(' ', '-')}",
+                "receipt",
+                receipt(lang, product, amount, price, odo, extra, narrow, seed=i + 2),
+                truth,
+                last=(odo - 400) if odo else 86_000,
+                tags=[lang],
+            )
+        )
     return cases
 
 
@@ -198,7 +272,9 @@ def degrade(data: bytes, kind: str) -> bytes:
     elif kind == "glare":  # a bright reflection across a part of the picture
         glare = Image.new("RGB", img.size, (255, 255, 255))
         mask = Image.new("L", img.size, 0)
-        ImageDraw.Draw(mask).ellipse((int(img.width * 0.55), int(img.height * 0.05), int(img.width * 0.95), int(img.height * 0.45)), fill=110)
+        ImageDraw.Draw(mask).ellipse(
+            (int(img.width * 0.55), int(img.height * 0.05), int(img.width * 0.95), int(img.height * 0.45)), fill=110
+        )
         img = Image.composite(glare, img, mask.filter(ImageFilter.GaussianBlur(60)))
     return _jpeg(img, 82)
 

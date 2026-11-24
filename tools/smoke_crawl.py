@@ -22,7 +22,10 @@ from urllib.parse import urldefrag, urlparse
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
-SKIP = re.compile(r"/(delete|logout|signout|reset|restore|backup\.zip|archive|remove|revoke|install|uninstall)\b|\.(csv|pdf|ics|gpx|zip|png|jpg|jpeg|svg|webp|mp4|json|js|css|woff2?)(\?|$)|/api/|/static/|/media/|/files?/|/export|/download|/docs/\d+$|^mailto:|^tel:|^javascript:", re.I)
+SKIP = re.compile(
+    r"/(delete|logout|signout|reset|restore|backup\.zip|archive|remove|revoke|install|uninstall)\b|\.(csv|pdf|ics|gpx|zip|png|jpg|jpeg|svg|webp|mp4|json|js|css|woff2?)(\?|$)|/api/|/static/|/media/|/files?/|/export|/download|/docs/\d+$|^mailto:|^tel:|^javascript:",
+    re.I,
+)
 
 
 def run(limit: int = 400, width: int = 1280) -> tuple[list[str], int]:
@@ -32,19 +35,39 @@ def run(limit: int = 400, width: int = 1280) -> tuple[list[str], int]:
     problems: list[str] = []
     with tempfile.TemporaryDirectory() as tmp:
         data = Path(tmp)
-        env = {**os.environ, "PYTHONPATH": str(ROOT / "carassistant" / "app") + os.pathsep + str(ROOT / "tools"), "CARASSISTANT_DATA": str(data), "CARASSISTANT_DEV": "1"}
+        env = {
+            **os.environ,
+            "PYTHONPATH": str(ROOT / "carassistant" / "app") + os.pathsep + str(ROOT / "tools"),
+            "CARASSISTANT_DATA": str(data),
+            "CARASSISTANT_DEV": "1",
+        }
         prep = (
             "import sys; sys.path.insert(0, %r); from pathlib import Path; import make_screenshots as ms; ms.seed(Path(%r), 'en'); ms.connect_demo_plugins()"
             % (str(ROOT / "tools"), str(data))
         )
         subprocess.run([sys.executable, "-c", prep], check=True, env=env, capture_output=True, timeout=180)  # noqa: S603
         port = ms.free_port()
-        server = subprocess.Popen([sys.executable, "-m", "carassistant"], env={**env, "CARASSISTANT_PORT": str(port)}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
+        server = subprocess.Popen(
+            [sys.executable, "-m", "carassistant"],
+            env={**env, "CARASSISTANT_PORT": str(port)},
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )  # noqa: S603
         try:
             base = f"http://127.0.0.1:{port}"
             ms.wait_for(base + "/healthz")
             origin = urlparse(base).netloc
-            todo = ["/", "/vehicles", "/about", "/settings/user", "/settings/system", f"/settings/car?car={ms.DIESEL}", f"/v/{ms.DIESEL}", f"/v/{ms.COMPACT}", f"/v/{ms.EV}"]
+            todo = [
+                "/",
+                "/vehicles",
+                "/about",
+                "/settings/user",
+                "/settings/system",
+                f"/settings/car?car={ms.DIESEL}",
+                f"/v/{ms.DIESEL}",
+                f"/v/{ms.COMPACT}",
+                f"/v/{ms.EV}",
+            ]
             seen: set[str] = set()
             with Browser() as b:
                 while todo and len(seen) < limit:
@@ -56,7 +79,9 @@ def run(limit: int = 400, width: int = 1280) -> tuple[list[str], int]:
                     b.drain()
                     b.open(base + path, width, 900, 1, settle=0.5)
                     events = b.drain()
-                    if any(e["kind"] in ("exception", "console", "csp", "failed", "http") for e in events):  # a machine under load can stumble once: it counts when the page does it again
+                    if any(
+                        e["kind"] in ("exception", "console", "csp", "failed", "http") for e in events
+                    ):  # a machine under load can stumble once: it counts when the page does it again
                         b.open(base + path, width, 900, 1, settle=1.0)
                         again = {(e["kind"], e["text"]) for e in b.drain()}
                         events = [e for e in events if (e["kind"], e["text"]) in again]
@@ -67,7 +92,10 @@ def run(limit: int = 400, width: int = 1280) -> tuple[list[str], int]:
                             problems.append(f"{path}: {e['kind']}: {e['text']}")
                     if "Internal Server Error" in (b.run("document.body.innerText.slice(0, 400)") or "") and not status_bad:
                         problems.append(f"{path}: the page says Internal Server Error")
-                    hrefs = json.loads(b.run("JSON.stringify(Array.from(document.querySelectorAll('a[href]')).map(function (a) { return a.href; }))") or "[]")
+                    hrefs = json.loads(
+                        b.run("JSON.stringify(Array.from(document.querySelectorAll('a[href]')).map(function (a) { return a.href; }))")
+                        or "[]"
+                    )
                     for href in hrefs:
                         href, _ = urldefrag(href)
                         u = urlparse(href)

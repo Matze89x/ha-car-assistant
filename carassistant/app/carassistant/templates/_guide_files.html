@@ -1,0 +1,42 @@
+{# The files of a set-up step: the connection file, the bundles (ZIP) and the instructions. Shared by the older guide (step 3) and the set-up flow. #}
+{% from "_macros.html" import icon with context %}
+{% set tb = bundle_rows|selectattr('with_token')|list %}
+{% macro box(row) %}
+<div class="guide-opt dl">
+  <h3>{{ icon('download', 19) }} {{ row.label }}</h3>
+  {% if row.note %}<p class="hint">{{ row.note }}</p>{% endif %}
+  <small class="muted">{% if row.size %}{{ row.size|filesizeformat }}{% endif %}</small>
+  {% if row.with_token %}
+    {% if token %}<form method="post" action="{{ base_url }}/guide/bundle" class="inline"><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="name" value="{{ row.name }}"><button class="primary">{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>
+    {% else %}<button class="primary" name="name" value="{{ row.name }}" form="gagain">{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button>{% endif %}
+  {% elif row.href %}<a class="button primary" href="{{ base }}{{ row.href }}" download>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></a>{% endif %}
+</div>
+{% endmacro %}
+  {% if has_file and not tb %}
+  <div class="guide-fileline">
+    <span class="mi-ic c4">{{ icon('download', 19) }}</span>
+    <span class="gf-t"><b>{{ file_name }}</b><small>{{ _('guide.file_hint') }}</small></span>
+    {% if token %}<form method="post" action="{{ base_url }}/guide/file" class="inline"><input type="hidden" name="token" value="{{ token }}"><button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>{% endif %}
+  </div>
+  {% if token %}{% if fresh %}<p class="hint">{{ _('guide.file_new_hint') }}</p>{% endif %}
+  {% else %}
+  <form method="post" action="{{ base_url }}/guide/file" class="guide-again">
+    <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
+    <button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button>
+  </form>
+  <p class="hint">{{ _('guide.file_again_hint') }}</p>
+  {% endif %}
+  {% endif %}
+  {% if bundle_rows %}
+    {% if not pkg_offered %}<p class="flash err">{{ _('fil.not_approved') }} <a href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service">{{ _('svc.review') }}</a></p>{% endif %}
+    {% if tb and not token and pkg_offered %}
+    <form method="post" action="{{ base_url }}/guide/bundle" class="guide-again" id="gagain">
+      <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
+    </form>
+    {% endif %}
+    {% if pkg_offered or not tb %}
+    <div class="guide-opts">{% for row in bundle_rows %}{% if not row.with_token or pkg_offered %}{{ box(row) }}{% endif %}{% endfor %}</div>
+    {% endif %}
+    {% if tb and fresh %}<p class="hint">{{ icon('alert', 14) }} {{ _('guide.file_new_hint') }}</p>{% endif %}
+  {% endif %}
+  {% if texts.files %}<h3 class="guide-h3">{{ _('guide.howto') }}</h3><div class="guide-text">{{ texts.files|safe }}</div>{% endif %}

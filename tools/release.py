@@ -90,7 +90,11 @@ def expected(data: dict) -> dict[Path, str]:
     p = ROOT / "carassistant" / "app" / "carassistant" / "__init__.py"
     text = p.read_text(encoding="utf-8")
     text = re.sub(r'(?m)^__version__ = ".*"$', f'__version__ = "{v}"', text, count=1)
-    text = re.sub(r'(?m)^STAGE = ".*"$', f'STAGE = "{stage}"', text, count=1) if "STAGE = " in text else text.rstrip("\n") + f'\nSTAGE = "{stage}"\n'
+    text = (
+        re.sub(r'(?m)^STAGE = ".*"$', f'STAGE = "{stage}"', text, count=1)
+        if "STAGE = " in text
+        else text.rstrip("\n") + f'\nSTAGE = "{stage}"\n'
+    )
     out[p] = text
 
     dev = data.get("dev")

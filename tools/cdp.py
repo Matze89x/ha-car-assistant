@@ -116,7 +116,9 @@ class Browser:
                 "--disable-dev-shm-usage",
                 "--mute-audio",
                 "--no-first-run",
-                *(["--no-sandbox"] if hasattr(os, "geteuid") and os.geteuid() == 0 else []),  # a root user (a container) cannot use the sandbox
+                *(
+                    ["--no-sandbox"] if hasattr(os, "geteuid") and os.geteuid() == 0 else []
+                ),  # a root user (a container) cannot use the sandbox
                 f"--remote-debugging-port={self.port}",
                 f"--user-data-dir={self.tmp}",
                 "about:blank",
@@ -180,15 +182,24 @@ class Browser:
             m, p = e.get("method", ""), e.get("params", {})
             if m == "Runtime.exceptionThrown":
                 d = p.get("exceptionDetails", {})
-                out.append({"kind": "exception", "text": (d.get("exception", {}).get("description") or d.get("text", "")).splitlines()[0][:200]})
+                out.append(
+                    {"kind": "exception", "text": (d.get("exception", {}).get("description") or d.get("text", "")).splitlines()[0][:200]}
+                )
             elif m == "Runtime.consoleAPICalled" and p.get("type") in ("error", "assert"):
-                out.append({"kind": "console", "text": " ".join(str(a.get("value", a.get("description", ""))) for a in p.get("args", []))[:200]})
+                out.append(
+                    {"kind": "console", "text": " ".join(str(a.get("value", a.get("description", ""))) for a in p.get("args", []))[:200]}
+                )
             elif m == "Network.loadingFailed" and not p.get("canceled"):
                 out.append({"kind": "failed", "text": f"{p.get('errorText', '')} {p.get('requestId', '')}"})
             elif m == "Network.responseReceived" and p.get("response", {}).get("status", 0) >= 400:
                 out.append({"kind": "http", "text": f"{p['response']['status']} {p['response']['url']}"})
             elif m == "Log.entryAdded" and p.get("entry", {}).get("level") == "error":
-                out.append({"kind": "csp" if "Content Security Policy" in p["entry"].get("text", "") else "console", "text": p["entry"].get("text", "")[:200]})
+                out.append(
+                    {
+                        "kind": "csp" if "Content Security Policy" in p["entry"].get("text", "") else "console",
+                        "text": p["entry"].get("text", "")[:200],
+                    }
+                )
         self.events = []
         return out
 

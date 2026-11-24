@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% from "_addon_files.html" import file_rows with context %}
+{% from "_addon_fields.html" import addon_field with context %}
+{% block content %}
+{{ page_head(addon.m.icon or 'plug', (addon.m.setup.title or _('guide.title')) ~ ' · ' ~ addon.m.name) }}
+{% set base_url = base ~ '/v/' ~ v.slug ~ '/integrations/' ~ addon.id %}
+{% if done %}
+<section class="card guide-step">
+  <h2>{{ icon('check', 20) }} {{ _('flow.done') }}</h2>
+  <p class="hint">{{ _('api.token_once') }}</p>
+  <ul class="codes"><li class="mono token-line">{{ token }}</li></ul>
+  <div class="addon-bar"><a class="button primary" href="{{ base }}{{ back_to }}">{{ icon('check', 18) }}<span>{{ _('btn.close') }}</span></a></div>
+</section>
+{% else %}
+<ol class="guide-bar">
+  {% for s in steps %}<li class="{{ 'cur' if s.n == step }}{{ ' done' if s.n < step }}"><span class="gnum">{{ s.n }}</span><b>{{ s.title }}</b></li>{% endfor %}
+</ol>
+<section class="card guide-step">
+  <h2>{{ icon(now.icon, 20) }} {{ now.title }}</h2>
+  {% if now.html %}<div class="guide-text">{{ now.html|safe }}</div>{% endif %}
+  {% if result %}<p class="addon-status {{ 'ok' if result.ok else 'err' }}" role="{{ 'status' if result.ok else 'alert' }}">{{ icon('check' if result.ok else 'alert', 16) }}<span>{{ result.message }}</span></p>{% endif %}
+
+  {% if now.type == 'requirements' %}
+  <ul class="guide-checks">
+    {% for c in needs %}
+    <li class="{{ 'ok' if c.ok else 'miss' }}">{{ icon('check' if c.ok else 'lock', 18) }}
+      <span><b>{{ c.label }}</b>{% if c.ok %}{% if c.value %}<code>{{ c.value }}</code>{% endif %}{% else %}<small>{{ c.missing }} <a href="{{ base }}{{ c.link }}">{{ _('guide.go_there') }}</a></small>{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% if not ready %}<p class="addon-status err" role="alert">{{ icon('alert', 16) }}<span>{{ _('guide.not_ready') }}</span></p>{% endif %}
+  {% endif %}
+
+  {% if now.type == 'page' %}
+  <p><a class="button" href="{{ base }}/v/{{ v.slug }}/m/{{ addon.addon_id }}/{{ now.page }}">{{ icon('chevron', 18) }}<span>{{ _('guide.open_page') }}</span></a></p>
+  {% endif %}
+
+  {% if errors.get('__token') %}<p class="addon-status err" role="alert">{{ icon('alert', 16) }}<span>{{ errors['__token'] }}</span></p>{% endif %}
+  {% if now.type == 'files' %}{% include "_guide_files.html" %}{% endif %}
+
+  <form method="post" action="{{ base_url }}/guide/flow" class="guide-stack" id="flowform">
+    <input type="hidden" name="step" value="{{ step }}"><input type="hidden" name="token" value="{{ token }}">
+
+    {% if fields %}
+    <section class="addon-fields set-form guide-set">
+      {% for f in fields %}{{ addon_field(f, shown.get(f.key, ''), errors.get(f.key, ''), shown, addon) }}{% endfor %}
+    </section>
+    {% endif %}
+
+    {% if now.type == 'token' %}
+      {% if token and fresh %}
+        <p class="hint">{{ _('api.token_once') }}</p>
+        <ul class="codes"><li class="mono token-line">{{ token }}</li></ul>
+        <p class="hint">{{ _('guide.token_fresh_hint') }}</p>
+      {% else %}
+        {% if has_token %}<p class="guide-fp"><b>{{ _('guide.token_have') }}</b> <code>•••• {{ fingerprint }}</code></p>{% endif %}
+        <p class="hint">{{ _('guide.token_new_hint') if has_token else _('guide.token_none_hint') }}</p>
+        <div class="addon-bar"><button name="do" value="new">{{ icon('refresh', 18) }}<span>{{ _('guide.token_new') }}</span></button></div>
+      {% endif %}
+    {% endif %}
+
+    <div class="guide-nav">
+      {% if step > 1 %}<a class="button" href="{{ base_url }}/guide?step={{ step - 1 }}">{{ _('btn.back') }}</a>
+      {% else %}<a class="button" href="{{ base }}{{ back_to }}">{{ _('btn.back') }}</a>{% endif %}
+      {% if now.type == 'download' %}<button class="{{ 'primary' if last else '' }}" name="do" value="make">{{ icon('download', 18) }}<span>{{ now.label or _('guide.download') }}</span></button>{% endif %}
+      {% if now.type == 'check' %}<button class="primary" name="do" value="check">{{ icon('shield', 18) }}<span>{{ now.label or _('flow.check') }}</span></button>
+      {% elif now.type == 'requirements' and not ready %}<button class="primary" disabled>{{ _('guide.next') }}</button>
+      {% else %}<button class="primary" name="do" value="{{ 'finish' if last else 'next' }}">{{ _('guide.finish') if last else _('guide.next') }}</button>{% endif %}
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

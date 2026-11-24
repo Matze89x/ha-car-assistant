@@ -71,7 +71,9 @@ def check_source(root: Path) -> tuple[list[str], list[str], int]:
             except ValueError:
                 continue
             if version != str(item.get("version", "")):
-                errors.append(f"{kind}/{pid}: the version differs between index.json ({item.get('version', '')!r}) and plugin.json ({version!r})")
+                errors.append(
+                    f"{kind}/{pid}: the version differs between index.json ({item.get('version', '')!r}) and plugin.json ({version!r})"
+                )
         for name in sorted(p.name for p in folder.iterdir() if p.is_dir() and not p.name.startswith(".")):
             if name not in listed:
                 errors.append(f"{kind}/{name}: the folder is not listed in {kind}/index.json")

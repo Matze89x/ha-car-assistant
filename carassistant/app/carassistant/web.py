@@ -3013,6 +3013,7 @@ from . import (  # noqa: E402,F401
     pagemods_web,
     push_web,
     receipt_web,
+    setupflow_web,
     sources_web,
     tiles_web,
     vehiclebackup_web,

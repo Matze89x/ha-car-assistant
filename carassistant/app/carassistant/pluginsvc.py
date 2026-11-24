@@ -557,14 +557,14 @@ def running(pk: int) -> bool:
         return bool(info and info["proc"].poll() is None)
 
 
-def call(pk: int, path: str, payload: dict, vehicle_id: int, user: str = "ha", timeout: float = 10.0) -> tuple[bool, str]:
-    """The APP asks a running service for something it offers (a capability, for example ``navigate``): ``POST <path>`` with a JSON body.
-    ``(True, message)`` when the service answers 2xx, else ``(False, reason)``. The service gets the same two identity headers as for a page."""
+def _post(pk: int, path: str, payload: dict, vehicle_id: int, user: str, timeout: float, limit: int) -> tuple[int, dict, bytes] | str:
+    """The APP posts JSON to a running service: ``(status, headers, body)``, or the reason it could not (``"not running"`` / ``"no answer"``).
+    The service gets the same two identity headers as for a page; what it answers is cut after ``limit`` bytes."""
     with _lock:
         info = _procs.get(pk)
         port = info["port"] if info and info["proc"].poll() is None else None
     if not port:
-        return False, "not running"
+        return "not running"
     body = json.dumps(payload).encode()
     import http.client
 
@@ -577,17 +577,56 @@ def call(pk: int, path: str, payload: dict, vehicle_id: int, user: str = "ha", t
             {"Content-Type": "application/json", "X-CA-Vehicle": str(vehicle_id), "X-CA-User": user, "Content-Length": str(len(body))},
         )
         response = conn.getresponse()
-        raw = response.read(8192)
+        raw = response.read(limit + 1)[:limit]
+        return response.status, {k.lower(): v for k, v in response.getheaders()}, raw
     except (OSError, http.client.HTTPException):
-        return False, "no answer"
+        return "no answer"
     finally:
         conn.close()
+
+
+def _answer(raw: bytes) -> dict:
     try:
         data = json.loads(raw.decode("utf-8", "replace") or "{}")
     except ValueError:
-        data = {}
-    text = str(data.get("message") or data.get("error") or "")[:200] if isinstance(data, dict) else ""
-    return (200 <= response.status < 300 and (not isinstance(data, dict) or data.get("ok") is not False)), text
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def ask(pk: int, path: str, payload: dict, vehicle_id: int, user: str = "ha", timeout: float = 10.0) -> tuple[bool, str, dict]:
+    """The APP asks a running service for something it offers (a capability, a button, a check of the set-up flow): ``POST <path>`` with a JSON body.
+    ``(True, message, answer)`` when the service answers 2xx (and not ``{"ok": false}``), else ``(False, reason, answer)``; ``answer`` is the JSON object it sent."""
+    got = _post(pk, path, payload, vehicle_id, user, timeout, 65536)
+    if isinstance(got, str):
+        return False, got, {}
+    status, _headers, raw = got
+    data = _answer(raw)
+    text = str(data.get("message") or data.get("error") or "")[:200]
+    return (200 <= status < 300 and data.get("ok") is not False), text, data
+
+
+def call(pk: int, path: str, payload: dict, vehicle_id: int, user: str = "ha", timeout: float = 10.0) -> tuple[bool, str]:
+    """Like ``ask`` without the answer: ``(True, message)`` when the service answers 2xx, else ``(False, reason)``."""
+    ok, text, _data = ask(pk, path, payload, vehicle_id, user, timeout)
+    return ok, text
+
+
+FETCH_LIMIT = 8 * 1024 * 1024
+
+
+def fetch(pk: int, path: str, payload: dict, vehicle_id: int, user: str = "ha", timeout: float = 30.0) -> tuple[bool, str, dict, bytes]:
+    """The service makes a FILE for the person (a ZIP for the set-up flow): ``POST <path>``; ``(True, "", headers, body)`` on 2xx (at most 8 MB), else
+    ``(False, reason, {}, b"")``. The headers are lower-case; only ``content-type`` and ``content-disposition`` are of interest to the caller."""
+    got = _post(pk, path, payload, vehicle_id, user, timeout, FETCH_LIMIT)
+    if isinstance(got, str):
+        return False, got, {}, b""
+    status, headers, raw = got
+    if not 200 <= status < 300:
+        data = _answer(raw)
+        return False, str(data.get("message") or data.get("error") or f"error {status}")[:200], {}, b""
+    if len(raw) >= FETCH_LIMIT:
+        return False, "too big", {}, b""
+    return True, "", headers, raw
 
 
 def state(pk: int, addon: dict) -> str:

@@ -74,13 +74,26 @@ def build(data: Path, cars: int, scale: float) -> list[str]:
             conn.executemany(
                 "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_per_unit, price_total, full_tank, station, notes) VALUES(?,?,?,?,?,?,?,?,?)",
                 [
-                    (vid, (today - timedelta(days=3000 - i * 3)).isoformat(), 20_000 + i * 55, 40 + rnd.random() * 10, 1.5, 70.0, 1, f"Station {i % 40}", "")
+                    (
+                        vid,
+                        (today - timedelta(days=3000 - i * 3)).isoformat(),
+                        20_000 + i * 55,
+                        40 + rnd.random() * 10,
+                        1.5,
+                        70.0,
+                        1,
+                        f"Station {i % 40}",
+                        "",
+                    )
                     for i in range(int(VOLUME["fuel"] * scale))
                 ],
             )
             conn.executemany(
                 "INSERT INTO service(vehicle_id, date, odometer_km, title, workshop, cost, notes) VALUES(?,?,?,?,?,?,?)",
-                [(vid, (today - timedelta(days=3000 - i * 11)).isoformat(), 20_000 + i * 400, f"Service job {i}", "Workshop", 80.0, "") for i in range(int(VOLUME["service"] * scale))],
+                [
+                    (vid, (today - timedelta(days=3000 - i * 11)).isoformat(), 20_000 + i * 400, f"Service job {i}", "Workshop", 80.0, "")
+                    for i in range(int(VOLUME["service"] * scale))
+                ],
             )
             trip_ids = []
             for i in range(int(VOLUME["trips"] * scale)):
@@ -91,20 +104,32 @@ def build(data: Path, cars: int, scale: float) -> list[str]:
                 )
                 trip_ids.append(cur.lastrowid)
             per = max(1, int(VOLUME["trip_points"] * scale) // max(1, len(trip_ids) // 12))
-            for t in trip_ids[:: 12]:
-                conn.executemany("INSERT OR IGNORE INTO trip_points(trip_id, seq, lat, lon, ts) VALUES(?,?,?,?,?)", [(t, s, 52.5 + s * 1e-4, 13.4 + s * 1e-4, None) for s in range(per)])
+            for t in trip_ids[::12]:
+                conn.executemany(
+                    "INSERT OR IGNORE INTO trip_points(trip_id, seq, lat, lon, ts) VALUES(?,?,?,?,?)",
+                    [(t, s, 52.5 + s * 1e-4, 13.4 + s * 1e-4, None) for s in range(per)],
+                )
             now = datetime.now(UTC).replace(microsecond=0)  # stored with its zone, like everything the app writes
             conn.executemany(
                 "INSERT INTO vehicle_track(vehicle_id, ts, lat, lon, speed_kmh) VALUES(?,?,?,?,?)",
-                [(vid, (now - timedelta(seconds=10 * i)).isoformat(), 52.5 + i * 1e-5, 13.4 + i * 1e-5, 50.0) for i in range(int(VOLUME["vehicle_track"] * scale))],
+                [
+                    (vid, (now - timedelta(seconds=10 * i)).isoformat(), 52.5 + i * 1e-5, 13.4 + i * 1e-5, 50.0)
+                    for i in range(int(VOLUME["vehicle_track"] * scale))
+                ],
             )
             conn.executemany(
                 "INSERT INTO signal_history(vehicle_id, addon_id, direction, name, ts, value) VALUES(?,?,?,?,?,?)",
-                [(vid, "p-demo", "set", f"field{i % 30}", (now - timedelta(seconds=i)).isoformat(), str(i)) for i in range(int(VOLUME["signal_history"] * scale))],
+                [
+                    (vid, "p-demo", "set", f"field{i % 30}", (now - timedelta(seconds=i)).isoformat(), str(i))
+                    for i in range(int(VOLUME["signal_history"] * scale))
+                ],
             )
             conn.executemany(
                 "INSERT INTO vehicle_logs(vehicle_id, ts, level, source, message) VALUES(?,?,?,?,?)",
-                [(vid, (now - timedelta(seconds=i)).isoformat(), "info", "demo", f"line {i}") for i in range(int(VOLUME["vehicle_logs"] * scale))],
+                [
+                    (vid, (now - timedelta(seconds=i)).isoformat(), "info", "demo", f"line {i}")
+                    for i in range(int(VOLUME["vehicle_logs"] * scale))
+                ],
             )
             conn.executemany(
                 "INSERT INTO trip_summaries(vehicle_id, ts, distance_km, consumption, avg_kmh, minutes) VALUES(?,?,?,?,?,?)",
@@ -112,15 +137,24 @@ def build(data: Path, cars: int, scale: float) -> list[str]:
             )
             conn.executemany(
                 "INSERT INTO parts(vehicle_id, date, name, part_number, manufacturer, shop, quantity, cost, installed, installed_km, notes) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-                [(vid, (today - timedelta(days=i)).isoformat(), f"Part {i}", f"PN{i}", "Maker", "Shop", 1, 9.9, 1, 30_000, "") for i in range(int(VOLUME["parts"] * scale))],
+                [
+                    (vid, (today - timedelta(days=i)).isoformat(), f"Part {i}", f"PN{i}", "Maker", "Shop", 1, 9.9, 1, 30_000, "")
+                    for i in range(int(VOLUME["parts"] * scale))
+                ],
             )
             conn.executemany(
                 "INSERT INTO mods(vehicle_id, date, odometer_km, title, cost, notes) VALUES(?,?,?,?,?,?)",
-                [(vid, (today - timedelta(days=i * 5)).isoformat(), 30_000, f"Modification {i}", 50.0, "") for i in range(int(VOLUME["mods"] * scale))],
+                [
+                    (vid, (today - timedelta(days=i * 5)).isoformat(), 30_000, f"Modification {i}", 50.0, "")
+                    for i in range(int(VOLUME["mods"] * scale))
+                ],
             )
             conn.executemany(
                 "INSERT INTO appointments(vehicle_id, kind, title, due_date, month_only, done) VALUES(?,?,?,?,?,?)",
-                [(vid, "inspection", f"Appointment {i}", (today + timedelta(days=i * 3 - 200)).isoformat(), 0, 1 if i % 4 else 0) for i in range(int(VOLUME["appointments"] * scale))],
+                [
+                    (vid, "inspection", f"Appointment {i}", (today + timedelta(days=i * 3 - 200)).isoformat(), 0, 1 if i % 4 else 0)
+                    for i in range(int(VOLUME["appointments"] * scale))
+                ],
             )
     return slugs
 
@@ -130,7 +164,21 @@ def crawl(client, start: list[str], limit: int = 260) -> list[tuple[float, int, 
     seen: set[str] = set()
     queue = list(start)
     out: list[tuple[float, int, str]] = []
-    skip = ("logout", "delete", "export", "/api/", "/static", "/icon", "manifest", "download", "backup", "/docs/", "/media/", "/photo", "/video")
+    skip = (
+        "logout",
+        "delete",
+        "export",
+        "/api/",
+        "/static",
+        "/icon",
+        "manifest",
+        "download",
+        "backup",
+        "/docs/",
+        "/media/",
+        "/photo",
+        "/video",
+    )
     while queue and len(seen) < limit:
         url = queue.pop(0)
         if url in seen or any(s in url for s in skip):
