@@ -443,7 +443,9 @@ def _settings_page(request: Request, vid: int, addon: dict, shown: dict, errors:
         request,
         "addon_settings.html",
         set_tabs=set_tabs,
-        car_files=[{**r, "entries": []} for r in assets.listing(addon, pluginsvc.approved(addon))]  # the list of entries belongs on the Info page
+        car_files=[
+            {**r, "entries": []} for r in assets.listing(addon, pluginsvc.approved(addon))
+        ]  # the list of entries belongs on the Info page
         if addon["m"].get("files") or addon["m"].get("bundles")
         else [],
         set_tab_on=next((g["id"] for g in set_tabs if g["err"]), set_tabs[0]["id"] if set_tabs else ""),
