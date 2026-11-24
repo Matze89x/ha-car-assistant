@@ -2,7 +2,7 @@
 action per card, the buttons of a form bar sit bottom right, everything you tap is at least 30 px, every button has a name and every field a label.
 
 It needs a real browser: tools/check_ui.py opens every page (with the folded forms opened) in a headless Chrome on a temporary demo installation -
-German at the narrowest phone, 320 px (the longest words, the least room), and English wide. Skipped where no Chrome / Chromium is installed."""
+German at 320 and 375 px (the longest words, the least room - the widths do not behave alike) and English wide. Skipped where no Chrome / Chromium is installed."""
 
 import sys
 from pathlib import Path
@@ -12,7 +12,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 
-@pytest.mark.parametrize(("width", "lang"), [(320, "de"), (1200, "en")])
+@pytest.mark.parametrize(("width", "lang"), [(320, "de"), (375, "de"), (1200, "en")])
 def test_every_page_keeps_the_design_rules(width, lang):
     from cdp import find_chrome
 

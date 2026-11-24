@@ -216,6 +216,8 @@ html[data-theme="light"][data-map="light"] .pos-map .leaflet-tile-pane, html[dat
 /* next to a car name the change-car icon is just the symbol, no circle */
 .ph-s .cur-switch, .hero-name .cur-switch, .side .sb-brand .cur-switch { width: auto; height: auto; padding: 3px; border: 0; background: none; box-shadow: none; color: var(--muted); -webkit-backdrop-filter: none; backdrop-filter: none; }
 .ph-s .cur-switch:hover, .hero-name .cur-switch:hover, .side .sb-brand .cur-switch:hover { background: none; color: var(--text); }
+.ph-s .cur-switch, .hero-name .cur-switch, .side .sb-brand .cur-switch { position: relative; }
+.ph-s .cur-switch::after, .hero-name .cur-switch::after, .side .sb-brand .cur-switch::after { content: ''; position: absolute; inset: -7px; }  /* the symbol stays 26 px, the area that takes a tap is 40 px */
 .side .sb-brand small { display: flex; align-items: center; gap: 4px; }
 
 /* 2+ cars: change car right next to the name, on every page */
@@ -2979,7 +2981,8 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 }
 
 /* location widget: place and description on top, map, and the three navigation links in one compact row at the bottom */
-.wd .nav-btns { flex-wrap: nowrap; margin: 8px 0 0; }
+.wd .nav-btns { flex-wrap: nowrap; margin: 8px 0 0; container: navbtns / inline-size; }
+@container navbtns (max-width: 320px) { .wd .nav-btn .ico { display: none; } }  /* three words in a row on the smallest phones: without the little symbols they fit */
 .wd .nav-btn { flex: 1 1 0; min-width: 0; min-height: 34px; padding: 0 8px; font-size: 12px; white-space: nowrap; }
 .wd-li, .pos-head { align-items: center; }
 
@@ -3402,3 +3405,11 @@ html.lmz-lock { overflow: hidden; }
 .wd-look-plate .odo-front .odo-drum i, .wd-look-plate .odo-strip span { font-size: min(32px, 9.5cqw); }
 @media (prefers-reduced-motion: reduce) { .odo-card3d, .odo-flip { transition: none; } .odo-strip { animation: none; } }
 .tg b .badge { max-width: 100%; white-space: normal; line-height: 1.25; }  /* a status in a figure tile ("no MQTT broker found") wraps inside the tile instead of being cut off */
+
+/* THE SPACE AT THE BOTTOM OF A CARD IS THE CARD'S OWN PADDING - the same distance below the last thing as at its left (design book). Whatever stands last inside adds
+   no margin of its own ("last" = the last one you can see: a card often ends with a hidden form, a dialog or a template), and a line-separated row that is last ends
+   with its content (the line sits above a row, so its padding below only counted when something followed). */
+:is(.card, .rec, .tile, .notice, .wd, .ov, .stn-card, .lm-card, .status-banner) :not(:has(~ :not([hidden], template, dialog, script, style))) { margin-bottom: 0; }
+:is(.wd-li, .about-row, .icon-row):not(:has(~ :not([hidden], template, dialog, script, style))) { padding-bottom: 0; }
+.wd .cd-grid { margin-bottom: -7px; }  /* the last row of the live data: its 7 px of padding below are not space of their own (as specific as the rule above: it must win) */
+.card > .empty-state { padding: 10px 0 6px; }  /* a message inside a card: the card's padding is enough */

@@ -6,7 +6,8 @@
 * **the buttons of a form bar sit bottom right** (the bar is right aligned; only the guide's Back / Next bars spread out),
 * **a thing you tap is big enough**: 30 px at least (the area that takes a tap counts, a ``::after`` that grows it too),
 * **every button has a name** (text, ``aria-label`` or ``title``) and **every field a label**,
-* **nothing is wider than the screen** (no sideways scrolling) and **no text runs out of its own box or is cut off by it**.
+* **nothing is wider than the screen** (no sideways scrolling) and **no text runs out of its own box or is cut off by it**,
+* **the space below the last thing in a card is only the card's padding** (the same distance below as at its left).
 
 Folded forms (the add form, the edit form of a card) are opened first so that the buttons inside are measured, too. German has the longest words, a
 phone the least room: ``tests/test_page_ui.py`` runs German at phone width and English wide, when Chrome is installed.
@@ -72,9 +73,18 @@ MEASURE = r"""
     var ts = getComputedStyle(te);
     if (ts.display === 'inline' || ts.display === 'none' || ts.display === 'contents' || ts.overflowX !== 'visible') { continue; }
     var own = Array.prototype.some.call(te.childNodes, function (n) { return n.nodeType === 3 && n.textContent.trim(); });
-    if (own && te.clientWidth > 0 && te.scrollWidth > te.clientWidth + 6) {  /* 6 px: the trailing letter spacing of a spaced-out word is no spill */
+    var spill = 0;
+    if (own && te.clientWidth > 0) {  /* the text itself, not what else sticks out (a tap area that grows with ::after) */
+      var ter = te.getBoundingClientRect(), edge = ter.right - (parseFloat(ts.borderRightWidth) || 0) - (parseFloat(ts.paddingRight) || 0);
+      Array.prototype.forEach.call(te.childNodes, function (n) {
+        if (n.nodeType !== 3 || !n.textContent.trim()) { return; }
+        var rn = document.createRange(); rn.selectNodeContents(n);
+        spill = Math.max(spill, rn.getBoundingClientRect().right - edge);
+      });
+    }
+    if (own && spill > 6) {  /* 6 px: the trailing letter spacing of a spaced-out word is no spill */
       var k = te.tagName.toLowerCase() + '.' + String(te.className).split(' ').slice(0, 2).join('.');
-      if (!spilled[k]) { spilled[k] = 1; out.push('text runs out of its box (' + te.scrollWidth + ' > ' + te.clientWidth + ' px): ' + k + ' "' + te.textContent.trim().slice(0, 30) + '"'); }
+      if (!spilled[k]) { spilled[k] = 1; out.push('text runs out of its box (' + Math.round(spill) + ' px too far): ' + k + ' "' + te.textContent.trim().slice(0, 30) + '"'); }
     }
   }
 
@@ -100,6 +110,26 @@ MEASURE = r"""
       }
     }
   }
+
+  /* the space below the last thing in a card is the card's own padding and nothing else: the same distance below as at its left */
+  function inflow(e) { var cs = getComputedStyle(e); return cs.display !== 'none' && cs.position !== 'absolute' && cs.position !== 'fixed' && cs.visibility !== 'hidden' && !e.hidden && e.getBoundingClientRect().height > 0 && ['SCRIPT', 'STYLE', 'TEMPLATE', 'DIALOG'].indexOf(e.tagName) < 0; }
+  function lastOf(e) { var k = Array.prototype.filter.call(e.children, inflow); return k.length ? k[k.length - 1] : null; }
+  document.querySelectorAll('.card, .wd, .rec, .tile, .notice, .ov, .stn-card, .lm-card, .status-banner').forEach(function (box) {
+    var br0 = box.getBoundingClientRect();
+    if (br0.width < 60 || br0.height < 30 || !vis(box) || box.closest('.wd-ghost, .page-head')) { return; }
+    var e = lastOf(box), pad = 0, mar = 0, neg = 0, name2 = '';
+    while (e) {
+      var ls = getComputedStyle(e), mb = parseFloat(ls.marginBottom) || 0;
+      if (mb < 0) { neg += mb; } else { mar = Math.max(mar, mb); }
+      name2 = e.tagName.toLowerCase() + '.' + String(e.className).split(' ').filter(Boolean)[0];
+      var boxed = ls.backgroundColor !== 'rgba(0, 0, 0, 0)' || parseFloat(ls.borderLeftWidth) > 0 || parseFloat(ls.borderBottomWidth) > 0;
+      if (boxed || ['svg', 'IMG', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'CANVAS'].indexOf(e.tagName) >= 0) { break; }  /* a chip, a row with a line, a control: its edge is the content */
+      pad += parseFloat(ls.paddingBottom) || 0;
+      e = lastOf(e);
+    }
+    var extra = Math.round(pad + mar + neg);
+    if (extra > 6) { out.push('more space below the last thing of a card than its padding (' + extra + ' px extra): ' + box.tagName.toLowerCase() + '.' + String(box.className).split(' ').filter(Boolean).slice(0, 2).join('.') + ' ends with ' + name2); }
+  });
 
   var groups = new Map();
   ctl.forEach(function (e) { var p = e.parentElement; if (!groups.has(p)) { groups.set(p, []); } groups.get(p).push(e); });
@@ -144,7 +174,7 @@ def run(width: int = 360, lang: str = "de") -> list[str]:
 
     problems: list[str] = []
     seen: set[str] = set()
-    for page, found in pagecheck.sweep(MEASURE, width=width, lang=lang, open_all=True):
+    for page, found in pagecheck.sweep(MEASURE, width=width, lang=lang, open_all=True, home=True):
         for text in found:
             if text not in seen:  # the same slip on many pages (a card repeated) is told once
                 seen.add(text)

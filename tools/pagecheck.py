@@ -28,10 +28,19 @@ OPEN_ALL = (
 
 
 def sweep(
-    script: str, *, width: int = 1200, lang: str = "en", open_all: bool = False, height: int = 900, theme: str = "", accent: str = ""
+    script: str,
+    *,
+    width: int = 1200,
+    lang: str = "en",
+    open_all: bool = False,
+    height: int = 900,
+    theme: str = "",
+    accent: str = "",
+    home: bool = False,
 ) -> Iterator[tuple[str, object]]:
     """``(page, answer)`` for every page: ``script`` is run in the page and must return a JSON text (``JSON.stringify(...)``).
-    ``theme`` / ``accent`` set the design of the whole installation (``light``, ``custom-dark`` ...), ``""`` is the classic one."""
+    ``theme`` / ``accent`` set the design of the whole installation (``light``, ``custom-dark`` ...), ``""`` is the classic one;
+    ``home`` adds the dashboards of the two demo cars (they are not in the More list)."""
     import check_alignment
     import make_screenshots as ms
     from cdp import Browser
@@ -56,7 +65,8 @@ def sweep(
             base = f"http://127.0.0.1:{port}"
             ms.wait_for(base + "/healthz")
             with Browser() as b:
-                for page in dict.fromkeys(check_alignment.page_list(b, base, ms)):
+                pages = check_alignment.page_list(b, base, ms) + ([f"/v/{ms.DIESEL}", f"/v/{ms.COMPACT}"] if home else [])
+                for page in dict.fromkeys(pages):
                     b.open(base + page, width, height, 1, settle=0.35)
                     if open_all:
                         b.run(OPEN_ALL)

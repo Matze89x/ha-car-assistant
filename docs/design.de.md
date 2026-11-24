@@ -33,6 +33,8 @@ Verschachtelte Radien: innen = außen − Innenabstand (eine 32-px-Kachel in ein
 
 **Feste Stufen – nichts dazwischen.** Schrift: 10 / 11 / 12 / 13 / 14 / 15 / 16 / 18 / 20 / 24 / 32 px (Labels 11, Text 15, Knöpfe 15, Felder 16, Kartentitel 18, Seitentitel 24). Ecken nur als `--r-s`, `--r-m`, `--r-l` oder `999px`. Bedienelemente: Felder 48 px, Knöpfe 44 px (klein 32 px), Icon-Knöpfe 40 px.
 
+**Der Raum in einer Karte (feste Regel).** Der Abstand unter dem Letzten in einer Karte ist der Innenabstand der Karte und nicht mehr - derselbe wie links. Was zuletzt steht, hat keinen eigenen Rand, eine durch Linien getrennte Zeile endet als letzte mit ihrem Inhalt (`pc-core.css`, Dateiende); `python tools/check_ui.py` misst es auf jeder Seite.
+
 **Leichte Knöpfe, eine Zeile (feste Regel).** Jede Nebenaktion – Speichern in einem Feld, Löschen, Abbrechen, Hinzufügen, Bearbeiten – ist ein *leichter* Knopf (`.ghost-btn` / umrandet, `.danger` ist rot umrandet, nie ein gefüllter Block), und eine Reihe von Knöpfen bleibt IMMER in EINER Zeile (`flex-wrap: nowrap`, kurze Beschriftung). Nur die eine Hauptaktion einer Seite darf `.primary` sein.
 
 **Ein Knopf, eine Regel** (`app.css`): keine Seite, Karte oder Maske überschreibt Höhe, Abstand oder Schriftgröße – sie wählt nur `.primary`, `.danger` oder `.small`. Der **Bearbeiten**-Link eines Eintrags ist immer `.rec-edit` (Stift-Icon + *Bearbeiten*).

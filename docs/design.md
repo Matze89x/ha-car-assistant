@@ -33,6 +33,8 @@ Nested radii: inner = outer − padding (a 32 px chip in a 16 px list row with 8
 
 **Fixed scales - nothing in between.** Type: 10 / 11 / 12 / 13 / 14 / 15 / 16 / 18 / 20 / 24 / 32 px (labels 11, body 15, buttons 15, fields 16, card titles 18, page title 24). Corners only as `--r-s`, `--r-m`, `--r-l` or `999px`. Controls: fields 48 px, buttons 44 px (small 32 px), icon buttons 40 px.
 
+**The space inside a card (standing rule).** The distance below the last thing in a card is the card's own padding and nothing more - the same as at its left. Whatever stands last adds no margin of its own, a line-separated row that is last ends with its content (`pc-core.css`, end of file); `python tools/check_ui.py` measures it on every page.
+
 **Light buttons, one line (standing rule).** Every secondary action - save inside a panel, delete, cancel, add, edit - is a *light* button (`.ghost-btn` / outlined, `.danger` is outlined red, never a filled block), and a row of buttons always stays on ONE line (`flex-wrap: nowrap`, labels short). Only the single main action of a page may be `.primary`.
 
 **One button, one rule** (`app.css`): no page, card or form overrides its height, padding or type size - it only picks `.primary`, `.danger` or `.small`. The **edit** link of a record is always `.rec-edit` (pencil icon + *Edit*).
