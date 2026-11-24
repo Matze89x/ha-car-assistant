@@ -1,6 +1,6 @@
 """The head of Car Assistant on a page a package shows as a page of its own (``kind: "frame"``, docs/plugins.md).
 
-The service's page is the whole window - no iframe, no app navigation. The proxy puts a small head on it: a back button (to *More* of the car),
+The service's page is the whole window - no iframe, no app navigation. The proxy puts a small head on it: a back button (to the list of Plugins or Integrations of the car),
 the name of the package and, at the right, its version. The head is plain HTML and a style sheet (``/frame-head.css``), no script; its variables are
 scoped to the head, so they never touch the page of the package.
 """
@@ -39,25 +39,26 @@ def context(conn: sqlite3.Connection, pk: int, path: str) -> dict | None:
         "version": manifest.get("version") or "",
         "slug": car["slug"],
         "lang": lang,
+        "list": "integrations" if manifest.get("kind") == "integration" else "plugins",  # where Back leads: the list the package is in
     }
 
 
 def markup(ctx: dict, base: str) -> str:
-    back = i18n.translator(ctx["lang"])("nav.more")
+    back = i18n.translator(ctx["lang"])("addon.integrations" if ctx["list"] == "integrations" else "addon.plugins")
     chevron = f'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{icons.ICONS["chevron-left"]}"></path></svg>'
     version = f'<span class="ca-ver">v{html.escape(ctx["version"])}</span>' if ctx["version"] else ""
     return (
-        f'<header id="ca-head"><a class="ca-back" href="{html.escape(base)}/v/{html.escape(ctx["slug"])}/more" aria-label="{html.escape(back)}">{chevron}</a>'
+        f'<header id="ca-head"><a class="ca-back" href="{html.escape(base)}/v/{html.escape(ctx["slug"])}/{ctx["list"]}" aria-label="{html.escape(back)}">{chevron}</a>'
         f'<span class="ca-name">{html.escape(ctx["name"])}</span>{version}</header>'
     )
 
 
 def footer(ctx: dict, base: str) -> str:
-    """The foot of the page: Back to More on the left, the name and version of Car Assistant on the right. Plain HTML, no script."""
+    """The foot of the page: Back to the list on the left, the name and version of Car Assistant on the right. Plain HTML, no script."""
     t = i18n.translator(ctx["lang"])
     chevron = f'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{icons.ICONS["chevron-left"]}"></path></svg>'
     return (
-        f'<footer id="ca-foot"><a class="ca-fback" href="{html.escape(base)}/v/{html.escape(ctx["slug"])}/more">{chevron}<span>{html.escape(t("btn.back"))}</span></a>'
+        f'<footer id="ca-foot"><a class="ca-fback" href="{html.escape(base)}/v/{html.escape(ctx["slug"])}/{ctx["list"]}">{chevron}<span>{html.escape(t("btn.back"))}</span></a>'
         f'<span class="ca-fname"><b>Car Assistant</b> · Drive · Log · Go</span><span class="ca-ver">v{html.escape(__version__)}</span></footer>'
     )
 

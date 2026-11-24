@@ -360,6 +360,26 @@ BACK_RULES = (
 )
 
 
+ADDON_PAGE = re.compile(
+    r"(/v/[^/]+)/(?:integrations/(\d+)(?:/.*)?|m/([^/]+)(?:/.*)?)"
+)  # a page of ONE plugin / integration (settings, logs, guide, its own pages)
+ADDON_LIST = re.compile(r"(/v/[^/]+)/(plugins|integrations)(?:/.*)?")  # a list of them and its tabs (Manage, Connections, Add, Sources)
+
+
+def _addon_area(conn: sqlite3.Connection, path: str) -> str | None:
+    """The list a page of the plugins / integrations area belongs to (``/v/<car>/plugins`` or ``/integrations``): the side bar keeps that entry marked on
+    every page inside it, and a page of one plugin leads Back to it. None for every other page."""
+    hit = ADDON_PAGE.fullmatch(path)
+    if hit:
+        if hit[2]:
+            row = conn.execute("SELECT kind FROM vehicle_addons WHERE id = ?", (int(hit[2]),)).fetchone()
+        else:
+            row = conn.execute("SELECT kind FROM vehicle_addons WHERE addon_id = ? LIMIT 1", (hit[3],)).fetchone()
+        return f"{hit[1]}/{'integrations' if row and row['kind'] == 'integration' else 'plugins'}" if row else None
+    hit = ADDON_LIST.fullmatch(path)
+    return f"{hit[1]}/{hit[2]}" if hit else None
+
+
 def render(request: Request, name: str, status: int = 200, **ctx):
     page_lang = ctx.pop("force_lang", None) or config.language()  # the first-start language choice is always English
     regional.apply()  # the process follows the time zone of the system (summer / winter time included)
@@ -452,6 +472,11 @@ def render(request: Request, name: str, status: int = 200, **ctx):
                 if hit:
                     ctx["back_href"] = slugs.pretty(conn, hit.expand(target))
                     break
+        area = _addon_area(conn, request.url.path.rstrip("/")) if on_more else None
+        if area and ADDON_PAGE.fullmatch(request.url.path.rstrip("/")) and not ctx.get("back_to"):
+            ctx["back_href"] = slugs.pretty(
+                conn, area
+            )  # a page of ONE plugin: Back to its list (the list's own tabs keep their rules above)
         ctx["back_deep"] = bool(ctx.get("back_href")) and ctx["back_href"] != slugs.pretty(
             conn, more_href
         )  # deeper than More: Back stays visible on wide screens
@@ -460,7 +485,9 @@ def render(request: Request, name: str, status: int = 200, **ctx):
             from .nav_web import more_groups
 
             ctx["more_pane"] = more_groups(conn, nav_vid, t)
-            ctx["more_cur"] = slugs.pretty(conn, request.url.path)
+            ctx["more_cur"] = slugs.pretty(
+                conn, area or request.url.path
+            )  # inside the plugins / integrations area their entry stays marked
     ctx["app_car"] = app_car
     ctx["switch_vehicles"] = active if len(active) > 1 and not app_car else []  # a car's own web app shows that car only
     ctx["switch_suffix"] = _switch_suffix(request.url.path, on_more)

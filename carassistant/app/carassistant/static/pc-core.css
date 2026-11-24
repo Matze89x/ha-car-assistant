@@ -3421,6 +3421,10 @@ html.lmz-lock { overflow: hidden; }
 .odo-all { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 6px; font-size: 12px; color: var(--dim); }
 .odo-all.odd { color: var(--soon); font-weight: 600; }
 /* all readings of the car in one list; the ones that do not fit are marked */
+.odo-add { display: grid; gap: 8px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--glass-b); }
+.odo-add-l { color: var(--muted); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; font-weight: 600; }
+.odo-add .odo-entry { display: grid; gap: 8px; margin: 0; width: 100%; }
+.odo-add .odo-all { display: none; }  /* the list is right below: no link to it */
 .odo-hist-card .hint { margin: 0 0 10px; }
 .odo-hist-card .flash { margin: 0 0 10px; }
 .odo-list { margin: 0; padding: 0; }
@@ -3434,7 +3438,6 @@ html.lmz-lock { overflow: hidden; }
 .odo-hrow.odd .odo-hkm { color: var(--overdue); }
 .vd-odo { margin: 14px 0 0; }
 .vd-odo .odo-edit { margin: 0; }
-.vd-hero .vd-odo { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--glass-b); }  /* inside the card, under the VIN, set off by a thin line - not a pill floating between two blocks */
 
 /* THE ODOMETER PLATE (dashboard, and as the third look of the odometer widget). A dark box like the instrument cluster; the figure is a mechanical counter
    whose cells roll down through the box (app.js builds the strips). On the dashboard it is a FLIP CARD: a tap on the front turns it over from top to bottom

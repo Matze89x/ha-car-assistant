@@ -148,7 +148,7 @@ def test_the_head_is_put_on_a_page_of_the_package_only(client, monkeypatch):
         got.index("<head>") < got.index("frame-head.css?theme=custom-light") < got.index("<title>")
     )  # the styles of the package come later and win
     assert got.index('<body><header id="ca-head">') < got.index("<h1>")  # the head sits at the top of the body
-    assert f'href="/v/{slug}/more"' in got and 'class="ca-name">Editor<' in got and 'class="ca-ver">v3<' in got and "<script" not in got
+    assert f'href="/v/{slug}/plugins"' in got and 'class="ca-name">Editor<' in got and 'class="ca-ver">v3<' in got and "<script" not in got
     assert proxy._with_head(page, html, pk, "/ext/editor/x", "", nav).decode().count('id="ca-head"') == 1  # below the route: still the page
     assert proxy._with_head(page, html, pk, "/ext/other/", "", nav) == page  # not a frame page: untouched
     assert proxy._with_head(page, [("Content-Type", "application/json")], pk, "/ext/editor/", "", nav) == page

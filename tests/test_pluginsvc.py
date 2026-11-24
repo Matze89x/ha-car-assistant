@@ -860,7 +860,9 @@ def test_a_page_of_an_integration_is_the_whole_window_with_the_head_of_car_assis
     assert page.headers["content-type"].startswith("text/html") and int(page.headers["content-length"]) == len(page.content)
     text = page.text
     assert "<h1>Own page</h1>" in text and 'id="ca-head"' in text and "frame-head.css?theme=custom-light" in text
-    assert f'href="/v/{slug}/more"' in text and 'class="ca-name">Echo tool<' in text and 'class="ca-ver">v1<' in text
+    assert (
+        f'href="/v/{slug}/integrations"' in text and 'class="ca-name">Echo tool<' in text and 'class="ca-ver">v1<' in text
+    )  # Back: its list
     assert "<iframe" not in text and "<script" not in text
     assert (
         "ca-head" not in local.get("/priv/tool/", headers={"Accept": "*/*", "X-Requested-With": "frame"}).text

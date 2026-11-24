@@ -1,6 +1,7 @@
 """The tile of a plugin: Uninstall as a symbol, Logs, Settings, first-time Set up, the plugin's own free buttons, and the log page."""
 
 import json
+import re
 
 from tests.test_addons import MANIFEST, upload
 from tests.test_web import create_vehicle, slug
@@ -173,3 +174,41 @@ def test_an_action_button_calls_the_private_route_and_shows_what_the_service_sai
     assert client.post(f"/v/{slug(vid)}/integrations/{pk}/button/nothing").status_code == 404  # only buttons the package declared
     monkeypatch.setattr(pluginsvc, "approved", lambda addon: False)
     assert "approved" in client.post(f"/v/{slug(vid)}/integrations/{pk}/button/ping").text  # a plugin that is not approved is never called
+
+
+def test_inside_the_plugins_area_the_side_bar_keeps_its_entry_marked_and_a_plugin_page_leads_back_to_the_list(client):
+    """The side bar entry *Plugins* stays marked on every page of the area (the list, its tabs, one plugin's settings / logs), and a page of one plugin has a
+    Back that leads to the list of its kind - Integrations for an integration."""
+    vid, pk = _install_with_buttons(client, [])
+    base = f"/v/{slug(vid)}"
+
+    def marked(page: str, name: str) -> bool:
+        """Is the side bar item (``<a class="mi ...">``) that leads to ``name`` marked?"""
+        item = re.search(rf'<a class="(mi[^"]*)" href="{re.escape(base)}/{name}"', page)
+        assert item, name
+        return "sel" in item.group(1).split()
+
+    for path in (
+        f"{base}/plugins",
+        f"{base}/plugins/add",
+        f"{base}/plugins/connections",
+        f"{base}/integrations/{pk}/settings",
+        f"{base}/integrations/{pk}/logs",
+    ):
+        page = client.get(path).text
+        assert marked(page, "plugins") and not marked(page, "integrations"), path  # Plugins is marked, Integrations is not
+    for path in (f"{base}/integrations/{pk}/settings", f"{base}/integrations/{pk}/logs"):
+        assert f'class="back-btn deep" href="{base}/plugins"' in client.get(path).text, path  # a Back to the list, also on wide screens
+    manifest = {
+        "id": "an-integration",
+        "kind": "integration",
+        "name": "Tool",
+        "version": "1",
+        "settings": [{"key": "a", "type": "text", "label": "A"}],
+    }
+    with db.tx() as conn:
+        source = conn.execute("SELECT id FROM sources LIMIT 1").fetchone()["id"]
+        other = addons.add(conn, vid, addons.parse_package(json.dumps(manifest).encode()), source, "0" * 64)
+    page = client.get(f"{base}/integrations/{other}/settings").text
+    assert marked(page, "integrations") and not marked(page, "plugins")  # an integration marks Integrations
+    assert f'class="back-btn deep" href="{base}/integrations"' in page

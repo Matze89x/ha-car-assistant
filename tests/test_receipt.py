@@ -349,11 +349,11 @@ def test_the_vehicle_passport_has_the_odometer_entry_when_no_plugin_reports_it(c
     vid = create_vehicle(client)
     page = client.get(f"/v/{slug(vid)}/edit").text
     assert (
-        'class="vd-odo"' in page and "data-odo-open" in page and f"/v/{slug(vid)}/odometer/quick" in page
-    )  # typed by hand: the entry sits under the hero card
+        'class="odo-add"' in page and 'name="odometer"' in page and f"/v/{slug(vid)}/odometer/quick" in page and "data-scan-btn" in page
+    )  # typed by hand: the entry box (with the photo button) sits at the top of the readings card
     with db.tx() as conn:
         conn.execute("UPDATE odometer SET source = 'plugin-x' WHERE vehicle_id = ?", (vid,))
-    assert 'class="vd-odo"' not in client.get(f"/v/{slug(vid)}/edit").text  # the car reports it: nothing to type
+    assert 'class="odo-add"' not in client.get(f"/v/{slug(vid)}/edit").text  # the car reports it: nothing to type
 
 
 def test_the_odometer_on_the_dashboard_is_a_flip_card_that_shows_the_last_reading_in_the_box(client):

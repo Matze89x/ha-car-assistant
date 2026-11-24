@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, odo_plate with context %}
+{% from "_macros.html" import icon, page_head, odo_form with context %}
 {% block scripts %}{% if odo_scan_on %}<script src="{{ base }}/static/receipt.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 {# The passport grid: two tiles per row. Each tile knows its column (l / r), a lone tile is paired with an empty filler, so the divider line is always right #}
@@ -34,7 +34,6 @@
     {% if v.vin %}<div class="vin-plate"><span class="vin-l">{{ icon('identifier', 14) }}{{ _('f.vin') }}{% if v.vin_verified %} <span class="vin-ok" aria-label="{{ _('vin.verified') }}">{{ icon('check', 12) }}<span>{{ _('vin.verified') }}</span></span>{% endif %}</span>
       <div class="vin-slot"><code id="vin-val" class="vin-engraved" aria-label="{{ v.vin }}">{{ v.vin }}</code>
       <button type="button" class="icon-btn vin-copy" data-copy="{{ v.vin }}" data-done="{{ _('btn.copied') }}" aria-label="{{ _('btn.copy') }}">{{ icon('content-copy', 16) }}</button></div></div>{% endif %}
-    {% if not odo_from_car %}<div class="vd-odo">{{ odo_plate(odometer is none) }}</div>{% endif %}  {# no plugin reports the odometer: the same plate as on the dashboard - it turns over to type the figure or read it from a photo #}
   </div>
   <div class="vd-groups">
     <div class="vd-col">
@@ -87,27 +86,26 @@
   {% if not odo_from_car %}
   <div class="eq-sec vd-odo-list" id="odo-readings">
     <div class="vd-group-h eq-head">{{ _('odo.history_title') }} <span class="eq-total">{{ odo_total }}</span></div>
-    {% if odo_readings %}
     <div class="card odo-hist-card">
-      <p class="hint">{{ _('odo.history_intro') }}</p>
-      {% if odo_odd_n %}<p class="flash warn">{{ _('odo.history_odd', n=odo_odd_n) }}</p>{% endif %}
-      <ul class="plain odo-list" id="odo-list">
-      {% for r in odo_readings %}
-        <li class="odo-hrow{{ ' odd' if r.odd }}">
-          <span class="odo-hkm">{{ fnum(units.d(r.km)) }} <small>{{ units.dist_unit }}</small></span>
-          <span class="odo-hmeta">{{ fdate(r.date) }} · {% if r.kind == 'odometer' %}{{ _('odo.src_manual') if r.source == 'manual' else _('odo.src_auto') }}{% elif r.kind == 'fuel' %}{{ _('odo.src_fuel') }}{% elif r.kind == 'service' %}{{ _('odo.src_service') }}{% elif r.kind == 'mods' %}{{ _('odo.src_mods') }}{% else %}{{ _('odo.src_trips') }}{% endif %}</span>
-          {% if r.odd %}<span class="badge overdue">{{ _('odo.flag_lower') if r.odd == 'lower' else _('odo.flag_higher') }}</span>{% endif %}
-          <span class="odo-hact">{% if r.kind == 'odometer' %}<button class="ghost-btn small warn ib" form="odel-{{ r.id }}" aria-label="{{ _('btn.delete') }}" title="{{ _('btn.delete') }}">{{ icon('delete-outline', 16) }}</button>
-            {% else %}<a class="ghost-btn small ib" href="{{ base }}/v/{{ v.slug }}/e/{{ r.kind }}" aria-label="{{ _('odo.open_entry') }}" title="{{ _('odo.open_entry') }}">{{ icon('pencil', 16) }}</a>{% endif %}</span>
-        </li>
-      {% endfor %}
-      </ul>
-      {% with pager=odo_pager, pager_url=base ~ '/v/' ~ v.slug ~ '/edit', pager_into='#odo-list' %}{% include "_pager.html" %}{% endwith %}
-      {% for r in odo_readings if r.kind == 'odometer' %}<form method="post" action="{{ base }}/v/{{ v.slug }}/odometer/{{ r.id }}/delete" id="odel-{{ r.id }}" data-confirm="{{ _('odo.confirm_delete') }}" hidden></form>{% endfor %}
+      <div class="odo-add"><span class="odo-add-l">{{ _('odo.add_title') }}</span>{{ odo_form() }}</div>
+      {% if odo_readings %}
+        <p class="hint">{{ _('odo.history_intro') }}</p>
+        {% if odo_odd_n %}<p class="flash warn">{{ _('odo.history_odd', n=odo_odd_n) }}</p>{% endif %}
+        <ul class="plain odo-list" id="odo-list">
+        {% for r in odo_readings %}
+          <li class="odo-hrow{{ ' odd' if r.odd }}">
+            <span class="odo-hkm">{{ fnum(units.d(r.km)) }} <small>{{ units.dist_unit }}</small></span>
+            <span class="odo-hmeta">{{ fdate(r.date) }} · {% if r.kind == 'odometer' %}{{ _('odo.src_manual') if r.source == 'manual' else _('odo.src_auto') }}{% elif r.kind == 'fuel' %}{{ _('odo.src_fuel') }}{% elif r.kind == 'service' %}{{ _('odo.src_service') }}{% elif r.kind == 'mods' %}{{ _('odo.src_mods') }}{% else %}{{ _('odo.src_trips') }}{% endif %}</span>
+            {% if r.odd %}<span class="badge overdue">{{ _('odo.flag_lower') if r.odd == 'lower' else _('odo.flag_higher') }}</span>{% endif %}
+            <span class="odo-hact">{% if r.kind == 'odometer' %}<button class="ghost-btn small warn ib" form="odel-{{ r.id }}" aria-label="{{ _('btn.delete') }}" title="{{ _('btn.delete') }}">{{ icon('delete-outline', 16) }}</button>
+              {% else %}<a class="ghost-btn small ib" href="{{ base }}/v/{{ v.slug }}/e/{{ r.kind }}" aria-label="{{ _('odo.open_entry') }}" title="{{ _('odo.open_entry') }}">{{ icon('pencil', 16) }}</a>{% endif %}</span>
+          </li>
+        {% endfor %}
+        </ul>
+        {% with pager=odo_pager, pager_url=base ~ '/v/' ~ v.slug ~ '/edit', pager_into='#odo-list' %}{% include "_pager.html" %}{% endwith %}
+        {% for r in odo_readings if r.kind == 'odometer' %}<form method="post" action="{{ base }}/v/{{ v.slug }}/odometer/{{ r.id }}/delete" id="odel-{{ r.id }}" data-confirm="{{ _('odo.confirm_delete') }}" hidden></form>{% endfor %}
+      {% else %}<p class="hint">{{ _('odo.history_empty') }}</p>{% endif %}
     </div>
-    {% else %}
-    <div class="card empty-state">{{ icon('speedometer', 36) }}<p>{{ _('odo.history_empty') }}</p></div>
-    {% endif %}
   </div>
   {% endif %}
   {% include "_equipment.html" %}
