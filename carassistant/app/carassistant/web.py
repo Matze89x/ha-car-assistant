@@ -940,6 +940,8 @@ def vehicle_overview(request: Request, vid: int):
             hero_range=hero,
             odo_scan_on=receipt_available(),
             odo_from_car=summary.odometer_from_car(conn, vid),
+            odo_in_widget=summary.current_odometer(conn, vid) is not None
+            and any(w.key == "odometer" and w.on and w.design == "plate" for w in layout),  # the plate lives in its tile, not under the car
             odo_odd=any(r["odd"] for r in summary.odometer_readings(conn, vid, 400)),
             tank_info=tank_info,
             tank_unit=unit_for(vehicle["fuel_type"]),

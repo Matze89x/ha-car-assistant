@@ -43,7 +43,7 @@
   {% elif odometer is not none %}  {# the odometer plate: the one place to type it, turn it over (also under a range) #}
   {% set ti = tank_info if (tank_info is defined and not hero_range) else none %}  {# the range block above already says what is in the tank #}
   <div class="odo-card">
-    {{ odo_plate() }}
+    {% if not (odo_in_widget is defined and odo_in_widget) %}{{ odo_plate() }}{% endif %}  {# the Zaehlwerk tile has the plate: the same plate twice on one page looks silly #}
     {{ odo_progress() }}
     {% if ti %}<div class="odo-tank{{ ' low' if ti.pct is not none and ti.pct <= 15 }}">{{ icon('plug' if energy_mode == 'charge' else 'gas-station', 17) }}<span>{% if ti.pct is not none %}{{ ti.pct }} %{% endif %}{% if ti.amount %}{{ ' · ' if ti.pct is not none }}{{ fnum(units.v(ti.amount, tank_unit), 1) }} {{ units.vol_unit(tank_unit) }}{% endif %}</span></div>{% endif %}
     {% if ti and ti.pct is not none %}<div class="bar"><i class="bar-fill" style="width: {{ ti.pct }}%"></i></div>{% endif %}

@@ -19,8 +19,9 @@
 {% endcall %}
 </div>
 <div class="wd-look-plate">
-{% call widget('counter', 'c3', _('wd.odo_title'), '/e/counters', w.size) %}
-  {{ odo_plate(false, false) }}
+{% set live_plate = (odo_in_widget is defined and odo_in_widget) and not (odo_from_car is defined and odo_from_car) %}  {# this tile owns the plate: it turns over to type or photograph, so it is no link (a link around buttons breaks) #}
+{% call widget('counter', 'c3', _('wd.odo_title'), none if live_plate else '/e/counters', w.size) %}
+  {{ odo_plate(false, live_plate) }}
   {{ foot() }}
 {% endcall %}
 </div>

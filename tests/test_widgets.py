@@ -225,3 +225,24 @@ def test_the_two_list_widgets_let_the_person_choose_the_columns(client):
     client.post(f"{base}/widgets", data={**form, "opt_messages_columns": "bogus"})  # an unknown choice keeps the old one
     with db.tx() as conn:
         assert next(w for w in widgets.layout(conn, vid) if w.key == "messages").opts["columns"] == "one"
+
+
+def test_the_plate_is_there_once_under_the_car_or_in_its_tile_never_twice(client):
+    """The odometer plate is the one place to type the odometer: under the car, or - when the Zaehlwerk look of the odometer widget is on - in that tile (it
+    turns over there, too). The same plate twice on one page looks silly. (The widget always carries a plain, fixed copy for its other looks; it is not shown.)"""
+    from tests.conftest import demo_car
+    from tests.test_web import slug
+
+    vid = demo_car(client)
+    base = f"/v/{slug(vid)}"
+    order = [w.key for w in widgets.REGISTRY]
+    live = 'class="odo-flip"'  # a plate that turns over (the fixed one says odo-static)
+    page = client.get(base).text
+    assert page.count(live) == 1 and page.index(live) < page.index('class="wd-slot')  # widget off: under the car
+    client.post(f"{base}/widgets", data={"k": order, "on_odometer": "1", "size_odometer": "m", "opt_odometer_design": "plate"})
+    page = client.get(base).text
+    assert page.count(live) == 1 and page.index(live) > page.index('class="wd-look-plate"')  # the plate moved into its tile ...
+    assert "data-odo-open" in page.split('class="wd-look-plate"')[1]  # ... and turns over there
+    client.post(f"{base}/widgets", data={"k": order, "on_odometer": "1", "size_odometer": "m", "opt_odometer_design": "drums"})
+    page = client.get(base).text
+    assert page.count(live) == 1 and page.index(live) < page.index('class="wd-slot')  # another look: the plate stays under the car
