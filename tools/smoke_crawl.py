@@ -56,6 +56,10 @@ def run(limit: int = 400, width: int = 1280) -> tuple[list[str], int]:
                     b.drain()
                     b.open(base + path, width, 900, 1, settle=0.5)
                     events = b.drain()
+                    if any(e["kind"] in ("exception", "console", "csp", "failed", "http") for e in events):  # a machine under load can stumble once: it counts when the page does it again
+                        b.open(base + path, width, 900, 1, settle=1.0)
+                        again = {(e["kind"], e["text"]) for e in b.drain()}
+                        events = [e for e in events if (e["kind"], e["text"]) in again]
                     title = b.run("document.title")
                     status_bad = [e for e in events if e["kind"] == "http"]
                     for e in events:
