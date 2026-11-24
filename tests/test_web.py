@@ -1350,3 +1350,19 @@ def test_the_sources_and_add_pages_are_built_from_the_plugin_tile_and_the_empty_
         assert 'class="addon-bar"' in page and "lite-lbl" in page and "pk-foot" not in page
         add = client.get(f"/v/{slug(vid)}/{kind}s/add").text
         assert 'class="card empty-state"' in add  # no package known yet: the empty card, not a bare line
+
+
+def test_open_is_offered_only_for_a_file_that_is_there(client):
+    """An entry whose file is gone from the disk (a restore without files, a cleaned folder) says so instead of leading to a bare 404."""
+    from carassistant import config
+
+    vid = create_vehicle(client)
+    base = f"/v/{slug(vid)}"
+    client.post(f"{base}/docs", files={"file": ("invoice.pdf", b"%PDF-data", "application/pdf")})
+    with db.tx() as conn:
+        doc = conn.execute("SELECT id FROM documents WHERE vehicle_id = ?", (vid,)).fetchone()["id"]
+    page = client.get(f"{base}/docs").text
+    assert f'href="{base}/docs/{doc}"' in page and "File missing" not in page
+    (config.files_dir() / str(vid) / f"{doc}.pdf").unlink()
+    page = client.get(f"{base}/docs").text
+    assert f'href="{base}/docs/{doc}"' not in page and "File missing" in page

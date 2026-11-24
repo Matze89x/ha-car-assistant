@@ -2057,11 +2057,13 @@ def docs_page(request: Request, vid: int, error: str | None = None):
             (vid, lists.size(), (page - 1) * lists.size()),
         ).fetchall()
         pager = {"page": page, "pages": pages, "total": total, "size": lists.size()}
+        file_ok = {d["id"] for d in docs if d["size"] and _doc_path(vid, d).is_file()}  # "Open" only where there is something to open
         return render(
             request,
             "docs.html",
             **vehicle_ctx(conn, vehicle, "docs"),
             docs=docs,
+            file_ok=file_ok,
             categories=DOC_CATEGORIES,
             pager=pager,
             today=date.today().isoformat(),

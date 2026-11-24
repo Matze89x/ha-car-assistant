@@ -115,10 +115,13 @@ def seed(data: Path, lang: str) -> None:
                 ("Service plan (example)", "inspection"),
                 ("Insurance policy (example)", "insurance"),
             ):
-                conn.execute(
+                doc = conn.execute(
                     "INSERT INTO documents(vehicle_id, category, title, filename, mime, size) VALUES(?,?,?,?,?,?)",
                     (vid, category, title, "example.txt", "text/plain", 120),
-                )
+                ).lastrowid
+                folder = config.files_dir() / str(vid)  # a real (tiny) file: the page offers *Open* only for a file that is there
+                folder.mkdir(parents=True, exist_ok=True)
+                (folder / f"{doc}.txt").write_text("Example document.\n" * 6, encoding="utf-8")
         vid = conn.execute(
             "INSERT INTO vehicles (name, make, model, fuel_type, plate) VALUES ('Demo Compact', 'Example', 'Compact', 'diesel', 'EF-GH 456')"
         ).lastrowid
