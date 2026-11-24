@@ -924,13 +924,16 @@ def clean_setting_fields(raw) -> list[dict]:
             columns = _list_columns(f.get("columns"))  # more cells in a row (a second line, a logo address): the row stays one line of text
             if columns:
                 field["columns"] = columns
+            vmax = f.get("value_max")  # how long the value of a row may be (a stream address is long)
+            if isinstance(vmax, int) and not isinstance(vmax, bool) and 1 <= vmax <= LIST_CELL_MAX:
+                field["value_max"] = vmax
             if isinstance(f.get("min_rows"), int) and not isinstance(f.get("min_rows"), bool) and 1 <= f["min_rows"] <= LIST_ROWS:
                 field["min_rows"] = f["min_rows"]  # saving with fewer rows is refused
-            tpls = _list_templates(f.get("templates"), columns)
+            tpls = _list_templates(f.get("templates"), columns, field.get("value_max", 200))
             if tpls:
                 field["templates"] = tpls  # a select of ready-made rows and a button that appends the chosen one
             if isinstance(f.get("default"), list):  # the rows a new installation starts with: [{"name", "value"}], at most 30
-                rows = _list_default(f["default"], columns)
+                rows = _list_default(f["default"], columns, field.get("value_max", 200))
                 if rows:
                     field["default"] = rows
                 else:
@@ -1229,6 +1232,7 @@ def _row_text(value, limit: int) -> str:
 
 
 LIST_COLUMNS = 3  # extra cells next to the name and the value
+LIST_CELL_MAX = 500  # the longest a cell (or the value) of a row may be set to; a text longer than its limit is refused, never cut quietly
 LIST_COLUMN_KEY = re.compile(r"[a-z][a-z0-9_]{0,19}")
 LIST_COLUMN_RESERVED = {"name", "value", "label", "l10n"}
 
@@ -1252,7 +1256,7 @@ def _list_columns(raw) -> list[dict]:
         col = {
             "key": key,
             "label": _text(c, "label", 40) or key,
-            "max": limit if isinstance(limit, int) and not isinstance(limit, bool) and 1 <= limit <= 200 else 120,
+            "max": limit if isinstance(limit, int) and not isinstance(limit, bool) and 1 <= limit <= LIST_CELL_MAX else 120,
         }
         if _l10n(c.get("l10n"), {"label": 40}):
             col["l10n"] = _l10n(c.get("l10n"), {"label": 40})
@@ -1260,35 +1264,39 @@ def _list_columns(raw) -> list[dict]:
     return out
 
 
-def _cells(row: dict, columns: list[dict] | tuple = ()) -> list[str]:
+def _cells(row: dict, columns: list[dict] | tuple = (), value_max: int = 200) -> list[str]:
     """The cells of a row given as a dict in the order of the line: name, value, then the extra columns (each cut to its length)."""
-    return [_row_text(row.get("name"), 80), _row_text(row.get("value"), 200), *[_row_text(row.get(c["key"]), c["max"]) for c in columns]]
+    return [
+        _row_text(row.get("name"), 80),
+        _row_text(row.get("value"), value_max),
+        *[_row_text(row.get(c["key"]), c["max"]) for c in columns],
+    ]
 
 
-def _list_default(rows: list, columns: list[dict] | tuple = ()) -> str:
+def _list_default(rows: list, columns: list[dict] | tuple = (), value_max: int = 200) -> str:
     """``[{"name", "value", <column>...}, ...]`` as the stored lines ``name | value | ...`` (at most 30; an empty row is dropped)."""
     lines = []
     for r in rows[:LIST_ROWS]:
-        cells = _cells(r, columns) if isinstance(r, dict) else []
+        cells = _cells(r, columns, value_max) if isinstance(r, dict) else []
         if any(cells):
             lines.append(" | ".join(cells))
     return "\n".join(lines)
 
 
-def _list_templates(raw, columns: list[dict] | tuple = ()) -> list[dict]:
+def _list_templates(raw, columns: list[dict] | tuple = (), value_max: int = 200) -> list[dict]:
     """The ready-made rows of a ``list``: ``[{"label", "name", "value", <column>..., "l10n": {"de": {"label"}}}]``, at most 30.
     ``cells`` holds the extra cells in the order of the columns."""
     out = []
     for t in raw[:LIST_ROWS] if isinstance(raw, list) else []:
-        if not isinstance(t, dict) or not any(_cells(t, columns)):
+        if not isinstance(t, dict) or not any(_cells(t, columns, value_max)):
             continue
         item = {
             "label": _text(t, "label", 60) or _row_text(t.get("name"), 80),
             "name": _row_text(t.get("name"), 80),
-            "value": _row_text(t.get("value"), 200),
+            "value": _row_text(t.get("value"), value_max),
         }
         if columns:
-            item["cells"] = _cells(t, columns)[2:]
+            item["cells"] = _cells(t, columns, value_max)[2:]
         if _l10n(t.get("l10n"), {"label": 60}):
             item["l10n"] = _l10n(t.get("l10n"), {"label": 60})
         out.append(item)
@@ -1312,19 +1320,28 @@ def list_rows(value: str, columns: list[dict] | tuple = ()) -> list[dict]:
     return rows[:LIST_ROWS]
 
 
-def _list_from_form(key: str, form: dict, columns: list[dict] | tuple = ()) -> str:
-    """The rows of the page (fields ``<key>__<n>n``, ``__<n>v`` and ``__<n>c<j>``) as the stored lines."""
-    limits = [80, 200, *[c["max"] for c in columns]]
+def _form_cells(key: str, form: dict, i: int, columns: list[dict] | tuple) -> list[str]:
+    """The cells of row ``i`` as typed (tidied, not cut): fields ``<key>__<i>n``, ``__<i>v`` and ``__<i>c<j>``."""
     suffixes = ["n", "v", *[f"c{j}" for j in range(len(columns))]]
+    return [" ".join(str(form.get(f"{key}__{i}{sfx}") or "").replace("|", " ").split()) for sfx in suffixes]
+
+
+def _list_from_form(key: str, form: dict, columns: list[dict] | tuple = (), value_max: int = 200) -> str:
+    """The rows of the page as the stored lines ``name | value | ...`` (a row of empty cells is dropped)."""
+    limits = [80, value_max, *[c["max"] for c in columns]]
     lines = []
     for i in range(LIST_ROWS):
-        cells = [
-            " ".join(str(form.get(f"{key}__{i}{sfx}") or "").replace("|", " ").split())[:limit]
-            for sfx, limit in zip(suffixes, limits, strict=True)
-        ]
+        cells = [cell[:limit] for cell, limit in zip(_form_cells(key, form, i, columns), limits, strict=True)]
         if any(cells):
             lines.append(" | ".join(cells))
     return "\n".join(lines)
+
+
+def list_too_long(key: str, form: dict, columns: list[dict] | tuple = (), value_max: int = 200) -> bool:
+    """Is a cell of the list longer than its limit? The page stops typing at the limit; this catches a request that did not come from the page.
+    Such a list is refused with a message - an address cut in the middle would lead nowhere."""
+    limits = [80, value_max, *[c["max"] for c in columns]]
+    return any(len(cell) > limit for i in range(LIST_ROWS) for cell, limit in zip(_form_cells(key, form, i, columns), limits, strict=True))
 
 
 HEX_COLOR = re.compile(r"#[0-9a-fA-F]{6}")
@@ -1357,9 +1374,11 @@ def check_settings(manifest: dict, form: dict, old: dict) -> dict[str, str]:
             kind == "list"
             and f.get("min_rows")
             and _is_shown(f, manifest, form)
-            and len(list_rows(_list_from_form(key, form, f.get("columns", ())))) < f["min_rows"]
+            and len(list_rows(_list_from_form(key, form, f.get("columns", ()), f.get("value_max", 200)))) < f["min_rows"]
         ):
             errors[key] = "err.min_rows"
+        if kind == "list" and _is_shown(f, manifest, form) and list_too_long(key, form, f.get("columns", ()), f.get("value_max", 200)):
+            errors[key] = "err.cell_long"
         if kind in NO_VALUE or kind in ("bool", "list", "value"):
             continue
         shown = _is_shown(f, manifest, form)
@@ -1415,7 +1434,7 @@ def clean_settings(manifest: dict, form: dict, old: dict) -> dict:
         if kind == "value":
             values[key] = old.get(key, "")  # a value shown for information: only the service sets it
         elif kind == "list":
-            values[key] = _list_from_form(key, form, f.get("columns", ()))
+            values[key] = _list_from_form(key, form, f.get("columns", ()), f.get("value_max", 200))
         elif kind == "bool":
             values[key] = "1" if form.get(key) else "0"
         elif kind == "multiselect":

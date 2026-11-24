@@ -783,7 +783,7 @@ def test_a_list_row_can_have_more_cells_than_a_name_and_a_value(client, monkeypa
         ],
     }
     f = addons.parse_package(json.dumps(manifest).encode())["settings"][0]
-    assert [c["key"] for c in f["columns"]] == ["second", "logo", "extra"] and [c["max"] for c in f["columns"]] == [10, 120, 120]
+    assert [c["key"] for c in f["columns"]] == ["second", "logo", "extra"] and [c["max"] for c in f["columns"]] == [10, 120, 500]
     assert (
         f["default"] == "Radio A | https://a.example/s | News | https://a.example/l.png | "
     )  # the stored form: the third cell stays empty
@@ -826,6 +826,13 @@ def test_a_list_row_can_have_more_cells_than_a_name_and_a_value(client, monkeypa
         "stations__0c1": "https://b.example/l.png",
         "stations__1c1": "only a logo",
     }
+    too_long = client.post(f"{url}/setup", data=data)  # a text longer than its limit is refused with a message, never cut quietly
+    assert too_long.status_code == 400 and "longer than it may be" in too_long.text and "Nothing was saved" in too_long.text
+    with db.tx() as conn:
+        assert addons.service_settings(addons.get(conn, vid, aid))["stations"] != addons.list_rows(
+            "B b | x", f["columns"]
+        )  # nothing came of it
+    data["stations__0c0"] = "A long line"[:10]
     assert client.post(f"{url}/setup", data=data, follow_redirects=False).status_code in (200, 303)
     with db.tx() as conn:
         addon = addons.get(conn, vid, aid)
@@ -833,12 +840,51 @@ def test_a_list_row_can_have_more_cells_than_a_name_and_a_value(client, monkeypa
     assert rows[0] == {
         "name": "B b",
         "value": "https://b.example/s",
-        "second": "A very lon",
+        "second": "A long lin",
         "logo": "https://b.example/l.png",
         "extra": "",
     }
     assert rows[1] == {"name": "", "value": "", "second": "", "logo": "only a logo", "extra": ""} and len(rows) == 2
     assert client.post(f"{url}/setup", data={"stations__0c0": ""}).status_code == 400  # min_rows: an empty row is no row
+
+
+def test_the_limits_of_the_cells_of_a_list_row_can_be_raised_to_500(client):
+    """``columns[].max`` and ``value_max`` up to 500 (a stream address, a logo address); the name stays at 80."""
+    manifest = {
+        "id": "long-cells",
+        "name": "Long cells",
+        "version": "1",
+        "kind": "plugin",
+        "settings": [
+            {
+                "key": "stations",
+                "type": "list",
+                "label": "Stations",
+                "value_max": 255,
+                "columns": [{"key": "logo", "label": "Logo", "max": 500}, {"key": "second", "label": "Second", "max": 501}],
+            },
+            {"key": "feeds", "type": "list", "label": "Feeds", "value_max": 501},
+        ],
+    }
+    stations, feeds = addons.parse_package(json.dumps(manifest).encode())["settings"]
+    assert stations["value_max"] == 255 and [c["max"] for c in stations["columns"]] == [500, 120]  # beyond 500: the default
+    assert "value_max" not in feeds  # beyond 500 is not read: the value of a list keeps its 200
+    vid = create_vehicle(client)
+    upload(client, vid, json.dumps(manifest).encode())
+    with db.tx() as conn:
+        aid = addons.list_for(conn, vid)[0]["id"]
+    url = f"/v/{slug(vid)}/integrations/{aid}"
+    assert 'maxlength="255"' in client.get(f"{url}/settings").text  # the page stops typing at the limit
+    stream, logo = "https://s.example/" + "a" * 237, "https://l.example/" + "b" * 482  # 255 and 500 characters
+    ok = client.post(f"{url}/setup", data={"stations__0n": "R", "stations__0v": stream, "stations__0c0": logo}, follow_redirects=False)
+    assert ok.status_code in (200, 303)
+    with db.tx() as conn:
+        row = addons.service_settings(addons.get(conn, vid, aid))["stations"][0]
+    assert row["value"] == stream and row["logo"] == logo  # whole, not cut
+    for field, text in (("0v", stream + "x"), ("0c0", logo + "x"), ("0n", "n" * 81)):
+        r = client.post(f"{url}/setup", data={"stations__0n": "R", "stations__0v": stream, f"stations__{field}": text})
+        assert r.status_code == 400 and "longer than it may be" in r.text, field
+    assert client.post(f"{url}/setup", data={"feeds__0n": "F", "feeds__0v": "x" * 201}).status_code == 400  # every list: refused, not cut
 
 
 def test_the_docs_of_a_package_keep_their_paragraphs_and_come_in_the_language_of_the_page(client):

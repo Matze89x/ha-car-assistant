@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import http.client
+import threading
 import time
 from http.cookies import SimpleCookie
 
@@ -103,6 +104,32 @@ def token_ok(route: dict, headers: list[tuple[bytes, bytes]]) -> bool:
         return bool(row) and connectors.token_matches(conn, row["token_id"], value)
 
 
+NOTE_EVERY = 60.0  # seconds between two lines in the plugin's log about refused requests
+_refused: dict[int, list] = {}  # plugin -> [time of the last note, requests refused since then]
+_refused_lock = threading.Lock()
+
+
+def refused(route: dict, method: str, path: str, query: str = "", now: float | None = None) -> None:
+    """A request on a route with ``token_header`` came without the token (or with a wrong one) and was answered 401 by the app: noted for the
+    traffic view (while debug is on) and, at most once a minute for each plugin, as a warning in the plugin's log - the requests in between are
+    counted and named in the next line, so a flood never fills the log. Nothing about the sender (no address, no value) is kept."""
+    now = time.monotonic() if now is None else now
+    pluginsvc.note_car_request(route["pk"], method, path, 401, 0, now, "the token header is missing or wrong", query)
+    with _refused_lock:
+        last, held = _refused.get(route["pk"], (None, 0))
+        if last is not None and now - last < NOTE_EVERY:
+            _refused[route["pk"]] = [last, held + 1]
+            return
+        _refused[route["pk"]] = [now, 0]
+    with db.tx() as conn:
+        row = conn.execute("SELECT vehicle_id, addon_id FROM vehicle_addons WHERE id = ?", (route["pk"],)).fetchone()
+    if row:
+        more = f" ({held} more since the last note)" if held else ""
+        pluginsvc._event(
+            row, "warning", f"A request on {route['prefix']} was refused: the header {route['token_header']} is missing or wrong{more}."
+        )
+
+
 def frame_ok(method: str, headers: list[tuple[bytes, bytes]]) -> bool:
     """A request that changes something and comes from a page of a package needs ``X-Requested-With: frame`` - a foreign site can not add that header
     to a request of your browser (cross-site protection)."""
@@ -140,17 +167,7 @@ class PluginProxy:
         client = (scope.get("client") or ("", 0))[0]
         if route.get("token_header") and not await asyncio.to_thread(token_ok, route, scope.get("headers", [])):
             query = scope.get("query_string", b"").decode("latin-1")
-            await asyncio.to_thread(
-                pluginsvc.note_car_request,
-                route["pk"],
-                scope["method"],
-                scope["path"],
-                401,
-                0,
-                time.monotonic(),
-                "the token header is missing or wrong",
-                query,
-            )  # the service never sees the request
+            await asyncio.to_thread(refused, route, scope["method"], scope["path"], query)  # the service never sees the request
             return await _reply(send, 401, b"unauthorized")
         if not route["public"] and client not in LOCAL_CLIENTS and not await asyncio.to_thread(_signed_in, scope.get("headers", [])):
             return await _reply(send, 404, b"not found")  # from outside only for a signed-in person

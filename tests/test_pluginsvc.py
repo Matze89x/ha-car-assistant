@@ -923,3 +923,70 @@ def test_the_review_page_says_that_a_route_wants_the_token(client):
     from carassistant import i18n
 
     assert "{header}" in i18n.EN["svc.public_token"] and "{header}" in i18n.DE["svc.public_token"]
+
+
+def _hard_routes(monkeypatch, pk):
+    """The routes table of a plugin with three public prefixes: one that wants the token, a separate open one, and an open one inside the first."""
+    table = {
+        "/wr/": {"port": 1, "public": True, "pk": pk, "token_header": "x-wr-token"},
+        "/wr-open/": {"port": 1, "public": True, "pk": pk, "token_header": ""},
+        "/wr/health/": {"port": 1, "public": True, "pk": pk, "token_header": ""},
+    }
+    monkeypatch.setattr(pluginsvc, "_routes", table)
+    seen = []
+    monkeypatch.setattr("carassistant.proxy._forward", lambda port, method, target, headers, body: (seen.append(target) or 200, [], b"ok"))
+    return seen
+
+
+def test_a_plugin_may_have_public_routes_with_and_without_the_token_header(client, monkeypatch):
+    vid, pk = _install(client)
+    with db.tx() as conn:
+        token = addons.new_token(conn, vid, addons.get(conn, vid, pk))
+    seen = _hard_routes(monkeypatch, pk)
+    edge = TestClient(PluginProxy(web.app), client=("8.8.8.8", 1))
+    assert edge.get("/wr/stations").status_code == 401 and edge.get("/wr/stations", headers={"X-Wr-Token": token}).status_code == 200
+    assert edge.get("/wr-open/health").status_code == 200  # a second prefix of the same plugin, not nested: no token asked
+    assert edge.get("/wr/health/ping").status_code == 200  # a prefix inside another: the LONGEST one decides
+    assert edge.get("/wr/healthy").status_code == 401  # ... and only that one: "/wr/health/" is not a prefix of "/wr/healthy"
+    assert seen == ["/wr/stations", "/wr-open/health", "/wr/health/ping"]  # nothing refused reached the service
+    # the same plugin may declare them: two public prefixes, one with and one without a token header, nested or not
+    service = addons.clean_service(
+        {
+            "entry": "a.py",
+            "routes": [
+                {"prefix": "/wr/", "public": True, "token_header": "X-Wr-Token"},
+                {"prefix": "/wr-open/", "public": True},
+                {"prefix": "/wr/health/", "public": True},
+            ],
+        }
+    )
+    assert [r.get("token_header") for r in service["routes"]] == ["X-Wr-Token", None, None]
+
+
+def test_refused_requests_are_counted_in_the_plugin_log_once_a_minute(client, monkeypatch):
+    from carassistant import proxy
+
+    proxy._refused.clear()  # the notes of other tests
+    _vid, pk = _install(client)
+    _hard_routes(monkeypatch, pk)
+    edge = TestClient(PluginProxy(web.app), client=("8.8.8.8", 1))
+    for _ in range(5):
+        assert edge.get("/wr/stations?secret=1", headers={"X-Wr-Token": "wrong-value"}).status_code == 401
+
+    def lines():
+        with db.tx() as conn:
+            return [
+                (r["level"], r["message"])
+                for r in conn.execute(
+                    "SELECT level, message FROM vehicle_logs WHERE addon_id = 'echo-svc' AND source = 'system' ORDER BY id"
+                )
+                if "refused" in r["message"]
+            ]
+
+    assert lines() == [("warning", "A request on /wr/ was refused: the header x-wr-token is missing or wrong.")]  # five requests, one line
+    proxy._refused[pk][0] -= proxy.NOTE_EVERY + 1  # a minute later
+    assert edge.get("/wr/stations").status_code == 401
+    assert len(lines()) == 2 and "(4 more since the last note)" in lines()[1][1]
+    assert (
+        "wrong-value" not in json.dumps(lines()) and "8.8.8.8" not in json.dumps(lines()) and "secret" not in json.dumps(lines())
+    )  # nothing of the sender
