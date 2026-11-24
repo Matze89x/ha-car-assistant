@@ -580,6 +580,11 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 @media (max-width: 430px) { .rp-bar .seg-tabs a .ico { display: none; } }  /* three words next to a number field: without the symbols they fit */
 .seg-tabs a { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: var(--r-m); color: var(--muted); font-weight: 600; font-size: 14px; white-space: nowrap; text-decoration: none; }
 .seg-tabs a:hover { color: var(--strong); text-decoration: none; }
+@media (max-width: 560px) {  /* three or more tabs with a symbol: only the open one names itself, the others are their symbol (the name stays for a screen reader and as the tip) */
+  .seg-tabs.fold a:not(.on) { flex: 0 0 auto; padding: 0 11px; }
+  .seg-tabs.fold a:not(.on) > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .seg-tabs.fold a.on { padding: 0 12px; }
+}
 .seg-tabs a.on { background: rgba(var(--ok-rgb), .18); color: var(--ok); box-shadow: inset 0 0 0 1px rgba(var(--ok-rgb), .4); }
 
 /* ===== Vehicle form: icon cards, fuel tiles, optional groups collapsed ===== */
