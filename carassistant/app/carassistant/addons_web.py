@@ -35,9 +35,17 @@ MAX_UPLOAD = addons.MAX_PACKAGE + 1
 
 def _tabs(base: str, current: str, keys: tuple[tuple[str, str, str], ...]) -> list[dict]:
     t = i18n.translator(config.language())
-    # the Sources tab is the same page for every vehicle: one server-wide list (path None -> /sources)
+    # the Sources tab is the same page for every vehicle: one server-wide list (path None -> /sources); ``fold``: on a phone only the open tab
+    # names itself, the others are their symbol (the bars of the Plugins and Integrations pages are too long for a phone otherwise)
     return [
-        {"key": k, "href": "/sources" if path is None else f"{base}{path}", "title": t(title), "on": k == current, "icon": TAB_ICON.get(k)}
+        {
+            "key": k,
+            "href": "/sources" if path is None else f"{base}{path}",
+            "title": t(title),
+            "on": k == current,
+            "icon": TAB_ICON.get(k),
+            "fold": True,
+        }
         for k, path, title in keys
     ]
 

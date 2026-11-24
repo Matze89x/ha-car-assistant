@@ -582,7 +582,7 @@ html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *
 .seg-tabs a:hover { color: var(--strong); text-decoration: none; }
 @media (max-width: 560px) {  /* three or more tabs with a symbol: only the open one names itself, the others are their symbol (the name stays for a screen reader and as the tip) */
   .seg-tabs.fold a:not(.on) { flex: 0 0 auto; padding: 0 11px; }
-  .seg-tabs.fold a:not(.on) > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .seg-tabs.fold a:not(.on) > span { display: none; }  /* (the name stays in aria-label and title) */
   .seg-tabs.fold a.on { padding: 0 12px; }
 }
 .seg-tabs a.on { background: rgba(var(--ok-rgb), .18); color: var(--ok); box-shadow: inset 0 0 0 1px rgba(var(--ok-rgb), .4); }
@@ -1520,6 +1520,7 @@ label.button.pk-btn { position: relative; }
 .fv b { color: var(--text); font-weight: 600; }
 .ifc-row { padding: 12px 0; border-top: 1px solid var(--glass-b); display: grid; gap: 6px; }
 .ifc-row:first-of-type { border-top: 0; }
+.ifc-row:last-child { padding-bottom: 0; }  /* the last row of a card: the card's own padding is the space below it */
 .ifc-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ifc-path { font-size: 13px; overflow-wrap: anywhere; }
 .ifc-fields code { font-size: 12px; margin-right: 4px; }
