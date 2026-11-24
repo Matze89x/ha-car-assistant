@@ -148,20 +148,21 @@ def spark_svg(values: list[float], width: int = 160, height: int = 44) -> str:
     )
 
 
-def mini_bars_svg(rows: list[tuple[str, float]], width: int = 160, height: int = 44) -> str:
-    """Tiny bar chart (one bar per label, e.g. the last seven days); the highest bar is classed ``top``. Empty when everything is zero.
+def mini_bars_svg(rows: list[tuple[str, float]], width: int = 160, height: int = 44, slim: bool = False, mark_last: bool = False) -> str:
+    """Tiny bar chart (one bar per label, e.g. the last seven days); the highest bar is classed ``top`` (``mark_last``: the last one instead - "now").
+    ``slim`` draws thinner bars (a few bars in a wide box). Empty when everything is zero.
     No view box: the bars are laid out in percent of the box and keep their round corners (px) at any size - nothing is stretched."""
     top = max((v for _l, v in rows), default=0)
     if top <= 0:
         return ""
     slot = 100 / len(rows)
-    bar = slot * 0.62
+    bar = slot * (0.34 if slim else 0.62)
     body = ""
     for i, (label, v) in enumerate(rows):
         share = max(5.0, 94 * v / top) if v > 0 else 5.0
-        cls = "top" if v == top else ("none" if v <= 0 else "")
+        cls = "top" if ((i == len(rows) - 1) if mark_last else v == top) else ("none" if v <= 0 else "")
         body += (
-            f'<rect class="mb {cls}" x="{slot * i + (slot - bar) / 2:.2f}%" y="{100 - share:.1f}%" width="{bar:.2f}%" height="{share:.1f}%" rx="3">'
+            f'<rect class="mb {cls}" x="{slot * i + (slot - bar) / 2:.2f}%" y="{100 - share:.1f}%" width="{bar:.2f}%" height="{share:.1f}%" rx="{5 if slim else 3}">'
             f"<title>{escape(label)}: {v:.0f}</title></rect>"
         )
     return f'<svg class="minibars" role="img" xmlns="http://www.w3.org/2000/svg">{body}</svg>'

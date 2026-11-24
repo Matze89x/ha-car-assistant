@@ -86,3 +86,23 @@ def test_the_unit_of_a_plugin_tile_is_shown_in_the_language_of_the_app(env):
         [{"id": "a", "label": "A", "data": "service_due_days", "unit": "days", "l10n": {"de": {"label": "A", "unit": "Tage", "junk": "x"}}}]
     )
     assert cleaned[0]["l10n"]["de"]["unit"] == "Tage" and "junk" not in cleaned[0]["l10n"]["de"]  # the unit is kept (and only known keys)
+
+
+def test_the_odometer_widget_fills_its_tile_with_the_months_the_average_and_the_way_to_the_service(client):
+    """Under the figure: the kilometres of the last six months as bars (this month marked), the average a day, this month, the progress to the next service.
+    Only worked out while the widget is switched on (it is off until somebody turns it on)."""
+    from tests.conftest import demo_car
+    from tests.test_web import slug
+
+    vid = demo_car(client)
+    base = f"/v/{slug(vid)}"
+    assert "odo-wd-foot" not in client.get(base).text  # off by default: nothing is worked out, nothing is shown
+    order = [w.key for w in widgets.REGISTRY]
+    client.post(f"{base}/widgets", data={"k": order, "on_odometer": "1", "size_odometer": "s", "opt_odometer_design": "drums"})
+    page = client.get(base).text
+    assert (
+        page.count('class="odo-wd-foot"') == 2 and page.count('class="minibars"') >= 2
+    )  # drums and tile look carry it, the plate look does not
+    assert page.count('class="mb top"') >= 2 or 'class="mb top"' in page  # this month is the marked bar
+    assert 'wd-t">Kilometerstand' not in page and 'class="wd-t">Odometer' in page  # the short title: it fits the small tile
+    assert "a day" in page and "this month" in page and "odo-next" in page

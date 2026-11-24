@@ -1,14 +1,26 @@
-{% from "_macros.html" import widget, odo_drum, odo_plate with context %}
+{% from "_macros.html" import widget, odo_drum, odo_plate, odo_progress with context %}
+{# under the figure: the last six months as bars, the average a day, this month, and how far it is to the next service - the tile is not left empty #}
+{% macro foot() %}{% if odo_wd %}
+  <div class="odo-wd-foot">
+    {% if odo_wd.bars %}<div class="odo-wd-chart">{{ odo_wd.bars|safe }}<div class="odo-wd-months">{% for m in odo_wd.months %}<span>{{ m }}</span>{% endfor %}</div></div>{% endif %}
+    {% if odo_wd.avg or odo_wd.month_km %}<div class="odo-wd-stats">
+      {% if odo_wd.avg %}<span><b>Ø {{ fnum(units.d(odo_wd.avg), 0) }}</b> {{ _('odo.wd_per_day', u=units.dist_unit) }}</span>{% endif %}
+      {% if odo_wd.month_km %}<span><b>+{{ fnum(units.d(odo_wd.month_km), 0) }}</b> {{ _('odo.wd_this_month', u=units.dist_unit) }}</span>{% endif %}
+    </div>{% endif %}
+    {{ odo_progress() }}
+  </div>{% endif %}{% endmacro %}
 {% if odometer is not none %}  {# the widget only SHOWS the odometer (to change it: tap the odometer on the dashboard, under the car) #}
 {# three looks, the slot's data-opt-design shows one of them (the choice is made while editing the page): drums and tile in the usual tile, the plate (the same box as under the car, without turning over) free #}
 <div class="wd-look-drums">
-{% call widget('counter', 'c3', _('f.odometer'), '/e/counters', w.size) %}
+{% call widget('counter', 'c3', _('wd.odo_title'), '/e/counters', w.size) %}
   {{ odo_drum() }}
+  {{ foot() }}
 {% endcall %}
 </div>
 <div class="wd-look-tile">
-{% call widget('counter', 'c3', _('f.odometer'), '/e/counters', w.size) %}
+{% call widget('counter', 'c3', _('wd.odo_title'), '/e/counters', w.size) %}
   <div class="wd-v">{{ fnum(units.d(odometer)) }} <small>{{ units.dist_unit }}</small></div>
+  {{ foot() }}
 {% endcall %}
 </div>
 <div class="wd-look-plate">{{ odo_plate(false, false) }}</div>

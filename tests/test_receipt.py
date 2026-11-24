@@ -1,5 +1,6 @@
 """Reading a fuel receipt: the parser on the text Tesseract finds (no photo needed)."""
 
+import re
 from datetime import date
 
 from carassistant import receipt
@@ -365,11 +366,15 @@ def test_the_plate_is_fixed_while_a_plugin_reports_the_odometer_and_the_hidden_s
         conn.execute("INSERT INTO odometer(vehicle_id, date, odometer_km, source) VALUES (?, '2026-01-02', 12400, 'plugin')", (vid,))
     page = client.get(f"/v/{slug(vid)}").text
     assert (
-        page.count("odo-flip odo-static") == 2
+        page.count("odo-flip odo-static") == 1  # only the plate look of the odometer widget
         and 'class="odo-flip"' not in page
         and "odo-face odo-back" not in page
         and "data-odo-open" not in page
-    )  # reported by the car: just shown (the plate under the car and the widget look)
+        and 'class="odo-card"' not in page  # reported by the car: nothing to type, so nothing under the car ...
+        and re.search(
+            r'class="wd-slot [a-z]+" data-k="odometer"', page
+        )  # ... the odometer widget shows it, and it is on by default for such a car
+    )
 
 
 # ------------------------------------------------------------------ the lower half of a cluster, the odometer on a receipt, real photos

@@ -39,7 +39,8 @@
     {% if hero_range.when %}<div class="range-sub range-last">{{ _('hero.last', when=fshort(hero_range.when)) }}</div>{% endif %}
   </div>
   {% endif %}
-  {% if odometer is not none %}  {# the odometer plate: the one place to type it, turn it over (also under a range) #}
+  {% if odometer is not none and odo_from_car is defined and odo_from_car %}  {# a plugin reports it: nothing to type, so not on the dashboard - the odometer widget shows it #}
+  {% elif odometer is not none %}  {# the odometer plate: the one place to type it, turn it over (also under a range) #}
   {% set ti = tank_info if (tank_info is defined and not hero_range) else none %}  {# the range block above already says what is in the tank #}
   <div class="odo-card">
     {{ odo_plate() }}

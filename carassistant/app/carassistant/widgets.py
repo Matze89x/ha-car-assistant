@@ -182,7 +182,16 @@ def layout(conn: sqlite3.Connection, vehicle_id: int) -> list[Widget]:
         if base.fixed:
             size = "m"
         out.append(replace(base, size=size, on=bool(item.get("on", True)), values=values))
-    out += [w for w in reg if w.key not in seen]
+    reported = None
+    for w in reg:
+        if w.key in seen:
+            continue
+        if w.key == "odometer":  # a plugin reports the odometer: it is not on the dashboard any more, so the widget is how it is shown
+            from . import summary
+
+            reported = summary.odometer_from_car(conn, vehicle_id) if reported is None else reported
+            w = replace(w, on=reported)
+        out.append(w)
     return out
 
 

@@ -859,6 +859,21 @@ def _week_km(conn: sqlite3.Connection, vid: int) -> tuple[list[tuple[str, float]
     return rows, sum(per_day.values())
 
 
+def _odometer_stats(conn: sqlite3.Connection, vid: int) -> dict | None:
+    """What the odometer widget shows besides the figure: the kilometres of the last six months as small bars (with the month names), the average
+    a day over the last thirteen weeks and the kilometres of this month. None when nothing is known."""
+    shown = units.of()
+    names = trips.MONTHS.get(config.language(), trips.MONTHS["en"])
+    months = fuelstats.kilometres(conn, vid, "month", 6)
+    weeks = [km for _key, km in fuelstats.kilometres(conn, vid, "week", 13) if km is not None]
+    bars = charts.mini_bars_svg([(names[int(key[5:7]) - 1], shown.d(km) if km else 0.0) for key, km in months], slim=True, mark_last=True)
+    avg = sum(weeks) / (7 * len(weeks)) if len(weeks) >= 2 and sum(weeks) > 0 else None
+    month_km = months[-1][1] if months and months[-1][1] else None
+    if not bars and avg is None:
+        return None
+    return {"bars": bars, "months": [names[int(key[5:7]) - 1][:3] for key, _km in months], "avg": avg, "month_km": month_km}
+
+
 @app.get("/v/{vid}")
 def vehicle_overview(request: Request, vid: int):
     with db.tx() as conn:
@@ -884,6 +899,10 @@ def vehicle_overview(request: Request, vid: int):
         trip_time = _trip_duration(last_trip)
         spark_cons = charts.spark_svg([v for _d, v in fuelstats.consumption_series(conn, vid)][-10:])
         spark_price = charts.spark_svg([v for _d, v in fuelstats.price_series(conn, vid)][-10:])
+        layout = home_widgets.layout(conn, vid)
+        odo_wd = (
+            _odometer_stats(conn, vid) if any(w.key == "odometer" and w.on for w in layout) else None
+        )  # only worked out for a widget that is shown
         week_rows, week_km = _week_km(conn, vid)
         week_bars = charts.mini_bars_svg([(label, units.of().d(km)) for label, km in week_rows])
         cons_delta = (stats["last_per_100"] - stats["avg_per_100"]) if stats.get("last_per_100") and stats.get("avg_per_100") else None
@@ -916,7 +935,8 @@ def vehicle_overview(request: Request, vid: int):
             week_km=week_km,
             cons_delta=cons_delta,
             hero_badges=vehicle_status.hero_badges(live_rows, t),
-            widgets=home_widgets.layout(conn, vid),
+            widgets=layout,
+            odo_wd=odo_wd,
             hero_range=hero,
             odo_scan_on=receipt_available(),
             odo_from_car=summary.odometer_from_car(conn, vid),
