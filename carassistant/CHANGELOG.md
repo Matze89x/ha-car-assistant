@@ -4,6 +4,13 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.28 Beta
+- **Settings and lists tidied up** - *Settings* opens on the car, the cards of every settings tab balance in two columns by themselves, *Sort* is gone from the Integrations and Plugins pages, the passkey list and the login details no longer break letter by letter, the user has a driver pictogram, the web app of each car has *Open* (in a new page) instead of *Copy*, and the *About* page lost the *made by* line. Lists load 5 entries at a time (5, 10, 25, 50 or 100 to choose).
+- **Odometer** - the readings in the vehicle passport are a proper group in the design of the others, load in batches like every list, and only show while nobody reports the odometer for the car (a plugin or a Home Assistant entity); the dashboard look *Zählwerk* sits in a tile with the six-month bars like the other two looks; the odometer photo also reads a number with a misread *km* behind it and gives figures with six or seven digits a little more weight.
+- **Low tank / battery message** - you choose ONE way to be told per car, a level or a range, in one field.
+- **Plugin log** - every plugin has a *Log* switch in its settings (tab *General*) for 1, 3 or 7 days counted from switching it on; then it goes off by itself. The plugin logs under *Settings → System* are gone.
+- **Phones** - the Coding page (control units, original next to current coding) fits a phone screen; a long hex line scrolls inside its box.
+
 ## 0.5.27 Beta
 - **Plugins: more freedom and a cleaner menu** - buttons and downloads can live in the new tab *General* of the settings page (`place`) instead of the one line of the tile, and show only while a condition holds (`when`: the set-up is done or open, a token, a setting filled or equal to a value, a package handed out); a plugin says when its set-up counts as done (`done_when`) and whether *Settings* waits for it; a button can reopen a step of the set-up flow. The first settings tab is always *General*: the actions, the connection token (readable for administrators, now kept for every plugin), the files for the car with their versions (*Ready 1.4 · On the car 1.2 · Update ready*), when each was last downloaded and whether the settings changed since.
 - **Plugins without a token** - a plugin that never reports (a connection file with only settings, or `setup.token: false`) gets no token: the guide leaves the token part out and no token card shows; its package comes straight from the tab *General*. Versions such as `v8`, `Build 7` or `V1.23` are compared by their numbers.
