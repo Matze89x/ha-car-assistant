@@ -166,3 +166,59 @@ def test_an_overdue_tile_is_red_and_a_soon_tile_amber_like_everywhere_else():
     css = (Path(widgets.__file__).parent / "static" / "pc-core.css").read_text(encoding="utf-8")
     assert ".wd.st-warn .wd-v { color: var(--overdue); }" in css and ".wd.st-soon .wd-v { color: var(--soon); }" in css
     assert ".wd.st-warn .wd-v, .wd.st-soon .wd-v" not in css  # they once shared the amber: an overdue tile looked like a "soon" one
+
+
+def test_the_odometer_is_locked_only_while_the_plugin_that_reported_it_exists(client):
+    """A plugin reports the odometer: it is shown, not typed, and the dashboard has no odometer of its own. When the plugin (its key) is gone, the person
+    gets the odometer back - the last reading stays - instead of a plate that can never be changed again."""
+    from carassistant import connectors, summary
+
+    vid = create_vehicle(client)
+    with db.tx() as conn:
+        assert summary.odometer_from_car(conn, vid) is False  # typed at the start: a person's
+        token = connectors.create_token(conn, "my-plugin", vid)
+        row = conn.execute("SELECT id FROM api_tokens WHERE name = 'my-plugin'").fetchone()
+        summary.record_odometer(conn, vid, 51_000, "api:my-plugin")
+        assert summary.odometer_from_car(conn, vid) is True
+        conn.execute("UPDATE vehicles SET bind_odometer = NULL WHERE id = ?", (vid,))
+        connectors.delete_token(conn, row["id"])  # the plugin is removed, its key goes with it
+        assert summary.odometer_from_car(conn, vid) is False
+        assert summary.current_odometer(conn, vid) == 51_000  # the reading stays
+        summary.record_odometer(conn, vid, 51_200, "ha")  # a Home Assistant entity
+        assert summary.odometer_from_car(conn, vid) is False  # ... but none is set for this car
+        conn.execute("UPDATE vehicles SET bind_odometer = 'sensor.km' WHERE id = ?", (vid,))
+        assert summary.odometer_from_car(conn, vid) is True
+    assert token
+
+
+def test_the_two_list_widgets_let_the_person_choose_the_columns(client):
+    """Vehicle messages and Needs attention: automatic (two columns when there is room), one column, or two - chosen in the widget's settings like the look
+    of the odometer."""
+    from tests.conftest import demo_car
+
+    vid = demo_car(client)
+    base = f"/v/{slug(vid)}"
+    for key in ("messages", "attention"):
+        w = next(w for w in widgets.REGISTRY if w.key == key)
+        assert w.options == (("columns", ("auto", "one", "two")),) and w.opts == {"columns": "auto"}
+    page = client.get(base).text
+    assert 'data-k="attention"' in page and 'data-opt-columns="auto"' in page
+    order = [w.key for w in widgets.REGISTRY]
+    form = {
+        "k": order,
+        "on_messages": "1",
+        "size_messages": "m",
+        "opt_messages_columns": "one",
+        "on_attention": "1",
+        "size_attention": "m",
+        "opt_attention_columns": "two",
+    }
+    client.post(f"{base}/widgets", data=form)
+    with db.tx() as conn:
+        chosen = {w.key: w.opts["columns"] for w in widgets.layout(conn, vid) if w.key in ("messages", "attention")}
+    assert chosen == {"messages": "one", "attention": "two"}
+    page = client.get(base).text
+    assert 'data-opt-columns="one"' in page and 'data-opt-columns="two"' in page
+    client.post(f"{base}/widgets", data={**form, "opt_messages_columns": "bogus"})  # an unknown choice keeps the old one
+    with db.tx() as conn:
+        assert next(w for w in widgets.layout(conn, vid) if w.key == "messages").opts["columns"] == "one"

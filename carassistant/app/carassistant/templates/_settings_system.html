@@ -109,7 +109,6 @@
     {% for c in ha_check.cars %}<li class="{{ 'ok' if c.ok else 'bad' }}">{{ icon('check' if c.ok else 'close', 16) }} <span>{% if c.ok %}{{ _('check.car_ok', car=c.name, n=c.found, total=c.total) }}{% if c.entity %} <code>{{ c.entity }}</code>{% endif %}{% else %}{{ _('check.car_no', car=c.name) }}{% endif %}</span></li>{% endfor %}</ul>
     {% for c in ha_check.cars if c.entities %}<details class="sys-spoiler"><summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('check.entities', car=c.name, n=c.entities|length) }}</span></summary><p class="hint"><code>{{ c.entities|join('</code> <code>') }}</code></p></details>{% endfor %}
   </div>{% endif %}
-  </div>
 </section>
 
 {% include "_settings_mcp.html" %}

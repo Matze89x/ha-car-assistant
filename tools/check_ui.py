@@ -7,7 +7,8 @@
 * **a thing you tap is big enough**: 30 px at least (the area that takes a tap counts, a ``::after`` that grows it too),
 * **every button has a name** (text, ``aria-label`` or ``title``) and **every field a label**,
 * **nothing is wider than the screen** (no sideways scrolling) and **no text runs out of its own box or is cut off by it**,
-* **the space below the last thing in a card is only the card's padding** (the same distance below as at its left).
+* **the space below the last thing in a card is only the card's padding** (the same distance below as at its left),
+* **cards one under the other stand `--sp-col` apart** (no margin on top of the gap).
 
 Folded forms (the add form, the edit form of a card) are opened first so that the buttons inside are measured, too. German has the longest words, a
 phone the least room: ``tests/test_page_ui.py`` runs German at phone width and English wide, when Chrome is installed.
@@ -129,6 +130,21 @@ MEASURE = r"""
     }
     var extra = Math.round(pad + mar + neg);
     if (extra > 6) { out.push('more space below the last thing of a card than its padding (' + extra + ' px extra): ' + box.tagName.toLowerCase() + '.' + String(box.className).split(' ').filter(Boolean).slice(0, 2).join('.') + ' ends with ' + name2); }
+  });
+
+  /* cards one under the other stand at the distance of the design (--sp-col): not a margin on top of the gap, not none */
+  var spcol = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sp-col')) || 14;
+  document.querySelectorAll('.card').forEach(function (a) {
+    var b = a.nextElementSibling;
+    while (b && !vis(b)) { b = b.nextElementSibling; }  /* hidden things between do not count */
+    if (!b || !(b.matches('.card')) || !vis(a) || a.closest('[hidden], dialog')) { return; }
+    var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    if (rb.left > ra.right - 10 || ra.left > rb.right - 10 || rb.top < ra.bottom - 1) { return; }  /* side by side, or not one under the other */
+    var gap = Math.round(rb.top - ra.bottom);
+    if (Math.abs(gap - spcol) > 1.5) {
+      var tt = function (e) { return e.tagName.toLowerCase() + '.' + String(e.className).split(' ').filter(Boolean).slice(0, 2).join('.') + ' "' + ((e.querySelector('h2, h3') || e).textContent || '').trim().replace(/\s+/g, ' ').slice(0, 20) + '"'; };
+      out.push('cards one under the other are ' + gap + ' px apart instead of ' + spcol + ': ' + tt(a) + ' / ' + tt(b));
+    }
   });
 
   var groups = new Map();

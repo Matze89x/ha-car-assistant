@@ -109,9 +109,25 @@ def trim_readings(rows: list[dict], keep: int = 120) -> list[dict]:
 
 
 def odometer_from_car(conn: sqlite3.Connection, vehicle_id: int) -> bool:
-    """True while the latest odometer reading came from the car (a plugin) and not from a person: then the figure is shown, not edited."""
+    """True while the latest odometer reading came from the car (a plugin, a Home Assistant entity) and not from a person - **and that source still
+    exists**: then the figure is shown, not edited, and the dashboard has no odometer of its own (the widget shows it). A plugin that is removed (its
+    key goes with it), or an entity that is no longer set, gives the odometer back to the person; the last reading stays as it was."""
     row = conn.execute("SELECT source FROM odometer WHERE vehicle_id = ? ORDER BY date DESC, id DESC LIMIT 1", (vehicle_id,)).fetchone()
-    return bool(row and row["source"] != "manual")
+    if not row or row["source"] == "manual":
+        return False
+    source = row["source"]
+    if source.startswith("api:"):  # the name of the key of the plugin, cut to the length the reading keeps (api: + 56)
+        return (
+            conn.execute(
+                "SELECT 1 FROM api_tokens WHERE substr(name, 1, 56) = ? AND (vehicle_id = ? OR vehicle_id IS NULL) LIMIT 1",
+                (source[4:], vehicle_id),
+            ).fetchone()
+            is not None
+        )
+    if source == "ha":
+        bound = conn.execute("SELECT bind_odometer FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
+        return bool(bound and bound["bind_odometer"])
+    return True  # a source this version does not know: as before, shown and not edited
 
 
 def add_odometer(conn: sqlite3.Connection, vehicle_id: int, km: int, when: str | None = None, source: str = "manual") -> None:

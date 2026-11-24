@@ -48,7 +48,7 @@ class Widget:
 
 
 REGISTRY: tuple[Widget, ...] = (
-    Widget("messages", "m", "alert", "c6", "vm.title"),
+    Widget("messages", "m", "alert", "c6", "vm.title", options=(("columns", ("auto", "one", "two")),)),
     Widget("security", "s", "security", "c2", "tab.security", "security"),
     Widget("service", "s", "wrench", "c4", "nav.service", "service"),
     Widget("appointments", "s", "calendar", "c6", "tab.appointments", "appointments"),
@@ -58,7 +58,7 @@ REGISTRY: tuple[Widget, ...] = (
     Widget("trips", "s", "route", "c7", "tile.last_trip", "trips"),
     Widget("fuel", "s", "fuel", "c1", "nav.fuel", "fuel"),
     Widget("fuel_avg", "s", "chart", "c5", "tile.avg", "fuel"),
-    Widget("attention", "m", "alert", "c6", "overview.attention", fixed=True),
+    Widget("attention", "m", "alert", "c6", "overview.attention", fixed=True, options=(("columns", ("auto", "one", "two")),)),
     Widget("car_data", "m", "gauge", "c5", "cd.title", fixed=True),
     Widget("location", "m", "map-marker-radius", "c7", "loc.title", fixed=True),
 )

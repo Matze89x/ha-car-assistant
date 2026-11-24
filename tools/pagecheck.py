@@ -68,6 +68,7 @@ def sweep(
                 pages = check_alignment.page_list(b, base, ms) + ([f"/v/{ms.DIESEL}", f"/v/{ms.COMPACT}"] if home else [])
                 for page in dict.fromkeys(pages):
                     b.open(base + page, width, height, 1, settle=0.35)
+                    b.run("document.fonts.ready.then(function () { return true; })")  # the measuring waits for the real font: with the stand-in font (font-display: swap) every word is a different width
                     if open_all:
                         b.run(OPEN_ALL)
                     yield page, json.loads(b.run(script))
