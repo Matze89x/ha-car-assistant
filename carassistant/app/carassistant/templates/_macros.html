@@ -2,6 +2,12 @@
   <svg class="ico" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{{ icons.get(name, '') }}"/></svg>
 {%- endmacro %}
 
+{# The short weekday of a date in the language of the page: "Thu" / "Do" (nothing if the text is no date) #}
+{% macro wday(value) -%}
+  {%- set i = weekday(value) -%}
+  {%- if i is not none -%}{{ [_('ta.mo'), _('ta.tu'), _('ta.we'), _('ta.th'), _('ta.fr'), _('ta.sa'), _('ta.su')][i] }}{%- endif -%}
+{%- endmacro %}
+
 {% macro badge(info) -%}
   {%- if info and info.status != 'unknown' -%}
     <span class="badge {{ info.status }}">

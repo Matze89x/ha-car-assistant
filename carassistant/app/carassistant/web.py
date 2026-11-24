@@ -479,6 +479,7 @@ def render(request: Request, name: str, status: int = 200, **ctx):
         text_dir=i18n.LANGUAGES.get(page_lang, {}).get("dir", "ltr"),
         version=__version__,
         fdate=fdate,
+        weekday=regional.weekday,
         fshort=fshort,
         ftime=regional.ftime,
         fdatetime=regional.fdatetime,

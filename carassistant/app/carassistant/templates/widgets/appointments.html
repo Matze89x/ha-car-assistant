@@ -1,9 +1,18 @@
-{% from "_macros.html" import widget, badge with context %}
+{% from "_macros.html" import widget, wday with context %}
+{# The next appointment as a big number of days (coloured like its state), its title and day, and - small - the one after it #}
 {% if upcoming %}{% call widget('calendar', 'c6', _('tab.appointments'), '/e/appointments', w.size) %}
-  {% if upcoming %}
-    {% set di = upcoming_info[upcoming[0].id] %}
-    <div class="wd-count {{ di.status }}"><b>{{ di.days_left|abs }}</b><span>{{ _('wd.days_over') if di.days_left < 0 else _('wd.days_left') }}</span></div>
-    <div class="wd-v">{{ upcoming[0].title }}</div>
-    <div class="wd-s">{{ fdate(upcoming[0].due_date) }} {{ badge(upcoming_info[upcoming[0].id]) }}{% if upcoming|length > 1 %} · {{ _('wd.more', n=upcoming|length - 1) }}{% endif %}</div>
+  {% set first = upcoming[0] %}
+  {% set di = upcoming_info[first.id] %}
+  {% set n = di.days_left|abs %}
+  <div class="wd-count {{ di.status }}">
+    {% if di.days_left == 0 %}<b>{{ _('per.today') }}</b><span>{{ _('wd.due') }}</span>
+    {% else %}<b>{{ n }}</b><span>{% if di.days_left < 0 %}{{ _('wd.day_over') if n == 1 else _('wd.days_over') }}{% else %}{{ _('wd.day_left') if n == 1 else _('wd.days_left') }}{% endif %}</span>{% endif %}
+  </div>
+  <div class="wd-v">{{ first.title }}</div>
+  <div class="wd-s">{{ wday(first.due_date) }}, {{ fdate(first.due_date) }}</div>
+  {% if upcoming|length > 1 %}
+    {% set nxt = upcoming[1] %}
+    {% set ni = upcoming_info[nxt.id] %}
+    <div class="wd-next"><span>{{ nxt.title }}</span><b class="{{ ni.status }}">{% if ni.days_left < 0 %}{{ _('due.overdue_days', n=-ni.days_left) }}{% else %}{{ _('due.in_days', n=ni.days_left) }}{% endif %}</b>{% if upcoming|length > 2 %}<i>+{{ upcoming|length - 2 }}</i>{% endif %}</div>
   {% endif %}
 {% endcall %}{% endif %}

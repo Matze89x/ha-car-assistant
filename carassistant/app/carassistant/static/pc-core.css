@@ -406,7 +406,7 @@ a.wd:active { background: rgba(var(--fg-rgb),.1); }
 .wd-h .mi-ic { flex-shrink: 0; }
 .wd-t { flex: 1; min-width: 0; font: 600 11px 'Space Grotesk', system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
 .wd-b { display: flex; flex-direction: column; min-width: 0; }
-.wd-v { font: 700 21px/1.2 'Space Grotesk', system-ui, sans-serif; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.wd-v { font: 700 21px/1.2 'Space Grotesk', system-ui, sans-serif; letter-spacing: -.01em; overflow-wrap: anywhere; hyphens: auto; }  /* a long word breaks at a syllable first (lang is set), anywhere only as the last resort */
 .wd-v small { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
 .wd-s { color: var(--muted); }
 .wd.st-warn .wd-v, .wd.st-soon .wd-v { color: var(--soon); }
@@ -2491,8 +2491,17 @@ svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5
 .wd-count { display: flex; align-items: baseline; gap: 8px; }
 .wd-count b { font: 700 36px/1 'Space Grotesk', system-ui, sans-serif; letter-spacing: -.02em; color: rgb(var(--wc)); }
 .wd-count span { font-size: 13px; color: var(--muted); font-weight: 600; }
-.wd-count.overdue b { color: var(--overdue); }
+.wd-count.ok b { color: var(--ok); }
 .wd-count.soon b { color: var(--soon); }
+.wd-count.overdue b { color: var(--overdue); }
+.wd-count.unknown b { color: var(--strong); }
+.wd-next { display: flex; align-items: baseline; gap: 8px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(var(--fg-rgb), .08); font-size: 12px; color: var(--muted); }
+.wd-next span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wd-next b { font-weight: 700; white-space: nowrap; }
+.wd-next b.ok { color: var(--ok); }
+.wd-next b.soon { color: var(--soon); }
+.wd-next b.overdue { color: var(--overdue); }
+.wd-next i { font-style: normal; color: var(--dim); }
 @media (min-width: 900px) {
   .wd { padding: 16px 18px; }
   .wd-v { font-size: 24px; }

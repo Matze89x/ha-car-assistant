@@ -55,6 +55,16 @@ def fdate(value) -> str:
     return value.strftime(date_format())
 
 
+def weekday(value) -> int | None:
+    """The day of the week of a date (a date, a datetime or ISO text): 0 = Monday ... 6 = Sunday; ``None`` if there is no date in it."""
+    if isinstance(value, date):  # a datetime is a date, too
+        return value.weekday()
+    try:
+        return date.fromisoformat(str(value or "")[:10]).weekday()
+    except ValueError:
+        return None
+
+
 def ftime(value) -> str:
     """A time of day: a datetime, or "HH:MM" / "HH:MM:SS" text. Unreadable text is shown as it is."""
     if not value:
