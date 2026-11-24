@@ -66,22 +66,21 @@ def test_uninstalling_a_plugin_takes_its_own_log_with_it_and_nothing_of_the_othe
     assert "a line of plugin-b" in client.get(f"/v/{slug(vid)}/integrations/{ids['plugin-b']}/logs").text
 
 
-def test_the_log_switch_of_a_plugin_runs_out_by_itself_and_starts_again_with_a_new_time():
+def test_the_log_switch_of_a_plugin_runs_out_by_itself_and_starts_again_with_a_new_time(conn, vehicle):
     from datetime import UTC, datetime, timedelta
 
     from carassistant import db
 
-    with db.tx() as conn:
-        vid = conn.execute("INSERT INTO vehicles(name, fuel_type) VALUES('Log Car', 'petrol')").lastrowid
-        assert connectors.plugin_debug_state(conn, vid, "p") is None
-        connectors.set_plugin_debug(conn, vid, "p", True, 3)
-        days, until = connectors.plugin_debug_state(conn, vid, "p")
-        assert days == 3 and timedelta(days=2, hours=23) < until - datetime.now(UTC) <= timedelta(days=3)  # counted from now
-        connectors.set_plugin_debug(conn, vid, "p", True, 9)  # not an offered time: one day
-        assert connectors.plugin_debug_state(conn, vid, "p")[0] == 1
-        db.set_setting(conn, f"debug.{vid}.p", f"1|{(datetime.now(UTC) - timedelta(minutes=1)).isoformat(timespec='seconds')}")
-        assert connectors.plugin_debug(conn, vid, "p") is False  # its time has run out: off, without anybody switching it
-        connectors.expire_debug(conn)
-        assert db.get_setting(conn, f"debug.{vid}.p", "") == ""  # and forgotten
-        db.set_setting(conn, f"debug.{vid}.p", "1")  # the old form had no end: it counts as off
-        assert connectors.plugin_debug(conn, vid, "p") is False
+    vid = vehicle
+    assert connectors.plugin_debug_state(conn, vid, "p") is None
+    connectors.set_plugin_debug(conn, vid, "p", True, 3)
+    days, until = connectors.plugin_debug_state(conn, vid, "p")
+    assert days == 3 and timedelta(days=2, hours=23) < until - datetime.now(UTC) <= timedelta(days=3)  # counted from now
+    connectors.set_plugin_debug(conn, vid, "p", True, 9)  # not an offered time: one day
+    assert connectors.plugin_debug_state(conn, vid, "p")[0] == 1
+    db.set_setting(conn, f"debug.{vid}.p", f"1|{(datetime.now(UTC) - timedelta(minutes=1)).isoformat(timespec='seconds')}")
+    assert connectors.plugin_debug(conn, vid, "p") is False  # its time has run out: off, without anybody switching it
+    connectors.expire_debug(conn)
+    assert db.get_setting(conn, f"debug.{vid}.p", "") == ""  # and forgotten
+    db.set_setting(conn, f"debug.{vid}.p", "1")  # the old form had no end: it counts as off
+    assert connectors.plugin_debug(conn, vid, "p") is False
