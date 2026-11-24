@@ -921,13 +921,16 @@ def clean_setting_fields(raw) -> list[dict]:
         if kind == "list":  # rows of a name and a value (for example stations and their addresses), at most 30
             field["name_label"] = _text(f, "name_label", 40) or "Name"
             field["value_label"] = _text(f, "value_label", 40) or "Address"
+            columns = _list_columns(f.get("columns"))  # more cells in a row (a second line, a logo address): the row stays one line of text
+            if columns:
+                field["columns"] = columns
             if isinstance(f.get("min_rows"), int) and not isinstance(f.get("min_rows"), bool) and 1 <= f["min_rows"] <= LIST_ROWS:
                 field["min_rows"] = f["min_rows"]  # saving with fewer rows is refused
-            tpls = _list_templates(f.get("templates"))
+            tpls = _list_templates(f.get("templates"), columns)
             if tpls:
                 field["templates"] = tpls  # a select of ready-made rows and a button that appends the chosen one
             if isinstance(f.get("default"), list):  # the rows a new installation starts with: [{"name", "value"}], at most 30
-                rows = _list_default(f["default"])
+                rows = _list_default(f["default"], columns)
                 if rows:
                     field["default"] = rows
                 else:
@@ -1184,6 +1187,8 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
         for f in manifest["settings"]:
             if f.get("templates"):  # the ready-made rows of a list in the language of the page
                 f["templates"] = [{**t, "label": ((t.get("l10n") or {}).get(lang) or {}).get("label", t["label"])} for t in f["templates"]]
+            if f.get("columns"):  # the names of the extra cells, too
+                f["columns"] = [{**c, "label": ((c.get("l10n") or {}).get(lang) or {}).get("label", c["label"])} for c in f["columns"]]
         if manifest.get("setup") and manifest["setup"].get("title"):
             manifest["setup"] = {
                 **manifest["setup"],
@@ -1223,49 +1228,102 @@ def _row_text(value, limit: int) -> str:
     return " ".join(str(value or "").replace("|", " ").split())[:limit]
 
 
-def _list_default(rows: list) -> str:
-    """``[{"name", "value"}, ...]`` as the stored lines ``name | value`` (at most 30; a row without a name and a value is dropped)."""
+LIST_COLUMNS = 3  # extra cells next to the name and the value
+LIST_COLUMN_KEY = re.compile(r"[a-z][a-z0-9_]{0,19}")
+LIST_COLUMN_RESERVED = {"name", "value", "label", "l10n"}
+
+
+def _list_columns(raw) -> list[dict]:
+    """The extra cells of a ``list`` row: ``[{"key", "label", "max", "l10n": {"de": {"label"}}}]``, at most 3; a column that is not usable (no key,
+    a key twice or taken, no list) is left out."""
+    out: list[dict] = []
+    for c in raw[:10] if isinstance(raw, list) else []:
+        if len(out) == LIST_COLUMNS:
+            break
+        key = c.get("key") if isinstance(c, dict) else None
+        if (
+            not isinstance(key, str)
+            or not LIST_COLUMN_KEY.fullmatch(key)
+            or key in LIST_COLUMN_RESERVED
+            or any(o["key"] == key for o in out)
+        ):
+            continue
+        limit = c.get("max")
+        col = {
+            "key": key,
+            "label": _text(c, "label", 40) or key,
+            "max": limit if isinstance(limit, int) and not isinstance(limit, bool) and 1 <= limit <= 200 else 120,
+        }
+        if _l10n(c.get("l10n"), {"label": 40}):
+            col["l10n"] = _l10n(c.get("l10n"), {"label": 40})
+        out.append(col)
+    return out
+
+
+def _cells(row: dict, columns: list[dict] | tuple = ()) -> list[str]:
+    """The cells of a row given as a dict in the order of the line: name, value, then the extra columns (each cut to its length)."""
+    return [_row_text(row.get("name"), 80), _row_text(row.get("value"), 200), *[_row_text(row.get(c["key"]), c["max"]) for c in columns]]
+
+
+def _list_default(rows: list, columns: list[dict] | tuple = ()) -> str:
+    """``[{"name", "value", <column>...}, ...]`` as the stored lines ``name | value | ...`` (at most 30; an empty row is dropped)."""
     lines = []
     for r in rows[:LIST_ROWS]:
-        if isinstance(r, dict) and (_row_text(r.get("name"), 80) or _row_text(r.get("value"), 200)):
-            lines.append(f"{_row_text(r.get('name'), 80)} | {_row_text(r.get('value'), 200)}")
+        cells = _cells(r, columns) if isinstance(r, dict) else []
+        if any(cells):
+            lines.append(" | ".join(cells))
     return "\n".join(lines)
 
 
-def _list_templates(raw) -> list[dict]:
-    """The ready-made rows of a ``list``: ``[{"label", "name", "value", "l10n": {"de": {"label"}}}]``, at most 30."""
+def _list_templates(raw, columns: list[dict] | tuple = ()) -> list[dict]:
+    """The ready-made rows of a ``list``: ``[{"label", "name", "value", <column>..., "l10n": {"de": {"label"}}}]``, at most 30.
+    ``cells`` holds the extra cells in the order of the columns."""
     out = []
     for t in raw[:LIST_ROWS] if isinstance(raw, list) else []:
-        if not isinstance(t, dict) or not (_row_text(t.get("name"), 80) or _row_text(t.get("value"), 200)):
+        if not isinstance(t, dict) or not any(_cells(t, columns)):
             continue
         item = {
             "label": _text(t, "label", 60) or _row_text(t.get("name"), 80),
             "name": _row_text(t.get("name"), 80),
             "value": _row_text(t.get("value"), 200),
         }
+        if columns:
+            item["cells"] = _cells(t, columns)[2:]
         if _l10n(t.get("l10n"), {"label": 60}):
             item["l10n"] = _l10n(t.get("l10n"), {"label": 60})
         out.append(item)
     return out
 
 
-def list_rows(value: str) -> list[dict]:
-    """The rows of a ``list`` setting (stored as lines ``name | value``) as ``[{"name", "value"}]``."""
+def split_line(line: str, columns: list[dict] | tuple = ()) -> list[str]:
+    """One stored line ``name | value | <column>...`` as its cells (always 2 + the number of columns; the value takes the rest of a line
+    when the list has no columns)."""
+    parts = [c.strip() for c in line.split("|", 1 + len(columns))]
+    return parts + [""] * (2 + len(columns) - len(parts))
+
+
+def list_rows(value: str, columns: list[dict] | tuple = ()) -> list[dict]:
+    """The rows of a ``list`` setting (stored as lines ``name | value | ...``) as ``[{"name", "value", <column>...}]``."""
     rows = []
     for line in (value or "").splitlines():
-        name, _sep, rest = line.partition("|")
-        if name.strip() or rest.strip():
-            rows.append({"name": name.strip(), "value": rest.strip()})
+        cells = split_line(line, columns)
+        if any(cells):
+            rows.append({"name": cells[0], "value": cells[1], **{c["key"]: cells[2 + n] for n, c in enumerate(columns)}})
     return rows[:LIST_ROWS]
 
 
-def _list_from_form(key: str, form: dict) -> str:
+def _list_from_form(key: str, form: dict, columns: list[dict] | tuple = ()) -> str:
+    """The rows of the page (fields ``<key>__<n>n``, ``__<n>v`` and ``__<n>c<j>``) as the stored lines."""
+    limits = [80, 200, *[c["max"] for c in columns]]
+    suffixes = ["n", "v", *[f"c{j}" for j in range(len(columns))]]
     lines = []
     for i in range(LIST_ROWS):
-        name = " ".join(str(form.get(f"{key}__{i}n") or "").replace("|", " ").split())[:80]
-        value = " ".join(str(form.get(f"{key}__{i}v") or "").replace("|", " ").split())[:200]
-        if name or value:
-            lines.append(f"{name} | {value}")
+        cells = [
+            " ".join(str(form.get(f"{key}__{i}{sfx}") or "").replace("|", " ").split())[:limit]
+            for sfx, limit in zip(suffixes, limits, strict=True)
+        ]
+        if any(cells):
+            lines.append(" | ".join(cells))
     return "\n".join(lines)
 
 
@@ -1299,7 +1357,7 @@ def check_settings(manifest: dict, form: dict, old: dict) -> dict[str, str]:
             kind == "list"
             and f.get("min_rows")
             and _is_shown(f, manifest, form)
-            and len(list_rows(_list_from_form(key, form))) < f["min_rows"]
+            and len(list_rows(_list_from_form(key, form, f.get("columns", ())))) < f["min_rows"]
         ):
             errors[key] = "err.min_rows"
         if kind in NO_VALUE or kind in ("bool", "list", "value"):
@@ -1357,7 +1415,7 @@ def clean_settings(manifest: dict, form: dict, old: dict) -> dict:
         if kind == "value":
             values[key] = old.get(key, "")  # a value shown for information: only the service sets it
         elif kind == "list":
-            values[key] = _list_from_form(key, form)
+            values[key] = _list_from_form(key, form, f.get("columns", ()))
         elif kind == "bool":
             values[key] = "1" if form.get(key) else "0"
         elif kind == "multiselect":
@@ -1401,7 +1459,7 @@ def typed_settings(manifest: dict, values: dict) -> dict:
         elif kind == "multiselect":
             out[key] = [x for x in raw.split(",") if x]
         elif kind == "list":
-            out[key] = list_rows(raw)
+            out[key] = list_rows(raw, f.get("columns", ()))
         else:
             out[key] = raw
     return out

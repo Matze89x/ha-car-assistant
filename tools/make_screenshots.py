@@ -109,7 +109,20 @@ def _demo_plugins(conn, vid: int) -> None:
         "author": "Example",
         "icon": "plug",
         "description": "A made-up plugin with a service, three buttons of its own and a log - it only exists to show the tile of a plugin.",
-        "settings": [{"key": "host", "label": "Address", "type": "text"}],
+        "settings": [
+            {"key": "host", "label": "Address", "type": "text"},
+            {
+                "key": "stations",
+                "label": "Stations",
+                "type": "list",
+                "name_label": "Name",
+                "value_label": "Stream address",
+                "columns": [{"key": "second", "label": "Second line"}, {"key": "logo", "label": "Logo address"}],
+                "default": [
+                    {"name": "Radio A", "value": "https://a.example/stream", "second": "News", "logo": "https://a.example/logo.png"}
+                ],
+            },
+        ],
         "service": {
             "entry": "service/main.py",
             "python": ">=3.9",

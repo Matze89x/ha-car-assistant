@@ -759,8 +759,7 @@ document.addEventListener("sortchange", function (e) {
   function numbers(box) {
     var rows = box.querySelectorAll(".lf-row"), key = box.getAttribute("data-lf"), add = box.querySelector(".lf-add");
     Array.prototype.forEach.call(rows, function (row, i) {
-      var inputs = row.querySelectorAll("input");
-      inputs[0].name = key + "__" + i + "n"; inputs[1].name = key + "__" + i + "v";
+      Array.prototype.forEach.call(row.querySelectorAll("input[data-cell]"), function (input) { input.name = key + "__" + i + input.getAttribute("data-cell"); });
     });
     if (add) { add.setAttribute("data-n", String(rows.length)); }
   }
@@ -771,8 +770,11 @@ document.addEventListener("sortchange", function (e) {
     if (addTpl) {  // a ready-made row of the package: the chosen one is appended, then it is an ordinary row
       var tbox = addTpl.closest("[data-lf]"), pick = tbox.querySelector(".lf-pick"), ttpl = tbox.querySelector("template[data-lf-row]");
       if (!ttpl || !pick || !pick.selectedOptions.length || tbox.querySelectorAll(".lf-row").length >= 30) { return; }
-      var chosen = pick.selectedOptions[0], trow = ttpl.content.firstElementChild.cloneNode(true), tin = trow.querySelectorAll("input");
-      tin[0].value = chosen.getAttribute("data-name") || ""; tin[1].value = chosen.getAttribute("data-value") || "";
+      var chosen = pick.selectedOptions[0], trow = ttpl.content.firstElementChild.cloneNode(true);
+      Array.prototype.forEach.call(trow.querySelectorAll("input[data-cell]"), function (input) {  // n = name, v = value, c0.. = the extra cells
+        var cell = input.getAttribute("data-cell");
+        input.value = chosen.getAttribute(cell === "n" ? "data-name" : cell === "v" ? "data-value" : "data-" + cell) || "";
+      });
       tbox.insertBefore(trow, ttpl);
       numbers(tbox);
     } else if (add) {

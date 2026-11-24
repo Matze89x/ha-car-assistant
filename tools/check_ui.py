@@ -32,7 +32,7 @@ MEASURE = r"""
   var SKIP = '.page-head, nav, .tabbar, .more-pane, .vsw, .odo-card, .odo-flip, .wd-ctl';  /* round header buttons, bars, the dashboard's own controls */
   function where(e) { var p = e.parentElement; return p.tagName.toLowerCase() + '.' + String(p.className).split(' ').slice(0, 2).join('.'); }
   function name(e) { return (e.textContent || '').trim().slice(0, 24) || e.getAttribute('aria-label') || e.getAttribute('title') || ''; }
-  var ctl = Array.prototype.filter.call(document.querySelectorAll('button, a.button, a.ghost-btn, input[type=submit]'), function (e) { return vis(e) && !e.closest(SKIP); });
+  var ctl = Array.prototype.filter.call(document.querySelectorAll('button, a.button, a.ghost-btn, input[type=submit]'), function (e) { return vis(e) && !e.closest(SKIP) && !e.classList.contains('grip'); });  /* the handle of a sortable row is the edge of the row (a strip as high as the row), not one of its buttons */
 
   ctl.forEach(function (e) {
     var w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT), n, lines = 1;

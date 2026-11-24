@@ -743,6 +743,104 @@ def test_a_list_can_offer_ready_made_rows_keep_a_minimum_and_start_with_rows(cli
         assert [r["name"] for r in addons.service_settings(addons.get(conn, vid, aid))["entries"]] == ["Eco"]
 
 
+def test_a_list_row_can_have_more_cells_than_a_name_and_a_value(client, monkeypatch):
+    """``columns`` (at most 3): a second line, a logo address ... Stored as ``name | value | cell | cell``, given to the service as keys of the row."""
+    from carassistant import config
+
+    manifest = {
+        "id": "stations",
+        "name": "Stations",
+        "version": "1",
+        "kind": "plugin",
+        "settings": [
+            {
+                "key": "stations",
+                "type": "list",
+                "label": "Stations",
+                "name_label": "Name",
+                "value_label": "Stream address",
+                "min_rows": 1,
+                "columns": [
+                    {"key": "second", "label": "Second line", "max": 10, "l10n": {"de": {"label": "Zweite Zeile"}}},
+                    {"key": "logo", "label": "Logo address"},
+                    {"key": "name", "label": "taken"},  # a key of the row itself
+                    {"key": "logo", "label": "twice"},
+                    {"key": "Bad Key", "label": "bad"},
+                    {"key": "extra", "label": "Third", "max": 500},
+                    {"key": "fourth", "label": "Fourth"},  # only three
+                ],
+                "default": [{"name": "Radio A", "value": "https://a.example/s", "second": "News", "logo": "https://a.example/l.png"}],
+                "templates": [
+                    {
+                        "label": "Radio B",
+                        "name": "Radio B",
+                        "value": "https://b.example/s",
+                        "second": "Pop",
+                        "logo": "https://b.example/l.png",
+                    }
+                ],
+            }
+        ],
+    }
+    f = addons.parse_package(json.dumps(manifest).encode())["settings"][0]
+    assert [c["key"] for c in f["columns"]] == ["second", "logo", "extra"] and [c["max"] for c in f["columns"]] == [10, 120, 120]
+    assert (
+        f["default"] == "Radio A | https://a.example/s | News | https://a.example/l.png | "
+    )  # the stored form: the third cell stays empty
+    assert f["templates"][0]["cells"] == ["Pop", "https://b.example/l.png", ""]
+    plain = addons.parse_package(json.dumps({**manifest, "settings": [{"key": "l", "type": "list", "label": "L"}]}).encode())["settings"][0]
+    assert "columns" not in plain  # a list without columns is the list it always was
+    assert addons.list_rows("A | b | c") == [{"name": "A", "value": "b | c"}]  # ... and its value still takes the rest of the line
+    assert addons.list_rows("A | b | c", f["columns"]) == [{"name": "A", "value": "b", "second": "c", "logo": "", "extra": ""}]
+    assert addons.list_rows(" | | | x | ", f["columns"]) == [
+        {"name": "", "value": "", "second": "", "logo": "x", "extra": ""}
+    ]  # a cell alone makes a row
+    vid = create_vehicle(client)
+    upload(client, vid, json.dumps(manifest).encode())
+    with db.tx() as conn:
+        aid = addons.list_for(conn, vid)[0]["id"]
+    url = f"/v/{slug(vid)}/integrations/{aid}"
+    page = client.get(f"{url}/settings").text
+    assert (
+        'name="stations__0c0"' in page
+        and 'name="stations__0c1"' in page
+        and 'name="stations__#c2"' in page
+        and 'class="lf-in lf-cols"' in page
+    )
+    assert (
+        'value="News"' in page
+        and 'value="https://a.example/l.png"' in page
+        and 'data-c0="Pop"' in page
+        and 'placeholder="Second line"' in page
+    )
+    monkeypatch.setattr(config, "language", lambda: "de")
+    assert (
+        'placeholder="Zweite Zeile"' in client.get(f"{url}/settings").text
+        and 'placeholder="Logo address"' in client.get(f"{url}/settings").text
+    )
+    monkeypatch.setattr(config, "language", lambda: "en")
+    data = {
+        "stations__0n": "B | b",
+        "stations__0v": "https://b.example/s",
+        "stations__0c0": "A very long second line",
+        "stations__0c1": "https://b.example/l.png",
+        "stations__1c1": "only a logo",
+    }
+    assert client.post(f"{url}/setup", data=data, follow_redirects=False).status_code in (200, 303)
+    with db.tx() as conn:
+        addon = addons.get(conn, vid, aid)
+        rows = addons.service_settings(addon)["stations"]
+    assert rows[0] == {
+        "name": "B b",
+        "value": "https://b.example/s",
+        "second": "A very lon",
+        "logo": "https://b.example/l.png",
+        "extra": "",
+    }
+    assert rows[1] == {"name": "", "value": "", "second": "", "logo": "only a logo", "extra": ""} and len(rows) == 2
+    assert client.post(f"{url}/setup", data={"stations__0c0": ""}).status_code == 400  # min_rows: an empty row is no row
+
+
 def test_the_docs_of_a_package_keep_their_paragraphs_and_come_in_the_language_of_the_page(client):
     manifest = {
         "id": "docs-demo",
