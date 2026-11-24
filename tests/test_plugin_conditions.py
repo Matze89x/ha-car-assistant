@@ -303,3 +303,18 @@ def test_every_plugin_token_can_be_read_again_by_an_administrator_on_the_setting
     token = re.search(r"ca_[A-Za-z0-9_-]{20,}", made.text).group(0)
     page = client.get(f"/v/{slug(vid)}/integrations/{pk}/settings").text
     assert f'value="{token}"' in page
+
+
+def test_a_switch_can_decide_when_a_button_shows():
+    """``when`` reads a ``bool`` setting too: ``set: true`` / ``equals: true`` hold while the switch is on, nothing is stored before it was saved."""
+    manifest = addons.parse_package(
+        json.dumps({**MANIFEST, "id": "sw-demo", "settings": [{"key": "catalog_on", "type": "bool", "label": "Catalog"}]}).encode()
+    )
+    types = {"catalog_on": "bool"}
+    for test in ({"key": "catalog_on", "equals": True}, {"key": "catalog_on", "set": True}):
+        when = addons.clean_when(test, types)
+        on = addons.clean_settings(manifest, {"catalog_on": "1"}, {})
+        off = addons.clean_settings(manifest, {}, {})
+        base = {"setup_done": False, "has_token": False, "types": types}
+        assert addons.when_holds(when, values=on, **base) and not addons.when_holds(when, values=off, **base)
+        assert not addons.when_holds(when, values={}, **base)  # never saved = off
