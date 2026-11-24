@@ -279,3 +279,16 @@ def test_the_messages_of_a_page_without_a_header_float_as_a_toast_and_do_not_sti
     assert "toast-host" in js and "toast" in js and "if (!slot)" in js
     assert ".toast-host" in css and "position: fixed" in css.split(".toast-host {", 1)[1].split("}", 1)[0]
     assert "main:not(:has(> .notice-slot)) > .flash:not([id])" in css  # no flash of the old place before the toast appears
+
+
+def test_the_rows_of_a_widget_never_end_in_a_line():
+    """A list inside a widget draws the line ABOVE a row (the first row's line is pulled out of the grid and clipped), so that the last row of any number
+    of columns ends without one. A line under every row would draw one under the last row, and no CSS can tell the last row of a grid of unknown width."""
+    css = _css()
+    grid = re.search(r"\.cd-grid \{([^}]*)\}", css).group(1)
+    item = re.search(r"\.cd-item \{([^}]*)\}", css).group(1)
+    assert "overflow: hidden" in grid
+    assert "margin-top: -1px" in item and "border-top: 1px solid" in item and "border-bottom" not in item
+    assert "border-bottom" not in re.search(r"\.wd-li \{([^}]*)\}", css).group(
+        1
+    )  # the other list of the widgets: the line sits above, the first row has none
