@@ -13,7 +13,7 @@ import http.client
 import time
 from http.cookies import SimpleCookie
 
-from . import accounts, db, framehead, pluginsvc, themes
+from . import accounts, connectors, db, framehead, pluginsvc, themes
 from .auth_web import COOKIE
 
 MAX_BODY = 8_000_000
@@ -93,6 +93,16 @@ def _signed_in(headers: list[tuple[bytes, bytes]]) -> bool:
     return _session_user(headers) is not None
 
 
+def token_ok(route: dict, headers: list[tuple[bytes, bytes]]) -> bool:
+    """A public route with ``token_header``: the request carries the token of the plugin in that header (compared by fingerprint, in constant
+    time; a plugin that has no token yet is never matched)."""
+    name = route["token_header"].encode("latin-1")
+    value = next((v.decode("latin-1").strip() for k, v in headers if k.lower() == name), "")
+    with db.tx() as conn:
+        row = conn.execute("SELECT token_id FROM vehicle_addons WHERE id = ?", (route["pk"],)).fetchone()
+        return bool(row) and connectors.token_matches(conn, row["token_id"], value)
+
+
 def frame_ok(method: str, headers: list[tuple[bytes, bytes]]) -> bool:
     """A request that changes something and comes from a page of a package needs ``X-Requested-With: frame`` - a foreign site can not add that header
     to a request of your browser (cross-site protection)."""
@@ -128,6 +138,20 @@ class PluginProxy:
         if route is None:
             return await self.app(scope, receive, send)
         client = (scope.get("client") or ("", 0))[0]
+        if route.get("token_header") and not await asyncio.to_thread(token_ok, route, scope.get("headers", [])):
+            query = scope.get("query_string", b"").decode("latin-1")
+            await asyncio.to_thread(
+                pluginsvc.note_car_request,
+                route["pk"],
+                scope["method"],
+                scope["path"],
+                401,
+                0,
+                time.monotonic(),
+                "the token header is missing or wrong",
+                query,
+            )  # the service never sees the request
+            return await _reply(send, 401, b"unauthorized")
         if not route["public"] and client not in LOCAL_CLIENTS and not await asyncio.to_thread(_signed_in, scope.get("headers", [])):
             return await _reply(send, 404, b"not found")  # from outside only for a signed-in person
         if not route["public"] and not frame_ok(scope["method"], scope.get("headers", [])):

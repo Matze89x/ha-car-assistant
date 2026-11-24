@@ -860,3 +860,66 @@ def test_a_prefix_the_app_answers_is_never_free_for_a_service(env):
     ):  # the app's own pages, also the ones a later version added
         assert not pluginsvc.prefix_is_free(prefix), prefix
     assert pluginsvc.prefix_is_free("/mycar/") and pluginsvc.prefix_is_free("/my-car/api/")
+
+
+def test_a_public_route_can_ask_for_the_token_of_the_plugin_in_a_header():
+    routes = lambda *rs: addons.clean_service({"entry": "a.py", "routes": list(rs)})["routes"]  # noqa: E731
+    assert routes({"prefix": "/car/", "public": True, "token_header": "X-Demo-Token"}) == [
+        {"prefix": "/car/", "public": True, "token_header": "X-Demo-Token"}
+    ]
+    assert routes({"prefix": "/car/", "public": True, "token_header": None}) == [
+        {"prefix": "/car/", "public": True}
+    ]  # none asked: as before
+    for bad in (
+        {"prefix": "/car/", "public": False, "token_header": "X-Demo"},  # only a public route has a use for it
+        {"prefix": "/car/", "public": True, "token_header": "Authorization"},
+        {"prefix": "/car/", "public": True, "token_header": "Cookie"},
+        {"prefix": "/car/", "public": True, "token_header": "X-CA-User"},
+        {"prefix": "/car/", "public": True, "token_header": "Content-Type"},
+        {"prefix": "/car/", "public": True, "token_header": "x"},
+        {"prefix": "/car/", "public": True, "token_header": "X Demo"},
+        {"prefix": "/car/", "public": True, "token_header": 5},
+        {"prefix": "/car/", "public": True, "token_header": ""},
+    ):  # a hardening that cannot be kept refuses the package: dropping it silently would leave the route open
+        with pytest.raises(addons.AddonError):
+            routes(bad)
+    plain = {**MANIFEST}
+    hard = {**MANIFEST, "service": {**MANIFEST["service"], "routes": [{"prefix": "/svc/", "public": True, "token_header": "X-Demo-Token"}]}}
+    assert addons.approval_fingerprint(plain) != addons.approval_fingerprint(
+        hard
+    )  # a new version that asks for less (or more) is approved again
+
+
+def test_the_app_answers_401_itself_before_the_service_sees_a_request_without_the_token(client, monkeypatch):
+    vid, pk = _install(client)
+    with db.tx() as conn:
+        token = addons.new_token(conn, vid, addons.get(conn, vid, pk))
+    seen = []
+
+    def forward(port, method, target, headers, body):
+        seen.append(target)
+        return 200, [("content-type", "text/plain")], b"hello"
+
+    route = {"prefix": "/svc/", "port": 1, "public": True, "pk": pk, "token_header": "x-demo-token"}
+    monkeypatch.setattr(pluginsvc, "route_for", lambda path: route if path.startswith("/svc/") else None)
+    monkeypatch.setattr("carassistant.proxy._forward", forward)
+    edge = TestClient(PluginProxy(web.app), client=("8.8.8.8", 1))
+    assert edge.get("/svc/ping").status_code == 401 and edge.post("/svc/ping", content=b"x").status_code == 401
+    assert edge.get("/svc/ping", headers={"X-Demo-Token": "nope"}).status_code == 401
+    assert edge.get("/svc/ping", headers={"X-Demo-Token": token + "x"}).status_code == 401
+    assert edge.get("/svc/ping", headers={"Authorization": "Bearer " + token}).status_code == 401  # only the header the plugin named counts
+    assert seen == []  # the service saw none of it
+    ok = edge.get("/svc/ping?a=1", headers={"x-demo-token": token})
+    assert ok.status_code == 200 and ok.text == "hello" and seen == ["/svc/ping?a=1"]
+    assert edge.get("/svc/ping", headers={"X-DEMO-TOKEN": token}).status_code == 200  # a name has no case
+    with db.tx() as conn:  # a plugin without a token matches nothing, not even an empty header
+        conn.execute("UPDATE vehicle_addons SET token_id = NULL WHERE id = ?", (pk,))
+    assert edge.get("/svc/ping", headers={"X-Demo-Token": token}).status_code == 401 and edge.get("/svc/ping").status_code == 401
+    route["token_header"] = ""  # a route that asks for nothing is open as before
+    assert edge.get("/svc/ping").status_code == 200
+
+
+def test_the_review_page_says_that_a_route_wants_the_token(client):
+    from carassistant import i18n
+
+    assert "{header}" in i18n.EN["svc.public_token"] and "{header}" in i18n.DE["svc.public_token"]

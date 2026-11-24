@@ -673,7 +673,14 @@ def _rebuild_routes() -> None:
                 if not prefix_is_free(route["prefix"]):  # a page the app has taken since: the app wins, the service never shadows it
                     log.warning("route %s of a service is taken by the app and is not handed on", route["prefix"])
                     continue
-                _routes[route["prefix"]] = {"port": info["port"], "public": route["public"], "pk": pk}
+                _routes[route["prefix"]] = {
+                    "port": info["port"],
+                    "public": route["public"],
+                    "pk": pk,
+                    "token_header": (
+                        route.get("token_header") or ""
+                    ).lower(),  # a public route that wants the plugin's token in this header
+                }
 
 
 def note_car_request(pk: int, method: str, path: str, status: int, nbytes: int, started: float, detail: str, query: str = "") -> None:

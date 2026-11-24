@@ -55,6 +55,24 @@ SERVICE_REQ = re.compile(
 )
 SERVICE_PREFIX = re.compile(r"/[A-Za-z0-9_.-]{1,30}(/[A-Za-z0-9_.-]{1,30}){0,3}/")
 SERVICE_HOST = re.compile(r"(\*\.)?[a-z0-9]([a-z0-9-]{0,60}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,60}[a-z0-9])?){1,6}")
+SERVICE_TOKEN_HEADER = re.compile(r"[A-Za-z][A-Za-z0-9-]{1,39}")
+SERVICE_TOKEN_HEADER_DENIED = {
+    "host",
+    "cookie",
+    "authorization",
+    "proxy-authorization",
+    "connection",
+    "keep-alive",
+    "te",
+    "trailer",
+    "upgrade",
+    "origin",
+    "referer",
+    "user-agent",
+    "accept",
+    "x-requested-with",
+}  # headers the proxy, the browser or the network own: a service cannot use them as its key
+SERVICE_TOKEN_HEADER_DENIED_START = ("x-ca-", "content-", "transfer-", "sec-", "proxy-", "x-forwarded-", "x-ingress", "x-hass", "cf-")
 SERVICE_ENV = re.compile(r"[A-Z][A-Z0-9_]{0,39}")
 SERVICE_ENV_DENIED = ("PATH", "HOME", "USER", "SHELL", "LANG", "TZ", "SUPERVISOR_TOKEN", "HASSIO_TOKEN")
 SERVICE_ENV_DENIED_START = ("CA_", "LD_", "PYTHON", "DYLD_", "CARASSISTANT_", "MQTT_")
@@ -87,7 +105,21 @@ def clean_service(raw: object) -> dict | None:
         prefix = r.get("prefix") if isinstance(r, dict) else None
         if not isinstance(prefix, str) or not SERVICE_PREFIX.fullmatch(prefix) or ".." in prefix:
             raise AddonError("addon.err_service")
-        routes.append({"prefix": prefix, "public": r.get("public") is True})
+        route = {"prefix": prefix, "public": r.get("public") is True}
+        header = r.get("token_header")
+        if (
+            header is not None
+        ):  # present but not usable = the package is refused: a hardening that is silently dropped would leave the route open
+            if (
+                not route["public"]
+                or not isinstance(header, str)
+                or not SERVICE_TOKEN_HEADER.fullmatch(header)
+                or header.lower() in SERVICE_TOKEN_HEADER_DENIED
+                or header.lower().startswith(SERVICE_TOKEN_HEADER_DENIED_START)
+            ):
+                raise AddonError("addon.err_service")
+            route["token_header"] = header
+        routes.append(route)
     connects_in = (
         raw.get("connects") or []
     )  # the hosts the service says it talks to (shown for the approval; the app does not block others)

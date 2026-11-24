@@ -51,7 +51,13 @@ def view(conn: sqlite3.Connection, vehicle_id: int, addon: dict, base_url: str) 
                 "direction": "offers",
                 "name": "Service route",
                 "path": (base_url.rstrip("/") if base_url else "https://<address>") + route["prefix"],
-                "note": "public: reachable without a login (for example by the car)" if route["public"] else "only from Home Assistant",
+                "note": (
+                    f"public, but only with the plugin's token in the header {route['token_header']}"
+                    if route.get("token_header")
+                    else "public: reachable without a login (for example by the car)"
+                )
+                if route["public"]
+                else "only from Home Assistant",
                 "declared": True,
                 "auto": True,
                 "seen": regional.fdatetime(hit["last_seen"]) if hit else "",
