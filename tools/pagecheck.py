@@ -66,9 +66,16 @@ def sweep(
             ms.wait_for(base + "/healthz")
             with Browser() as b:
                 pages = check_alignment.page_list(b, base, ms) + ([f"/v/{ms.DIESEL}", f"/v/{ms.COMPACT}"] if home else [])
+                if os.environ.get("CA_CHECK_BLOCK_FONTS"):  # to see what a machine without the web fonts would see
+                    b.call("Network.setBlockedURLs", urls=["*.woff2"])
                 for page in dict.fromkeys(pages):
                     b.open(base + page, width, height, 1, settle=0.35)
-                    b.run("document.fonts.ready.then(function () { return true; })")  # the measuring waits for the real font: with the stand-in font (font-display: swap) every word is a different width
+                    # the measuring waits for the REAL font: with the stand-in font (font-display: swap) every word is a different width. fonts.ready alone is not
+                    # enough - it is done at once when the page has not asked for a font yet (a slow machine) - so the faces are asked for by name first.
+                    b.run(
+                        "Promise.all(['400 15px \"Space Grotesk\"', '600 15px \"Space Grotesk\"', '700 15px \"Space Grotesk\"', '400 12px \"Space Mono\"', '700 12px \"Space Mono\"']"
+                        ".map(function (f) { return document.fonts.load(f).catch(function () { return null; }); })).then(function () { return document.fonts.ready; }).then(function () { return true; })"
+                    )
                     if open_all:
                         b.run(OPEN_ALL)
                     yield page, json.loads(b.run(script))

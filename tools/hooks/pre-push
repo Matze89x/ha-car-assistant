@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Nothing goes to GitHub while style or tests are red (the CI would fail the same way). Switched on with:  git config core.hooksPath tools/hooks
+exec "$(git rev-parse --show-toplevel)/tools/check_all.sh"

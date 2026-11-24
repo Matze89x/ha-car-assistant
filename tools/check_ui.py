@@ -70,7 +70,7 @@ MEASURE = r"""
 
   var tw = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT), te, spilled = {};  /* text that runs out of its own box (a long address under a badge) */
   while ((te = tw.nextNode())) {
-    if (te.closest('svg, template, [hidden], dialog:not([open]), script, style, .wd-ghost, pre, code, textarea, input, select')) { continue; }
+    if (te.closest('svg, template, [hidden], dialog:not([open]), script, style, .wd-ghost, pre, code, textarea, input, select, .about-slogan, .sb-slogan, .brand-lock')) { continue; }  /* the lockup's letter spacing is worked out from the real font */
     var ts = getComputedStyle(te);
     if (ts.display === 'inline' || ts.display === 'none' || ts.display === 'contents' || ts.overflowX !== 'visible') { continue; }
     var own = Array.prototype.some.call(te.childNodes, function (n) { return n.nodeType === 3 && n.textContent.trim(); });

@@ -2987,8 +2987,8 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 
 /* location widget: place and description on top, map, and the three navigation links in one compact row at the bottom */
 .wd .nav-btns { flex-wrap: nowrap; margin: 8px 0 0; container: navbtns / inline-size; }
-@container navbtns (max-width: 320px) { .wd .nav-btn .ico { display: none; } }  /* three words in a row on the smallest phones: without the little symbols they fit */
 .wd .nav-btn { flex: 1 1 0; min-width: 0; min-height: 34px; padding: 0 8px; font-size: 12px; white-space: nowrap; }
+@container navbtns (max-width: 320px) { .wd .nav-btn .ico { display: none; } .wd .nav-btn { padding: 0 3px; font-size: 11px; } }  /* three words in a row on the smallest phones: without the little symbols and with a little less air they fit - also when the web font has not arrived yet and a wider stand-in font is drawn */
 .wd-li, .pos-head { align-items: center; }
 
 /* the name: "Assistant" is in the main colour of the design (the slogan stays green) - side bar, About and login alike */

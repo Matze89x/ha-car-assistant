@@ -108,6 +108,13 @@ class Browser:
                 "--headless=new",
                 "--disable-gpu",
                 "--hide-scrollbars",
+                "--disable-extensions",
+                "--disable-background-networking",
+                "--disable-sync",
+                "--disable-component-update",
+                "--no-default-browser-check",
+                "--disable-dev-shm-usage",
+                "--mute-audio",
                 "--no-first-run",
                 *(["--no-sandbox"] if hasattr(os, "geteuid") and os.geteuid() == 0 else []),  # a root user (a container) cannot use the sandbox
                 f"--remote-debugging-port={self.port}",
