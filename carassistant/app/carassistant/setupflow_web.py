@@ -9,7 +9,9 @@ The token travels from step to step inside the page only (never stored), exactly
 
 from __future__ import annotations
 
+import asyncio
 import re
+import time
 
 from fastapi import Request
 from fastapi.responses import Response
@@ -33,6 +35,16 @@ NEEDS = {
     "external_https": ("guide.need_external_https", "guide.missing_external_https"),
     "vehicle_vin": ("guide.need_vehicle_vin", "guide.missing_vehicle_vin"),
 }
+
+
+async def _service_ready(addon: dict, seconds: float = 15.0) -> bool:
+    """A service that was restarted a moment ago (new settings, a new token) needs a little time: the flow waits for it - 15 seconds at most - before it asks."""
+    end = time.monotonic() + seconds
+    while not pluginsvc.ready(addon["id"]):
+        if time.monotonic() >= end:
+            return False
+        await asyncio.sleep(0.25)
+    return True
 
 
 def _guard(request: Request, vid: int):
@@ -220,6 +232,10 @@ async def flow_post(request: Request, vid: int, aid: int):
             if not addon["active"] or not pluginsvc.approved(addon):
                 return page(
                     request, vid, aid, step, carried, shown=form, result={"ok": False, "message": tr("addon.button_off")}, status=409
+                )
+            if not await _service_ready(addon):
+                return page(
+                    request, vid, aid, step, carried, shown=form, result={"ok": False, "message": tr("addon.button_down")}, status=422
                 )
             payload = {
                 "vehicle": vid,

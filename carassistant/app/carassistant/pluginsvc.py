@@ -557,6 +557,22 @@ def running(pk: int) -> bool:
         return bool(info and info["proc"].poll() is None)
 
 
+def ready(pk: int) -> bool:
+    """The service runs AND takes connections (a process that was started a moment ago is alive before it listens)."""
+    with _lock:
+        info = _procs.get(pk)
+        port = info["port"] if info and info["proc"].poll() is None else None
+    if not port:
+        return False
+    import socket
+
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.3):
+            return True
+    except OSError:
+        return False
+
+
 def _post(pk: int, path: str, payload: dict, vehicle_id: int, user: str, timeout: float, limit: int) -> tuple[int, dict, bytes] | str:
     """The APP posts JSON to a running service: ``(status, headers, body)``, or the reason it could not (``"not running"`` / ``"no answer"``).
     The service gets the same two identity headers as for a page; what it answers is cut after ``limit`` bytes."""

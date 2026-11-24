@@ -65,10 +65,22 @@
   var done = false, seeking = false, canvas = null, shown = false, sampled = false, tries = 0, watchdog = null, started = false, kept = null;
   // The video cannot start (an error, no permission, low power, too slow): a picture stands - the last frame of the earlier visit, else the video's own
   // picture - and the box is never empty. Only when there is no picture at all, the car photo takes over (as it always did).
+  // A picture that is still ON ITS WAY (the poster, the last frame) is waited for (four seconds at most): a phone that refuses the video at once - before the
+  // picture has arrived - must not fall back to the car photo and then show the picture on top of it.
+  var pending = 0, patience = null;
   function giveUp() {
     clearTimeout(watchdog);
     if (canvas) { wrap.classList.add("vplay"); return; }
+    if (pending > 0) {
+      if (!patience) { patience = setTimeout(function () { pending = 0; giveUp(); }, 4000); }
+      return;
+    }
+    clearTimeout(patience); patience = null;
     wrap.classList.add("failed"); if (v.parentNode) { v.parentNode.removeChild(v); }
+  }
+  function stillSettled() {  // a picture arrived (or could not): a video that gave up meanwhile now looks at what there is
+    if (pending > 0) { pending--; }
+    if (patience && pending === 0) { clearTimeout(patience); patience = null; giveUp(); }
   }
   // The video plays once per visit of the app. Its last frame is kept (as a picture, in the browser's session storage); coming back to Home shows
   // that picture at once - the video is not loaded or started again until it is tapped.
@@ -125,15 +137,16 @@
     var pic = new Image();
     pic.className = "hero-video hero-frozen"; pic.alt = ""; pic.setAttribute("aria-hidden", "true");
     pic.onload = function () {
-      if (started || (canvas && canvas !== pic)) { if (pic.parentNode) { pic.parentNode.removeChild(pic); } return; }  // the video was faster
+      if (started || (canvas && canvas !== pic)) { if (pic.parentNode) { pic.parentNode.removeChild(pic); } stillSettled(); return; }  // the video was faster
       if (kind === "adapt") {
         if (bg) { wrap.style.setProperty("--hero-bg", bg); }
         else { try { var g = sampleBg(pic); if (g) { wrap.style.setProperty("--hero-bg", g); } } catch (e) { /* the video rebuilds it */ } }
       }
       v.classList.add("vgone"); canvas = pic; usedSaved = true; sampled = true; wrap.classList.add("vplay");
+      stillSettled();
     };
-    pic.onerror = function () { if (pic.parentNode) { pic.parentNode.removeChild(pic); } };
-    v.parentNode.insertBefore(pic, v.nextSibling); pic.src = src;
+    pic.onerror = function () { if (pic.parentNode) { pic.parentNode.removeChild(pic); } stillSettled(); };
+    pending++; v.parentNode.insertBefore(pic, v.nextSibling); pic.src = src;
   }
   // The last frame of the last visit, kept for good (not only for the session): after days without the app the picture is there before the video is.
   var LAST = "ca.hero.last";
@@ -220,9 +233,10 @@
       if (bg && kind === "adapt") { wrap.style.setProperty("--hero-bg", bg); }
       v.classList.add("vgone"); canvas = pic; done = !partial; usedSaved = true; sampled = true;
       wrap.classList.add("vplay");
+      stillSettled();
     };
-    pic.onerror = function () { try { sessionStorage.removeItem(KEY + ":img"); } catch (e) { /* ignore */ } };
-    v.parentNode.insertBefore(pic, v.nextSibling);
+    pic.onerror = function () { try { sessionStorage.removeItem(KEY + ":img"); } catch (e) { /* ignore */ } stillSettled(); };
+    pending++; v.parentNode.insertBefore(pic, v.nextSibling);
     pic.src = saved;
     if (!partial) { return; }
     resumeAt = parseFloat(savedT);

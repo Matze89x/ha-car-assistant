@@ -29,6 +29,12 @@ HANGS = (
     "var _src = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');"
     "Object.defineProperty(HTMLMediaElement.prototype, 'src', { get: function () { return _src.get.call(this); }, set: function (v) { this.setAttribute('data-wanted', v); } });"
 )
+# the picture takes its time (a slow connection, a busy phone) while the video is refused at once
+SLOW_PICTURE = (
+    "var _is = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');"
+    "Object.defineProperty(HTMLImageElement.prototype, 'src', { get: function () { return _is.get.call(this); },"
+    " set: function (v) { var me = this; setTimeout(function () { _is.set.call(me, v); }, 900); } });"
+)
 STATE = """JSON.stringify((function () {
   var w = document.querySelector('.hero-media'); if (!w) { return {none: true}; }
   var pic = w.querySelector('.hero-frozen'), v = w.querySelector('video');
@@ -201,3 +207,13 @@ def test_a_missing_video_file_keeps_the_picture(hero):
     time.sleep(1.0)
     s = hero.state()
     assert s["still"] == "IMG" and s["stillOpacity"] == 1 and s["h"] > 100
+
+
+def test_a_start_that_is_refused_before_the_picture_has_arrived_waits_for_the_picture(hero):
+    hero.visit(REFUSE + SLOW_PICTURE, keep_last=False, settle=0.2)
+    hero.b.wait_for(
+        "document.querySelector('.hero-media.vplay')", seconds=10
+    )  # the picture arrives (after the video was refused) and stands
+    time.sleep(0.3)
+    s = hero.state()
+    assert s["still"] == "IMG" and "failed" not in s["classes"] and "vplay" in s["classes"] and s["stillOpacity"] == 1 and s["h"] > 100

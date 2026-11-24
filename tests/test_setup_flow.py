@@ -102,6 +102,7 @@ def _stored(pk):
 def test_the_flow_goes_through_its_steps_and_a_wrong_login_stores_nothing(client, monkeypatch):
     vid, pk = _install(client)
     monkeypatch.setattr(pluginsvc, "approved", lambda addon: True)
+    monkeypatch.setattr(pluginsvc, "ready", lambda pk_: True)
     monkeypatch.setattr(pluginsvc, "restart", lambda pk_: None)
     base = f"/v/{slug(vid)}/integrations/{pk}/guide"
     first = client.get(base).text
@@ -136,6 +137,7 @@ def test_the_flow_goes_through_its_steps_and_a_wrong_login_stores_nothing(client
 def test_a_step_of_requirements_stops_everything_behind_it_until_it_is_met(client, monkeypatch):
     vid, pk = _install(client)
     monkeypatch.setattr(pluginsvc, "approved", lambda addon: True)
+    monkeypatch.setattr(pluginsvc, "ready", lambda pk_: True)
     base = f"/v/{slug(vid)}/integrations/{pk}/guide"
     page = client.get(base + "?step=4").text  # the step asked for is behind the requirements: the page stops at the requirements
     assert "Not filled in yet." in page and "User name" in page and '<button class="primary" disabled' in page
@@ -145,6 +147,7 @@ def test_a_step_of_requirements_stops_everything_behind_it_until_it_is_met(clien
 def test_a_service_can_make_the_file_of_a_step_and_the_name_is_made_safe(client, monkeypatch):
     vid, pk = _install(client)
     monkeypatch.setattr(pluginsvc, "approved", lambda addon: True)
+    monkeypatch.setattr(pluginsvc, "ready", lambda pk_: True)
     monkeypatch.setattr(pluginsvc, "restart", lambda pk_: None)
     with db.tx() as conn:
         conn.execute("UPDATE vehicle_addons SET settings = ? WHERE id = ?", (json.dumps({"user": "max"}), pk))
@@ -178,6 +181,7 @@ def test_a_service_can_make_the_file_of_a_step_and_the_name_is_made_safe(client,
 def test_the_last_step_marks_the_plugin_as_set_up(client, monkeypatch):
     vid, pk = _install(client)
     monkeypatch.setattr(pluginsvc, "approved", lambda addon: True)
+    monkeypatch.setattr(pluginsvc, "ready", lambda pk_: True)
     monkeypatch.setattr(pluginsvc, "restart", lambda pk_: None)
     monkeypatch.setattr(pluginsvc, "write_token", lambda addon, token: None)
     r = client.post(f"/v/{slug(vid)}/integrations/{pk}/guide/flow", data={"step": "5", "do": "finish"})
@@ -223,3 +227,77 @@ def test_the_plugin_checker_names_buttons_and_steps_the_app_would_drop(tmp_path)
     good["buttons"] = [{"id": "docs", "label": "Docs", "page": "docs"}]
     (folder / "plugin.json").write_text(json.dumps(good))
     assert not [n for n in check_plugin.check(folder / "plugin.json")[1] if "dropped" in n]
+
+
+REAL_SERVICE = """
+import io, json, os, zipfile
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+
+class H(BaseHTTPRequestHandler):
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length") or 0)
+        data = json.loads(self.rfile.read(n) or b"{}")
+        if self.path == "/priv/login":
+            v = data.get("values", {})
+            ok = v.get("user") == "max" and v.get("password") == "right"
+            out = json.dumps({"ok": True, "message": "Logged in as Max.", "settings": {"status": "Connected"}} if ok else {"ok": False, "message": "Wrong password."}).encode()
+            self.send_response(200 if ok else 401)
+            self.send_header("Content-Type", "application/json")
+        else:
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w") as z:
+                z.writestr("who.txt", str(data["settings"].get("user")) + "|" + str(data["settings"].get("status")) + "|" + self.headers.get("X-CA-Vehicle", ""))
+            out = buf.getvalue()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/zip")
+            self.send_header("Content-Disposition", 'attachment; filename="install.zip"')
+        self.send_header("Content-Length", str(len(out)))
+        self.end_headers()
+        self.wfile.write(out)
+
+    def log_message(self, *a):
+        pass
+
+
+HTTPServer(("127.0.0.1", int(os.environ["CA_PORT"])), H).serve_forever()
+"""
+
+
+def test_a_real_service_checks_the_login_and_makes_the_zip_after_its_own_restart(client, monkeypatch):
+    import io
+    import zipfile
+
+    from tests import test_pluginsvc as ps
+
+    vid, pk = ps._install(client, {"service/main.py": REAL_SERVICE}, manifest(id="flow-real"))
+    restart = pluginsvc.restart
+
+    def restart_and_start(pk_):  # in the app a thread brings the service back; here the test does it
+        restart(pk_)
+        pluginsvc.tick()
+
+    monkeypatch.setattr(pluginsvc, "restart", restart_and_start)
+    base = f"/v/{vid}/integrations/{pk}/guide/flow"
+    try:
+        with db.tx() as conn:
+            conn.execute("UPDATE vehicle_addons SET active = 1 WHERE id = ?", (pk,))
+            assert pluginsvc.approve(conn, addons.get(conn, vid, pk)) is None
+        pluginsvc._installing.add(pk)
+        pluginsvc._install(pk)
+        pluginsvc.tick()
+        assert ps._wait(lambda: pluginsvc.running(pk))
+        bad = client.post(base, data={"step": "2", "do": "check", "user": "max", "password": "nope"})
+        assert bad.status_code == 422 and "Wrong password." in bad.text and _stored(pk)[1] == {}  # the real answer, nothing stored
+        good = client.post(base, data={"step": "2", "do": "check", "user": "max", "password": "right"})
+        assert good.status_code == 200 and "Logged in as Max." in good.text
+        assert _stored(pk)[1]["status"] == "Connected"  # the service wrote its own value
+        # the save restarted the service; the next step waits for it and then the service builds the file from what it was sent
+        made = client.post(base, data={"step": "4", "do": "make"})
+        assert made.status_code == 200 and made.headers["content-type"] == "application/zip"
+        assert 'filename="install.zip"' in made.headers["content-disposition"]
+        with zipfile.ZipFile(io.BytesIO(made.content)) as z:
+            assert z.read("who.txt").decode() == f"max|Connected|{vid}"
+    finally:
+        pluginsvc.stop_all()
+        pluginsvc._stop.clear()
