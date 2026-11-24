@@ -34,8 +34,8 @@
     {% if v.vin %}<div class="vin-plate"><span class="vin-l">{{ icon('identifier', 14) }}{{ _('f.vin') }}{% if v.vin_verified %} <span class="vin-ok" aria-label="{{ _('vin.verified') }}">{{ icon('check', 12) }}<span>{{ _('vin.verified') }}</span></span>{% endif %}</span>
       <div class="vin-slot"><code id="vin-val" class="vin-engraved" aria-label="{{ v.vin }}">{{ v.vin }}</code>
       <button type="button" class="icon-btn vin-copy" data-copy="{{ v.vin }}" data-done="{{ _('btn.copied') }}" aria-label="{{ _('btn.copy') }}">{{ icon('content-copy', 16) }}</button></div></div>{% endif %}
+    {% if not odo_from_car %}<div class="vd-odo">{{ odo_entry(odometer is none) }}</div>{% endif %}  {# no plugin reports the odometer: it is typed (or read from a photo) right here, inside the card, as on the dashboard #}
   </div>
-  {% if not odo_from_car %}<div class="vd-odo">{{ odo_entry(odometer is none) }}</div>{% endif %}  {# no plugin reports the odometer: it is typed (or read from a photo) right here, as on the dashboard #}
   <div class="vd-groups">
     <div class="vd-col">
     {% set body_g1 %}

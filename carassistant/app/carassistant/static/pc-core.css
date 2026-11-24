@@ -3434,6 +3434,7 @@ html.lmz-lock { overflow: hidden; }
 .odo-hrow.odd .odo-hkm { color: var(--overdue); }
 .vd-odo { margin: 14px 0 0; }
 .vd-odo .odo-edit { margin: 0; }
+.vd-hero .vd-odo { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--glass-b); }  /* inside the card, under the VIN, set off by a thin line - not a pill floating between two blocks */
 
 /* THE ODOMETER PLATE (dashboard, and as the third look of the odometer widget). A dark box like the instrument cluster; the figure is a mechanical counter
    whose cells roll down through the box (app.js builds the strips). On the dashboard it is a FLIP CARD: a tap on the front turns it over from top to bottom
