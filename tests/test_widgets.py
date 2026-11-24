@@ -90,7 +90,7 @@ def test_the_unit_of_a_plugin_tile_is_shown_in_the_language_of_the_app(env):
     assert cleaned[0]["l10n"]["de"]["unit"] == "Tage" and "junk" not in cleaned[0]["l10n"]["de"]  # the unit is kept (and only known keys)
 
 
-def test_the_odometer_widget_fills_its_tile_with_the_months_the_average_and_the_way_to_the_service(client):
+def test_the_odometer_widget_shows_only_the_months_under_its_figure(client):
     """Under the figure: the kilometres of the last six months as bars (this month marked), the average a day, this month, the progress to the next service.
     Only worked out while the widget is switched on (it is off until somebody turns it on)."""
     from tests.conftest import demo_car
@@ -107,7 +107,10 @@ def test_the_odometer_widget_fills_its_tile_with_the_months_the_average_and_the_
     )  # drums and tile look carry it, the plate look does not
     assert page.count('class="mb top"') >= 2 or 'class="mb top"' in page  # this month is the marked bar
     assert 'wd-t">Kilometerstand' not in page and 'class="wd-t">Odometer' in page  # the short title: it fits the small tile
-    assert "a day" in page and "this month" in page and "odo-next" in page
+    assert "odo-wd-stats" not in page and "a day" not in page and "this month" not in page  # only the bars: no average, no month sum
+    assert all(
+        "odo-next" not in chunk.split("</section>")[0] for chunk in page.split('class="odo-wd-foot"')[1:]
+    )  # and no way to the next service in it
 
 
 def _appointments_tile(client, slug_, days: list[tuple[str, int]]) -> str:

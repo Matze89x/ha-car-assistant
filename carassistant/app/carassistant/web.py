@@ -861,18 +861,15 @@ def _week_km(conn: sqlite3.Connection, vid: int) -> tuple[list[tuple[str, float]
 
 
 def _odometer_stats(conn: sqlite3.Connection, vid: int) -> dict | None:
-    """What the odometer widget shows besides the figure: the kilometres of the last six months as small bars (with the month names), the average
-    a day over the last thirteen weeks and the kilometres of this month. None when nothing is known."""
+    """What the odometer widget shows besides the figure: the kilometres of the last six months as small bars (with the month names) - and nothing
+    more, the tile stays calm. None when nothing is known."""
     shown = units.of()
     names = trips.MONTHS.get(config.language(), trips.MONTHS["en"])
     months = fuelstats.kilometres(conn, vid, "month", 6)
-    weeks = [km for _key, km in fuelstats.kilometres(conn, vid, "week", 13) if km is not None]
     bars = charts.mini_bars_svg([(names[int(key[5:7]) - 1], shown.d(km) if km else 0.0) for key, km in months], slim=True, mark_last=True)
-    avg = sum(weeks) / (7 * len(weeks)) if len(weeks) >= 2 and sum(weeks) > 0 else None
-    month_km = months[-1][1] if months and months[-1][1] else None
-    if not bars and avg is None:
+    if not bars:
         return None
-    return {"bars": bars, "months": [names[int(key[5:7]) - 1][:3] for key, _km in months], "avg": avg, "month_km": month_km}
+    return {"bars": bars, "months": [names[int(key[5:7]) - 1][:3] for key, _km in months]}
 
 
 @app.get("/v/{vid}")
