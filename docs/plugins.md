@@ -156,12 +156,14 @@ A plugin that logs in to a web service keeps the credentials in its settings (a 
 | `select` | a dropdown | `options`: `[{"value": "eco", "label": "Economy"}]` (at most 30; a value has no comma) |
 | `radio` | choose one of a few, all visible | `options` |
 | `multiselect` | tick any of a few (checkboxes) | `options`; stored as `a,b` |
-| `list` | rows of a name and a value (for example news feeds and their addresses), add / remove / move up and down, at most 30; the service gets them in the order shown as `[{"name", "value"}]` | `name_label`, `value_label` |
+| `list` | rows of a name and a value (for example news feeds and their addresses), add / remove, and put in order with the **handle on the left of each row** (drag it with the mouse or a finger, or press the arrow keys on it), at most 30; the service gets them in the order shown as `[{"name", "value"}]` | `name_label`, `value_label` |
 | `url` | a web address (http / https), checked | `required` |
 | `email` | an e-mail address, checked | `required` |
 | `time` | a time `HH:MM` | |
 | `date` | a date `YYYY-MM-DD` | |
 | `color` | a colour picker; stored as `#rrggbb` | |
+
+**Lengths of texts - longer ones are cut without a message in the app.** `label` 60 characters (the label of a tab 40), `help` 300 (in the fields of a page, `pages[].fields`: 200), all of them also in `l10n.<language>`; line breaks become spaces. `tools/check_plugin.py` warns about a text that would be cut - a help text that ends in the middle of a sentence has been cut.
 | `section` | a heading (with `help` as text) that groups the fields below it | |
 | `tab` | a tab of the settings page: `id` (lower case, `_`), `label`, optional `icon` (an app icon) and `l10n`. Every setting after it belongs to this tab, until the next `tab`; settings before the first `tab` form the tab *General*. Without `tab` (or with only one) the page stays one list. Everything around the settings (set-up guide, files, the token and the connection file, uninstall) sits under the first tab. A tab holds no value, `show_if`, `advanced` and the key of each setting work as before | `id`, `label`, `icon` |
 | `info` | a text only (`label` bold, `help` as text), nothing stored | |

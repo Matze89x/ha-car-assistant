@@ -71,6 +71,23 @@ def check(target: Path) -> tuple[list[str], list[str]]:
         return [f"plugin.json is not valid JSON: {exc}"], []
     for key in sorted(set(data) - KNOWN):
         notes.append(f"Unknown key '{key}' in plugin.json - ignored by the app (a typo?). Known keys: {', '.join(sorted(KNOWN))}")
+    # texts the app cuts without a word (addons._text): say so here
+    def long_texts(node, where: str) -> None:
+        """Warn about a label / help that is longer than the app keeps (also inside l10n)."""
+        if isinstance(node, dict):
+            for key, limit in (("label", 60), ("help", 300)):
+                value = node.get(key)
+                if isinstance(value, str) and len(" ".join(value.split())) > limit:
+                    notes.append(f"{where}: '{key}' has {len(' '.join(value.split()))} characters - the app keeps {limit} and cuts the rest ({value[:30]}...)")
+            if node.get("type") == "tab" and isinstance(node.get("label"), str) and len(node["label"]) > 40:
+                notes.append(f"{where}: the label of a tab is cut at 40 characters")
+            for k, v in node.items():
+                long_texts(v, f"{where}.{k}" if k != "settings" else where)
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                long_texts(v, where)
+
+    long_texts({k: data[k] for k in ("settings", "pages", "l10n") if k in data}, "plugin.json")
     try:
         manifest = addons.parse_package(raw)
     except addons.AddonError as exc:

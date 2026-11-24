@@ -156,12 +156,14 @@ Ein Plugin, das sich bei einem Webdienst anmeldet, hält die Zugangsdaten in sei
 | `select` | ein Auswahlfeld | `options`: `[{"value": "eco", "label": "Sparsam"}]` (höchstens 30; ein Wert hat kein Komma) |
 | `radio` | eines von wenigen, alle sichtbar | `options` |
 | `multiselect` | beliebig viele ankreuzen (Kontrollkästchen) | `options`; gespeichert als `a,b` |
-| `list` | Zeilen aus Name und Wert (zum Beispiel Nachrichten-Feeds und ihre Adressen), hinzufügen / entfernen / nach oben und unten schieben, höchstens 30; der Dienst bekommt sie in der angezeigten Reihenfolge als `[{"name", "value"}]` | `name_label`, `value_label` |
+| `list` | Zeilen aus Name und Wert (zum Beispiel Nachrichten-Feeds und ihre Adressen), hinzufügen / entfernen und mit dem **Griff links in jeder Zeile** in die Reihenfolge bringen (mit Maus oder Finger ziehen, oder die Pfeiltasten auf ihm), höchstens 30; der Dienst bekommt sie in der angezeigten Reihenfolge als `[{"name", "value"}]` | `name_label`, `value_label` |
 | `url` | eine Webadresse (http / https), geprüft | `required` |
 | `email` | eine E-Mail-Adresse, geprüft | `required` |
 | `time` | eine Uhrzeit `HH:MM` | |
 | `date` | ein Datum `JJJJ-MM-TT` | |
 | `color` | eine Farbauswahl; gespeichert als `#rrggbb` | |
+
+**Längen von Texten - längere werden in der App ohne Meldung abgeschnitten.** `label` 60 Zeichen (die Beschriftung eines Reiters 40), `help` 300 (in den Feldern einer Seite, `pages[].fields`: 200), alle auch in `l10n.<Sprache>`; Zeilenumbrüche werden zu Leerzeichen. `tools/check_plugin.py` warnt vor einem Text, der abgeschnitten würde - ein Hilfetext, der mitten im Satz endet, wurde abgeschnitten.
 | `section` | eine Überschrift (mit `help` als Text), die die Felder darunter gruppiert | |
 | `tab` | ein Reiter der Einstellungsseite: `id` (Kleinbuchstaben, `_`), `label`, optional `icon` (ein Icon der App) und `l10n`. Jede Einstellung danach gehört zu diesem Reiter, bis zum nächsten `tab`; Einstellungen vor dem ersten `tab` bilden den Reiter *Allgemein*. Ohne `tab` (oder mit nur einem) bleibt die Seite eine Liste. Alles um die Einstellungen herum (Einrichtungsanleitung, Dateien, Token und Anbindungsdatei, Deinstallieren) steht unter dem ersten Reiter. Ein Reiter hat keinen Wert; `show_if`, `advanced` und der Schlüssel jeder Einstellung gelten wie bisher | `id`, `label`, `icon` |
 | `info` | nur ein Text (`label` fett, `help` als Text), nichts gespeichert | |
