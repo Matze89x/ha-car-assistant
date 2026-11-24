@@ -57,10 +57,19 @@
   var v = document.querySelector("video.hero-video");
   if (!v) { return; }
   var wrap = v.parentNode, kind = v.getAttribute("data-kind") || "adapt";
-  function giveUp() { wrap.classList.add("failed"); if (v.parentNode) { v.parentNode.removeChild(v); } }
+  var SRC = v.getAttribute("data-src") || "", POSTER = v.getAttribute("data-poster") || "";
+  // The muted PROPERTY, not only the attribute: a video that a page swap put in has the attribute but not the property, and a phone refuses to start it.
+  v.muted = true; v.defaultMuted = true; v.loop = false; v.removeAttribute("loop"); v.setAttribute("playsinline", "");
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { giveUp(); return; }
 
-  var done = false, seeking = false, canvas = null, shown = false, sampled = false, tries = 0, watchdog = null;
+  var done = false, seeking = false, canvas = null, shown = false, sampled = false, tries = 0, watchdog = null, started = false, kept = null;
+  // The video cannot start (an error, no permission, low power, too slow): a picture stands - the last frame of the earlier visit, else the video's own
+  // picture - and the box is never empty. Only when there is no picture at all, the car photo takes over (as it always did).
+  function giveUp() {
+    clearTimeout(watchdog);
+    if (canvas) { wrap.classList.add("vplay"); return; }
+    wrap.classList.add("failed"); if (v.parentNode) { v.parentNode.removeChild(v); }
+  }
   // The video plays once per visit of the app. Its last frame is kept (as a picture, in the browser's session storage); coming back to Home shows
   // that picture at once - the video is not loaded or started again until it is tapped.
   var KEY = "ca.vp:" + (v.getAttribute("data-src") || ""), saved = null, usedSaved = false;
@@ -69,9 +78,9 @@
   try { savedT = sessionStorage.getItem(KEY + ":t"); } catch (e) { savedT = null; }
 
   // "Match": the page rebuilds the video's background from its left and right edge colours (top to bottom), behind the video.
-  function sampleBg() {
+  function sampleBg(el) {
     var c = document.createElement("canvas"); c.width = 96; c.height = 54;
-    var x = c.getContext("2d"); x.drawImage(v, 0, 0, 96, 54);
+    var x = c.getContext("2d"); x.drawImage(el || v, 0, 0, 96, 54);
     var d = x.getImageData(0, 0, 96, 54).data, stops = [], r, rr, k, col, i, R, G, B, n, seen = 0;
     for (r = 0; r < 54; r += 4) {
       R = G = B = n = 0;
@@ -107,8 +116,29 @@
     } catch (e) { return false; }
   }
   function unfreeze() {
-    v.classList.remove("vgone");
-    if (canvas) { canvas.parentNode.removeChild(canvas); canvas = null; }
+    v.style.transition = "none"; v.classList.remove("vgone");
+    if (canvas) { kept = canvas; canvas.parentNode.removeChild(canvas); canvas = null; }
+    setTimeout(function () { v.style.transition = ""; }, 60);
+  }
+  // The picture of an earlier visit stands in until the video really plays (and again when it cannot).
+  function showStill(src, bg) {
+    var pic = new Image();
+    pic.className = "hero-video hero-frozen"; pic.alt = ""; pic.setAttribute("aria-hidden", "true");
+    pic.onload = function () {
+      if (started || (canvas && canvas !== pic)) { if (pic.parentNode) { pic.parentNode.removeChild(pic); } return; }  // the video was faster
+      if (kind === "adapt") {
+        if (bg) { wrap.style.setProperty("--hero-bg", bg); }
+        else { try { var g = sampleBg(pic); if (g) { wrap.style.setProperty("--hero-bg", g); } } catch (e) { /* the video rebuilds it */ } }
+      }
+      v.classList.add("vgone"); canvas = pic; usedSaved = true; sampled = true; wrap.classList.add("vplay");
+    };
+    pic.onerror = function () { if (pic.parentNode) { pic.parentNode.removeChild(pic); } };
+    v.parentNode.insertBefore(pic, v.nextSibling); pic.src = src;
+  }
+  // The last frame of the last visit, kept for good (not only for the session): after days without the app the picture is there before the video is.
+  var LAST = "ca.hero.last";
+  function lastStill() {
+    try { var o = JSON.parse(localStorage.getItem(LAST) || "null"); return o && o.src === SRC && o.img ? o : null; } catch (e) { return null; }
   }
   // A picture of what the video shows right now (or of its frozen last frame): kept when Home is left, so coming back never shows an empty box.
   function stillOf() {
@@ -128,6 +158,7 @@
       sessionStorage.setItem(KEY + ":bg", wrap.style.getPropertyValue("--hero-bg") || "");
       if (partial) { sessionStorage.setItem(KEY + ":t", String(v.currentTime || 0)); } else { sessionStorage.removeItem(KEY + ":t"); }
     } catch (e) { /* too big or no storage */ }
+    if (!partial) { try { localStorage.setItem(LAST, JSON.stringify({ src: SRC, img: img, bg: wrap.style.getPropertyValue("--hero-bg") || "" })); } catch (e) { /* no room: the next visit starts from the video's own picture */ } }
   }
   function leaving() { if (!done) { remember(true); } }
   document.addEventListener("ca:leave", leaving);
@@ -148,29 +179,38 @@
   });
   v.addEventListener("seeked", function () { if (seeking) { seeking = false; freeze(); wrap.classList.add("vplay"); } });
   v.addEventListener("loadeddata", reveal);  // the first frame shows at once: no empty box, and no photo, before the video starts
-  v.addEventListener("playing", function () { reveal(); if (usedSaved && !done && canvas) { unfreeze(); usedSaved = false; } });  // the resumed video takes over from the picture
+  v.addEventListener("playing", function () { started = true; clearTimeout(watchdog); reveal(); if (usedSaved && !done && canvas) { unfreeze(); usedSaved = false; } });  // the resumed video takes over from the picture
   v.addEventListener("ended", function () {
-    done = true; v.pause(); freeze();
+    done = true; started = true; clearTimeout(watchdog); v.pause(); freeze();
     remember(false);
     if (kind === "adapt" && sampled) { try { var g = sampleBg(); if (g) { wrap.style.setProperty("--hero-bg", g); } } catch (e) { /* keep the first sample */ } }
   });
   v.addEventListener("error", giveUp);
   function go() {
     if (done || v.ended || !shown || document.hidden) { return; }
-    if (!watchdog) { watchdog = setTimeout(function () { if (!wrap.classList.contains("vplay")) { giveUp(); } }, 9000); }
-    var p = v.play(); if (p && p.catch) { p.catch(function () { if (!wrap.classList.contains("vplay")) { giveUp(); } }); }
+    v.muted = true;
+    var p = v.play(); if (p && p.catch) { p.catch(function () { if (!started) { giveUp(); } }); }
   }
+  // From the page's start on: when the video has not really played after nine seconds, the picture stays (and a tap tries again).
+  watchdog = setTimeout(function () { if (!started && !done) { giveUp(); } }, 9000);
   // Tap: plays again from the start (only when it is not running); the standing last frame is replaced at that very moment.
   wrap.addEventListener("click", function () {
     if (!v.parentNode) { return; }
     if (v.ended || v.paused) {
       if (!v.getAttribute("src")) { v.src = v.getAttribute("data-src"); }
+      var held = canvas;
       unfreeze(); try { v.currentTime = 0; } catch (e) { /* not seekable yet */ }
-      done = false; shown = true;
-      var p = v.play(); if (p && p.catch) { p.catch(function () { /* stays on the last frame */ }); }
+      done = false; shown = true; started = false; usedSaved = !!held; v.muted = true;
+      var p = v.play(); if (p && p.catch) { p.catch(function () { if (held && !canvas && !started) { v.classList.add("vgone"); wrap.insertBefore(held, v.nextSibling); canvas = held; done = true; } }); }
     }
   });
   document.addEventListener("visibilitychange", function () { if (document.hidden) { if (!done) { remember(true); v.pause(); } } else if (done) { reseek(); } else { go(); } });
+  window.addEventListener("pageshow", function () { if (done) { reseek(); } else { go(); } });  // a page the phone kept and brings back: the video starts again
+  setTimeout(function () {  // the observer below reports nothing on some phones when the page was restored: then look for ourselves
+    if (shown || done || document.hidden) { return; }
+    var r = wrap.getBoundingClientRect();
+    if (r.bottom > 0 && r.top < (window.innerHeight || 800)) { shown = true; go(); }
+  }, 1500);
   if (saved) {
     var pic = new Image();
     pic.className = "hero-video hero-frozen"; pic.alt = ""; pic.setAttribute("aria-hidden", "true");
@@ -187,7 +227,9 @@
     if (!partial) { return; }
     resumeAt = parseFloat(savedT);
   }
-  v.src = v.getAttribute("data-src");
+  var last = lastStill();
+  if (!saved) { if (last) { showStill(last.img, last.bg); } else if (POSTER) { showStill(POSTER, ""); } }  // (a picture of this very session is already standing)
+  v.src = SRC;
   if ("IntersectionObserver" in window) {
     new IntersectionObserver(function (es) {
       es.forEach(function (e) { shown = e.isIntersecting; if (shown) { if (done) { reseek(); } else { go(); } } else if (!done) { v.pause(); } });

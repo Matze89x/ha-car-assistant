@@ -881,6 +881,9 @@ def vehicle_overview(request: Request, vid: int):
         vehicle = vehicle_or_404(conn, vid)
         s = summary.vehicle_summary(conn, vehicle)
         hero_media = media.active(conn, vid)
+        hero_poster = bool(
+            hero_media and hero_media["kind"] == "video" and media.poster_of(vid, hero_media).is_file()
+        )  # the picture that stands in for the video
         recent_service = conn.execute("SELECT * FROM service WHERE vehicle_id = ? ORDER BY date DESC, id DESC LIMIT 5", (vid,)).fetchall()
         stats = fuelstats.overall(conn, vid)
         upcoming = conn.execute("SELECT * FROM appointments WHERE vehicle_id = ? AND done = 0 ORDER BY due_date LIMIT 5", (vid,)).fetchall()
@@ -945,6 +948,7 @@ def vehicle_overview(request: Request, vid: int):
             tank_info=tank_info,
             tank_unit=unit_for(vehicle["fuel_type"]),
             hero_media=hero_media,
+            hero_poster=hero_poster,
             **{f"media_{k}": val for k, val in media.panel(conn, vid).items()},
             fresh_ago=vehicle_status.freshness(live_rows, t),
             fresh_at=vehicle_status.last_signal(live_rows),

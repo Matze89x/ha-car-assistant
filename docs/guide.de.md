@@ -48,7 +48,7 @@ Beide Fotos werden **auf deinem eigenen Server** gelesen (Texterkennung mit Tess
 ## Einstellungen eines Autos
 *Einstellungen → Auto* (das Auto unter dem Titel):
 - **Icon** – das eigene Icon des Autos für Weiteres, den Browser-Tab und den Home-Bildschirm.
-- **Foto und Video** – bis zu **10 Dateien pro Auto**, Fotos und Videos zusammen; beim elften Hinzufügen fällt die älteste heraus. Zwei Auswahlen, sofort gespeichert: *Für die Startseite* (ein Foto oder ein Video) und *Als Foto des Autos* (für die Autoauswahl und alle Listen). Ein Video braucht zuerst ein Foto.
+- **Foto und Video** – bis zu **10 Dateien pro Auto**, Fotos und Videos zusammen; beim elften Hinzufügen fällt die älteste heraus. Zwei Auswahlen, sofort gespeichert: *Für die Startseite* (ein Foto oder ein Video; ein Video läuft bei jedem Besuch einmal und bleibt dann auf seinem letzten Bild stehen - dieses Bild wird auf dem Gerät behalten, damit die Startseite auch dann ein Bild zeigt, wenn das Handy das Video nicht startet, zum Beispiel im Stromsparmodus, und ein Tipp spielt es wieder ab) und *Als Foto des Autos* (für die Autoauswahl und alle Listen). Ein Video braucht zuerst ein Foto.
 - **Design** – das eigene Design des Autos mit eigenem Farbrad; *Wie das System* folgt dem Design von System.
 - **Home-Assistant-Entitäten** – optionale Entitäten, die Kilometerstand, Tankstand, Reichweite und Position liefern (hier gibt es ein **Speichern**).
 - **Sichern & verwalten** – dieses Auto sichern, archivieren oder löschen.

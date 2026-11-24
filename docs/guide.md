@@ -48,7 +48,7 @@ Both photos are read **on your own server** (text recognition with Tesseract, no
 ## Settings of a car
 *Settings → Car* (the car shown under the title):
 - **Icon** – the car's own icon for More, the browser tab and the home screen.
-- **Photo and video** – up to **10 files per car**, photos and videos together; the oldest drops out when you add an eleventh. Two choices, saved at once: *For the Dashboard* (a photo or a video) and *As the car's photo* (for the car choice and every list). A video needs a photo first.
+- **Photo and video** – up to **10 files per car**, photos and videos together; the oldest drops out when you add an eleventh. Two choices, saved at once: *For the Dashboard* (a photo or a video; a video plays once at each visit and then stands on its last frame - that frame is kept on the device, so the dashboard shows a picture even when the phone does not start the video, for example in low power mode, and a tap plays it again) and *As the car's photo* (for the car choice and every list). A video needs a photo first.
 - **Design** – the car's own design with its own colour wheel; *Like the system* follows the design of System.
 - **Home Assistant entities** – optional entities that deliver odometer, fuel level, range and position (this one has a **Save**).
 - **Backup and manage** – back up this car, archive it or delete it.

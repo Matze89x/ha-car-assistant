@@ -17,7 +17,7 @@
       {% if hero_media and hero_media.kind == 'video' %}
       <div class="hero-media {{ v.media_kind or 'adapt' }}" data-keep title="{{ _('media.replay') }}">
         {% if v.photo %}<img class="hero-car photo" src="{{ base }}/v/{{ v.slug }}/photo?v={{ v.photo }}" alt="">{% else %}<img class="hero-car" src="{{ base }}/static/car-default.webp?v={{ asset_v }}" alt="">{% endif %}
-        <video class="hero-video" muted playsinline preload="auto" disablepictureinpicture aria-hidden="true" tabindex="-1" data-src="{{ base }}/v/{{ v.slug }}/media/{{ hero_media.id }}/file" data-kind="{{ v.media_kind or 'adapt' }}"></video>
+        <video class="hero-video" muted playsinline preload="auto" disablepictureinpicture aria-hidden="true" tabindex="-1" data-src="{{ base }}/v/{{ v.slug }}/media/{{ hero_media.id }}/file"{% if hero_poster %} data-poster="{{ base }}/v/{{ v.slug }}/media/{{ hero_media.id }}/poster"{% endif %} data-kind="{{ v.media_kind or 'adapt' }}"></video>
       </div>
       {% elif hero_media %}<img class="hero-car photo soft" src="{{ base }}/v/{{ v.slug }}/media/{{ hero_media.id }}/file" alt="">{% else %}<img class="hero-car" src="{{ base }}/static/car-default.webp?v={{ asset_v }}" alt="">{% endif %}
     </div>
