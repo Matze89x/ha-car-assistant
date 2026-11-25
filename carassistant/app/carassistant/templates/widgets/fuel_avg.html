@@ -4,5 +4,6 @@
   <div class="wd-v">{{ fnum(units.c(stats.avg_per_100, unit), 1) }} <small>{{ units.consumption_unit(unit) }}</small></div>
   {% if cons_delta is not none %}<div class="wd-s"><span class="wd-delta {{ 'up' if cons_delta > 0.05 else ('down' if cons_delta < -0.05 else '') }}">{{ '▲' if cons_delta > 0.05 else ('▼' if cons_delta < -0.05 else '●') }} {{ fnum(units.c(stats.last_per_100, unit), 1) }}</span> {{ _('wd.last_fill') }}</div>{% endif %}
   {{ spark_cons|safe }}
+  {% if cons_cap %}<div class="wd-s">{{ _('wd.cons_cap', n=cons_cap.n) }} <b>{{ fnum(units.c(cons_cap.lo, unit), 1) }}–{{ fnum(units.c(cons_cap.hi, unit), 1) }}</b></div>{% endif %}
 {% endcall %}
 {% endif %}

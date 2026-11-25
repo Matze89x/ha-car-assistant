@@ -130,3 +130,20 @@ def test_a_car_can_have_its_own_design(client):
 def test_hidden_widgets_are_not_displayed_outside_edit_mode():
     css = (Path(__file__).parent.parent / "carassistant/app/carassistant/static/pc-core.css").read_text()
     assert ".wgrid:not(.editing) .wd-slot.off { display: none; }" in css
+
+
+def test_the_two_small_charts_say_what_they_show(client):
+    """The line charts of *Fuel* (price per litre) and *Average consumption* (every tank) have a line under them: how many fill-ups and the last price /
+    the range - where the figures come from."""
+    vid = create_vehicle(client, "Chart Car")
+    s = slug_of(vid)
+    for i, (km, litres, total) in enumerate(
+        ((42000, 40, 64.0), (42600, 38, 62.7), (43200, 41, 70.5), (43800, 39, 68.3), (44400, 40, 72.0))
+    ):
+        client.post(
+            f"/v/{s}/e/fuel",
+            data={"date": f"2026-0{i + 1}-10", "amount": str(litres), "price_total": str(total), "odometer_km": str(km), "full_tank": "1"},
+        )
+    page = client.get(f"/v/{s}").text
+    assert "Price per L, last 5 fill-ups:" in page and "1.800 €" in page  # 72.0 / 40
+    assert "Per fill-up, last 4:" in page and "–" in page.split("Per fill-up, last 4:")[1][:80]

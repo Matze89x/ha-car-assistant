@@ -1,19 +1,19 @@
 {% from "_macros.html" import icon, sub_h with context %}
 <div class="eq-panel tp-add fs-panel" id="fuel-settings" {{ 'hidden' if not request.query_params.get('fs') else '' }}>
-  <h2 class="fs-h">{{ icon('settings', 20) }} {{ _('fs.title') }}</h2>
-  <p class="hint">{{ icon('info', 14) }} {{ _('fs.intro') }}</p>
+  <h2 class="fs-h">{{ icon('settings', 20) }} {{ _('chg.settings_title' if stn.electric else 'fs.title') }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ _('chg.settings_intro' if stn.electric else 'fs.intro') }}</p>
 
   <div class="sub-card">
-    {{ sub_h('gas-station', _('fs.sources')) }}
+    {{ sub_h('plug' if stn.electric else 'gas-station', _('chg.sources' if stn.electric else 'fs.sources')) }}
     {% for o in stn.sources %}
     <div class="fs-src">
       <div class="fs-name"><b>{{ o.name }}</b>{% if o.id == stn.source %}<span class="badge ok">{{ _('fs.in_use') }}</span>{% endif %}
         {% if o.needs_key %}<span class="badge {{ 'ok' if o.has_key else '' }}">{{ _('fs.key_set') if o.has_key else _('fs.key_missing') }}</span>{% endif %}</div>
-      <small class="muted">{{ (o.countries|join(', ') ~ ' · ') if o.countries else '' }}{{ _('fs.prices') if o.prices else _('fs.no_prices') }}{% if o.license %} · {{ o.license }}{% endif %}{% if o.source == 'added' %} · {{ _('fs.own_file') }}{% endif %}</small>
+      <small class="muted">{{ (o.countries|join(', ') ~ ' · ') if o.countries else '' }}{{ (_('fs.prices') if o.prices else _('fs.no_prices')) if not stn.electric else '' }}{% if o.license %}{{ ' · ' if (o.countries or not stn.electric) }} · {{ o.license }}{% endif %}{% if o.source == 'added' %} · {{ _('fs.own_file') }}{% endif %}</small>
       {% if o.attribution %}<small class="muted">{{ o.attribution }}</small>{% endif %}
       {% if o.needs_key %}
       <form method="post" action="{{ base }}/settings/fuelkey" class="fs-key">
-        <input type="hidden" name="id" value="{{ o.id }}"><input type="hidden" name="back" value="/v/{{ v.slug }}/e/fuel">
+        <input type="hidden" name="id" value="{{ o.id }}"><input type="hidden" name="back" value="/v/{{ v.slug }}/e/fuel">{% if stn.electric %}<input type="hidden" name="kind" value="charge">{% endif %}
         <input type="password" name="api_key" autocomplete="off" maxlength="200" aria-label="{{ o.name }}" placeholder="{{ _('settings.tk_set') if o.has_key else _('settings.tk_key') }}">
         <div class="nm-actions">
           {% if o.key_url %}<a class="button small" href="{{ o.key_url }}" target="_blank" rel="noopener">{{ icon('key-variant', 16) }}<span>{{ _('settings.tk_link') }}</span></a>{% endif %}
@@ -26,13 +26,20 @@
     {% endfor %}
   </div>
 
+  {% if stn.electric %}<div class="sub-card">
+    {{ sub_h('lightning-bolt', _('chg.home_title')) }}
+    <p class="hint">{{ icon('info', 14) }} {{ _('chg.home_hint') }}</p>
+    <form method="post" action="{{ base }}/v/{{ v.id }}/home-price" data-live class="grid">
+      <label>{{ _('chg.home_price') }} ({{ units.cur }}/kWh)<input name="price" inputmode="decimal" maxlength="6" placeholder="0,30" value="{{ fnum(home_price, 3) if home_price else '' }}" autocomplete="off"></label>
+    </form>
+  </div>{% endif %}
+
   <div class="sub-card">
     {{ sub_h('cog', _('fs.start_with')) }}
     <form method="post" action="{{ base }}/settings/fuel-defaults" data-live class="grid">
-      <input type="hidden" name="back" value="/v/{{ v.slug }}/e/fuel">
+      <input type="hidden" name="back" value="/v/{{ v.slug }}/e/fuel">{% if stn.electric %}<input type="hidden" name="kind" value="charge">{% endif %}
       <label>{{ _('stations.source') }}<select name="source"><option value="">{{ _('fs.auto') }}</option>{% for o in stn.sources %}<option value="{{ o.id }}" {{ 'selected' if fs_pref == o.id }}>{{ o.name }}</option>{% endfor %}</select></label>
     </form>
   </div>
 
-  <p class="hint">{{ icon('info', 14) }} {{ _('fs.files_hint') }}</p>
 </div>

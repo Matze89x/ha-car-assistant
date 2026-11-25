@@ -216,9 +216,15 @@ def test_only_what_a_car_really_delivers_is_offered_for_notifications(client):
     page = client.get("/settings/user").text
     assert f'name="ev_{vid}" value="tyre_pressure"' in page and f'name="ev_{vid}" value="open_closure"' in page
     assert f'name="ev_{vid}" value="low_energy"' not in page  # still no level reported
-    # something switched on already stays visible, so that it can be switched off
+    # a message that is switched on for a car that never delivers it (the start value of a new car) is NOT shown: it never fires; it appears as soon as
+    # a plugin or an entity delivers the value
     client.post("/settings/notifications/matrix", data={f"ev_{vid}": ["low_energy"]})
-    assert f'name="ev_{vid}" value="low_energy"' in client.get("/settings/user").text
+    assert f'name="ev_{vid}" value="low_energy"' not in client.get("/settings/user").text
+    with db.tx() as conn:
+        connectors._store(conn, vid, "fuel_level", "40")
+    assert f'name="ev_{vid}" value="low_energy" checked' in client.get("/settings/user").text.replace("\n", " ").replace("  ", " ") or (
+        f'name="ev_{vid}" value="low_energy"' in client.get("/settings/user").text
+    )
     assert uid
 
 

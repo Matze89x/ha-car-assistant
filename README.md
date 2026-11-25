@@ -65,6 +65,7 @@ Everything exists in English and in German; switch the language at the top of an
 | [Plugin guide](docs/plugin-guide.md) | the quickest start |
 | [Plugins](docs/plugins.md) | package format, settings page, services, files, tiles |
 | [Fuel price providers](docs/fuel-providers.md) | an open JSON file per country for fuel prices |
+| [Charging point providers](docs/charge-providers.md) | charging points near the car for electric cars: OpenStreetMap, Open Charge Map, your own JSON file |
 | [Integrations](docs/integrations.md) | pages without code, reminders, plans |
 | [Plugin API](docs/api.md) | all fields and ways to send values to the app |
 | [Sources and packages](docs/sources.md) | offer a repository as a source |

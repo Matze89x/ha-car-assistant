@@ -65,6 +65,7 @@ Alles gibt es auf Englisch und auf Deutsch; oben in jeder Seite wechselst du die
 | [Plugin-Anleitung](docs/plugin-guide.de.md) | der schnellste Einstieg |
 | [Plugins](docs/plugins.de.md) | Paketformat, Einstellungsseite, Dienste, Dateien, Kacheln |
 | [Spritpreis-Anbieter](docs/fuel-providers.de.md) | eine offene JSON-Datei pro Land für Spritpreise |
+| [Ladepunkt-Anbieter](docs/charge-providers.de.md) | Ladepunkte in der Nähe des Autos für E-Autos: OpenStreetMap, Open Charge Map, eine eigene JSON-Datei |
 | [Integrationen](docs/integrations.de.md) | Seiten ohne Code, Erinnerungen, Pläne |
 | [Plugin-API](docs/api.de.md) | alle Felder und Wege, Werte an die App zu schicken |
 | [Quellen und Pakete](docs/sources.de.md) | ein Repository als Quelle anbieten |

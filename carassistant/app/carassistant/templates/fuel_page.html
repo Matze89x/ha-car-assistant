@@ -26,11 +26,11 @@
 {% endmacro %}
 
 {% call page_head(module_icon.get('fuel', 'gas-station'), _('fuel.title')) %}
-  <button type="button" class="icon-btn" data-toggle-panel="#fuel-settings" aria-label="{{ _('fs.title') }}" title="{{ _('fs.title') }}">{{ icon('settings', 18) }}</button>
+  <button type="button" class="icon-btn" data-toggle-panel="#fuel-settings" aria-label="{{ _('chg.settings_title' if stn and stn.electric else 'fs.title') }}" title="{{ _('chg.settings_title' if stn and stn.electric else 'fs.title') }}">{{ icon('settings', 18) }}</button>
   <button type="button" class="icon-btn" data-toggle-panel="#fuel-export" aria-label="{{ _('fx.export') }}">{{ icon('download', 18) }}</button>
   <button type="button" class="button primary" data-toggle-panel="#fuel-add" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>
 {% endcall %}
-{% if stn %}<p class="hint">{{ icon('info', 14) }} {{ _('stations.intro') }}{% if not stn.has_key %} {{ _('stations.no_key_hint') }}{% endif %}</p>{% endif %}
+{% if stn %}<p class="hint">{{ icon('info', 14) }} {% if stn.electric %}{{ _('chg.intro') }}{% if not stn.has_key %} {{ _('chg.no_key_hint') }}{% endif %}{% else %}{{ _('stations.intro') }}{% if not stn.has_key %} {{ _('stations.no_key_hint') }}{% endif %}{% endif %}</p>{% endif %}
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
 
 {% for it in refuel_todo %}
@@ -47,7 +47,7 @@
   <div class="trip-kpis">
     <div class="tg"><i>{{ _('cs.sessions') }}</i><b>{{ cs.n }}</b><small>{{ _('cs.split', fast=cs.fast, slow=cs.slow) }}</small></div>
     <div class="tg"><i>{{ _('cs.energy') }}</i><b>{{ '~' if cs.kwh_estimated }}{{ fnum(cs.kwh, 0) }} kWh</b>{% if cs.kwh_estimated %}<small>{{ _('cs.est_hint') }}</small>{% endif %}</div>
-    <div class="tg"><i>{{ _('cs.cost') }}</i><b>{{ (fnum(cs.cost, 2) ~ ' ' ~ units.cur) if cs.cost is not none else '–' }}</b>{% if cs.per_kwh %}<small>{{ fnum(cs.per_kwh, 3) }} {{ units.cur }}/kWh</small>{% endif %}</div>
+    <div class="tg"><i>{{ _('cs.cost') }}</i><b>{{ ('~' if cs.cost_estimated else '') ~ (fnum(cs.cost, 2) ~ ' ' ~ units.cur) if cs.cost is not none else '–' }}</b>{% if cs.cost_estimated %}<small>{{ _('cs.cost_est_hint') }}</small>{% elif cs.per_kwh %}<small>{{ fnum(cs.per_kwh, 3) }} {{ units.cur }}/kWh</small>{% endif %}</div>
     <div class="tg"><i>{{ _('cs.power') }}</i><b>{{ (fnum(cs.avg_kw, 0) ~ ' kW') if cs.avg_kw else '–' }}</b></div>
     <div class="tg"><i>{{ _('cs.loss') }}</i><b>{{ (fnum(cs.loss_pct, 0) ~ ' %') if cs.loss_pct is not none else '–' }}</b><small>{{ _('cs.loss_hint') }}</small></div>
     <div class="tg"><i>{{ _('cs.time') }}</i><b>{{ (cs.minutes // 60) }} h {{ '%02d'|format(cs.minutes % 60) }}</b></div>
@@ -61,7 +61,7 @@
     <ul class="plain cs-list">
       {% for s in charge_sessions %}<li><span class="cs-when"><b>{{ fdate(s.date) }}{% if s.fast %} <span class="badge">{{ _('cs.fast') }}</span>{% endif %}</b><small class="muted">{{ _('fuel.sess_line', frm=ftime(s.from), to=ftime(s.to), min=(s.minutes ~ ' ' ~ _('unit.minutes') if s.minutes < 60 else (s.minutes // 60) ~ ' h ' ~ '%02d'|format(s.minutes % 60))) }}</small></span>
         <span class="cs-pct mono">{{ s.start_pct if s.start_pct is not none else '–' }} → {{ s.end_pct if s.end_pct is not none else '–' }} %</span>
-        <span class="cs-meta">{% if s.kwh %}{{ '' if s.kwh_billed else '~' }}{{ s.kwh }} kWh{% endif %}{% if s.cost %} · {{ fnum(s.cost, 2) }} {{ units.cur }}{% endif %}{% if s.max_kw %}{{ ' · ' if (s.kwh or s.cost) }}{{ s.max_kw }} kW{% endif %}</span></li>{% endfor %}
+        <span class="cs-meta">{% if s.kwh %}{{ '' if s.kwh_billed else '~' }}{{ s.kwh }} kWh{% endif %}{% if s.cost %} · {{ '~' if s.cost_estimated }}{{ fnum(s.cost, 2) }} {{ units.cur }}{% endif %}{% if s.max_kw %}{{ ' · ' if (s.kwh or s.cost) }}{{ s.max_kw }} kW{% endif %}</span></li>{% endfor %}
     </ul>
   </details>
 </section>

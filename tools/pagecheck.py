@@ -71,7 +71,13 @@ def sweep(
             base = f"http://127.0.0.1:{port}"
             ms.wait_for(base + "/healthz")
             with Browser() as b:
-                pages = check_alignment.page_list(b, base, ms) + ([f"/v/{ms.DIESEL}", f"/v/{ms.COMPACT}"] if home else [])
+                pages = (
+                    check_alignment.page_list(b, base, ms)
+                    + [
+                        f"/v/{ms.EV}/e/fuel"
+                    ]  # the charging page of an electric car (a main tab, not a page of the More list): charging points, filters, the cog
+                    + ([f"/v/{ms.DIESEL}", f"/v/{ms.COMPACT}"] if home else [])
+                )
                 if os.environ.get("CA_CHECK_BLOCK_FONTS"):  # to see what a machine without the web fonts would see
                     b.call("Network.setBlockedURLs", urls=["*.woff2"])
                 for page in dict.fromkeys(pages):

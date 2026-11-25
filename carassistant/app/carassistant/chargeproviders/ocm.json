@@ -1,0 +1,43 @@
+{
+  "id": "ocm",
+  "name": "Open Charge Map",
+  "countries": [],
+  "license": "CC BY 4.0 / per data provider",
+  "attribution": "Charging points: Open Charge Map and its data providers (openchargemap.org). Only data with an open licence is asked for; the data provider of each point is named under it.",
+  "url": "https://api.openchargemap.io/v3/poi/",
+  "params": {
+    "output": "json",
+    "latitude": "{lat}",
+    "longitude": "{lon}",
+    "distance": "{radius_km}",
+    "distanceunit": "KM",
+    "maxresults": "120",
+    "compact": "false",
+    "verbose": "false",
+    "opendata": "true"
+  },
+  "key": {
+    "header": "X-API-Key",
+    "url": "https://openchargemap.org/site/develop/api"
+  },
+  "items": "",
+  "fields": {
+    "lat": "AddressInfo.Latitude",
+    "lon": "AddressInfo.Longitude",
+    "name": "AddressInfo.Title",
+    "address": "{AddressInfo.AddressLine1}, {AddressInfo.Postcode} {AddressInfo.Town}",
+    "operator": "OperatorInfo.Title",
+    "points": "NumberOfPoints",
+    "fee": "UsageCost",
+    "access": "UsageType.Title",
+    "provider": "{DataProvider.Title}, {DataProvider.License}",
+    "operational": "StatusType.IsOperational"
+  },
+  "connections": {
+    "path": "Connections",
+    "type": "ConnectionType.Title",
+    "kw": "PowerKW",
+    "count": "Quantity"
+  },
+  "max_radius_km": 25
+}

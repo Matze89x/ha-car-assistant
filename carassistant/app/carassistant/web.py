@@ -26,6 +26,7 @@ from . import (
     appupdate,
     backup,
     calendar_ics,
+    charge_detect,
     charts,
     config,
     connectors,
@@ -925,8 +926,13 @@ def vehicle_overview(request: Request, vid: int):
 
         reminders = _rem.status(conn, vid)
         trip_time = _trip_duration(last_trip)
-        spark_cons = charts.spark_svg([v for _d, v in fuelstats.consumption_series(conn, vid)][-10:])
-        spark_price = charts.spark_svg([v for _d, v in fuelstats.price_series(conn, vid)][-10:])
+        cons_pts = [v for _d, v in fuelstats.consumption_series(conn, vid)][-10:]
+        price_pts = [v for _d, v in fuelstats.price_series(conn, vid)][-10:]
+        spark_cons = charts.spark_svg(cons_pts)
+        spark_price = charts.spark_svg(price_pts)
+        # what the small charts say, in a line under each (the widgets Fuel and Average consumption): how many fill-ups, the last price / the range
+        price_cap = {"n": len(price_pts), "last": price_pts[-1]} if len(price_pts) >= 2 else None
+        cons_cap = {"n": len(cons_pts), "lo": min(cons_pts), "hi": max(cons_pts)} if len(cons_pts) >= 2 else None
         layout = home_widgets.layout(conn, vid)
         odo_wd = (
             _odometer_stats(conn, vid) if any(w.key == "odometer" and w.on for w in layout) else None
@@ -959,6 +965,8 @@ def vehicle_overview(request: Request, vid: int):
             trip_time=trip_time,
             spark_cons=spark_cons,
             spark_price=spark_price,
+            price_cap=price_cap,
+            cons_cap=cons_cap,
             week_bars=week_bars,
             week_km=week_km,
             cons_delta=cons_delta,
@@ -1573,9 +1581,10 @@ def entity_page(request: Request, vid: int, key: str, form: dict | None = None, 
                 today=date.today().isoformat(),
             )
         if key == "fuel":
-            if vehicle["fuel_type"] != "electric":
-                extra["stn"] = station_context(request, vehicle)  # the fuel stations are part of this page now
-                extra["fs_pref"] = stations.preferred_source()
+            extra["stn"] = station_context(request, vehicle)  # the fuel stations (or the charging points) are part of this page now
+            if vehicle["fuel_type"] == "electric":
+                extra["home_price"] = charge_detect.home_price(conn, vid)
+            extra["fs_pref"] = stations.preferred_charge_source() if vehicle["fuel_type"] == "electric" else stations.preferred_source()
             from . import receipt as _receipt
             from . import reminders as _rem
 
@@ -1623,7 +1632,7 @@ def paged_list(conn: sqlite3.Connection, vid: int, request: Request, table: str,
 
 def fuel_list_context(conn: sqlite3.Connection, vid: int, request: Request) -> dict:
     got = paged_list(conn, vid, request, "fuel", ("station", "notes", "date"), "date DESC, COALESCE(odometer_km, 0) DESC, id DESC")
-    from . import charge_detect, refuel_detect
+    from . import refuel_detect
 
     return {
         "charge_sessions": charge_detect.sessions(conn, vid),
@@ -2270,22 +2279,47 @@ def station_context(request: Request, vehicle: sqlite3.Row) -> dict:
     searched = bool(q.get("go"))
     electric = vehicle["fuel_type"] == "electric"
     fuel = "diesel" if vehicle["fuel_type"] == "diesel" else "e5"  # what the car needs: no question about it
-    sort = q.get("sort") if q.get("sort") in ("price", "distance") else "price"  # the one choice left: price or distance first
     radius = 15.0  # kilometres, fixed
     radius_km = radius
     country = ha.country() if ha.available() else ""
-    source_list = stations.sources(country)
-    source = stations.default_source(country)
     results: list[stations.Station] = []
-    if searched and not electric and origin is not None and error is None:
-        try:
-            results, source = stations.nearby(origin[0], origin[1], radius_km, fuel, source, sort)
-        except stations.StationsError as exc:
-            error = exc.args[0]
+    min_kw, plug = 0, ""
+    if electric:  # charging points: distance or power first, at least 22 / 50 / 150 kW, one kind of plug
+        sort = "power" if q.get("sort") == "power" else "distance"
+        min_kw = int(q["kw"]) if q.get("kw") in ("22", "50", "150") else 0
+        plug = q.get("plug") if q.get("plug") in ("ccs", "type2", "chademo", "nacs", "type1") else ""
+        source_list = stations.charge_sources(country)
+        source = stations.default_charge_source(country)
+        if searched and origin is not None and error is None:
+            try:
+                results, source = stations.nearby_charge(origin[0], origin[1], radius_km, source, sort, min_kw, plug)
+            except stations.StationsError as exc:
+                error = exc.args[0]
+    else:
+        sort = q.get("sort") if q.get("sort") in ("price", "distance") else "price"  # the one choice left: price or distance first
+        source_list = stations.sources(country)
+        source = stations.default_source(country)
+        if searched and origin is not None and error is None:
+            try:
+                results, source = stations.nearby(origin[0], origin[1], radius_km, fuel, source, sort)
+            except stations.StationsError as exc:
+                error = exc.args[0]
+    with db.tx() as conn:
+        nav_key = navproviders.chosen(conn) or navproviders.DEFAULT
+
+    def link(**change) -> str:
+        """The address of this search with something changed (the sort, the power, the plug): the same position stays."""
+        now = {"sort": sort, "kw": str(min_kw) if min_kw else "", "plug": plug}
+        now.update({k: ("" if v is None else str(v)) for k, v in change.items()})
+        if where == "me":
+            now.update({"lat": q.get("lat", ""), "lon": q.get("lon", "")})
+        return "?go=1" + "".join(f"&{k}={v}" for k, v in now.items() if v) + "#stations"
+
     return {
         "car_pos": car_pos, "origin": origin, "where": where, "results": results, "error": error, "electric": electric, "fuel": fuel,
         "sort": sort, "radius": radius, "source": source, "searched": searched, "has_key": next((s["has_key"] for s in source_list if s["id"] == source), False),
         "sources": source_list, "info": next((s for s in source_list if s["id"] == source), source_list[0]),
+        "min_kw": min_kw, "plug": plug, "link": link, "nav": lambda r: navproviders.url(nav_key, r.lat, r.lon, r.name) or "",
     }  # fmt: skip
 
 
@@ -2860,12 +2894,17 @@ def _fuel_back(raw: str) -> str:
 @app.post("/settings/fuelkey")
 async def settings_fuelkey(request: Request):
     """The own key for a fuel price source that needs one (empty + remove = delete it). Nothing is requested from a service without its key."""
-    from . import fuelproviders
+    from . import chargeproviders, fuelproviders
 
     form = await form_dict(request)
     pid = (form.get("id") or "")[:24]
     back = _fuel_back(form.get("back") or "")
-    if pid == "tankerkoenig":
+    if form.get("kind") == "charge":  # the key of a charging-point provider (Open Charge Map ...)
+        defn = chargeproviders.load().get(pid)
+        if defn is None or not defn["key"]:
+            return go(request, back, "err.number")
+        name, rule = f"int.chargekey.{pid}", r"[^A-Za-z0-9._~+/=-]"
+    elif pid == "tankerkoenig":
         name, rule = "int.tankerkoenig.api_key", r"[^A-Za-z0-9-]"
     else:
         defn = fuelproviders.load().get(pid)
@@ -2882,14 +2921,37 @@ async def settings_fuelkey(request: Request):
     return go(request, back, "saved")
 
 
+@app.post("/v/{vid}/home-price")
+async def vehicle_home_price(request: Request, vid: int):
+    """The price per kWh at home (the charging page's settings): slow charging without a bill is counted with it, marked as an estimate. Empty = none."""
+    form = await form_dict(request)
+    raw = (form.get("price") or "").replace(",", ".").strip()
+    with db.tx() as conn:
+        slug = vehicle_or_404(conn, vid)["slug"]
+        if not raw:
+            charge_detect.set_home_price(conn, vid, None)
+        else:
+            try:
+                value = float(raw)
+            except ValueError:
+                value = 0.0
+            if not 0 < value <= 10:
+                return go(request, _fuel_back(f"/v/{slug}/e/fuel"), "err.number")
+            charge_detect.set_home_price(conn, vid, value)
+    if form.get("ajax"):
+        return Response(status_code=204)
+    return go(request, _fuel_back(f"/v/{slug}/e/fuel"), "saved")
+
+
 @app.post("/settings/fuel-defaults")
 async def settings_fuel_defaults(request: Request):
     """What the fuel page starts with: the preferred source (the search radius is fixed at 15 km)."""
     form = await form_dict(request)
     wanted = (form.get("source") or "")[:24]
-    known = {s["id"] for s in stations.sources()}
+    charge = form.get("kind") == "charge"
+    known = {s["id"] for s in (stations.charge_sources() if charge else stations.sources())}
     with db.tx() as conn:
-        db.set_setting(conn, "fuel.source", wanted if wanted in known else None)
+        db.set_setting(conn, "charge.source" if charge else "fuel.source", wanted if wanted in known else None)
     config.forget_settings()
     if form.get("ajax"):
         return Response(status_code=204)

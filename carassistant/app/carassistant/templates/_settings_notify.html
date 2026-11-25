@@ -57,7 +57,7 @@
     <div id="nm-panels">
       {% for c in notify_matrix.cars %}{% set k = 'p' ~ c.id %}
       <div class="nm-panel" id="nm-{{ k }}" data-panel="{{ k }}" role="tabpanel" aria-labelledby="nm-t-{{ k }}" {{ 'hidden' if k != nm_on }}>
-        {% set shown = notify_events|select('in', c.offered|list + c.events|list)|list %}  {# only what this car delivers - and what is switched on already, so it can be switched off #}
+        {% set shown = notify_events|select('in', c.offered|list)|list %}  {# ONLY what this car can tell: judged by what its plugins and entities delivered. A message that was switched on for a car that never delivers it (the start value of a new car) is not shown - it never fires; it appears as soon as a plugin or an entity delivers it #}
         {% if shown|length < notify_events|length %}<p class="hint nm-later">{{ icon('info', 14) }} {{ _('notify.more_later') }}</p>{% endif %}
         {% for key in shown %}{{ switch_row('ev_' ~ c.id, EV[key], key in c.events, key) }}{% if key == 'low_energy' %}{{ thr_block(c.id, c.mode, c.energy_pct, c.energy_km, c.pct_ph, c.km_ph) }}{% endif %}{% endfor %}
       </div>

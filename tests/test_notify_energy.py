@@ -168,6 +168,10 @@ def test_an_electric_car_is_told_about_its_battery(client, monkeypatch):
 def test_the_settings_keep_one_way_to_be_told_and_show_it_under_the_switch(client):
     uid = _admin(client)
     vid = create_vehicle(client, "Phone Car")
+    with (
+        db.tx() as conn
+    ):  # a car that reports its level: only then is the low tank message offered (a car that cannot tell does not get the switch)
+        conn.execute("INSERT INTO live(vehicle_id, key, value, updated) VALUES(?, 'fuel_level', '40', datetime('now'))", (vid,))
 
     def stored():
         with db.tx() as conn:

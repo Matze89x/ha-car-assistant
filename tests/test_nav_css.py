@@ -65,3 +65,13 @@ def test_tab_bar_radius_follows_the_tokens():
     css = (STATIC / "app.css").read_text(encoding="utf-8")
     line = next(x for x in css.splitlines() if x.startswith(".tabbar { position: fixed"))
     assert "border-radius: calc(var(--r-l) + 5px)" in line  # outer = inner radius + 5 px padding, no fixed 32 px
+
+
+def test_the_back_arrow_of_a_page_deeper_than_more_stays_on_wide_screens():
+    """With the More list beside the page it is the way back - except on a page deeper than More (one plugin, Sources, Add): that arrow leads to its own
+    list and stays (it was hidden together with the others on a wide screen)."""
+    css = (Path(__file__).resolve().parents[1] / "carassistant" / "app" / "carassistant" / "static" / "pc-core.css").read_text(
+        encoding="utf-8"
+    )
+    assert ".vpage.with-more > main > .page-head .back-btn:not(.deep) { display: none; }" in css
+    assert ".vpage.with-more > main > .page-head .back-btn.deep { display: inline-grid; }" in css

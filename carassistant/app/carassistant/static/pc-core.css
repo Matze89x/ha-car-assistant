@@ -264,7 +264,8 @@ dialog.vsw::backdrop { background: rgba(5,7,11,.84); -webkit-backdrop-filter: bl
   .more-pane .mi { min-height: 50px; padding: 8px 12px; gap: 12px; }
   .more-pane .mi-t { font-size: 16px; }
   .vpage.with-more .more-pane { display: block; grid-column: 1; grid-row: 1 / span 6; position: sticky; top: 0; max-height: 100vh; overflow-y: auto; scrollbar-width: none; padding: 0 0 24px; }
-  .vpage.with-more .more-pane::-webkit-scrollbar, .vpage.with-more > main > .page-head .back-btn { display: none; }
+  .vpage.with-more .more-pane::-webkit-scrollbar, .vpage.with-more > main > .page-head .back-btn:not(.deep) { display: none; }  /* the More list is the way back ... */
+  .vpage.with-more > main > .page-head .back-btn.deep { display: inline-grid; }  /* ... but a page DEEPER than More (a page of one plugin, Sources, Add) leads back to its own list: that arrow stays */
 
   /* the More list stands next to the page: it is the way back, on every page of it */
 
@@ -3172,6 +3173,14 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 /* the card has its own even gap (14 px) between its parts */
 .stn-card .stn-list { margin: 0; }
 .stn.closed { opacity: .62; }
+/* charging points: the power stands where the price stands for fuel; the plugs, the tags and the one who gave the data under the name */
+.stn-plugs { display: flex; flex-wrap: wrap; gap: 0 12px; font-size: 13px; color: var(--text); }
+.stn-plug { white-space: nowrap; }
+.stn-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
+.stn-tags:empty { display: none; }
+.stn-tags .badge { font-size: 11px; }
+.stn-ev .stn-by { white-space: normal; font-size: 12px; }
+.stn-filter { margin: 0; }
 .stn-open { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
 .stn-open u { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--dim); text-decoration: none; }
 .stn-open.ok { color: var(--ok); }

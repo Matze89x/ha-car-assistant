@@ -3,29 +3,53 @@
 <section class="stn-card{{ '' if inline else ' card' }}" id="stations{{ '-body' if inline else '' }}">
   {% set keep = ('&lat=' ~ request.query_params.get('lat', '') ~ '&lon=' ~ request.query_params.get('lon', '')) if s.where == 'me' else '' %}
   <div class="stn-head">
-    <span class="mi-ic c6">{{ icon('gas-station', 20) }}</span>
-    <div class="stn-ht"><h2>{{ _('stn.title') }}</h2><small>{{ s.fuel|upper }} · 15 {{ units.dist_unit }}</small></div>
-    {% if s.searched %}<div class="seg-icons" role="group" aria-label="{{ _('stations.sort') }}">
+    <span class="mi-ic c6">{{ icon('plug' if s.electric else 'gas-station', 20) }}</span>
+    <div class="stn-ht"><h2>{{ _('chg.title' if s.electric else 'stn.title') }}</h2><small>{{ ('15 ' ~ units.dist_unit) if s.electric else (s.fuel|upper ~ ' · 15 ' ~ units.dist_unit) }}</small></div>
+    {% if s.searched and s.electric %}<div class="seg-icons" role="group" aria-label="{{ _('stations.sort') }}">
+      <a href="{{ vurl }}{{ s.link(sort='distance')|e }}" class="{{ 'on' if s.sort == 'distance' }}" title="{{ _('stations.sort_distance') }}" aria-label="{{ _('stations.sort_distance') }}">{{ icon('map-marker-radius', 18) }}</a>
+      <a href="{{ vurl }}{{ s.link(sort='power')|e }}" class="{{ 'on' if s.sort == 'power' }}" title="{{ _('chg.sort_power') }}" aria-label="{{ _('chg.sort_power') }}">{{ icon('lightning-bolt', 18) }}</a>
+    </div>
+    {% elif s.searched %}<div class="seg-icons" role="group" aria-label="{{ _('stations.sort') }}">
       <a href="{{ vurl }}?go=1&amp;sort=price{{ keep|e }}#stations" class="{{ 'on' if s.sort == 'price' }}" title="{{ _('stations.sort_price') }}" aria-label="{{ _('stations.sort_price') }}">{{ icon('gas-station', 18) }}</a>
       <a href="{{ vurl }}?go=1&amp;sort=distance{{ keep|e }}#stations" class="{{ 'on' if s.sort == 'distance' }}" title="{{ _('stations.sort_distance') }}" aria-label="{{ _('stations.sort_distance') }}">{{ icon('map-marker-radius', 18) }}</a>
     </div>{% endif %}
   </div>
   <form method="get" action="{{ vurl }}" id="stform" data-no-car="{{ _('stations.no_car_pos') }}" data-denied="{{ _('stations.geo_denied') }}">
     <input type="hidden" name="go" value="1">
-    <input type="hidden" name="sort" value="{{ s.sort }}">
+    <input type="hidden" name="sort" value="{{ s.sort }}">{% if s.electric %}<input type="hidden" name="kw" value="{{ s.min_kw or '' }}"><input type="hidden" name="plug" value="{{ s.plug }}">{% endif %}
     <input type="hidden" name="lat" id="st-lat" value="{{ request.query_params.get('lat', '') }}">
     <input type="hidden" name="lon" id="st-lon" value="{{ request.query_params.get('lon', '') }}">
     <nav class="seg-tabs" aria-label="{{ _('stn.where') }}">
-      <a href="{{ vurl }}?go=1&amp;sort={{ s.sort }}#stations" id="st-car" class="{{ 'on' if s.where == 'car' }}{{ '' if s.car_pos else ' off' }}">{{ icon('car', 18) }}<span>{{ v.name }}</span></a>
+      <a href="{{ vurl }}{{ s.link(lat='', lon='')|e if s.electric else '?go=1&amp;sort=' ~ s.sort ~ '#stations' }}" id="st-car" class="{{ 'on' if s.where == 'car' }}{{ '' if s.car_pos else ' off' }}">{{ icon('car', 18) }}<span>{{ v.name }}</span></a>
       <a href="#stations" id="st-me" class="{{ 'on' if s.where == 'me' }}">{{ icon('pin', 18) }}<span>{{ _('stn.me') }}</span></a>
     </nav>
   </form>
+  {% if s.electric and s.searched %}
+  <nav class="seg-tabs stn-filter" aria-label="{{ _('chg.min_power') }}">
+    <a href="{{ vurl }}{{ s.link(kw='')|e }}" class="{{ 'on' if not s.min_kw }}">{{ icon('lightning-bolt', 16) }}<span>{{ _('chg.any_power') }}</span></a>
+    {% for kw in (22, 50, 150) %}<a href="{{ vurl }}{{ s.link(kw=kw)|e }}" class="{{ 'on' if s.min_kw == kw }}"><span>≥ {{ kw }} kW</span></a>{% endfor %}
+  </nav>
+  <nav class="seg-tabs stn-filter" aria-label="{{ _('chg.plug') }}">
+    <a href="{{ vurl }}{{ s.link(plug='')|e }}" class="{{ 'on' if not s.plug }}">{{ icon('plug', 16) }}<span>{{ _('chg.any_plug') }}</span></a>
+    {% for pl in ('ccs', 'type2', 'chademo', 'nacs') %}<a href="{{ vurl }}{{ s.link(plug=pl)|e }}" class="{{ 'on' if s.plug == pl }}"><span>{{ _('plug.' ~ pl) }}</span></a>{% endfor %}
+  </nav>
+  {% endif %}
   {% if not s.car_pos %}<p class="hint">{{ icon('info', 14) }} {{ _('stations.no_car_pos') }}</p>{% endif %}
   <div class="flash err" id="st-msg" hidden></div>
   {% if s.error %}<div class="flash err">{{ _(s.error) }}</div>{% endif %}
   {% if s.searched and not s.error %}
     {% if s.results %}
     {% set prices = s.results|rejectattr('is_open', 'equalto', false)|selectattr('price')|map(attribute='price')|list %}
+    {% macro crow(r) %}
+      <a class="stn stn-ev{{ ' closed' if r.is_open == false else '' }}" href="{{ s.nav(r) }}" target="_blank" rel="noopener noreferrer">
+        <span class="stn-p">{% if r.max_kw %}<b>{{ fnum(r.max_kw, 0) }}</b><small>kW</small>{% else %}<b>–</b><small>kW</small>{% endif %}</span>
+        <span class="stn-t"><b>{{ r.name }}</b>{% if r.address %}<small>{{ r.address }}</small>{% endif %}
+          {% if r.plugs %}<span class="stn-plugs">{% for p in r.plugs %}<span class="stn-plug">{{ _('plug.' ~ p.type) if p.type != 'other' else (p.label or _('plug.other')) }}{% if p.kw %} {{ fnum(p.kw, 0) }} kW{% endif %} ×{{ p.n }}</span>{% endfor %}</span>{% endif %}
+          <span class="stn-tags">{% if r.is_open == false %}<span class="stn-open bad"><u></u>{{ _('chg.out_of_order') }}</span>{% endif %}{% if r.free == true %}<span class="badge ok">{{ _('chg.free') }}</span>{% elif r.fee %}<span class="badge">{{ r.fee[:40] }}</span>{% endif %}{% if r.access in ('private', 'customers', 'permit', 'no') %}<span class="badge">{{ _('chg.restricted') }}</span>{% endif %}{% if r.hours %}<span class="badge">{{ r.hours[:24] }}</span>{% endif %}</span>
+          {% set by = r.operator if r.operator != r.name else '' %}{% if by or r.provider %}<small class="stn-by">{{ by }}{% if by and r.provider %} · {% endif %}{% if r.provider %}{{ _('chg.data_from', name=r.provider) }}{% endif %}</small>{% endif %}</span>
+        <span class="stn-d">{{ fnum(units.d(r.distance_km), 1) }} {{ units.dist_unit }}</span>
+      </a>
+    {% endmacro %}
     {% macro row(r) %}
       {% set ps = fnum(r.price, 3) if r.price else '' %}
       {% set cheapest = s.info.prices and r.price and prices and r.price == prices|min and r.is_open != false %}
@@ -36,12 +60,12 @@
       </a>
     {% endmacro %}
     <div class="stn-list">
-      {% for r in s.results[:10] %}{{ row(r) }}{% endfor %}
+      {% for r in s.results[:10] %}{{ crow(r) if s.electric else row(r) }}{% endfor %}
       {% if s.results|length > 10 %}<details class="stn-more"><summary class="button">{{ icon('chevron-down', 18) }}<span>{{ _('stn.more', n=s.results|length - 10) }}</span></summary>
-        <div class="stn-list">{% for r in s.results[10:] %}{{ row(r) }}{% endfor %}</div></details>{% endif %}
+        <div class="stn-list">{% for r in s.results[10:] %}{{ crow(r) if s.electric else row(r) }}{% endfor %}</div></details>{% endif %}
     </div>
-    {% else %}<p class="muted">{{ _('stations.none') }}</p>{% endif %}
-    <p class="hint">{{ icon('info', 14) }} {{ _('stations.attr_tk') if s.source == 'tankerkoenig' else (s.info.attribution or _('stations.attr_osm')) }}</p>
+    {% else %}<p class="muted">{{ _('chg.none' if s.electric else 'stations.none') }}</p>{% endif %}
+    <p class="hint">{{ icon('info', 14) }} {{ _('chg.attr_osm') if (s.electric and s.source == 'osm') else (_('stations.attr_tk') if s.source == 'tankerkoenig' else (s.info.attribution or _('stations.attr_osm'))) }}</p>
   {% endif %}
 </section>
 {% endwith %}
