@@ -18,5 +18,5 @@
     <dt>{{ _('trips.source') }}</dt><dd>{{ trip.source }}</dd>
   </dl>
 </section>
-{% if route %}<section class="card">{{ route|safe }}<p class="hint">{{ _('trips.route_hint', n=point_count) }}</p></section>{% endif %}
+{% if route %}<section class="card">{{ route|safe }}<p class="hint">{{ icon('info', 14) }} {{ _('trips.route_hint', n=point_count) }}</p></section>{% endif %}
 {% endblock %}

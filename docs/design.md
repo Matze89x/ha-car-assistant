@@ -22,6 +22,7 @@ Where it lives: tokens and base components in `static/app.css`, the glass layer 
 | Radius | `--r-s` `--r-m` `--r-l`, `--r-surface` (= `--r-l`) | 8 / 12 / 16 px – small (inputs inside cards, chips), medium (buttons, fields, rows inside a card), **large (everything that stands on its own on a page: cards, lists, notices, tab bars, folding groups)** - neighbours on a page always share one corner |
 | Circles | `999px` | **only** for icon buttons, pills, badges, switches, the tab bar's outer shape follows `--r-l + 5px` |
 | Spacing | `--sp-edge` `--sp-col` `--sp-top` `--sp-head` `--sp-block` | 14 / 14 / 18 / 16 / 20 px – edge, column gap, first element from the top, below the page header, between blocks |
+| Sub-window spacing | `--sp-sub` `--sp-sub-pad-y` `--sp-sub-pad-x` `--sp-sub-label` | 10 / 10 / 12 / 8 px – between two sub-windows of a card, inside a sub-window (top / bottom, left / right), under its label |
 | Heights | `--head-h` `--lab-h` | 44 px page header row, 25 px small group label |
 | Notices | `.notice-slot` `.notice.info/.ok/.warn/.err` | ONE place under the page header (`page_head` makes the slot): the page introduction (info), "saved" messages, warnings and errors, always the same transparent tile with an icon in front and the tint of its kind. Old `.flash` markup is moved there by `notices.js`; new code uses `.notice`. |
 | Section labels | `--sp-label-top` `--sp-label-bottom` `--sp-label-x` | 28 / 10 / 6 px – air above a small section label (vehicle passport, fuel months, tasks ...), how close it sits on the tile below. Every label takes these, no page has its own numbers. A heading that stands on its own on a page (outside a card) is always this label - left aligned, 11 px, upper case, dim; never centred, never another size (`python tools/check_headings.py` checks every page). The rules about buttons (one line, one height, one main action, bottom right, tap area, names) are measured on every page by `python tools/check_ui.py`. |
@@ -97,6 +98,7 @@ Everything on every page is built from this short list. A new page uses these; a
 | **Page header** | `page_head()`: symbol + title, the car's name below, round icon buttons (no text) at the right, centred on the whole header | `_macros.html`, `.page-head` |
 | **Notice tile** | `.notice` (info / saved / warning / error) in the slot under the header; the page introduction is the first tile | `notices.py` (server), `.notice-slot` |
 | **Tab bar (text + symbol)** | `.seg-tabs`: switch between views or pages (Management / Add / Sources, seasons, periods, ...). A symbol in front of every tab | `.seg-tabs` |
+| **Field with its functions** | `.fld` | the input and, at its right edge, icon actions inside the field (`.fld-act`: open, copy, change, scan a photo) - **the function sits in the field, not in a button next to it**. Locked fields (`disabled`) get a pencil that opens a popup; link and key fields get *copy* (and *open*). Use it whenever a field has a function of its own | `.fld`, `.fld-act`, `.fld.mono` (keys, tokens) |
 | **Symbol switch (round)** | `.seg-icons`: two or three options as symbols only (price / distance ...) | `.seg-icons` |
 | **Sort handle** | `.grip`: a strip on the left of a row, as high as the row, with the same contour and the dots in it. Rows that a person may put in order sit in a `[data-sortable]` container as `[data-sort-item]`; drag the strip (mouse or finger) or press the arrow keys on it. Optional `data-sort-post="<url>"` sends `order=<data-sort-id>,...`; the event `sortchange` tells the page. Rows that cannot move carry the same strip without dots (a lock when they are fixed), so the left edge is the same on every row. **Up / down arrow buttons are never used for sorting.** | `.grip`, `[data-sort-item]`, `app.js` (SORTING) |
 | **Navigation** | `.tabbar` (bottom bar / side bar) and the *More* list - not a tab bar | `base.html`, `.tabbar`, `.mgroup` |
@@ -108,6 +110,26 @@ Everything on every page is built from this short list. A new page uses these; a
 | **Map** | `.tp-map` / `.pos-map`: full width, 16:9; the tiles come from our own tile address | `.pos-map` |
 
 A test (`tests/test_design_rules.py`) refuses a third kind of tab bar. Plugin pages (`kind: "frame"`) get the same look from the `kit` style sheet (see [plugins](plugins.md)).
+
+## 4c. Card with sub-windows (standing rule)
+
+A **card is a category** (its title is `h2`: symbol, name, a badge at the right if it has a state). When the content of a card falls into **two or more sub-areas** - a sign-in card with *Sign-in details*, *Passkeys* and *Users*; a notification card with *How you are told*, the messages per car and *General* - **every sub-area is a sub-window** inside the card, in this one look:
+
+| Part | Class | Rule |
+|---|---|---|
+| Sub-window | `.sub-card` | framed, `--r-m` corners, the faint glass fill; **always** spaced by `--sp-sub`, padded by `--sp-sub-pad-y` / `--sp-sub-pad-x` - never a margin or padding of its own |
+| Label | `.sub-h` (an `h3`, always written with the macro `sub_h(icon, text)`) | a **symbol in the main colour** (16 px, `--accent`) in front of the name, small, upper case, dim, `--sp-sub-label` above the content; names the area in one or two words |
+| Order inside | | label, one short hint (`.hint`), the content, then the buttons **bottom right** (`.form-bar`); what is only an explanation stays in the hint |
+| Several of one kind | `.seg-tabs` inside the window | one tab per car (or season, ...), the tab bar scrolls sideways when there are many; under the open tab only what that item really has |
+| Buttons in a window | `.button.small` | **only** the standard small button (36 px, `--r-s`) - no pills or private buttons. An edit button in a row (`.ar-edit > button`) has words (*Change*) while the window is wide and only the pencil while it is narrow, so a row stays on one line; a button that **adds** something keeps its words everywhere |
+
+- A card with **one** area has no sub-window: its content sits directly in the card.
+- No loose sub-headings in a card (no `h3` with a divider line, no private `...-sec` / `...-h` classes): they were six different looks and are gone. A free heading *outside* a card is still the section label of 4b.
+- **No box in a box:** inside a sub-window the rows are flat - a hairline between them, never another framed box.
+- **Lines stand between things, never at the edges.** A list of rows (switches, fields, users) has its hairlines *between* the rows: **none directly under the label of the window** (or its hint or tab bar), **none after the last row at the bottom edge** of the window, none before a hint. Where *buttons* follow the list, one line separates them from it. `tools/check_ui.py` fails on a line at the top or the bottom edge. **A line never touches a field:** a switch row (it begins with its own line) right under a select or an input stands `--sp-field` (14 px) below it, like two fields do - `tools/check_ui.py` measures every line against the field above it. **Lines run through the whole window:** every hairline that separates the rows or parts of a card, a sub-window or a popup reaches from one edge of the window to the other - never only as wide as the text. The row reaches out by the padding of its window (`--bleed`: `--sp-card` in a card, `--sp-sub-pad-x` in a sub-window) and pads its content back in, so the text stays where it is; the mark of an open row fills it exactly from line to line, square, in the colour of the lines. `tools/check_ui.py` measures every line on every page against the edges of its window.
+- **Nothing there yet:** a sub-window with no content shows the `.empty-state` of 4b in its compact form - the symbol in front of ONE centred sentence (*No passkey created yet.*), no dash, no empty row. The button that creates the first one follows bottom right and is called *Create* (`btn.create`, with the plus) - it keeps its word on a narrow screen (`.ar-new`).
+- The windows of a card follow the order a person needs them: the thing done most often first.
+- Spacing is **measured**: `tools/check_ui.py` fails when two sub-windows one under the other are not `--sp-sub` apart or a sub-window's padding is not the token.
 
 ## 5. Behaviour rules
 

@@ -3,7 +3,7 @@
 {% block content %}
 {{ page_head('bug', _('dbg.title')) }}
 <section class="card">
-  <p class="hint">{{ _('dbg.intro', car=v.name) }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('dbg.intro', car=v.name) }}</p>
   <form method="post" action="{{ base }}/v/{{ v.slug }}/debug" class="dbg-form">
     {{ switch_row('on', _('dbg.switch'), debug_on) }}
     {{ form_bar() }}
@@ -16,7 +16,7 @@
   <form method="post" action="{{ base }}/v/{{ v.slug }}/interval" data-live="1">
     <label>{{ _('dbg.interval_ask') }}<select name="interval">{% for s in intervals %}<option value="{{ s }}" {{ 'selected' if s == interval }}>{{ s }} s</option>{% endfor %}</select></label>
   </form>
-  <p class="hint">{{ _('dbg.interval_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('dbg.interval_hint') }}</p>
 </section>
 
 <section class="card">
@@ -29,17 +29,17 @@
   <div class="dbg-log">
     {% for l in lines %}<div class="dbg-line lv-{{ l.level }}"><span class="dbg-ts">{{ flog(l.ts) }}</span><span class="dbg-lv">{{ l.level }}</span>{% if not plugin and l.source %}<span class="dbg-lv">{{ l.source }}</span>{% endif %}<span class="dbg-msg">{{ l.message }}</span></div>{% endfor %}
   </div>
-  <p class="hint">{{ _('dbg.keep', n=keep) }}</p>
-  {% else %}<p class="hint">{{ _('dbg.empty') }}</p>{% endif %}
+  <p class="hint">{{ icon('info', 14) }} {{ _('dbg.keep', n=keep) }}</p>
+  {% else %}<p class="hint">{{ icon('info', 14) }} {{ _('dbg.empty') }}</p>{% endif %}
 </section>
 <section class="card">
   <h2>{{ icon('swap-vertical', 20) }} {{ _('dbg.traffic') }}</h2>
-  <p class="hint">{{ _('dbg.traffic_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('dbg.traffic_hint') }}</p>
   {% if traffic %}
   <div class="dbg-log">
     {% for t in traffic %}<div class="dbg-line {{ 'lv-error' if t.status >= 400 else '' }}"><span class="dbg-ts">{{ flog(t.ts) }}</span><span class="dbg-lv">{{ _('dbg.kind_car') if t.kind == 'car' else _('dbg.kind_api') }}</span><span class="dbg-lv">{{ t.status }}</span><span class="dbg-msg">{{ t.method }} {{ t.path }} · {{ t.bytes }} B · {{ t.ms }} ms{% if t.detail %} · {{ t.detail }}{% endif %}</span></div>{% endfor %}
   </div>
-  {% else %}<p class="hint">{{ _('dbg.traffic_empty') }}</p>{% endif %}
+  {% else %}<p class="hint">{{ icon('info', 14) }} {{ _('dbg.traffic_empty') }}</p>{% endif %}
 </section>
 
 <section class="card">
@@ -48,7 +48,7 @@
   <div class="dbg-log">
     {% for name, s in signals.items() %}<div class="dbg-line"><span class="dbg-ts">{{ s.updated[11:19] }}</span><span class="dbg-lv">{{ name }}</span><span class="dbg-msg">{{ s.value }}</span></div>{% endfor %}
   </div>
-  {% else %}<p class="hint">{{ _('dbg.signals_empty') }}</p>{% endif %}
-  <p class="hint">{{ _('dbg.track', n=track_points) }} {{ _('dbg.events', n=event_count) }}</p>
+  {% else %}<p class="hint">{{ icon('info', 14) }} {{ _('dbg.signals_empty') }}</p>{% endif %}
+  <p class="hint">{{ icon('info', 14) }} {{ _('dbg.track', n=track_points) }} {{ _('dbg.events', n=event_count) }}</p>
 </section>
 {% endblock %}

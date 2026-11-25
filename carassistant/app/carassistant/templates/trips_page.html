@@ -58,7 +58,7 @@
       <label>{{ _('f.category') }}<select name="category">{% for c in trip_categories %}<option value="{{ c }}">{{ _('category.' ~ c) }}</option>{% endfor %}</select></label></div>
     <div class="eq-acts"><button class="ghost-btn small">{{ icon('download', 16) }} <span>{{ _('btn.import') }}</span></button></div>
   </form>
-  <p class="hint">{{ _('exp.disclaimer') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('exp.disclaimer') }}</p>
 </div>
 
 {% set pnames = {'30': _('ta.p30'), '90': _('ta.p90'), '365': _('ta.p365'), 'all': _('ta.pall')} %}
@@ -95,7 +95,7 @@
     <span class="ta-wd">{{ wd[w] }}</span>{% for count in row %}<span class="ta-c l{{ ((count / ta.heat_max * 5)|round(0, 'ceil')|int) if count and ta.heat_max else 0 }}" title="{{ wd[w] }} · {{ blocks[loop.index0] }}: {{ count }}">{{ count if count else '' }}</span>{% endfor %}
     {% endfor %}
   </div>
-  <p class="hint">{{ _('ta.when_hint') }}{% if ta.untimed %} {{ _('ta.untimed', n=ta.untimed) }}{% endif %}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('ta.when_hint') }}{% if ta.untimed %} {{ _('ta.untimed', n=ta.untimed) }}{% endif %}</p>
 
   <h3 class="ta-h">{{ _('ta.style') }}</h3>
   {% if ta.style %}
@@ -105,7 +105,7 @@
     {% if ta.style.idle_pct is not none %}<div class="tg"><i>{{ _('ta.idle') }}</i><b>{{ ta.style.idle_pct }} <small>%</small></b></div>{% endif %}
     {% if ta.style.top_kmh %}<div class="tg"><i>{{ _('ta.top') }}</i><b>{{ fnum(units.d(ta.style.top_kmh), 0) }} <small>{{ units.speed_unit }}</small></b></div>{% endif %}
   </div>
-  <p class="hint">{{ _('ta.based', n=ta.style.trips, km=fnum(units.d(ta.style.km), 0), u=units.dist_unit) }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('ta.based', n=ta.style.trips, km=fnum(units.d(ta.style.km), 0), u=units.dist_unit) }}</p>
   {% else %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('ta.no_style') }}</p></div>{% endif %}
   {% endif %}
 </section>
@@ -114,7 +114,7 @@
   <div class="vd-group-h eq-head">{{ _('tp.counters') }} <span class="eq-total">{{ counters|length }}</span>
     <button type="button" class="icon-btn eq-head-add" data-toggle-panel="#counter-add" aria-label="{{ _('tp.add_counter') }}" title="{{ _('tp.add_counter') }}">{{ icon('plus', 16) }}</button></div>
   <div class="eq-panel tp-add" id="counter-add" hidden>{{ counterform(none, cu) }}</div>
-  <p class="hint tp-hint">{{ _('counters.hint') }}</p>
+  <p class="hint tp-hint">{{ icon('info', 14) }} {{ _('counters.hint') }}</p>
   <div class="rec-grid">
     {% for c in counters %}
     <article class="rec">

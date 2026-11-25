@@ -1,4 +1,4 @@
-{% from "_macros.html" import icon, form_bar, switch_row with context %}
+{% from "_macros.html" import icon, sub_h, form_bar, switch_row with context %}
 {% set EV = {'maint_due': _('notify.ev_maint_due'), 'appointment': _('notify.ev_appointment'), 'reminder': _('notify.ev_reminder'), 'car_message': _('notify.ev_car_message'), 'open_closure': _('notify.ev_open_closure'), 'low_energy': _('notify.ev_low_energy'), 'tyre_pressure': _('notify.ev_tyre_pressure'), 'trip_end': _('notify.ev_trip_end'), 'refuel': _('notify.ev_refuel')} %}
 {% set GEN = {'addon_update': _('notify.ev_addon_update')} %}
 {# The threshold of the low tank / battery message: right under its switch, shown while the switch is on. Empty = the yellow level of the car. #}
@@ -11,66 +11,72 @@
   </div>
   <label class="nm-thr-pct">{{ _('notify.thr_pct') }}<input name="ep_{{ id }}" inputmode="numeric" maxlength="2" placeholder="{{ pct_ph }}" value="{{ pct if pct is not none else '' }}"></label>
   <label class="nm-thr-km">{{ _('notify.thr_km') }} ({{ units.dist_unit }})<input name="ek_{{ id }}" inputmode="numeric" maxlength="4" placeholder="{{ km_ph }}" value="{{ km if km is not none else '' }}"></label>
-  <p class="hint">{{ _('notify.thr_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('notify.thr_hint') }}</p>
 </div>
 {% endmacro %}
 <section class="card" id="notifications">
   <h2>{{ icon('bell-outline') }} {{ _('notify.user_title') }}</h2>
   {% if not acct_me %}
-    <p class="hint">{{ _('notify.user_need') }}</p>
+    <p class="hint">{{ icon('info', 14) }} {{ _('notify.user_need') }}</p>
   {% else %}
-  <div class="nm-block">
-    <h3 class="acct-sub">{{ _('notify.how_title') }}</h3>
-    {% if port_on %}
-    <div id="push-box" class="push-box" data-base="{{ base }}" data-unsupported="{{ _('push.unsupported') }}" data-ios="{{ _('push.ios_home') }}" data-failed="{{ _('push.failed') }}" data-https="{{ _('push.https_only') }}" data-open-now="{{ _('push.open_now') }}" data-not-secure="{{ _('push.not_secure') }}" data-go="{{ _('push.go') }}" data-ext="{{ external_url if ext_set else '' }}" data-denied="{{ _('push.denied') }}" data-label-on="{{ _('push.enable') }}" data-label-off="{{ _('push.disable') }}">
-      {% if push_devices %}<div class="ar-v">{% for d in push_devices %}<span class="chip-pk">{{ icon('bell', 14) }} {{ d.label or _('push.device') }} <small class="muted">{{ d.created_at[:10] }}</small>
-        <form method="post" action="{{ base }}/settings/push/{{ d.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% endfor %}</div>
-      {% else %}<p class="muted">{{ _('push.no_devices') }}</p>{% endif %}
-      {% if not ext_set %}<p class="hint">{{ icon('lock', 14) }} {{ _('ext.needed') }}</p>{% endif %}
-      <p class="acct-msg" id="push-msg" hidden></p>
-      <div class="nm-actions">
-        <form method="post" action="{{ base }}/settings/notifications/test" class="inline" id="push-test"><button class="small" {{ 'disabled' if not push_devices }}>{{ icon('bell-outline', 16) }}<span>{{ _('notify.user_test') }}</span></button></form>
-        <button type="button" id="push-on" class="primary small" {{ 'disabled' if not ext_set }}>{{ icon('bell', 16) }}<span>{{ _('push.enable') }}</span></button>
-      </div>
-    </div>
-    <script src="{{ base }}/static/push.js?v={{ asset_v }}" defer></script>
-    {% else %}
-    <form method="post" action="{{ base }}/settings/notifications" class="grid" data-live="1">
-      <label class="wide">{{ _('notify.user_service') }}<input type="text" name="service" value="{{ notify_prefs.service }}" maxlength="90" placeholder="mobile_app_my_phone" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
-    </form>
+  <p class="hint">{{ icon('info', 14) }} {{ _('notify.user_intro') }}</p>
+  {% if port_on %}
+  <div id="push-box" class="push-box" data-base="{{ base }}" data-unsupported="{{ _('push.unsupported') }}" data-ios="{{ _('push.ios_home') }}" data-failed="{{ _('push.failed') }}" data-https="{{ _('push.https_only') }}" data-denied="{{ _('push.denied') }}" data-label-on="{{ _('push.enable') }}" data-label-off="{{ _('push.disable') }}">
+    {% if not ext_set %}<p class="hint">{{ icon('info', 14) }} {{ _('ext.needed') }}</p>{% endif %}
+    <p class="acct-msg" id="push-msg" hidden></p><template id="push-ico">{{ icon('info', 14) }}</template>
+    {% if push_devices %}<div class="ar-v">{% for d in push_devices %}<span class="chip-pk">{{ icon('bell', 14) }} {{ d.label or _('push.device') }} <small class="muted">{{ d.created_at[:10] }}</small>
+      <form method="post" action="{{ base }}/settings/push/{{ d.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% endfor %}</div>
+    {% else %}<div class="empty-state">{{ icon('bell-outline', 20) }}<p>{{ _('push.no_devices') }}</p></div>{% endif %}
     <div class="nm-actions">
-      <form method="post" action="{{ base }}/settings/notifications/test" class="inline"><button class="small" {{ 'disabled' if not notify_prefs.service }}>{{ icon('bell-outline', 16) }}<span>{{ _('notify.user_test') }}</span></button></form>
+      <form method="post" action="{{ base }}/settings/notifications/test" class="inline" id="push-test"><button class="small" {{ 'disabled' if not push_devices }}>{{ icon('bell-outline', 16) }}<span>{{ _('notify.user_test') }}</span></button></form>
+      <button type="button" id="push-on" class="primary small" {{ 'disabled' if not ext_set }}>{{ icon('bell', 16) }}<span>{{ _('push.enable') }}</span></button>
     </div>
-    {% endif %}
   </div>
+  <script src="{{ base }}/static/push.js?v={{ asset_v }}" defer></script>
+  {% else %}
+  <form method="post" action="{{ base }}/settings/notifications" class="grid" data-live="1">
+    <label class="wide">{{ _('notify.user_service') }}<input type="text" name="service" value="{{ notify_prefs.service }}" maxlength="90" placeholder="mobile_app_my_phone" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+  </form>
+  <div class="nm-actions">
+    <form method="post" action="{{ base }}/settings/notifications/test" class="inline"><button class="small" {{ 'disabled' if not notify_prefs.service }}>{{ icon('bell-outline', 16) }}<span>{{ _('notify.user_test') }}</span></button></form>
+  </div>
+  {% endif %}
 
   {% if notify_matrix %}
-  <div class="nm-block">
-  <h3 class="acct-sub" id="notify-matrix">{{ _('notify.matrix_title') }}</h3>
+  {# ONE form (it saves by itself): a tab per car shows only that car's messages, the last tab is for the cars added later; the general messages have a window of their own #}
+  {% set nm_ids = notify_matrix.cars|map(attribute='id')|list %}
+  {% set nm_on = ('p' ~ car.id) if car and car.id in nm_ids else (('p' ~ nm_ids[0]) if nm_ids else 'pnew') %}
   <form method="post" action="{{ base }}/settings/notifications/matrix" data-live="1" class="nm-form" id="nm-form" data-yes="{{ _('notify.yes') }}" data-no="{{ _('notify.no') }}">
-    <label class="nm-pick">{{ _('notify.pick_car') }}
-      <select id="nm-select" aria-controls="nm-panels">
-        {% for c in notify_matrix.cars %}<option value="p{{ c.id }}">{{ c.name }}</option>{% endfor %}
-        <option value="pnew">{{ _('notify.col_new') }} – {{ _('notify.col_new_hint') }}</option>
-      </select></label>
+  <div class="sub-card">
+    {{ sub_h('car', _('notify.matrix_title'), 'notify-matrix') }}
+    {% if notify_matrix.cars %}
+    <nav class="seg-tabs nm-tabs" role="tablist" aria-label="{{ _('notify.pick_car') }}">
+      {% for c in notify_matrix.cars %}{% set k = 'p' ~ c.id %}<a href="#nm-{{ k }}" role="tab" id="nm-t-{{ k }}" data-nm-tab="{{ k }}" aria-controls="nm-{{ k }}" aria-selected="{{ 'true' if k == nm_on else 'false' }}" tabindex="{{ '0' if k == nm_on else '-1' }}" class="{{ 'on' if k == nm_on }}" title="{{ c.name }}">{{ icon('car', 18) }}<span>{{ c.name }}</span></a>{% endfor %}
+      <a href="#nm-pnew" role="tab" id="nm-t-pnew" data-nm-tab="pnew" aria-controls="nm-pnew" aria-selected="{{ 'true' if nm_on == 'pnew' else 'false' }}" tabindex="{{ '0' if nm_on == 'pnew' else '-1' }}" class="{{ 'on' if nm_on == 'pnew' }}" title="{{ _('notify.col_new') }}">{{ icon('plus', 18) }}<span>{{ _('notify.col_new') }}</span></a>
+    </nav>
+    {% endif %}
     <div id="nm-panels">
-      {% for c in notify_matrix.cars %}
-      <div class="nm-panel" data-panel="p{{ c.id }}">
+      {% for c in notify_matrix.cars %}{% set k = 'p' ~ c.id %}
+      <div class="nm-panel" id="nm-{{ k }}" data-panel="{{ k }}" role="tabpanel" aria-labelledby="nm-t-{{ k }}" {{ 'hidden' if k != nm_on }}>
         {% set shown = notify_events|select('in', c.offered|list + c.events|list)|list %}  {# only what this car delivers - and what is switched on already, so it can be switched off #}
-        {% for key in shown %}{{ switch_row('ev_' ~ c.id, EV[key], key in c.events, key) }}{% if key == 'low_energy' %}{{ thr_block(c.id, c.mode, c.energy_pct, c.energy_km, c.pct_ph, c.km_ph) }}{% endif %}{% endfor %}
         {% if shown|length < notify_events|length %}<p class="hint nm-later">{{ icon('info', 14) }} {{ _('notify.more_later') }}</p>{% endif %}
+        {% for key in shown %}{{ switch_row('ev_' ~ c.id, EV[key], key in c.events, key) }}{% if key == 'low_energy' %}{{ thr_block(c.id, c.mode, c.energy_pct, c.energy_km, c.pct_ph, c.km_ph) }}{% endif %}{% endfor %}
       </div>
       {% endfor %}
-      <div class="nm-panel" data-panel="pnew" hidden>
+      <div class="nm-panel" id="nm-pnew" data-panel="pnew" role="tabpanel" aria-labelledby="nm-t-pnew" {{ 'hidden' if nm_on != 'pnew' }}>
+        <p class="hint nm-new-hint">{{ icon('info', 14) }} {{ _('notify.col_new_hint') }}</p>
         {% for key in notify_events %}{{ switch_row('ev_new', EV[key], key in notify_matrix.default, key) }}{% if key == 'low_energy' %}{{ thr_block('new', notify_matrix.energy_mode, notify_matrix.energy_pct, notify_matrix.energy_km, notify_matrix.pct_ph, '') }}{% endif %}{% endfor %}
       </div>
     </div>
     {% if not notify_matrix.cars %}<p class="muted">{{ _('notify.no_cars') }}</p>{% endif %}
-    <h3 class="acct-sub">{{ _('notify.general_title') }}</h3>
+  </div>
+  <div class="sub-card" id="notify-general">
+    {{ sub_h('bell-outline', _('notify.general_title')) }}
+    <p class="hint nm-gen-hint">{{ icon('info', 14) }} {{ _('notify.general_hint') }}</p>
     {% for key in notify_general %}{{ switch_row('gen', GEN[key], key in notify_matrix.general, key) }}{% endfor %}
+  </div>
   </form>
   <script src="{{ base }}/static/notify_matrix.js?v={{ asset_v }}" defer></script>
-  </div>
   {% endif %}
   {% endif %}
 </section>

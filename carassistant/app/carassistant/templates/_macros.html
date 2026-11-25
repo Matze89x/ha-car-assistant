@@ -1,6 +1,10 @@
 {% macro icon(name, size=18) -%}
   <svg class="ico" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{{ icons.get(name, '') }}"/></svg>
 {%- endmacro %}
+{# The label of a sub-window (docs/design.md, 4c): ALWAYS a symbol in the main colour in front of the name - one definition, so every window looks the same #}
+{% macro sub_h(ic, text, id=none) -%}
+<h3 class="sub-h"{% if id %} id="{{ id }}"{% endif %}>{{ icon(ic, 16) }}<span>{{ text }}</span></h3>
+{%- endmacro %}
 
 {# The short weekday of a date in the language of the page: "Thu" / "Do" (nothing if the text is no date) #}
 {% macro wday(value) -%}

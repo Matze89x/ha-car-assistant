@@ -4,7 +4,7 @@
 {{ page_head('alert', _('odo.confirm_title'), v.name) }}
 <section class="card">
   <p>{% if why == 'lower' %}{{ _('odo.confirm_lower', new=new_shown, last=last_shown, unit=units.dist_unit) }}{% else %}{{ _('odo.confirm_high', new=new_shown, last=last_shown, unit=units.dist_unit) }}{% endif %}</p>
-  <p class="hint">{{ _('odo.confirm_note') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('odo.confirm_note') }}</p>
   <div class="actions">
     <a class="button" href="{{ base }}/v/{{ v.slug }}">{{ icon('close', 18) }}<span>{{ _('btn.cancel') }}</span></a>
     <a class="button" href="{{ base }}/v/{{ v.slug }}/edit#odo-readings">{{ icon('list', 18) }}<span>{{ _('odo.history_link') }}</span></a>

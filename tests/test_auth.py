@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -425,3 +427,68 @@ def test_a_device_can_be_registered_for_web_push_over_the_port(ing, ext, monkeyp
     assert ext.post("/push/status", json=ask).json()["on"] is True
     assert ext.post("/push/unsubscribe", json=ask).json()["remaining"] == 0  # off: the device is gone
     assert "Pocket" not in ext.get("/settings/user").text
+
+
+def test_the_login_card_is_locked_fields_with_popups_and_the_person_signs_out_there(ing, ext, monkeypatch):
+    """The name and the password are fields that cannot be typed in; *Change* opens a popup (old password, the new one twice, Save). Signing out sits
+    with the person in the first window - there is no separate 'This session' window any more - and the first letter of the name is the picture."""
+    from carassistant import ha
+
+    monkeypatch.setattr(ha, "network_port", lambda: (True, 8321))
+    ha._cache.clear()
+    make_admin(ing)
+    ext.post("/settings/external-url", data={"host": "car.example.com"})  # not signed in: refused, the address is set through the panel
+    ing.post("/settings/external-url", data={"host": "car.example.com"})
+    ext.post("/login", data={"username": "admin", "password": PW})
+    page = ext.get("/settings/user").text
+    first = page[page.index('id="account"') :]
+    first = first[: first.index('id="passkeys"')]  # the first window of the card: the details
+    assert re.search(r'<input type="text" value="••••••••••" disabled', first) and re.search(
+        r'<input type="text" value="admin" disabled', first
+    )
+    assert 'data-open="acct-pw-dlg"' in first and 'data-open="acct-name-dlg"' in first
+    assert re.search(r'<form method="post" action="/logout"[^>]*>\s*<button class="small danger">', first)  # signing out: with the person
+    assert 'action="/account/signout-all"' in first and "account.session" not in page and ">Diese Sitzung<" not in page
+    assert '<i class="acct-av" aria-hidden="true">A</i>' in first  # the first letter, not a picture
+    dlg = page[page.index('id="acct-pw-dlg"') :]
+    dlg = dlg[: dlg.index("</dialog>")]
+    assert [m for m in re.findall(r'name="(current|new|new2)"', dlg)] == ["current", "new", "new2"]  # old, new, new again
+    assert 'name="current"' in dlg and re.search(r'name="current"[^>]*required', dlg)
+
+
+def test_an_old_password_that_is_given_must_be_right_even_from_the_panel(ing):
+    """From the Home Assistant panel the old password need not be given - but the popup always asks for it, and one that is typed must be the right one."""
+    from carassistant import accounts, db
+
+    make_admin(ing)
+    wrong = ing.post(
+        "/account/password", data={"current": "not my password", "new": "another long phrase 12", "new2": "another long phrase 12"}
+    )
+    assert wrong.status_code == 303 and "acct.pw_wrong" in wrong.headers["location"]
+    with db.tx() as conn:
+        assert accounts.authenticate(conn, "admin", PW) is not None  # nothing changed
+    ok = ing.post("/account/password", data={"current": PW, "new": "another long phrase 12", "new2": "another long phrase 12"})
+    assert "pw_changed" in ok.headers["location"]
+    again = ing.post("/account/password", data={"current": "", "new": "third long phrase 34", "new2": "third long phrase 34"})
+    assert "pw_changed" in again.headers["location"]  # left empty in the panel: still allowed, as before
+
+
+def test_the_credentials_window_only_exists_once_an_account_exists(ing):
+    """In the Home Assistant panel: without an account the card is the form that creates the first one - no 'Sign-in details', no popups, no sign out.
+    With an account the window and its popups appear, but nothing to sign out of (Home Assistant signs the person in)."""
+
+    def card(page: str) -> str:
+        text = page[page.index('id="account"') :]
+        return text[: text.index("</section>")]
+
+    page = ing.get("/settings/user").text
+    first = card(page)
+    assert 'action="/account/create"' in first and "sub-card" not in first and "Sign-in details" not in first
+    assert "acct-pw-dlg" not in page and "acct-name-dlg" not in page and 'action="/logout"' not in page
+
+    make_admin(ing)
+    page = ing.get("/settings/user").text
+    done = card(page)
+    assert 'action="/account/create"' not in done and "Sign-in details" in done
+    assert 'data-open="acct-pw-dlg"' in done and 'id="acct-pw-dlg"' in page and 'id="acct-name-dlg"' in page
+    assert 'action="/logout"' not in page and "account/signout-all" not in page  # the panel: nothing to sign out of

@@ -2,7 +2,7 @@
 {% from "_macros.html" import icon, page_head, form_bar, switch_row with context %}
 {% block content %}
 {{ page_head('plug', _('integrations.title')) }}
-<p class="hint">{{ _('integrations.intro') }}</p>
+<p class="hint">{{ icon('info', 14) }} {{ _('integrations.intro') }}</p>
 
 <section class="card">
   <h2>{{ icon('tasks') }} {{ _('integrations.modules') }}</h2>
@@ -10,7 +10,7 @@
     <div class="module">
       <div>
         <h3>{{ icon(module_icon[m.key]) }} {{ _('mod.' ~ m.key ~ '.name') }}{% if m.core %} <span class="badge">{{ _('int.core') }}</span>{% endif %}</h3>
-        <p class="hint">{{ _('mod.' ~ m.key ~ '.desc') }}</p>
+        <p class="hint">{{ icon('info', 14) }} {{ _('mod.' ~ m.key ~ '.desc') }}</p>
       </div>
       {% if not m.core %}
       <form method="post" action="{{ base }}/integrations/module/{{ m.key }}" data-autosubmit>
@@ -33,7 +33,7 @@
         <div>
           <h3>{{ icon(integration_icon[i.key]) }} {{ _('int.' ~ i.key ~ '.name') }}
             <span class="badge {{ 'ok' if int_enabled[i.key] else '' }}">{{ _('settings.on') if int_enabled[i.key] else _('settings.off') }}</span></h3>
-          <p class="hint">{{ _('int.' ~ i.key ~ '.desc') }}</p>
+          <p class="hint">{{ icon('info', 14) }} {{ _('int.' ~ i.key ~ '.desc') }}</p>
         </div>
       </summary>
       <form method="post" action="{{ base }}/integrations/{{ i.key }}" class="grid">
@@ -55,5 +55,5 @@
   {% endfor %}
 </section>
 
-<section class="card"><h2>{{ icon('plug') }} {{ _('nav.integrations') }}</h2><p class="hint">{{ _('addon.intro_global') }}</p>{% for sv in all_vehicles %}<p><a class="button" href="{{ base }}/v/{{ sv.slug }}/integrations">{{ icon('car', 16) }} {{ sv.name }}</a></p>{% endfor %}</section>
+<section class="card"><h2>{{ icon('plug') }} {{ _('nav.integrations') }}</h2><p class="hint">{{ icon('info', 14) }} {{ _('addon.intro_global') }}</p>{% for sv in all_vehicles %}<p><a class="button" href="{{ base }}/v/{{ sv.slug }}/integrations">{{ icon('car', 16) }} {{ sv.name }}</a></p>{% endfor %}</section>
 {% endblock %}

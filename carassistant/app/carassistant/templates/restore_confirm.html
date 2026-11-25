@@ -8,9 +8,9 @@
   <form method="post" action="{{ base }}/vehicles/restore/confirm" class="vb-choice">
     <input type="hidden" name="token" value="{{ token }}">
     <button name="mode" value="replace" class="danger">{{ icon('refresh', 18) }}<span>{{ _('vb.replace') }}</span></button>
-    <p class="hint">{{ _('vb.replace_hint') }}</p>
+    <p class="hint">{{ icon('info', 14) }} {{ _('vb.replace_hint') }}</p>
     <button name="mode" value="copy" class="primary">{{ icon('plus', 18) }}<span>{{ _('vb.copy') }}</span></button>
-    <p class="hint">{{ _('vb.copy_hint') }}</p>
+    <p class="hint">{{ icon('info', 14) }} {{ _('vb.copy_hint') }}</p>
     <button name="mode" value="cancel">{{ _('vb.cancel') }}</button>
   </form>
 </section>

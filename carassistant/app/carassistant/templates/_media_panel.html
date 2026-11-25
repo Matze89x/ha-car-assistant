@@ -29,21 +29,21 @@
 <form method="post" action="{{ base }}/v/{{ v.slug }}/media/choose" id="mediasel" class="mediasel"><input type="hidden" name="back" value="{{ media_back }}"></form>
 <div class="mbox">
 <div class="mg-head"><h2>{{ _('media.home_title') }} <small>{{ library|length }}</small></h2></div>
-<p class="hint">{{ _('media.home_hint') }}</p>
-{% if library %}{{ media_grid(library, 'home', 'media.home_badge', 'home') }}{% else %}<p class="hint">{{ _('media.none') }}</p>{% endif %}
+<p class="hint">{{ icon('info', 14) }} {{ _('media.home_hint') }}</p>
+{% if library %}{{ media_grid(library, 'home', 'media.home_badge', 'home') }}{% else %}<p class="hint">{{ icon('info', 14) }} {{ _('media.none') }}</p>{% endif %}
 </div>
 
 <div class="mbox">
 <div class="mg-head"><h2>{{ _('media.photo_title') }} <small>{{ photos|length }}</small></h2></div>
-<p class="hint">{{ _('media.photo_hint') }}</p>
-{% if photos %}{{ media_grid(photos, 'photo', 'media.photo_badge', 'photo') }}{% else %}<p class="hint">{{ _('media.none_photo') }}</p>{% endif %}
+<p class="hint">{{ icon('info', 14) }} {{ _('media.photo_hint') }}</p>
+{% if photos %}{{ media_grid(photos, 'photo', 'media.photo_badge', 'photo') }}{% else %}<p class="hint">{{ icon('info', 14) }} {{ _('media.none_photo') }}</p>{% endif %}
 </div>
 {% for m in library %}<form method="post" action="{{ base }}/v/{{ v.slug }}/media/{{ m.id }}/delete" id="mdel-{{ m.id }}" data-confirm="{{ _('media.confirm_delete') }}" hidden><input type="hidden" name="back" value="{{ media_back }}"></form>{% endfor %}
 
 {% if videos %}
 <section class="mbox">
   <div class="mg-head"><h2>{{ _('media.bg') }}</h2></div>
-  <p class="hint">{{ _('media.bg_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('media.bg_hint') }}</p>
   <form method="post" action="{{ base }}/v/{{ v.slug }}/media/kind" class="season-pick" data-live>
     <input type="hidden" name="back" value="{{ media_back }}">
     {% for k, ic, name, hint in ((kinds[0], 'view-dashboard', _('media.kind_adapt'), _('media.kind_adapt_hint')), (kinds[1], 'car', _('media.kind_black'), _('media.kind_black_hint')), (kinds[2], 'camera', _('media.kind_alpha'), _('media.kind_alpha_hint'))) %}<label class="sp"><input type="radio" name="kind" value="{{ k }}" {{ 'checked' if kind == k }}><span>{{ icon(ic, 22) }}<b>{{ name }}</b><small>{{ hint }}</small></span></label>{% endfor %}

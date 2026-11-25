@@ -5,7 +5,7 @@
   var root = document.getElementById('lm');
   if (!root) return;
   var board = document.getElementById('lm-board'), svg = document.getElementById('lm-wires'), detail = document.getElementById('lm-detail');
-  var rowsBox = document.getElementById('lm-rows'), filterBox = document.getElementById('lm-filter'), moreBtn = document.getElementById('lm-more');
+  var rowsBox = document.getElementById('lm-rows'), moreBtn = document.getElementById('lm-more'), emptyBox = document.getElementById('lm-empty');
   var base = root.getAttribute('data-base'), canRaw = root.getAttribute('data-raw') === '1', edges = [];
   try { edges = JSON.parse(root.getAttribute('data-edges') || '[]'); } catch (e) { edges = []; }
   function t(k) { return root.getAttribute('data-t-' + k) || ''; }
@@ -85,7 +85,7 @@
     document.getElementById('lm-dtitle').textContent = title;
     var ex = area ? board.querySelector('.lm-node[data-kind="a"][data-id="' + area + '"] .lm-ex') : null;
     document.getElementById('lm-dex').textContent = ex ? ex.textContent : (canRaw ? '' : t('masked'));
-    detail.hidden = false; filterBox.value = ''; rowsBox.textContent = ''; moreBtn.hidden = true;
+    detail.hidden = false; rowsBox.textContent = ''; moreBtn.hidden = true; emptyBox.hidden = true;
     var mine = ++token;
     fetch(base + '/signals.json?plugin=' + encodeURIComponent(plugin || '') + '&area=' + encodeURIComponent(area || ''), { credentials: 'same-origin', cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : { signals: [] }; })
@@ -99,11 +99,11 @@
   }
   function close() { sel = { plugin: '', area: '' }; paintSelection(); detail.hidden = true; token++; if (detail.parentNode !== root) { root.appendChild(detail); } }
 
-  function matches(s, q) { return !q || (s.name + ' ' + s.plugin_name).toLowerCase().indexOf(q) !== -1; }
   function render() {
-    var q = filterBox.value.trim().toLowerCase(), list = loaded.filter(function (s) { return matches(s, q); });
+    var list = loaded;
     rowsBox.textContent = '';
-    if (!list.length) { var li = document.createElement('li'); li.className = 'hint'; li.textContent = t('empty'); rowsBox.appendChild(li); moreBtn.hidden = true; return; }
+    emptyBox.hidden = list.length > 0;  /* nothing seen yet: the compact empty state of the design (symbol and one centred sentence) */
+    if (!list.length) { moreBtn.hidden = true; return; }
     var upto = Math.min(list.length, Math.max(shown, PAGE)); shown = upto;
     for (var i = 0; i < upto; i++) { rowsBox.appendChild(row(list[i])); }
     moreBtn.hidden = list.length <= upto;
@@ -146,7 +146,6 @@
         }
       }).catch(function () { });
   }
-  filterBox.addEventListener('input', function () { shown = 0; render(); });
   moreBtn.addEventListener('click', function () { shown += PAGE; render(); });
   document.getElementById('lm-dclose').addEventListener('click', close);
 

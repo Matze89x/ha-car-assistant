@@ -4,7 +4,7 @@
 {% macro box(row) %}
 <div class="guide-opt dl">
   <h3>{{ icon('download', 19) }} {{ row.label }}</h3>
-  {% if row.note %}<p class="hint">{{ row.note }}</p>{% endif %}
+  {% if row.note %}<p class="hint">{{ icon('info', 14) }} {{ row.note }}</p>{% endif %}
   <small class="muted">{% if row.size %}{{ row.size|filesizeformat }}{% endif %}</small>
   {% if row.with_token %}
     {% if token or token_free %}<form method="post" action="{{ base_url }}/guide/bundle" class="inline">{% if token %}<input type="hidden" name="token" value="{{ token }}">{% endif %}<input type="hidden" name="name" value="{{ row.name }}"><button class="primary">{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>
@@ -18,13 +18,13 @@
     <span class="gf-t"><b>{{ file_name }}</b><small>{{ _('guide.file_hint') }}</small></span>
     {% if token or token_free %}<form method="post" action="{{ base_url }}/guide/file" class="inline">{% if token %}<input type="hidden" name="token" value="{{ token }}">{% endif %}<button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button></form>{% endif %}
   </div>
-  {% if token or token_free %}{% if fresh and token %}<p class="hint">{{ _('guide.file_new_hint') }}</p>{% endif %}
+  {% if token or token_free %}{% if fresh and token %}<p class="hint">{{ icon('info', 14) }} {{ _('guide.file_new_hint') }}</p>{% endif %}
   {% else %}
   <form method="post" action="{{ base_url }}/guide/file" class="guide-again">
     <label>{{ _('addon.token_have_field') }}<input type="password" name="token" maxlength="200" autocomplete="off" required placeholder="ca_..."></label>
     <button>{{ icon('download', 18) }}<span>{{ _('guide.download') }}</span></button>
   </form>
-  <p class="hint">{{ _('guide.file_again_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('guide.file_again_hint') }}</p>
   {% endif %}
   {% endif %}
   {% if bundle_rows %}
@@ -37,6 +37,6 @@
     {% if pkg_offered or not tb %}
     <div class="guide-opts">{% for row in bundle_rows %}{% if not row.with_token or pkg_offered %}{{ box(row) }}{% endif %}{% endfor %}</div>
     {% endif %}
-    {% if tb and fresh %}<p class="hint">{{ icon('alert', 14) }} {{ _('guide.file_new_hint') }}</p>{% endif %}
+    {% if tb and fresh %}<p class="hint">{{ icon('info', 14) }} {{ _('guide.file_new_hint') }}</p>{% endif %}
   {% endif %}
   {% if texts.files %}<h3 class="guide-h3">{{ _('guide.howto') }}</h3><div class="guide-text">{{ texts.files|safe }}</div>{% endif %}

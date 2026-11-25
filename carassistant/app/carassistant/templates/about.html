@@ -37,12 +37,12 @@
   <ul class="about-credits">
     {% for name, who, lic in about.credits %}<li><b>{{ name }}</b> <small>{{ who }} · {{ lic }}</small></li>{% endfor %}
   </ul>
-  <p class="hint">{{ _('about.license') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('about.license') }}</p>
 </section>
 
 <section class="card about-made">
   <p class="about-lead">{{ _('about.made_text') }}</p>
-  {% if about.support_url %}<p class="hint">{{ _('about.coffee_hint') }}</p>{% endif %}
+  {% if about.support_url %}<p class="hint">{{ icon('info', 14) }} {{ _('about.coffee_hint') }}</p>{% endif %}
   {% if about.support_url %}<p><a class="button" href="{{ about.support_url }}" target="_blank" rel="noopener noreferrer">{{ icon('coffee', 16) }} {{ _('about.coffee') }}</a></p>{% endif %}
 </section>
 </div>
@@ -60,11 +60,11 @@
     <span class="badge {{ 'ok' if i.configured else '' }}">{{ _('addon.status_configured') if i.configured else _('addon.status_uploaded') }}</span>
   </div>
   {% else %}
-  <p class="hint">{{ _('about.none_car') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('about.none_car') }}</p>
   {% endfor %}
 </section>
 {% else %}
-<section class="card empty-state"><p class="hint">{{ _('about.none') }}</p></section>
+<section class="card empty-state"><p class="hint">{{ icon('info', 14) }} {{ _('about.none') }}</p></section>
 {% endfor %}
 
 <h2 class="vd-group-h">{{ _('about.services') }}</h2>

@@ -34,9 +34,9 @@
   <h2>{{ icon('settings' if tokenless else 'lock', 20) }} {{ _('addon.settings') if tokenless else _('guide.token_title') }}</h2>
   {% if texts.token %}<div class="guide-text">{{ texts.token|safe }}</div>{% endif %}
   {% if token and fresh and not tokenless %}
-    <p class="hint">{{ _('api.token_once') }}</p>
+    <p class="hint">{{ icon('info', 14) }} {{ _('api.token_once') }}</p>
     <ul class="codes"><li class="mono token-line">{{ token }}</li></ul>
-    <p class="hint">{{ _('guide.token_fresh_hint') }}</p>
+    <p class="hint">{{ icon('info', 14) }} {{ _('guide.token_fresh_hint') }}</p>
     <form method="post" action="{{ base_url }}/guide/next" class="guide-stack"><input type="hidden" name="token" value="{{ token }}">
     <div class="guide-nav"><a class="button" href="{{ base_url }}/guide?step=1">{{ _('btn.back') }}</a><button class="primary">{{ _('guide.next') }}</button></div></form>
   {% else %}

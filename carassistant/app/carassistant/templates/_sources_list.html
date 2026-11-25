@@ -1,5 +1,5 @@
 {% from "_macros.html" import form_bar, icon with context %}
-<p class="hint">{{ _('src.intro') }}</p>
+<p class="hint">{{ icon('info', 14) }} {{ _('src.intro') }}</p>
 <div class="pk-grid one">
 {% for r in rows %}
 <section class="card addon srcbox">
@@ -31,7 +31,7 @@
         <label class="wide">{{ _('src.token') }}<input type="password" name="token" maxlength="255" autocomplete="off" placeholder="{{ '••••••' if r.has_token }}"></label>
         <div class="wide form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button>{% if r.has_token %}<button class="danger" name="remove" value="1">{{ icon('delete', 18) }}<span>{{ _('src.key_remove') }}</span></button>{% endif %}</div>
       </form>
-      <p class="hint">{{ _('src.token_hint') }}</p>
+      <p class="hint">{{ icon('info', 14) }} {{ _('src.token_hint') }}</p>
     </div>
   </dialog>{% endif %}
 </section>
@@ -39,6 +39,7 @@
 </div>
 <details class="card pk-tile pk-add" id="addcard" {{ 'open' if not rows }}>
   <summary class="pk-head"><span class="mi-ic c2 pk-ic">{{ icon('plus', 26) }}</span><span class="pk-t"><b>{{ _('src.add') }}</b><small>{{ _('src.add_short') }}</small></span></summary>
+  <p class="hint">{{ icon('info', 14) }} {{ _('src.add_hint') }}</p>
   <form method="post" action="{{ base }}/sources" class="grid">
     <input type="hidden" name="kind" value="{{ kind }}">{% if vid %}<input type="hidden" name="vid" value="{{ vid }}">{% endif %}
     <label class="wide">{{ _('src.url') }} *<input type="url" name="url" required maxlength="300" placeholder="https://github.com/owner/repository" inputmode="url" autocomplete="off"></label>
@@ -46,7 +47,6 @@
     <label class="wide">{{ _('src.token') }}<input type="password" name="token" maxlength="255" autocomplete="off"></label>
     <div class="wide">{{ form_bar(label=_('src.add')) }}</div>
   </form>
-  <p class="hint">{{ _('src.add_hint') }}</p>
 </details>
 {% if not rows %}<div class="card empty-state">{{ icon('download', 36) }}<p>{{ _('src.empty') }}</p></div>{% endif %}
 {% if not has_default %}<form method="post" action="{{ base }}/sources/restore-default" class="actions"><input type="hidden" name="kind" value="{{ kind }}">{% if vid %}<input type="hidden" name="vid" value="{{ vid }}">{% endif %}<button class="small">{{ _('src.restore') }}</button></form>{% endif %}

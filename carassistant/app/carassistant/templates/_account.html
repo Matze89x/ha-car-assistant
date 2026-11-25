@@ -1,9 +1,9 @@
-{% from "_macros.html" import icon, form_bar with context %}
+{% from "_macros.html" import icon, sub_h, form_bar with context %}
 {% set pwmin = 12 if acct_strict else 10 %}
 <section class="card acct" id="account">
   {% if not acct_has_users %}
     <h2>{{ icon('account') }} {{ _('account.title') }}</h2>
-    {% if acct_port == 'off' %}<p class="hint">{{ _('account.status_none_off') }}</p>{% else %}<p class="acct-warn">{{ icon('lock', 14) }} {{ _('account.status_blocked') }}</p>{% endif %}
+    {% if acct_port == 'off' %}<p class="hint">{{ icon('info', 14) }} {{ _('account.status_none_off') }}</p>{% else %}<p class="acct-warn">{{ icon('lock', 14) }} {{ _('account.status_blocked') }}</p>{% endif %}
     <form method="post" action="{{ base }}/account/create" class="acct-form">
       <label>{{ _('login.username') }}<input type="text" name="username" autocomplete="username" autocapitalize="off" required></label>
       <label>{{ _('login.password') }}<input type="password" name="password" autocomplete="new-password" minlength="{{ pwmin }}" maxlength="128" required></label>
@@ -11,95 +11,128 @@
       <div class="form-bar"><button class="primary">{{ icon('plus', 18) }}<span>{{ _('account.create_first') }}</span></button></div>
     </form>
   {% else %}
+    <h2>{{ icon('account') }} {{ _('account.title') }} {% if acct_me %}{% if acct_port == 'off' %}<span class="badge">{{ _('account.badge_off') }}</span>{% else %}<span class="badge ok">{{ _('account.badge_on') }}</span>{% endif %}{% endif %}</h2>
+    <p class="hint">{{ icon('info', 14) }} {{ _('account.intro') }}</p>
+    {% if acct_strict %}<p class="hint acct-strict">{{ icon('info', 14) }} {{ _('account.strict_on') }}</p>{% endif %}
     {% if acct_me %}
-    <div class="acct-head">
-      <i class="acct-av" aria-hidden="true">{{ icon('driver', 30) }}</i>
-      <div class="acct-who"><b>{{ acct_me.username }}</b><small>{{ _('account.admin') if acct_me.is_admin else _('account.user') }}</small></div>
-      {% if acct_port == 'off' %}<span class="badge">{{ _('account.badge_off') }}</span>{% else %}<span class="badge ok">{{ _('account.badge_on') }}</span>{% endif %}
+    <div class="sub-card">
+      {{ sub_h('account', _('account.you')) }}
+      <div class="acct-head">
+        <i class="acct-av" aria-hidden="true">{{ acct_me.username[:1]|upper }}</i>
+        <div class="acct-who"><b>{{ acct_me.username }}</b><small>{{ _('account.admin') if acct_me.is_admin else _('account.user') }}</small></div>
+      </div>
+      <div class="acct-fields">
+        <div class="mk-field"><span class="mk-fl">{{ _('account.name') }}</span>
+          <div class="fld"><input type="text" value="{{ acct_me.username }}" disabled aria-label="{{ _('account.name') }}"><button type="button" class="fld-act" data-open="acct-name-dlg" aria-label="{{ _('account.edit') }}" title="{{ _('account.edit') }}">{{ icon('pencil', 18) }}</button></div></div>
+        <div class="mk-field"><span class="mk-fl">{{ _('account.pw') }}</span>
+          <div class="fld"><input type="text" value="••••••••••" disabled aria-label="{{ _('account.pw') }}"><button type="button" class="fld-act" data-open="acct-pw-dlg" aria-label="{{ _('account.edit') }}" title="{{ _('account.edit') }}">{{ icon('pencil', 18) }}</button></div></div>
+      </div>
+      {% if acct_signed_in %}<div class="form-bar">
+        <form method="post" action="{{ base }}/account/signout-all" class="inline"><button class="small">{{ _('account.signout_all') }}</button></form>
+        <form method="post" action="{{ base }}/logout" class="inline"><button class="small danger">{{ _('account.logout') }}</button></form>
+      </div>{% endif %}
+    </div>
+    {% if ext_set or not acct_external %}
+    <div class="sub-card" id="passkeys">
+      {{ sub_h('key-variant', _('account.passkeys')) }}
+        {% if acct_passkeys %}<div class="ar-line ar-pk"><span class="ar-v">{% for p in acct_passkeys %}<span class="chip-pk">{{ icon('key-variant', 14) }} <span class="pk-l" title="{{ p.label }}">{{ p.label }}</span>
+            <form method="post" action="{{ base }}/account/passkey/{{ p.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% endfor %}</span>
+        </div>
+        {% else %}<div class="empty-state">{{ icon('key-variant', 20) }}<p>{{ _('account.passkeys_none') }}</p></div>{% endif %}
+      {% if acct_external %}<p class="acct-msg" id="pk-msg" hidden></p>{% else %}<p class="hint ar-hint">{{ icon('info', 14) }} {{ _('account.passkey_ingress') }}</p>{% endif %}
+      {% if acct_external %}<div class="form-bar"><div id="pk-add-box" class="ar-edit" data-base="{{ base }}" data-unsupported="{{ _('acct.passkey_unsupported') }}" data-cancelled="{{ _('acct.passkey_cancelled') }}" data-exists="{{ _('acct.passkey_exists') }}">
+            <button type="button" id="pk-add" class="small" aria-label="{{ _('account.passkey_add') }}">{{ icon('plus', 16) }}<span>{{ _('btn.create') }}</span></button></div></div>{% endif %}
     </div>
     {% endif %}
-    {% if acct_strict %}<p class="hint acct-strict">{{ icon('shield', 14) }} {{ _('account.strict_on') }}</p>{% endif %}
-    {% if acct_me %}
-    <ul class="acct-rows">
-      <li>
-        <div class="ar-line"><span class="ar-l">{{ _('account.pw') }}</span><span class="ar-v">••••••••••</span>
-          <details class="ar-edit"><summary aria-label="{{ _('account.edit') }}">{{ icon('pencil', 16) }}<span>{{ _('account.edit') }}</span></summary>
-            <form method="post" action="{{ base }}/account/password" class="acct-form">
-              {% if acct_external %}<label>{{ _('account.current') }}<input type="password" name="current" autocomplete="current-password"></label>{% endif %}
-              <label>{{ _('account.new') }}<input type="password" name="new" autocomplete="new-password" minlength="{{ pwmin }}" maxlength="128" required></label>
-              <label>{{ _('login.new_pw2') }}<input type="password" name="new2" autocomplete="new-password" minlength="{{ pwmin }}" maxlength="128" required></label>
-              {{ form_bar() }}
-            </form>
-          </details></div>
-      </li>
-      <li>
-        <div class="ar-line"><span class="ar-l">{{ _('account.name') }}</span><span class="ar-v">{{ acct_me.username }}</span>
-          <details class="ar-edit"><summary aria-label="{{ _('account.edit') }}">{{ icon('pencil', 16) }}<span>{{ _('account.edit') }}</span></summary>
-            <form method="post" action="{{ base }}/account/username" class="acct-form">
-              {% if acct_external %}<label>{{ _('account.current') }}<input type="password" name="current" autocomplete="current-password" required></label>{% endif %}
-              <label>{{ _('login.username') }}<input type="text" name="new" autocapitalize="off" required></label>
-              {{ form_bar() }}
-            </form>
-          </details></div>
-      </li>
-      {% if ext_set or not acct_external %}
-      <li>
-        <div class="ar-line ar-pk"><span class="ar-l">{{ _('account.passkeys') }}</span>
-          <span class="ar-v">{% for p in acct_passkeys %}<span class="chip-pk">{{ icon('key-variant', 14) }} <span class="pk-l" title="{{ p.label }}">{{ p.label }}</span>
-            <form method="post" action="{{ base }}/account/passkey/{{ p.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% else %}<span class="muted">–</span>{% endfor %}</span>
-          {% if acct_external %}<div id="pk-add-box" class="ar-edit" data-base="{{ base }}" data-unsupported="{{ _('acct.passkey_unsupported') }}" data-cancelled="{{ _('acct.passkey_cancelled') }}" data-exists="{{ _('acct.passkey_exists') }}">
-            <button type="button" id="pk-add" class="ar-pill" aria-label="{{ _('account.passkey_add') }}">{{ icon('plus', 16) }}<span>{{ _('account.passkey_add') }}</span></button></div>{% endif %}</div>
-        {% if acct_external %}<p class="acct-msg" id="pk-msg" hidden></p>{% else %}<p class="hint ar-hint">{{ _('account.passkey_ingress') }}</p>{% endif %}
-      </li>
-      {% endif %}
-      {% if acct_signed_in %}
-      <li id="passcode">
-        <div class="ar-line"><span class="ar-l">{{ _('account.passcode') }}</span>
-          <span class="ar-v">{% if acct_has_pin %}<span class="badge ok">{{ _('settings.on') }}</span> <small class="muted">{{ _('account.passcode_on', n=acct_lock_minutes) }}</small>{% else %}<span class="muted">–</span>{% endif %}</span>
-          <details class="ar-edit"><summary aria-label="{{ _('account.passcode_set') if not acct_has_pin else _('account.edit') }}">{{ icon('pencil', 16) }}<span>{{ _('account.passcode_set') if not acct_has_pin else _('account.edit') }}</span></summary>
-            <form method="post" action="{{ base }}/account/passcode" class="acct-form" autocomplete="off">
-              <p class="hint">{{ _('account.passcode_hint') }}</p>
-              <label>{{ _('account.passcode_new') }}<input type="password" name="code" inputmode="numeric" pattern="[0-9]*" minlength="6" maxlength="12" class="mono" required></label>
-              <label>{{ _('account.passcode_new2') }}<input type="password" name="code2" inputmode="numeric" pattern="[0-9]*" minlength="6" maxlength="12" class="mono" required></label>
-              <label>{{ _('account.passcode_idle') }}<select name="minutes">{% for n in acct_lock_choices %}<option value="{{ n }}" {{ 'selected' if n == acct_lock_minutes }}>{{ n }}</option>{% endfor %}</select></label>
-              <label>{{ _('account.current') }}<input type="password" name="current" autocomplete="current-password" required></label>
-              {{ form_bar() }}
-            </form>
-            {% if acct_has_pin %}<form method="post" action="{{ base }}/account/passcode/remove" class="inline"><button class="small danger">{{ _('account.passcode_remove') }}</button></form>{% endif %}
-          </details></div>
-      </li>
-      {% endif %}
-    </ul>
+    {% if acct_signed_in %}
+    <div class="sub-card" id="passcode">
+      {{ sub_h('lock', _('account.passcode')) }}
+        <div class="ar-line">{% if acct_has_pin %}<span class="ar-v"><span class="badge ok">{{ _('settings.on') }}</span> <small class="muted">{{ _('account.passcode_on', n=acct_lock_minutes) }}</small></span>{% else %}<div class="empty-state">{{ icon('lock', 20) }}<p>{{ _('account.passcode_none') }}</p></div>{% endif %}
+          <div class="ar-edit{{ '' if acct_has_pin else ' ar-new' }}"><button type="button" class="small" data-open="acct-pin-dlg" aria-label="{{ _('account.passcode_set') if not acct_has_pin else _('account.edit') }}">{{ icon('pencil' if acct_has_pin else 'plus', 16) }}<span>{{ _('account.edit') if acct_has_pin else _('btn.create') }}</span></button></div></div>
+      {% if acct_has_pin %}<div class="form-bar"><form method="post" action="{{ base }}/account/lock" class="inline"><button class="small">{{ icon('lock', 16) }} {{ _('account.lock_now') }}</button></form></div>{% endif %}
+    </div>
+    {% endif %}
     {% endif %}
     {% if acct_is_admin %}
-    {% if acct_users|length > 1 %}<h3 class="acct-sub">{{ _('account.users') }}</h3>
-    <ul class="acct-users">
-      {% for u in acct_users %}<li>
-        <div class="ar-line"><i class="acct-av s" aria-hidden="true">{{ icon('driver', 20) }}</i><span class="ar-v"><b>{{ u.username }}</b>{% if u.is_admin %} <span class="badge">{{ _('account.admin') }}</span>{% endif %}
-          <small class="muted">{% if u.passkeys %}{{ icon('key-variant', 12) }} {{ u.passkeys }}{% endif %}{% if u.last_login %} · {{ u.last_login[:10] }}{% endif %}</small></span>
-          {% if not acct_external or not u.is_admin %}<details class="ar-edit"><summary aria-label="{{ _('account.manage') }}">{{ icon('pencil', 16) }}<span>{{ _('account.manage') }}</span></summary>
-            <form method="post" action="{{ base }}/account/users/{{ u.id }}/password" class="acct-form"><label>{{ _('account.new') }}<input type="password" name="new" autocomplete="new-password" minlength="{{ pwmin }}" maxlength="128" required></label>{{ form_bar() }}</form>
-            <div class="actions">
-              <form method="post" action="{{ base }}/account/users/{{ u.id }}/passkeys/clear" class="inline"><button class="small">{{ _('account.passkeys_clear') }}</button></form>
-              {% if not u.is_admin %}<form method="post" action="{{ base }}/account/users/{{ u.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="small danger">{{ icon('delete', 14) }} {{ _('btn.delete') }}</button></form>{% endif %}
-            </div></details>{% endif %}</div></li>{% endfor %}
-    </ul>{% endif %}
-    <details class="ar-edit ar-add"><summary aria-label="{{ _('account.add_user') }}">{{ icon('plus', 16) }}<span>{{ _('account.add_user') }}</span></summary>
-      <form method="post" action="{{ base }}/account/users/add" class="acct-form">
-        <label>{{ _('login.username') }}<input type="text" name="username" autocapitalize="off" required></label>
-        <label>{{ _('login.password') }}<input type="password" name="password" autocomplete="new-password" minlength="{{ pwmin }}" maxlength="128" required></label>
-        <div class="form-bar"><button class="primary">{{ icon('plus', 18) }}<span>{{ _('btn.add') }}</span></button></div>
-      </form>
-    </details>
-    {% if acct_port == 'off' %}<p class="hint">{{ icon('info', 14) }} {{ _('account.reset_here') }}</p>{% endif %}
-    {% endif %}
-    {% if acct_signed_in %}
-    <div class="acct-foot">
-      {% if acct_has_pin %}<form method="post" action="{{ base }}/account/lock" class="inline"><button class="small">{{ icon('lock', 16) }} {{ _('account.lock_now') }}</button></form>{% endif %}
-      <form method="post" action="{{ base }}/account/signout-all" class="inline"><button class="small">{{ _('account.signout_all') }}</button></form>
-      <form method="post" action="{{ base }}/logout" class="inline"><button class="small danger">{{ _('account.logout') }}</button></form>
+    <div class="sub-card" id="users">
+      {{ sub_h('account-group', _('account.users')) }}
+      {% if acct_users|length > 1 %}
+      <ul class="acct-users">
+        {% for u in acct_users %}<li>
+          <div class="ar-line"><i class="acct-av s" aria-hidden="true">{{ u.username[:1]|upper }}</i><span class="ar-v"><b>{{ u.username }}</b>{% if u.is_admin %} <span class="badge">{{ _('account.admin') }}</span>{% endif %}
+            <small class="muted">{% if u.passkeys %}{{ icon('key-variant', 12) }} {{ u.passkeys }}{% endif %}{% if u.last_login %} · {{ u.last_login[:10] }}{% endif %}</small></span>
+            {% if not acct_external or not u.is_admin %}<div class="ar-edit"><button type="button" class="small" data-open="acct-user-{{ u.id }}" aria-label="{{ _('account.manage') }}">{{ icon('pencil', 16) }}<span>{{ _('account.manage') }}</span></button></div>{% endif %}</div></li>{% endfor %}
+      </ul>{% endif %}
+      <div class="form-bar"><button type="button" class="small" data-open="acct-add-dlg">{{ icon('plus', 16) }}<span>{{ _('account.add_user') }}</span></button></div>
+      {% if acct_port == 'off' %}<p class="hint">{{ icon('info', 14) }} {{ _('account.reset_here') }}</p>{% endif %}
     </div>
     {% endif %}
   {% endif %}
   <script src="{{ base }}/static/auth.js?v={{ asset_v }}" defer></script>
 </section>
+{% if acct_has_users and acct_me %}
+<dialog id="acct-pw-dlg" class="vsw addon-dlg" aria-label="{{ _('account.pw') }}">
+  <div class="vsw-head"><h2>{{ icon('lock', 20) }} {{ _('account.pw') }}</h2><button type="button" class="vsw-x" data-close aria-label="{{ _('btn.close') }}">{{ icon('close', 20) }}</button></div>
+  <div class="addon-dlg-body">
+    <form method="post" action="{{ base }}/account/password" class="acct-form">
+      <label>{{ _('account.old_pw') }}<input type="password" name="current" autocomplete="current-password" required></label>
+      <label>{{ _('account.new') }}<input type="password" name="new" autocomplete="new-password" minlength="{{ pwmin }}" maxlength="128" required></label>
+      <label>{{ _('login.new_pw2') }}<input type="password" name="new2" autocomplete="new-password" minlength="{{ pwmin }}" maxlength="128" required></label>
+      <div class="form-bar"><button type="button" class="button" data-close>{{ _('btn.cancel') }}</button><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
+    </form>
+  </div>
+</dialog>
+<dialog id="acct-name-dlg" class="vsw addon-dlg" aria-label="{{ _('account.name') }}">
+  <div class="vsw-head"><h2>{{ icon('account', 20) }} {{ _('account.name') }}</h2><button type="button" class="vsw-x" data-close aria-label="{{ _('btn.close') }}">{{ icon('close', 20) }}</button></div>
+  <div class="addon-dlg-body">
+    <form method="post" action="{{ base }}/account/username" class="acct-form">
+      {% if acct_external %}<label>{{ _('account.current') }}<input type="password" name="current" autocomplete="current-password" required></label>{% endif %}
+      <label>{{ _('login.username') }}<input type="text" name="new" value="{{ acct_me.username }}" autocapitalize="off" autocomplete="username" required></label>
+      <div class="form-bar"><button type="button" class="button" data-close>{{ _('btn.cancel') }}</button><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
+    </form>
+  </div>
+</dialog>
+{% if acct_signed_in %}
+<dialog id="acct-pin-dlg" class="vsw addon-dlg" aria-label="{{ _('account.passcode') }}">
+  <div class="vsw-head"><h2>{{ icon('lock', 20) }} {{ _('account.passcode') }}</h2><button type="button" class="vsw-x" data-close aria-label="{{ _('btn.close') }}">{{ icon('close', 20) }}</button></div>
+  <div class="addon-dlg-body">
+    <form method="post" action="{{ base }}/account/passcode" class="acct-form" autocomplete="off">
+      <p class="hint">{{ icon('info', 14) }} {{ _('account.passcode_hint') }}</p>
+      <label>{{ _('account.passcode_new') }}<input type="password" name="code" inputmode="numeric" pattern="[0-9]*" minlength="6" maxlength="12" class="mono" required></label>
+      <label>{{ _('account.passcode_new2') }}<input type="password" name="code2" inputmode="numeric" pattern="[0-9]*" minlength="6" maxlength="12" class="mono" required></label>
+      <label>{{ _('account.passcode_idle') }}<select name="minutes">{% for n in acct_lock_choices %}<option value="{{ n }}" {{ 'selected' if n == acct_lock_minutes }}>{{ n }}</option>{% endfor %}</select></label>
+      <label>{{ _('account.current') }}<input type="password" name="current" autocomplete="current-password" required></label>
+      <div class="form-bar"><button type="button" class="button" data-close>{{ _('btn.cancel') }}</button><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
+    </form>
+    {% if acct_has_pin %}<form method="post" action="{{ base }}/account/passcode/remove" id="pin-remove" hidden></form>
+    <div class="form-bar dlg-more"><button type="submit" form="pin-remove" class="small danger">{{ icon('delete', 14) }} {{ _('account.passcode_remove') }}</button></div>{% endif %}
+  </div>
+</dialog>
+{% endif %}
+{% if acct_is_admin %}
+<dialog id="acct-add-dlg" class="vsw addon-dlg" aria-label="{{ _('account.add_user') }}">
+  <div class="vsw-head"><h2>{{ icon('plus', 20) }} {{ _('account.add_user') }}</h2><button type="button" class="vsw-x" data-close aria-label="{{ _('btn.close') }}">{{ icon('close', 20) }}</button></div>
+  <div class="addon-dlg-body">
+    <form method="post" action="{{ base }}/account/users/add" class="acct-form">
+      <label>{{ _('login.username') }}<input type="text" name="username" autocapitalize="off" required></label>
+      <label>{{ _('login.password') }}<input type="password" name="password" autocomplete="new-password" minlength="{{ pwmin }}" maxlength="128" required></label>
+      <div class="form-bar"><button type="button" class="button" data-close>{{ _('btn.cancel') }}</button><button class="primary">{{ icon('plus', 18) }}<span>{{ _('btn.add') }}</span></button></div>
+    </form>
+  </div>
+</dialog>
+{% for u in acct_users if (not acct_external or not u.is_admin) %}
+<dialog id="acct-user-{{ u.id }}" class="vsw addon-dlg" aria-label="{{ u.username }}">
+  <div class="vsw-head"><h2>{{ icon('account', 20) }} {{ u.username }}</h2><button type="button" class="vsw-x" data-close aria-label="{{ _('btn.close') }}">{{ icon('close', 20) }}</button></div>
+  <div class="addon-dlg-body">
+    <form method="post" action="{{ base }}/account/users/{{ u.id }}/password" class="acct-form">
+      <label>{{ _('account.new') }}<input type="password" name="new" autocomplete="new-password" minlength="{{ pwmin }}" maxlength="128" required></label>
+      <div class="form-bar"><button type="button" class="button" data-close>{{ _('btn.cancel') }}</button><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button></div>
+    </form>
+    {% if u.passkeys or not u.is_admin %}<form method="post" action="{{ base }}/account/users/{{ u.id }}/passkeys/clear" id="uk-{{ u.id }}" hidden></form>
+    <form method="post" action="{{ base }}/account/users/{{ u.id }}/delete" id="ud-{{ u.id }}" data-confirm="{{ _('confirm.delete') }}" hidden></form>
+    <div class="form-bar dlg-more">{% if u.passkeys %}<button type="submit" form="uk-{{ u.id }}" class="small">{{ icon('key-variant', 14) }} {{ _('account.passkeys_clear') }}</button>{% endif %}{% if not u.is_admin %}<button type="submit" form="ud-{{ u.id }}" class="small danger">{{ icon('delete', 14) }} {{ _('btn.delete') }}</button>{% endif %}</div>{% endif %}
+  </div>
+</dialog>
+{% endfor %}
+{% endif %}
+{% endif %}

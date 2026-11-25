@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import UTC, datetime, timedelta
 
 from tests.test_web import create_vehicle
@@ -204,7 +205,7 @@ def test_only_what_a_car_really_delivers_is_offered_for_notifications(client):
     assert (
         f'name="ev_{vid}" value="tyre_pressure"' not in page and f'name="ev_{vid}" value="open_closure"' not in page
     )  # no tyre system, no door data
-    assert "Only what this car really delivers is offered" in page
+    assert "Only what this car delivers is offered" in page
     assert 'name="ev_new" value="tyre_pressure"' in page  # the choice for new cars offers everything
     with db.tx() as conn:  # a plugin reports tyre pressures and the doors
         connectors._store(conn, vid, "tyre_pressure_bar", '{"fl": 2.4, "fr": 2.4, "rl": 2.4, "rr": 2.4}')
@@ -219,3 +220,64 @@ def test_only_what_a_car_really_delivers_is_offered_for_notifications(client):
     client.post("/settings/notifications/matrix", data={f"ev_{vid}": ["low_energy"]})
     assert f'name="ev_{vid}" value="low_energy"' in client.get("/settings/user").text
     assert uid
+
+
+def test_the_messages_have_a_tab_per_car_and_the_general_ones_a_window_of_their_own(client):
+    """One tab per car (the car you work with is open first) and a last tab for the cars added later; under the open tab only that car's messages.
+    The messages that belong to no car sit in a window of their own, still in the one form."""
+    _admin(client)
+    page = client.get("/settings/user").text
+    assert (
+        "nm-tabs" not in page and 'id="nm-select"' not in page
+    )  # no car yet: no tab bar, the one panel for the cars to come is just shown
+    assert 'data-panel="pnew"' in page and not re.search(r'data-panel="pnew"[^>]*hidden', page)
+
+    first = create_vehicle(client, "Alpha Car")
+    second = create_vehicle(client, "Beta Car")
+    ids = {first: "Alpha Car", second: "Beta Car"}
+    page = client.get(f"/settings/user?car={second}").text
+    bar = page[page.index('class="seg-tabs nm-tabs"') : page.index("</nav>", page.index('class="seg-tabs nm-tabs"'))]
+    for vid, name in ids.items():
+        assert f'data-nm-tab="p{vid}"' in bar and f"<span>{name}</span>" in bar  # a tab per car, named like the car
+    assert 'data-nm-tab="pnew"' in bar and "<span>More cars</span>" in bar  # and one for the cars added later
+    assert bar.count('class="on"') == 1 and re.search(rf'<a [^>]*data-nm-tab="p{second}"[^>]*class="on"', bar)  # the car in use is open
+    assert re.search(rf'data-panel="p{first}"[^>]*hidden', page) and not re.search(rf'data-panel="p{second}"[^>]*hidden', page)
+
+    # the general messages: a window of their own, after the cars, in the same form (so one save covers both)
+    cars_part, general_part = page.split('id="notify-general"')
+    assert 'name="gen"' in general_part and 'name="gen"' not in cars_part
+    assert 'name="ev_' not in general_part and f'name="ev_{second}"' in cars_part
+    form = page[page.index('id="nm-form"') : page.index("</form>", page.index('id="nm-form"'))]
+    assert 'id="notify-general"' in form and 'id="nm-panels"' in form
+
+
+def test_two_cars_with_different_plugins_each_get_their_own_odometer_rule_and_their_own_messages(client):
+    """Everything about a car is per car: a plugin on the first car (odometer, fuel level, doors) and a different one on the second (battery, tyre pressures)
+    must not leak into each other - not the 'the odometer is shown, not typed' rule, not the messages a person can switch on."""
+    from carassistant import connectors, summary
+
+    _admin(client)
+    old = create_vehicle(client, "Old Van")
+    electric = create_vehicle(client, "Electric Compact")
+    with db.tx() as conn:
+        connectors.create_token(conn, "van-plugin", old)
+        summary.record_odometer(conn, old, 120_500, "api:van-plugin")  # the van's plugin reports the odometer
+        connectors._store(conn, old, "fuel_level", "55")
+        connectors._store(conn, old, "doors", '{"driver": false}')
+        connectors._store(conn, electric, "battery_pct", "80")  # the electric car's plugin: battery and tyres, no odometer
+        connectors._store(conn, electric, "tyre_pressure_bar", '{"fl": 2.5, "fr": 2.5, "rl": 2.5, "rr": 2.5}')
+        summary.add_odometer(conn, electric, 8_000)  # typed by a person
+        assert summary.odometer_from_car(conn, old) is True and summary.odometer_from_car(conn, electric) is False
+        van, ev = (conn.execute("SELECT * FROM vehicles WHERE id = ?", (v,)).fetchone() for v in (old, electric))
+        van_offer, ev_offer = notify.offered_events(conn, van), notify.offered_events(conn, ev)
+    assert {"low_energy", "open_closure", "refuel"} <= van_offer and "tyre_pressure" not in van_offer
+    assert {"low_energy", "tyre_pressure", "refuel"} <= ev_offer and "open_closure" not in ev_offer
+    # the settings page: one tab and one panel per car, each with its own switches
+    page = client.get(f"/settings/user?car={electric}").text
+    assert f'name="ev_{old}" value="open_closure"' in page and f'name="ev_{electric}" value="open_closure"' not in page
+    assert f'name="ev_{electric}" value="tyre_pressure"' in page and f'name="ev_{old}" value="tyre_pressure"' not in page
+    assert page.count('data-nm-tab="p') >= 3 and f'data-nm-tab="p{old}"' in page and f'data-nm-tab="p{electric}"' in page
+    # the odometer: the van's page has nothing to type, the electric car's page has the box
+    van_page = client.get(f"/v/{old}/edit").text
+    ev_page = client.get(f"/v/{electric}/edit").text
+    assert 'class="odo-entry"' not in van_page and 'class="odo-entry"' in ev_page

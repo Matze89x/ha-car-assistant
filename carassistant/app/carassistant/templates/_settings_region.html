@@ -1,15 +1,20 @@
 {% from "_macros.html" import icon with context %}
 <section class="card rg" id="region">
   <h2>{{ icon('globe') }} {{ _('region.title') }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ _('region.hint') }}</p>
   <form class="rg-row" method="post" action="{{ base }}/settings/language" data-live data-reload>
     <label for="rg-lang">{{ _('settings.language') }}</label>
     <select id="rg-lang" name="language">{% for code, meta in languages.items() %}<option value="{{ code }}" {{ 'selected' if lang == code }}>{{ meta.name }}</option>{% endfor %}</select>
   </form>
-  <form class="rg-row" id="datetime" method="post" action="{{ base }}/settings/datetime" data-live>
-    <label for="rg-date">{{ _('region.date_format') }}</label>
-    <select id="rg-date" name="date"><option value="" {{ 'selected' if date_key == 'auto' }}>{{ _('region.auto') }} ({{ auto_date }})</option>{% for k, ex in date_examples.items() %}<option value="{{ k }}" {{ 'selected' if date_key == k }}>{{ ex }}</option>{% endfor %}</select>
-    <label for="rg-time">{{ _('region.time_format') }}</label>
-    <select id="rg-time" name="time"><option value="" {{ 'selected' if time_key == 'auto' }}>{{ _('region.auto') }} ({{ _('region.h24') }})</option><option value="24" {{ 'selected' if time_key == '24' }}>{{ _('region.h24') }} (16:30)</option><option value="12" {{ 'selected' if time_key == '12' }}>{{ _('region.h12') }} (4:30 PM)</option></select>
+  <form class="rg-grp" id="datetime" method="post" action="{{ base }}/settings/datetime" data-live>
+    <div class="rg-row">
+      <label for="rg-date">{{ _('region.date_format') }}</label>
+      <select id="rg-date" name="date"><option value="" {{ 'selected' if date_key == 'auto' }}>{{ _('region.auto') }} ({{ auto_date }})</option>{% for k, ex in date_examples.items() %}<option value="{{ k }}" {{ 'selected' if date_key == k }}>{{ ex }}</option>{% endfor %}</select>
+    </div>
+    <div class="rg-row">
+      <label for="rg-time">{{ _('region.time_format') }}</label>
+      <select id="rg-time" name="time"><option value="" {{ 'selected' if time_key == 'auto' }}>{{ _('region.auto') }} ({{ _('region.h24') }})</option><option value="24" {{ 'selected' if time_key == '24' }}>{{ _('region.h24') }} (16:30)</option><option value="12" {{ 'selected' if time_key == '12' }}>{{ _('region.h12') }} (4:30 PM)</option></select>
+    </div>
   </form>
   <form class="rg-row" id="timezone" method="post" action="{{ base }}/settings/timezone" data-live>
     <label for="rg-tz">{{ _('region.tz') }}</label>

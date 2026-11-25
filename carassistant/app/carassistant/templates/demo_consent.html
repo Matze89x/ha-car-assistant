@@ -9,7 +9,7 @@
     <li>{{ icon('plug', 16) }} {{ _('demo.consent_2') }}</li>
     <li>{{ icon('refresh', 16) }} {{ _('demo.consent_3') }}</li>
   </ul>
-  <p class="hint">{{ _('demo.consent_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('demo.consent_hint') }}</p>
   <form method="post" action="{{ base }}/vehicles/demo/load" class="form-bar demo-bar">
     <input type="hidden" name="kind" value="{{ kind }}">
     <a class="button" href="{{ base }}/vehicles/new">{{ _('vb.cancel') }}</a>

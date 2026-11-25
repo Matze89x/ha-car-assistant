@@ -4,14 +4,14 @@
 {{ page_head('plug', _('api.token_title')) }}
 <section class="card">
   <p>{{ _('api.token_for') }} <strong>{{ conn_name }}</strong></p>
-  <p class="hint">{{ _('api.token_once') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('api.token_once') }}</p>
   <ul class="codes"><li class="mono token-line">{{ token }}</li></ul>
   {% if conn_file and addon_pk %}
   <form method="post" action="{{ base }}/v/{{ vid }}/integrations/{{ addon_pk }}/connection-file" class="inline">
     <input type="hidden" name="token" value="{{ token }}">
     <button class="primary">{{ icon('download', 18) }}<span>{{ _('addon.conn_file', name=conn_file.name) }}</span></button>
   </form>
-  <p class="hint">{{ _('addon.conn_file_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('addon.conn_file_hint') }}</p>
   {% endif %}
   <pre class="mono curl-box">curl -X POST {{ base_url or 'https://car.example.com' }}/api/v1/vehicles/{{ vid or 1 }}/data \
   -H "Authorization: Bearer {{ token }}" \

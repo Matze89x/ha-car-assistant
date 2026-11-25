@@ -8,7 +8,7 @@
 {% if done %}
 <section class="card guide-step">
   <h2>{{ icon('check', 20) }} {{ _('flow.done') }}</h2>
-  <p class="hint">{{ _('api.token_once') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('api.token_once') }}</p>
   <ul class="codes"><li class="mono token-line">{{ token }}</li></ul>
   <div class="addon-bar"><a class="button primary" href="{{ base }}{{ back_to }}">{{ icon('check', 18) }}<span>{{ _('btn.close') }}</span></a></div>
 </section>
@@ -49,12 +49,12 @@
 
     {% if now.type == 'token' %}
       {% if token and fresh %}
-        <p class="hint">{{ _('api.token_once') }}</p>
+        <p class="hint">{{ icon('info', 14) }} {{ _('api.token_once') }}</p>
         <ul class="codes"><li class="mono token-line">{{ token }}</li></ul>
-        <p class="hint">{{ _('guide.token_fresh_hint') }}</p>
+        <p class="hint">{{ icon('info', 14) }} {{ _('guide.token_fresh_hint') }}</p>
       {% else %}
         {% if has_token %}<p class="guide-fp"><b>{{ _('guide.token_have') }}</b> <code>•••• {{ fingerprint }}</code></p>{% endif %}
-        <p class="hint">{{ _('guide.token_new_hint') if has_token else _('guide.token_none_hint') }}</p>
+        <p class="hint">{{ icon('info', 14) }} {{ _('guide.token_new_hint') if has_token else _('guide.token_none_hint') }}</p>
         <div class="addon-bar"><button name="do" value="new">{{ icon('refresh', 18) }}<span>{{ _('guide.token_new') }}</span></button></div>
       {% endif %}
     {% endif %}

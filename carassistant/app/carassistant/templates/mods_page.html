@@ -16,7 +16,7 @@
 {% endmacro %}
 
 {% call page_head(module_icon.get('mods', 'wrench'), _('mods.title')) %}<button type="button" class="button primary" data-add-toggle="addcard" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>{% endcall %}
-<p class="hint">{{ _('mods.intro') }}</p>
+<p class="hint">{{ icon('info', 14) }} {{ _('mods.intro') }}</p>
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
 
 <details class="card add-card add-card-top" id="addcard" {{ 'open' if form }}>

@@ -1,7 +1,7 @@
 {# What a package will do, read from its description: shown before it is installed and on the review page. Needs: m (the manifest), service,
    f_source, f_version, f_sha (optional) #}
   {% set frames = (m.pages or [])|selectattr('kind', 'equalto', 'frame')|list %}
-  {% if frames %}<p class="hint pkg-frame">{{ icon('alert', 14) }}<span>{{ _('svc.frame_note') }} {% for p in frames %}<code>{{ p.route }}</code> {% endfor %}</span></p>{% endif %}
+  {% if frames %}<p class="hint pkg-frame">{{ icon('info', 14) }} <span>{{ _('svc.frame_note') }} {% for p in frames %}<code>{{ p.route }}</code> {% endfor %}</span></p>{% endif %}
   {% if f_compact %}
   <div class="rv">
     {% if service %}

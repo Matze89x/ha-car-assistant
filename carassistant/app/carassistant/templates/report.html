@@ -94,6 +94,6 @@
   {% endmacro %}
   <div class="mlist">{% for m in months %}{{ mrow(m) }}{% endfor %}</div>
   {% else %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('report.need_data') }}</p></div>{% endif %}
-  <p class="hint">{{ _('report.method') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('report.method') }}</p>
 </section>
 {% endblock %}

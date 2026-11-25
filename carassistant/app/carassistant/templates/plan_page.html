@@ -11,7 +11,7 @@
   <div class="pl-top"><i>{{ _('plan.next') }}</i><span class="badge {{ 'ok' if pl.on else '' }}">{{ _('plan.reminder_on') if pl.on else _('plan.reminder_off') }}</span></div>
   <b class="pl-name">{{ rs.title }}</b>
   <div class="pl-steps">{% for st in pl.steps %}<div class="pl-step {{ 'on' if loop.index0 == pl.current }} {{ 'dose' if st.dose }}"><b>{{ loop.index }}</b><small>{{ st.label if st.dose else _('plan.clean') }}</small></div>{% endfor %}</div>
-  <p class="hint">{{ _('plan.hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('plan.hint') }}</p>
   {% if addon %}<a class="ghost-btn small pl-settings" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/settings">{{ icon('settings', 16) }}<span>{{ _('plan.settings') }}</span></a>{% endif %}
 </section>
 
@@ -21,7 +21,7 @@
     <select name="step" aria-label="{{ _('plan.fix') }}">{% for st in pl.steps %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == pl.current }}>{{ _('plan.refuel_n', n=loop.index) }}: {{ st.label if st.dose else _('plan.clean') }}{% if st.amount %} ({{ st.amount }}){% endif %}</option>{% endfor %}</select>
     <button class="ghost-btn small">{{ _('plan.set') }}</button></form>
   <form method="post" action="{{ pu }}"><input type="hidden" name="advance" value="1"><button class="ghost-btn small">{{ icon('chevron-right', 16) }}<span>{{ _('plan.advance') }}</span></button></form>
-  <p class="hint">{{ _('plan.fix_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('plan.fix_hint') }}</p>
 </section>
 
 <div class="vd-group-h eq-head">{{ _('plan.history') }}</div>

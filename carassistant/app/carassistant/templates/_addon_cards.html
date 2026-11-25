@@ -17,7 +17,7 @@
   {% if a.pkgfiles and not a.svc and not a.pkgfiles.approved %}<p class="addon-status">{{ icon('info', 16) }}<span>{{ _('fil.state_wait') }}</span></p>{% endif %}
   {% if a.svc and a.svc.state not in ('running', 'stopped') %}{% set SV = {'waiting': _('svc.state_waiting'), 'installing': _('svc.state_installing'), 'starting': _('svc.state_starting'), 'restarting': _('svc.state_restarting'), 'error': _('svc.state_error')} %}<p class="addon-status{{ ' err' if a.svc.state == 'error' }}">{{ icon('alert' if a.svc.state == 'error' else 'info', 16) }}<span>{{ SV.get(a.svc.state, a.svc.state) }}{% if a.svc.error %} · {{ _(a.svc.error) }}{% endif %}</span></p>{% endif %}
   {% if a.missing %}
-    <p class="hint">{{ _('addon.needs_text') }}</p>
+    <p class="hint">{{ icon('info', 14) }} {{ _('addon.needs_text') }}</p>
     {% if a.need.state == 'update_sources' %}<p class="flash err">{{ _('addon.need_update_sources', url=a.need.url) }}</p>
     {% elif a.need.state == 'add_source' %}<p class="flash err">{{ _('addon.need_add_source', url=a.need.url) }}</p>
     {% elif a.need.state == 'upload' %}<p class="flash err">{{ _('addon.need_upload') }}</p>{% endif %}
@@ -54,5 +54,5 @@
   {{ del_form('adel-' ~ a.id, base ~ '/v/' ~ v.slug ~ '/integrations/' ~ a.id ~ '/delete', 'addon.confirm_delete') }}
 </section>
 {% else %}
-<section class="card"><p class="hint">{{ empty }}</p></section>
+<section class="card"><p class="hint">{{ icon('info', 14) }} {{ empty }}</p></section>
 {% endfor %}

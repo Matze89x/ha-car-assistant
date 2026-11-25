@@ -58,7 +58,13 @@ def sweep(
             db.commit()
             db.close()
         port = ms.free_port()
-        env = {**os.environ, "CARASSISTANT_DATA": str(data), "CARASSISTANT_DEV": "1", "CARASSISTANT_PORT": str(port)}
+        env = {
+            **os.environ,
+            "CARASSISTANT_DATA": str(data),
+            "CARASSISTANT_DEV": "1",
+            "CARASSISTANT_PORT": str(port),
+            "CARASSISTANT_DEV_NETWORK_PORT": "8321",
+        }  # a host port is "mapped": the pages that need one are checked too
         env["PYTHONPATH"] = str(ROOT / "carassistant" / "app")
         server = subprocess.Popen([sys.executable, "-m", "carassistant"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
         try:

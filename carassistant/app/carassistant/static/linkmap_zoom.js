@@ -303,7 +303,7 @@
     var extra = $('lmz-dextra'); empty(extra);
     (d.extra || []).forEach(function (x) { add(extra, 'li', 'lmz-chip', x); });
     var conn = $('lmz-conn'); empty(conn);
-    if (!d.connections.length) { add(conn, 'li', 'hint', T('no_connections')); }
+    $('lmz-no-conn').hidden = d.connections.length > 0;
     d.connections.forEach(function (c) {
       var li = add(conn, 'li', 'lmz-conn-row t' + (tintOf[c.plugin] || 1));
       dirBadge(li, c.dir);
@@ -313,7 +313,7 @@
       add(li, 'i', 'lm-dot ' + c.state);
     });
     var data = $('lmz-data'); empty(data);
-    if (!d.signals.length) { add(data, 'p', 'hint', T('no_data')); }
+    $('lmz-no-data').hidden = d.signals.length > 0;
     d.signals.forEach(function (s, i) {
       var det = add(data, 'details', 'lmz-sig t' + (tintOf[s.plugin] || 1)), sm = add(det, 'summary', '');
       if (i < 4) { det.open = true; }

@@ -9,7 +9,7 @@
   {% elif itab == 'sources' %}<button type="button" class="button primary" data-add-toggle="addcard" aria-label="{{ _('src.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('src.add') }}</span></button>{% endif %}
 {% endcall %}
 {% if itab == 'navigation' %}
-<p class="hint">{{ _('int.intro', car=v.name) }}</p>
+<p class="hint">{{ icon('info', 14) }} {{ _('int.intro', car=v.name) }}</p>
 {% include "_nav_editor.html" %}
 {% if items %}<div class="mg-head"><h2>{{ _('int.installed') }}</h2></div>
 <div class="pk-grid one">{% with rows=items, empty=_('int.none') %}{% include "_addon_cards.html" %}{% endwith %}</div>{% endif %}

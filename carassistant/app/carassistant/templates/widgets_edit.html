@@ -2,7 +2,7 @@
 {% from "_macros.html" import icon, page_head, WD_LABELS with context %}
 {% block content %}
 {% call page_head('view-dashboard', _('wd.edit'), v.name) %}<a class="button" href="{{ base }}/v/{{ v.slug }}">{{ icon('check', 16) }}<span class="lbl">{{ _('wd.done') }}</span></a>{% endcall %}
-<p class="hint">{{ _('wd.edit_hint') }}</p>
+<p class="hint">{{ icon('info', 14) }} {{ _('wd.edit_hint') }}</p>
 <form method="post" action="{{ base }}/v/{{ v.slug }}/widgets" class="wd-edit-list" data-sortable data-sort-save>
   {% for w in items %}
   <div class="wd-row {{ '' if w.on else 'off' }}" data-sort-item>

@@ -9,6 +9,7 @@
 * **nothing is wider than the screen** (no sideways scrolling) and **no text runs out of its own box or is cut off by it**,
 * **the space below the last thing in a card is only the card's padding** (the same distance below as at its left),
 * **cards one under the other stand `--sp-col` apart** (no margin on top of the gap),
+* **sub-windows one under the other stand `--sp-sub` apart and are padded by the tokens** (docs/design.md, 4c: spacing is measured),
 * **a switch is the last thing at the right end of its row** (like the settings of an iPhone; never on the left),
 * **the buttons at the bottom of a plugin tile lie inside the tile** (nothing cut off, however many downloads and buttons the plugin has).
 
@@ -136,9 +137,21 @@ MEASURE = r"""
 
   /* cards one under the other stand at the distance of the design (--sp-col): not a margin on top of the gap, not none */
   var spcol = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sp-col')) || 14;
+  var nextCard = function (a) {  /* the next thing in the column; the cards of a form that saves several windows (.card-form, no box of its own) count as the cards of the column */
+    var e = a;
+    while (e) {
+      var s = e.nextElementSibling;
+      while (s) {
+        if (s.matches('.card-form')) { var inner = s.querySelector(':scope > .card'); if (inner && vis(inner)) { return inner; } }
+        else if (vis(s)) { return s; }  /* hidden things between do not count */
+        s = s.nextElementSibling;
+      }
+      e = e.parentElement && e.parentElement.matches('.card-form') ? e.parentElement : null;
+    }
+    return null;
+  };
   document.querySelectorAll('.card').forEach(function (a) {
-    var b = a.nextElementSibling;
-    while (b && !vis(b)) { b = b.nextElementSibling; }  /* hidden things between do not count */
+    var b = nextCard(a);
     if (!b || !(b.matches('.card')) || !vis(a) || a.closest('[hidden], dialog')) { return; }
     var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
     if (rb.left > ra.right - 10 || ra.left > rb.right - 10 || rb.top < ra.bottom - 1) { return; }  /* side by side, or not one under the other */
@@ -148,6 +161,133 @@ MEASURE = r"""
       out.push('cards one under the other are ' + gap + ' px apart instead of ' + spcol + ': ' + tt(a) + ' / ' + tt(b));
     }
   });
+
+  /* the sub-windows of a card (docs/design.md, 4c): one under the other they stand --sp-sub apart, and each one is padded by --sp-sub-pad-y / --sp-sub-pad-x - the spacing is a measure, not a taste */
+  var rootCs = getComputedStyle(document.documentElement);
+  var spsub = parseFloat(rootCs.getPropertyValue('--sp-sub')) || 10, padY = parseFloat(rootCs.getPropertyValue('--sp-sub-pad-y')) || 10, padX = parseFloat(rootCs.getPropertyValue('--sp-sub-pad-x')) || 12;
+  document.querySelectorAll('.sub-card').forEach(function (a) {
+    if (!vis(a) || a.closest('[hidden], dialog')) { return; }
+    var cs = getComputedStyle(a), lab = ((a.querySelector('.sub-h') || a).textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24);
+    if (Math.abs(parseFloat(cs.paddingTop) - padY) > .5 || Math.abs(parseFloat(cs.paddingBottom) - padY) > .5 || Math.abs(parseFloat(cs.paddingLeft) - padX) > .5 || Math.abs(parseFloat(cs.paddingRight) - padX) > .5) {
+      out.push('a sub-window is not padded by the tokens (' + cs.paddingTop + ' ' + cs.paddingRight + ' instead of ' + padY + 'px ' + padX + 'px): "' + lab + '"');
+    }
+    var b = a.nextElementSibling;
+    while (b && !vis(b)) { b = b.nextElementSibling; }
+    if (!b || !b.matches('.sub-card')) { return; }
+    var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    if (rb.left > ra.right - 10 || ra.left > rb.right - 10 || rb.top < ra.bottom - 1) { return; }
+    var gap = Math.round(rb.top - ra.bottom);
+    if (Math.abs(gap - spsub) > 1.5) { out.push('sub-windows one under the other are ' + gap + ' px apart instead of ' + spsub + ': "' + lab + '" / "' + ((b.querySelector('.sub-h') || b).textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24) + '"'); }
+  });
+
+  /* the lines of a window stand BETWEEN things (docs/design.md, 4c): none directly under its label (or hint, or tab bar), none at its bottom edge, none after the last row of a list unless buttons follow */
+  document.querySelectorAll('.sub-card *').forEach(function (e) {
+    if (!vis(e) || e.closest('dialog')) { return; }
+    var cs = getComputedStyle(e), top = parseFloat(cs.borderTopWidth) > 0, bottom = parseFloat(cs.borderBottomWidth) > 0, sides = parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+    if (sides > 0 || (top && bottom) || !(top || bottom)) { return; }  /* a box has four sides, a line has one */
+    var lab = ((e.closest('.sub-card').querySelector('.sub-h') || e).textContent || '').trim().slice(0, 24), what = e.tagName.toLowerCase() + '.' + String(e.className).split(' ').filter(Boolean).slice(0, 2).join('.') + ' "' + name(e) + '"';
+    var p = e.previousElementSibling; while (p && !vis(p)) { p = p.previousElementSibling; }
+    var n = e.nextElementSibling; while (n && !vis(n)) { n = n.nextElementSibling; }
+    if (top && (!p || p.matches('.sub-h, .hint, .seg-tabs, h3'))) { out.push('a line directly under the label of a window ("' + lab + '"): ' + what); }
+    if (bottom && !n) { out.push('a line at the bottom edge of a window ("' + lab + '"): ' + what); }
+    else if (bottom && n.className !== e.className && !n.matches('.form-bar, .nm-actions, details, button, a.button, .acct-fields')) { out.push('a line after the last row of a list, with no buttons after it ("' + lab + '"): ' + what); }
+  });
+
+  /* a line never touches a field (docs/design.md, 4b): the line that begins a row (a switch row, a flat row) stands at least --sp-field - 6 px under the field above it; a hairline hard against the edge of a select looks like a rendering bug */
+  document.querySelectorAll('.card *, .sub-card *').forEach(function (e) {
+    if (!vis(e) || e.closest('dialog')) { return; }
+    var cs = getComputedStyle(e);
+    if (!(parseFloat(cs.borderTopWidth) > 0) || parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth) > 0 || parseFloat(cs.borderBottomWidth) > 0) { return; }  /* a line has one side */
+    var p = e.previousElementSibling; while (p && !vis(p)) { p = p.previousElementSibling; }
+    if (!p) { return; }
+    var cts = p.matches('input:not([type=hidden]), select, textarea, .fld') ? [p] : Array.prototype.slice.call(p.querySelectorAll('input:not([type=hidden]), select, textarea, .fld')).filter(vis);
+    if (!cts.length) { return; }
+    var bottom = Math.max.apply(null, cts.map(function (x) { return x.getBoundingClientRect().bottom; })), gap = e.getBoundingClientRect().top - bottom;
+    if (gap < 8) { out.push('a line touches the field above it (' + Math.round(gap) + ' px): ' + e.tagName.toLowerCase() + '.' + String(e.className).split(' ').filter(Boolean).slice(0, 2).join('.') + ' "' + name(e) + '"'); }
+  });
+
+  /* a line runs through the WHOLE window (docs/design.md, 4c): a hairline that separates rows or parts of a card, a sub-window or a popup reaches both edges of it - never only as wide as the text */
+  document.querySelectorAll('.card *, .sub-card *, dialog.vsw *').forEach(function (e) {
+    if (!vis(e)) { return; }
+    var cs = getComputedStyle(e), t = parseFloat(cs.borderTopWidth) > 0, b = parseFloat(cs.borderBottomWidth) > 0;
+    if (t === b || parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth) > 0 || e.matches('hr, summary, .seg-tabs, .seg-tabs *, table, td, th, tr, thead, tbody')) { return; }  /* a line has ONE horizontal side and no vertical one */
+    var win = null, up = e.parentElement;  /* the window of a line: the nearest card, sub-window, popup or framed box (a label, a table box) around it */
+    while (up && up !== document.body) {
+      var uc = getComputedStyle(up);
+      if (up.matches('.card, .sub-card, dialog.vsw') || (['Top', 'Bottom', 'Left', 'Right'].every(function (s) { return parseFloat(uc['border' + s + 'Width']) > 0; }) && uc.borderTopStyle !== 'none')) { win = up; break; }
+      up = up.parentElement;
+    }
+    if (!win || !vis(win)) { return; }
+    var r = e.getBoundingClientRect(), w = win.getBoundingClientRect(), wcs = getComputedStyle(win), bl = parseFloat(wcs.borderLeftWidth) || 0, br = parseFloat(wcs.borderRightWidth) || 0;
+    if (r.width < w.width * 0.5) { return; }  /* a short thing with an edge is not a divider of the window */
+    if (Math.abs(r.left - (w.left + bl)) > 1.5 || Math.abs((w.right - br) - r.right) > 1.5) {
+      out.push('a line does not run through the whole window (' + Math.round(r.left - w.left - bl) + ' px from the left, ' + Math.round(w.right - br - r.right) + ' px from the right): ' + e.tagName.toLowerCase() + '.' + String(e.className).split(' ').filter(Boolean).slice(0, 2).join('.') + ' "' + name(e) + '"');
+    }
+  });
+
+  /* the lines and the buttons of EVERY window (card, sub-window, popup): no line directly under its heading, none at its bottom edge, and the buttons that save stand at the very bottom (docs/design.md, 4c) */
+  document.querySelectorAll('.card, .sub-card').forEach(function (win) {
+    if (!vis(win) || win.closest('dialog, [hidden]')) { return; }
+    var wr = win.getBoundingClientRect(), wcs = getComputedStyle(win), inner = wr.bottom - (parseFloat(wcs.borderBottomWidth) || 0) - (parseFloat(wcs.paddingBottom) || 0), title = ((win.querySelector('h2, .sub-h') || win).textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24);
+    win.querySelectorAll('*').forEach(function (e) {
+      if (!vis(e) || e.closest('dialog') || e.closest('.sub-card') !== (win.matches('.sub-card') ? win : e.closest('.sub-card')) && false) { return; }
+      var cs = getComputedStyle(e), t = parseFloat(cs.borderTopWidth) > 0, b = parseFloat(cs.borderBottomWidth) > 0;
+      if (t === b || parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth) > 0 || e.matches('hr, summary, .seg-tabs, .seg-tabs *, table, td, th, tr, thead, tbody')) { return; }
+      var r = e.getBoundingClientRect(), what = e.tagName.toLowerCase() + '.' + String(e.className).split(' ').filter(Boolean).slice(0, 2).join('.') + ' "' + name(e) + '"';
+      if (r.width < wr.width * 0.5) { return; }
+      var p = e.previousElementSibling; while (p && !vis(p)) { p = p.previousElementSibling; }
+      if (t && p && p.matches('h2, h3, .sub-h') && !e.closest('.sub-card') === !win.matches('.sub-card')) { out.push('a line directly under the heading of a window ("' + title + '"): ' + what); }
+      if (b && inner - r.bottom <= 1.5) { out.push('a line at the bottom edge of a window ("' + title + '"): ' + what); }
+    });
+    win.querySelectorAll('.form-bar').forEach(function (bar) {
+      if (!vis(bar) || bar.closest('dialog') || !bar.querySelector('button.primary')) { return; }
+      var host = bar.closest('.sub-card, .card'); if (host !== win) { return; }
+      var gap = inner - bar.getBoundingClientRect().bottom;
+      if (gap > 6) { out.push('the buttons that save are not at the very bottom of their window ("' + title + '", ' + Math.round(gap) + ' px of other things below): ' + name(bar)); }
+    });
+  });
+
+  /* explanations stand at the TOP of their window, with the info symbol (docs/design.md, 4c): a hint paragraph is never below the content (rows, fields, buttons) of its window, and it begins with the info symbol */
+  var INFO = '__INFO_PATH__';
+  document.querySelectorAll('.card p.hint, .sub-card p.hint').forEach(function (h) {
+    if (!vis(h) || h.closest('dialog, [hidden], .lm-detail, .lmz-detail') || !(h.textContent || '').trim()) { return; }
+    var win = h.closest('.sub-card, .card'), title = ((win.querySelector('h2, .sub-h') || win).textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24), svg = h.querySelector('svg path');
+    if (!svg || svg.getAttribute('d') !== INFO) { out.push('an explanation has no info symbol in front ("' + title + '"): "' + name(h) + '"'); }
+    var before = Array.prototype.slice.call(win.querySelectorAll('input:not([type=hidden]), select, textarea, .fld, button, .nm-row, .mk-field, .form-bar, .switch')).filter(function (x) { return vis(x) && !x.closest('dialog') && x.closest('.sub-card, .card') === win && (x.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING); });
+    if (before.length) { out.push('an explanation stands below the content of its window, not at the top ("' + title + '"): "' + name(h) + '"'); }
+  });
+
+  /* rows that stand directly one under the other have a line between them (docs/design.md, 4c): a missing line is a rendering bug the eye sees at once */
+  (function () {
+    var ROWS = '.nm-row, .rg-row, .about-row, .icon-row, .odo-hrow, .ifc-row, .addon-value, .tpl-row, .acct-users > li, .lm-tiles > li, .wa-list > .mk-field, .sub-card .mk-field';
+    var rows = Array.prototype.slice.call(document.querySelectorAll('.card ' + ROWS.split(',').join(', .card '))).filter(function (r) { return vis(r) && !r.closest('dialog, [hidden]'); });
+    var seenPair = {};
+    rows.forEach(function (a) {
+      var ra = a.getBoundingClientRect();
+      rows.forEach(function (b) {
+        if (a === b || a.contains(b) || b.contains(a)) { return; }
+        var rb = b.getBoundingClientRect();
+        if (Math.abs(rb.top - ra.bottom) > 3 || rb.left > ra.right - 10 || ra.left > rb.right - 10) { return; }  /* b stands right under a */
+        var bt = parseFloat(getComputedStyle(b).borderTopWidth) > 0, ab = parseFloat(getComputedStyle(a).borderBottomWidth) > 0;
+        if (bt || ab) { return; }
+        var key = name(a) + '|' + name(b);
+        if (seenPair[key]) { return; } seenPair[key] = 1;
+        var win = a.closest('.sub-card, .card'), title = ((win.querySelector('h2, .sub-h') || win).textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24);
+        out.push('two rows one under the other have no line between them ("' + title + '"): "' + name(a) + '" / "' + name(b) + '"');
+      });
+    });
+  })();
+
+  /* every window of the settings begins with a short explanation (docs/design.md, 4c): an info line right under its heading, before anything to touch */
+  if (location.pathname.indexOf('/settings/') === 0) {
+    document.querySelectorAll('.card').forEach(function (c) {
+      var h = c.querySelector(':scope > h2');
+      if (!h || !vis(c) || c.closest('dialog, [hidden]')) { return; }
+      var hint = Array.prototype.slice.call(c.querySelectorAll(':scope > p.hint')).filter(function (p) { return vis(p) && (p.textContent || '').trim(); })[0];
+      var ctl = c.querySelector('input:not([type=hidden]), select, textarea, .fld, button, .nm-row, .mk-field, .form-bar, .switch, .sub-card, .season-pick');
+      if (!hint || (ctl && !(hint.compareDocumentPosition(ctl) & Node.DOCUMENT_POSITION_FOLLOWING))) { out.push('a window has no short explanation at its top ("' + (h.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 30) + '")'); }
+    });
+  }
 
   var groups = new Map();
   ctl.forEach(function (e) { var p = e.parentElement; if (!groups.has(p)) { groups.set(p, []); } groups.get(p).push(e); });
@@ -214,9 +354,13 @@ def run(width: int = 360, lang: str = "de") -> list[str]:
     """The slips, each with the page it is on: ``["/v/demo-diesel/e/parts: a row of buttons is on several lines: ...", ...]``."""
     import pagecheck
 
+    sys.path.insert(0, str(ROOT / "carassistant" / "app"))
+    from carassistant.icons import ICONS
+
+    INFO_PATH = ICONS["info"]  # the path of the info symbol: an explanation must begin with exactly it
     problems: list[str] = []
     seen: set[str] = set()
-    for page, found in pagecheck.sweep(MEASURE, width=width, lang=lang, open_all=True, home=True):
+    for page, found in pagecheck.sweep(MEASURE.replace("__INFO_PATH__", INFO_PATH), width=width, lang=lang, open_all=True, home=True):
         for text in found:
             if text not in seen:  # the same slip on many pages (a card repeated) is told once
                 seen.add(text)

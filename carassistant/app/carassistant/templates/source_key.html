@@ -9,6 +9,6 @@
     <label class="wide">{{ _('src.token') }}<input type="password" name="token" maxlength="255" autocomplete="off" placeholder="{{ '••••••' if has_token }}"></label>
     <div class="wide form-bar"><button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button>{% if has_token %}<button class="danger" name="remove" value="1">{{ icon('delete', 18) }}<span>{{ _('src.key_remove') }}</span></button>{% endif %}</div>
   </form>
-  <p class="hint">{{ _('src.token_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('src.token_hint') }}</p>
 </section>
 {% endblock %}

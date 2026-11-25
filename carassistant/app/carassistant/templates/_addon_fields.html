@@ -11,11 +11,11 @@
 {% macro addon_field(f, val, err, vals, a) %}
 {% if f.type == 'tab' %}{# a tab is drawn by the page (addon_settings.html), it is no field #}
 {% elif f.type == 'section' %}
-  <div class="set-sec" {{ showif(f) }}><h3>{{ f.label }}</h3>{% if f.help %}<p class="hint">{{ f.help }}</p>{% endif %}</div>
+  <div class="set-sec" {{ showif(f) }}><h3>{{ f.label }}</h3>{% if f.help %}<p class="hint">{{ icon('info', 14) }} {{ f.help }}</p>{% endif %}</div>
 {% elif f.type == 'info' %}
-  <p class="hint set-info" {{ showif(f) }}>{{ icon('info', 16) }} {% if f.label %}<b>{{ f.label }}</b> {% endif %}{{ f.help }}</p>
+  <p class="hint set-info" {{ showif(f) }}>{{ icon('info', 14) }} {% if f.label %}<b>{{ f.label }}</b> {% endif %}{{ f.help }}</p>
 {% elif f.type == 'value' %}
-  <div class="addon-field addon-value" {{ showif(f) }}>{% set st = namespace(level='') %}{% for lv in ['ok', 'warn', 'bad'] %}{% if val in (f.state or {}).get(lv, []) %}{% set st.level = lv %}{% endif %}{% endfor %}<span class="av-l">{{ f.label }}</span><b class="av-v">{% if st.level %}<i class="av-dot {{ st.level }}" aria-hidden="true"></i>{% endif %}{{ (fdatetime(val) if f.format == 'datetime' else fdate(val) if f.format == 'date' else val) or '–' }}</b>{% if f.help %}<p class="hint addon-help">{{ f.help }}</p>{% endif %}</div>
+  <div class="addon-field addon-value" {{ showif(f) }}>{% set st = namespace(level='') %}{% for lv in ['ok', 'warn', 'bad'] %}{% if val in (f.state or {}).get(lv, []) %}{% set st.level = lv %}{% endif %}{% endfor %}<span class="av-l">{{ f.label }}</span><b class="av-v">{% if st.level %}<i class="av-dot {{ st.level }}" aria-hidden="true"></i>{% endif %}{{ (fdatetime(val) if f.format == 'datetime' else fdate(val) if f.format == 'date' else val) or '–' }}</b>{% if f.help %}<p class="hint addon-help">{{ icon('info', 14) }} {{ f.help }}</p>{% endif %}</div>
 {% else %}
 <div class="addon-field{{ ' has-err' if err }}" {{ showif(f) }}>
   {% if f.type == 'bool' %}{{ switch_row(f.key, f.label, val == '1') }}
@@ -32,7 +32,7 @@
   {% elif f.type == 'color' %}<label>{{ f.label }}<input type="color" name="{{ f.key }}" value="{{ val }}"></label>
   {% else %}{% set itype = {'password': 'password', 'number': 'number', 'url': 'url', 'email': 'email', 'time': 'time', 'date': 'date'}.get(f.type, 'text') %}<label>{{ f.label }}<span class="inp-unit"><input type="{{ itype }}" name="{{ f.key }}" value="{{ '' if f.type == 'password' else val }}" maxlength="200" autocomplete="off" placeholder="{{ ('••••••' if val else f.placeholder) if f.type == 'password' else (f.placeholder or '') }}"{% if f.type == 'number' %} step="{{ f.step if f.step is defined else 'any' }}"{% if f.min is defined %} min="{{ f.min }}"{% endif %}{% if f.max is defined %} max="{{ f.max }}"{% endif %}{% endif %}{{ ' required' if f.required and f.type != 'password' }}>{% if f.unit %}<span class="unit">{{ f.unit }}</span>{% endif %}</span></label>{% endif %}
   {% if err %}<p class="field-err">{{ icon('alert', 14) }} {{ err }}</p>{% endif %}
-  {% if f.help %}<p class="hint addon-help">{{ f.help }}</p>{% endif %}
+  {% if f.help %}<p class="hint addon-help">{{ icon('info', 14) }} {{ f.help }}</p>{% endif %}
 </div>
 {% endif %}
 {% endmacro %}

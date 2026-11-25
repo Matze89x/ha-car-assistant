@@ -9,6 +9,6 @@
 {% if has_image %}<nav class="seg-tabs mn-views" aria-label="{{ _('manual.title') }}"><a href="{{ mu }}/read?page={{ page }}&amp;view=image{{ '&amp;q=' ~ q|urlencode if q }}" class="{{ 'on' if view == 'image' }}"{% if view == 'image' %} aria-current="page"{% endif %}>{{ icon('camera', 18) }}<span>{{ _('manual.view_image') }}</span></a><a href="{{ mu }}/read?page={{ page }}&amp;view=text{{ '&amp;q=' ~ q|urlencode if q }}" class="{{ 'on' if view == 'text' }}"{% if view == 'text' %} aria-current="page"{% endif %}>{{ icon('file-document-outline', 18) }}<span>{{ _('manual.view_text') }}</span></a></nav>{% endif %}
 {% if view == 'image' %}<div class="card mn-img"><div class="mn-box"><img src="{{ mu }}/image/{{ page }}" alt="{{ _('manual.page_n', n=shown) }}" loading="eager">{% if refs %}<svg class="mn-refs" viewBox="0 0 1000 1000" preserveAspectRatio="none">{% for r in refs %}<a class="mn-ref" href="{{ mu }}/read?page={{ r.page }}&amp;view=image" aria-label="{{ _('manual.page_n', n=r.printed) }}"><rect x="{{ r.x }}" y="{{ r.y }}" width="{{ r.w }}" height="{{ r.h }}"/></a>{% endfor %}</svg>{% endif %}</div></div>
 {% elif body %}<article class="card mn-page">{{ body|safe }}</article>
-{% else %}<p class="hint">{{ _('manual.no_text') }}</p>{% endif %}
+{% else %}<p class="hint">{{ icon('info', 14) }} {{ _('manual.no_text') }}</p>{% endif %}
 <div class="mn-nav"><a class="ghost-btn small" href="{{ mu }}">{{ icon('list', 16) }}<span>{{ _('manual.contents') }}</span></a></div>
 {% endblock %}

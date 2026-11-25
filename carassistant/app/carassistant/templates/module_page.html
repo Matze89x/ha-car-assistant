@@ -69,7 +69,7 @@
             <p class="hint pm-gerr" hidden></p>
           </div>
         </div>
-        {% if d.diff.len_differs %}<p class="hint">{{ _('pm.len_differs', a=d.diff.len_old, b=d.diff.len_new) }}</p>{% endif %}
+        {% if d.diff.len_differs %}<p class="hint">{{ icon('info', 14) }} {{ _('pm.len_differs', a=d.diff.len_old, b=d.diff.len_new) }}</p>{% endif %}
         {% if d.diff.changed %}<ul class="pm-chg">{% for c in d.diff.changed %}<li><b>{{ _('pm.byte') }} {{ '%02d' | format(c.i) }}</b> <code>{{ c.old or '–' }}</code> → <code>{{ c.new or '–' }}</code></li>{% endfor %}</ul>{% endif %}
       </div>
       {% endfor %}

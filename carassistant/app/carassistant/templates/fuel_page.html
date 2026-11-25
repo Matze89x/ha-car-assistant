@@ -10,7 +10,7 @@
       <button type="button" class="button small" data-scan-btn>{{ icon('camera', 16) }}<span>{{ _('fuel.scan') }}</span></button>
       <input type="file" accept="image/*" capture="environment" data-scan-file hidden>
       <p class="hint scan-note" data-scan-note hidden></p>
-      <p class="hint">{{ _('fuel.scan_hint') }}</p>
+      <p class="hint">{{ icon('info', 14) }} {{ _('fuel.scan_hint') }}</p>
     </div>{% endif %}
     {% if fuel2 %}<label>{{ _('f.fuel_kind') }}<select name="fuel_kind"><option value="main" {{ 'selected' if not r or (r['fuel_kind'] or 'main') == 'main' }}>{{ _('fuel_type.' ~ v.fuel_type) }}</option><option value="second" {{ 'selected' if r and r['fuel_kind'] == 'second' }}>{{ _('fuel_type.' ~ fuel2) }}</option></select></label>{% endif %}
     <div class="eq-two">{% for name in ('date', 'odometer_km') %}{% set f = entity.fields|selectattr('name', 'equalto', name)|first %}<label>{{ flabel(f) }}{{ field_input(f, disp(f, r[name]) if r else form.get(name), true) }}</label>{% endfor %}</div>
@@ -30,7 +30,7 @@
   <button type="button" class="icon-btn" data-toggle-panel="#fuel-export" aria-label="{{ _('fx.export') }}">{{ icon('download', 18) }}</button>
   <button type="button" class="button primary" data-toggle-panel="#fuel-add" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>
 {% endcall %}
-{% if stn %}<p class="hint">{{ _('stations.intro') }}{% if not stn.has_key %} {{ _('stations.no_key_hint') }}{% endif %}</p>{% endif %}
+{% if stn %}<p class="hint">{{ icon('info', 14) }} {{ _('stations.intro') }}{% if not stn.has_key %} {{ _('stations.no_key_hint') }}{% endif %}</p>{% endif %}
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
 
 {% for it in refuel_todo %}
@@ -82,7 +82,7 @@
         <span></span>
       </div>
       <div class="eq-two fx-custom"><label>{{ _('exp.from') }}<input type="date" name="start"></label><label>{{ _('exp.to') }}<input type="date" name="end"></label></div>
-      <p class="hint">{{ _('fx.hint') }}</p>
+      <p class="hint">{{ icon('info', 14) }} {{ _('fx.hint') }}</p>
       <div class="eq-acts fx-acts"><button class="ghost-btn small" formaction="{{ base }}/v/{{ v.slug }}/fuel-export.csv">{{ icon('download', 16) }} <span>CSV</span></button><button class="ghost-btn small" formaction="{{ base }}/v/{{ v.slug }}/fuel-export.pdf">{{ icon('download', 16) }} <span>PDF</span></button></div>
     </form>
   </div>
@@ -94,7 +94,7 @@
       {% if second_stats.avg_per_100 %}<div><dt>{{ _('fuel2.avg') }}</dt><dd>{{ fnum(units.c(second_stats.avg_per_100, unit2), 1) }} {{ units.consumption_unit(unit2) }}</dd></div>{% endif %}
       {% if second_stats.cost_per_100 %}<div><dt>{{ _('fuel2.cost100') }}</dt><dd>{{ fnum(second_stats.cost_per_100, 2) }} {{ units.cur }}/100 km</dd></div>{% endif %}
     </dl>
-    <p class="hint">{{ _('fuel2.note') }}</p>
+    <p class="hint">{{ icon('info', 14) }} {{ _('fuel2.note') }}</p>
   </section>
   {% endif %}
   {% if fuel_items %}

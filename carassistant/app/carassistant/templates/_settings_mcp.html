@@ -1,14 +1,15 @@
-{% from "_macros.html" import icon, switch_row with context %}
+{% from "_macros.html" import icon, sub_h, switch_row with context %}
 {% set m = mcp_state %}
 {% set lv = {'off': _('mcp.lv_off'), 'read': _('mcp.lv_read'), 'write': _('mcp.lv_write')} %}
 {% if m %}
 <section class="card" id="mcp">
   <h2>{{ icon('shield') }} {{ _('mcp.title') }} <span class="badge {{ 'ok' if m.level != 'off' and not m.missing else '' }}">{{ lv[m.level] }}</span></h2>
-  <p class="hint">{{ _('mcp.intro') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('mcp.intro') }}</p>
   {% if m.missing %}
   <ul class="plain mcp-need">{% for k in m.missing %}<li>{{ icon('info', 14) }} {{ _(k) }}</li>{% endfor %}</ul>
   {% endif %}
-  <div class="mcp-sec">
+  <div class="sub-card">
+  {{ sub_h('shield', _('mcp.sec_access')) }}
   <form method="post" action="{{ base }}/settings/mcp/level" class="acct-form">
     <label>{{ _('mcp.level') }}<select name="level" {{ 'disabled' if m.missing and m.level == 'off' }}>
       {% for code, label in lv.items() %}<option value="{{ code }}" {{ 'selected' if m.level == code }}>{{ label }}</option>{% endfor %}
@@ -18,12 +19,12 @@
   </form>
   </div>
   {% if m.level != 'off' and not m.missing %}
-  <div class="mcp-sec">
-    <h3 class="mcp-h">{{ _('mcp.endpoint') }}</h3>
+  <div class="sub-card">
+    {{ sub_h('open-in-new', _('mcp.endpoint')) }}
     <div class="mcp-url"><code>{{ m.url }}</code></div>
   </div>
-  <div class="mcp-sec">
-    <h3 class="mcp-h">{{ _('mcp.key') }}</h3>
+  <div class="sub-card">
+    {{ sub_h('key-variant', _('mcp.key')) }}
     {% if m.key %}
     <div class="mcp-key"><span class="mk-n"><b>{{ m.key.prefix }}…</b>{% if m.log %}<small class="muted">{{ _('mcp.last_call') }}: {{ (m.log[0].tool or m.log[0].method) }} · {{ fdatetime(m.log[0].ts) }}</small>{% elif m.key.last_used %}<small class="muted">{{ _('mcp.last_call') }}: {{ fdatetime(m.key.last_used) }}</small>{% else %}<small class="muted">{{ _('mcp.no_call') }}</small>{% endif %}</span></div>
     <div class="mcp-bar">

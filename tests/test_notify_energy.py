@@ -201,10 +201,10 @@ def test_the_settings_keep_one_way_to_be_told_and_show_it_under_the_switch(clien
     )
     assert f'name="ep_{vid}"' in page and f'name="ek_{vid}"' in page and 'name="em_new"' in page
     assert (
-        page.index(f'name="ev_{vid}" value="low_energy"')
+        page.index("Only what this car delivers is offered")
+        < page.index(f'name="ev_{vid}" value="low_energy"')
         < page.index(f'name="em_{vid}"')
-        < page.index("Only what this car really delivers is offered")
-    )  # right under its switch
+    )  # the explanation stands at the top of the car's window, its choice right under its switch
     # a range
     client.post(
         "/settings/notifications/matrix", data={f"ev_{vid}": ["low_energy"], f"em_{vid}": "km", f"ep_{vid}": "18", f"ek_{vid}": "120"}

@@ -1,7 +1,7 @@
 {% from "_macros.html" import icon with context %}
 <section class="card" id="navigation">
   <h2>{{ icon('menu') }} {{ _('int.nav_title') }}</h2>
-  <p class="hint">{{ _('int.nav_intro', car=v.name) }} {{ _('nav.drag_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('int.nav_intro', car=v.name) }} {{ _('nav.drag_hint') }}</p>
   <form method="post" action="{{ base }}/v/{{ v.slug }}/navigation" class="navset" id="navset" data-live="1">
     <div class="navrow fixed"><span class="grip" aria-hidden="true">{{ icon('lock', 14) }}</span><span class="mi-ic c1">{{ icon('speedometer', 19) }}</span><span class="nt">{{ _('nav.home') }}</span></div>
     <template id="pk-tpl">{% for name in picker_icons %}<label><input type="radio" name="pick-@" value="{{ name }}"><span>{{ icon(name, 22) }}</span></label>{% endfor %}</template>

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 
 try:
@@ -64,6 +65,9 @@ def _supervisor_port() -> tuple[bool, int | None]:
 
 def network_port() -> tuple[bool, int | None]:
     """(known, port): the Supervisor says which host port is mapped to the web UI (Add-on -> Configuration -> Network); port None = not mapped."""
+    dev = os.environ.get("CARASSISTANT_DEV_NETWORK_PORT", "") if config.dev_mode() else ""
+    if dev.isdigit():  # development only (tools/pagecheck.py): act as if the host port is mapped, so the pages that need one are drawn and can be checked without a Supervisor
+        return True, int(dev)
     if not available():
         return False, None
     return _cached("port", 20, _supervisor_port)

@@ -248,7 +248,8 @@ def change_password(
     conn: sqlite3.Connection, uid: int, current: str, new: str, keep_token: str | None = None, *, trusted: bool = False
 ) -> None:
     """Change the own password. ``trusted``: the request comes from the Home Assistant panel (already authenticated) or a fresh passkey session."""
-    if not (trusted or _own_password_ok(conn, uid, current)):
+    # a trusted request need not give the old password - but one that IS given (the popup always asks) must be the right one
+    if (not trusted or current) and not _own_password_ok(conn, uid, current):
         raise AccountError("acct.pw_wrong")
     check_new_password(new, (get_user(conn, uid) or {"username": ""})["username"])
     salt, iters, digest = _hash(new)

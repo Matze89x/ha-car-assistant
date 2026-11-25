@@ -87,9 +87,9 @@
   <div class="eq-sec vd-odo-list" id="odo-readings">
     <div class="vd-group-h eq-head">{{ _('odo.history_title') }} <span class="eq-total">{{ odo_total }}</span></div>
     <div class="card odo-hist-card">
+      {% if odo_readings %}<p class="hint">{{ icon('info', 14) }} {{ _('odo.history_intro') }}</p>{% endif %}
       <div class="odo-add"><span class="odo-add-l">{{ _('odo.add_title') }}</span>{{ odo_form() }}</div>
       {% if odo_readings %}
-        <p class="hint">{{ _('odo.history_intro') }}</p>
         {% if odo_odd_n %}<p class="flash warn">{{ _('odo.history_odd', n=odo_odd_n) }}</p>{% endif %}
         <ul class="plain odo-list" id="odo-list">
         {% for r in odo_readings %}
@@ -104,7 +104,7 @@
         </ul>
         {% with pager=odo_pager, pager_url=base ~ '/v/' ~ v.slug ~ '/edit', pager_into='#odo-list' %}{% include "_pager.html" %}{% endwith %}
         {% for r in odo_readings if r.kind == 'odometer' %}<form method="post" action="{{ base }}/v/{{ v.slug }}/odometer/{{ r.id }}/delete" id="odel-{{ r.id }}" data-confirm="{{ _('odo.confirm_delete') }}" hidden></form>{% endfor %}
-      {% else %}<p class="hint">{{ _('odo.history_empty') }}</p>{% endif %}
+      {% else %}<p class="hint">{{ icon('info', 14) }} {{ _('odo.history_empty') }}</p>{% endif %}
     </div>
   </div>
   {% endif %}

@@ -192,11 +192,12 @@ def test_there_are_only_two_kinds_of_tab_bars_and_the_navigation():
         "seg-icons",
         "tv-tabs",
         "ta-tabs",
+        "nm-tabs",
         "tabbar",
         "tab",
         "tab-ind",
         "table-wrap",
-    }  # tv-/ta- only add a margin to .seg-tabs
+    }  # tv- / ta- / nm- only add a margin (or a name length) to .seg-tabs
     found = set()
     for path in glob.glob(str(root / "templates/**/*.html"), recursive=True) + glob.glob(str(root / "static/*.js")):
         for m in re.finditer(r'class="([^"{}]*)"', Path(path).read_text(encoding="utf-8")):
@@ -307,3 +308,145 @@ def test_a_switch_always_sits_at_the_right_end_of_its_row_no_style_moves_it():
     macros = (TEMPLATES / "_macros.html").read_text(encoding="utf-8")
     row = macros[macros.index("macro switch_row") : macros.index("endmacro", macros.index("macro switch_row"))]
     assert row.index('class="nm-t"') < row.index('class="nm-state"') < row.index('class="switch"')  # text, Yes / No, then the switch
+
+
+def test_sub_windows_are_one_component_with_fixed_measures():
+    """A card with several areas is built from sub-windows (docs/design.md, 4c): ONE definition, its spacing only from the tokens, and none of the
+    private looks that came before (a heading with a divider line, ``nm-block``, ``acct-sub`` ...)."""
+    static = TEMPLATES.parent / "static"
+    css = (static / "pc-core.css").read_text(encoding="utf-8")
+    root = css[css.index(":root {") : css.index("}", css.index(":root {"))]
+    for token in ("--sp-sub:", "--sp-sub-pad-y:", "--sp-sub-pad-x:", "--sp-sub-label:"):
+        assert token in root, f"{token} is a fixed measure of the design (the :root block of pc-core.css)"
+    rule = re.search(r"\n\.sub-card \{([^}]*)\}", css)
+    assert rule, "the one definition of .sub-card"
+    body = rule.group(1)
+    assert "margin-top: var(--sp-sub)" in body and "padding: var(--sp-sub-pad-y) var(--sp-sub-pad-x)" in body, (
+        ".sub-card is spaced by the tokens only"
+    )
+    label = re.search(r"\n\.sub-h \{([^}]*)\}", css)
+    assert label and "var(--sp-sub-label)" in label.group(1), ".sub-h sits --sp-sub-label above the content"
+    assert len(re.findall(r"\n\.sub-card \{", css)) == 1 and len(re.findall(r"\n\.sub-h \{", css)) == 1, "one definition each"
+    for old in ("nm-block", "acct-sub", "mcp-sec", "mcp-h"):
+        assert old not in css, f"{old}: the private look of a sub-area is gone, use .sub-card / .sub-h"
+    assert "ar-pill" not in css, "a button in a window is the standard small button, not a private pill"
+    for path in _files():
+        text = path.read_text(encoding="utf-8")
+        for old in ("nm-block", "acct-sub", "ar-pill"):
+            assert old not in text, f"{path.name}: {old} - use .sub-card / .sub-h and the standard buttons"
+        for tag in re.findall(r'<[^>]*class="[^"]*\bsub-card\b[^"]*"[^>]*>', text):
+            assert "style=" not in tag, f"{path.name}: a sub-window takes its spacing from the tokens, not from a style"
+        for heading in re.findall(r'<h3 class="sub-h"[^>]*>', text):
+            assert "style=" not in heading
+
+
+def test_a_switch_row_under_a_field_keeps_the_air_of_the_design():
+    """A line never touches a field (docs/design.md, 4c): the switch row that begins with its own line stands ``--sp-field`` below a select or an input."""
+    css = (TEMPLATES.parent / "static" / "pc-core.css").read_text(encoding="utf-8")
+    root = css[css.index(":root {") : css.index("}", css.index(":root {"))]
+    assert "--sp-field: 14px" in root
+    rule = re.search(r"\nlabel:not\(\.check\):not\(\.sw-row\) \+ label\.nm-row\.sw-row[^{]*\{([^}]*)\}", css)
+    assert rule and "margin-top: var(--sp-field)" in rule.group(1), "a switch row under a field is spaced by the token"
+
+
+def test_the_phone_cards_of_the_connection_map_are_standard_cards_with_flat_rows():
+    """The phone view of the connection map (docs/design.md, 4c: no box in a box): each plugin is a real ``.card`` and what it talks to are flat rows with a
+    line between them - no framed tiles, no private card look, no dashed "more" tile (it is a standard small button)."""
+    page = (TEMPLATES / "_linkmap.html").read_text(encoding="utf-8")
+    assert 'class="lm-card card"' in page and "lm-tile-more" not in page
+    assert re.search(r'class="small" data-more-tiles', page)
+    css = (TEMPLATES.parent / "static" / "pc-core.css").read_text(encoding="utf-8")
+    tile = re.search(r"\n\.lm-tile \{([^}]*)\}", css)
+    assert tile and "border: 0" in tile.group(1) and "background: none" in tile.group(1), "a row of the list is flat, not a framed tile"
+    assert re.search(r"\n\.lm-tiles li \+ li \{[^}]*border-top: 1px solid var\(--glass-b\)", css), "a line between the rows"
+    assert "lm-tile-more" not in css
+    sel = re.search(r"\n\.lm-tile\.sel \{([^}]*)\}", css)
+    assert sel and "var(--glass-b)" in sel.group(1) and "accent" not in sel.group(1), (
+        "the open row is marked in the colour of the lines, not red"
+    )
+    assert "border-radius: 0" in tile.group(1), "and square"
+
+
+def test_the_lines_of_a_window_run_through_its_whole_width():
+    """Lines run from edge to edge of their window (docs/design.md, 4c): the window gives its padding as ``--bleed`` and the rows that carry a line reach out by
+    exactly that much and pad their content back in. ``tools/check_ui.py`` measures every line of every page; this guards the rule itself."""
+    css = (TEMPLATES.parent / "static" / "pc-core.css").read_text(encoding="utf-8")
+    root = css[css.index(":root {") : css.index("}", css.index(":root {"))]
+    assert "--sp-card: 18px" in root
+    assert re.search(r"\n\.card, dialog\.addon-dlg \.addon-dlg-body \{ --bleed: var\(--sp-card\); \}", css)
+    assert "--bleed: var(--sp-sub-pad-x)" in re.search(r"\n\.sub-card \{([^}]*)\}", css).group(1)
+    block = css[css.index("LINES RUN THROUGH THE WHOLE WINDOW") :]
+    assert "margin-inline: calc(-1 * var(--bleed)); padding-inline: var(--bleed);" in block
+    app = (TEMPLATES.parent / "static" / "app.css").read_text(encoding="utf-8")
+    assert re.search(r"\n\.card \{[^}]*padding: var\(--sp-card, 18px\)", app), "the card's padding is the token the lines reach out by"
+
+
+def test_every_explanation_begins_with_the_info_symbol():
+    """An explanation (``<p class="hint">``) always begins with the info symbol (docs/design.md, 4c). Where it stands - at the top of its window - is measured in a
+    real browser by ``tools/check_ui.py``; this guards the symbol in every template."""
+    pattern = re.compile(r'<p class="hint[^"]*"([^>]*)>(.{0,40})', re.S)
+    for path in _files():
+        text = path.read_text(encoding="utf-8")
+        for match in pattern.finditer(text):
+            attrs, start = match.group(1), match.group(2)
+            if "id=" in attrs or "hidden" in attrs or start.lstrip().startswith("</p"):
+                continue  # filled by a script / empty
+            assert start.startswith("{{ icon('info', 14) }}"), f"{path.name}: an explanation without the info symbol: {start[:36]!r}"
+
+
+def test_every_sub_window_label_has_its_symbol_in_the_main_colour():
+    """The label of a sub-window always carries a symbol (docs/design.md, 4c): it comes from the ONE macro ``sub_h`` - never a hand-written ``<h3 class="sub-h">`` -
+    with an icon that exists, and the symbol takes the main colour from the one rule in pc-core.css."""
+    from carassistant.icons import ICONS
+
+    macros = (TEMPLATES / "_macros.html").read_text(encoding="utf-8")
+    assert macros.count("macro sub_h(") == 1 and "icon(ic, 16)" in macros
+    css = (TEMPLATES.parent / "static" / "pc-core.css").read_text(encoding="utf-8")
+    assert re.search(r"\n\.sub-h \.ico \{[^}]*color: var\(--accent\)", css), "the symbol of a label is the main colour"
+    for path in _files():
+        if path.name == "_macros.html":
+            continue
+        text = path.read_text(encoding="utf-8")
+        assert '<h3 class="sub-h"' not in text, f"{path.name}: use the macro sub_h(icon, text), it adds the symbol"
+        for name in re.findall(r"sub_h\('([a-z0-9-]+)'", text):
+            assert name in ICONS, f"{path.name}: sub_h uses an icon that does not exist: {name}"
+
+
+def test_an_empty_sub_window_shows_the_compact_empty_state_and_a_create_button():
+    """Nothing there yet (docs/design.md, 4c): the symbol in front of one centred sentence, never a dash; the button that creates the first one is called
+    *Create*, has the plus, and keeps its word on a narrow screen."""
+    css = (TEMPLATES.parent / "static" / "pc-core.css").read_text(encoding="utf-8")
+    assert (
+        len(
+            re.findall(
+                r"\n\.sub-card \.empty-state, \.lm-detail \.empty-state, \.lmz-detail \.empty-state, \.push-box \.empty-state, \.sys-state\.empty-state \{",
+                css,
+            )
+        )
+        == 1
+    ), "one compact definition for a sub-window and the detail of the connection map"
+    assert ".ar-edit:not(.ar-new) > button > span" in css, "a create button keeps its word where the edit buttons keep only the pencil"
+    account = (TEMPLATES / "_account.html").read_text(encoding="utf-8")
+    assert account.count('class="empty-state"') == 2 and "account.passkeys_none" in account and "account.passcode_none" in account
+    assert '<span class="muted">–</span>' not in account, "no dash for an empty window"
+    assert account.count("_('btn.create')") == 2, "the passkey and the passcode button say Create"
+
+
+def test_a_field_with_a_function_carries_it_inside_and_names_it():
+    """A function of a field (open, copy, change, scan) sits IN the field as an icon action (docs/design.md, 4b) - one definition, no pair of a field and a
+    button next to it (``cp-row`` is gone), and an icon action always has a name for a screen reader and as the tip."""
+    css = (TEMPLATES.parent / "static" / "pc-core.css").read_text(encoding="utf-8")
+    assert len(re.findall(r"\n\.fld \{", css)) == 1 and len(re.findall(r"\n\.fld-act \{", css)) == 1, "one definition each"
+    assert "cp-row" not in css
+    hover = re.search(r"\n\.fld-act:hover, \.fld-act:focus-visible \{([^}]*)\}", css)
+    assert hover and "border-color: var(--glass-b)" in hover.group(1), (
+        "hovering an action in a field lightens its surface only, the line stays as it was (button:hover would lighten it)"
+    )
+    assert re.search(r"\n\.fld-act:active \{[^}]*transform: none", css), "no press-shrink inside a field"
+    for path in _files():
+        text = path.read_text(encoding="utf-8")
+        assert "cp-row" not in text, f"{path.name}: cp-row - the function sits in the field (.fld / .fld-act)"
+        for tag in re.findall(r"<(?:button|a)\b[^>]*\bclass=\"[^\"]*\bfld-act\b[^\"]*\"[^>]*>", text):
+            assert "aria-label=" in tag and "title=" in tag, (
+                f"{path.name}: an icon action in a field needs aria-label and title: {tag[:80]}"
+            )

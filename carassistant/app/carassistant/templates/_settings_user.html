@@ -1,44 +1,57 @@
-{% from "_macros.html" import icon, form_bar, switch_row with context %}
+{% from "_macros.html" import icon, sub_h, form_bar, switch_row with context %}
 <div class="sys-cols">
 <div class="sys-col">
 {% include "_account.html" %}
+{% if not acct_me %}
 <section class="card" id="prefs">
   <h2>{{ icon('account') }} {{ _('prefs.title') }}</h2>
-  {% if not acct_me %}<p class="hint">{{ _('prefs.need') }}</p>{% else %}
-  <form method="post" action="{{ base }}/settings/prefs" class="grid" data-live="1">
-    <label class="wide">{{ _('prefs.start_car') }}<select name="start_car">
-      <option value="">{{ _('prefs.start_ask') }}</option>
-      {% for car in vehicle_rows if not car.archived %}<option value="{{ car.id }}" {{ 'selected' if start_car == car.id|string }}>{{ car.name }}</option>{% endfor %}
-    </select></label>
-    {% if port_on %}
-    <label class="wide">{{ _('prefs.design') }}<select name="design">
-      <option value="">{{ _('prefs.like_system') }}</option>
-      {% for tn in theme_list %}<option value="{{ tn }}" {{ 'selected' if my_design == tn }}>{{ _('theme.' ~ tn) }}</option>{% endfor %}
-    </select></label>
-    {{ switch_row('haptics', _('settings.haptics_on'), haptics) }}
-    {% endif %}
-  </form>
-  {% if not port_on %}<p class="hint">{{ icon('info', 14) }} {{ _('prefs.no_port') }}</p>{% endif %}
-  {% endif %}
+  <p class="hint">{{ icon('info', 14) }} {{ _('prefs.need') }}</p>
 </section>
+{% else %}
+{# the personal settings: each area is a window of its own (one form saves both, it takes no space of its own) #}
+<form method="post" action="{{ base }}/settings/prefs" data-live="1" class="card-form">
+<section class="card" id="prefs">
+  <h2>{{ icon('home') }} {{ _('prefs.start_title') }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ _('prefs.start_hint') }}</p>
+  <label>{{ _('prefs.start_car') }}<select name="start_car">
+    <option value="">{{ _('prefs.start_ask') }}</option>
+    {% for car in vehicle_rows if not car.archived %}<option value="{{ car.id }}" {{ 'selected' if start_car == car.id|string }}>{{ car.name }}</option>{% endfor %}
+  </select></label>
+  {% if not port_on %}<p class="hint">{{ icon('info', 14) }} {{ _('prefs.no_port') }}</p>{% endif %}
+</section>
+{% if port_on %}
+<section class="card" id="look">
+  <h2>{{ icon('palette') }} {{ _('prefs.look_title') }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ _('prefs.look_hint') }}</p>
+  <label>{{ _('prefs.design') }}<select name="design">
+    <option value="">{{ _('prefs.like_system') }}</option>
+    {% for tn in theme_list %}<option value="{{ tn }}" {{ 'selected' if my_design == tn }}>{{ _('theme.' ~ tn) }}</option>{% endfor %}
+  </select></label>
+  {{ switch_row('haptics', _('settings.haptics_on'), haptics) }}
+</section>
+{% endif %}
+</form>
+{% endif %}
 <section class="card" id="lists">
   <h2>{{ icon('list') }} {{ _('lists.title') }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ _('lists.hint') }}</p>
   <form method="post" action="{{ base }}/settings/page-size" data-live>
     <label>{{ _('lists.size') }}<select name="size">{% for n in page_sizes %}<option value="{{ n }}" {{ 'selected' if n == page_size }}>{{ _('lists.size_n', n=n) }}</option>{% endfor %}</select></label>
   </form>
 </section>
 <section class="card" id="webapp">
   <h2>{{ icon('home') }} {{ _('webapp.title') }}</h2>
-  <p class="hint">{{ _('webapp.text') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('webapp.text') }}</p>
   <p class="hint">{{ icon('info', 14) }} {{ _('webapp.steps') }}</p>
   {% if app_car %}<p class="hint">{{ icon('info', 14) }} {{ _('webapp.only', name=app_car.name) }} <a href="{{ base }}/app-all">{{ _('webapp.all') }}</a></p>{% endif %}
   {% set ext = external_url.rstrip('/') if external_url else '' %}
-  {% if not ext %}<p class="hint">{{ icon('lock', 14) }} {{ _('webapp.need_ext') }} <a href="{{ base }}/settings/system#external">{{ _('set.system') }}</a></p>{% else %}
+  {% if not ext %}<p class="hint">{{ icon('info', 14) }} {{ _('webapp.need_ext') }} <a href="{{ base }}/settings/system#external">{{ _('set.system') }}</a></p>{% else %}
   <div class="wa-list">
     {% for car in vehicle_rows if not car.archived and car.slug %}
     <div class="mk-field"><span class="mk-fl">{{ car.name }}</span>
-      <div class="cp-row"><input readonly data-select value="{{ ext }}/app/{{ car.slug }}" aria-label="{{ car.name }}">
-        <a class="button small" href="{{ ext }}/app/{{ car.slug }}" target="_blank" rel="noopener noreferrer">{{ icon('chevron', 16) }}<span>{{ _('addon.open') }}</span></a></div></div>{% endfor %}
+      <div class="fld"><input readonly data-select value="{{ ext }}/app/{{ car.slug }}" aria-label="{{ car.name }}">
+        <button type="button" class="fld-act" data-copy="{{ ext }}/app/{{ car.slug }}" data-done="{{ _('btn.copied') }}" aria-label="{{ _('btn.copy') }}" title="{{ _('btn.copy') }}">{{ icon('content-copy', 18) }}</button>
+        <a class="fld-act" href="{{ ext }}/app/{{ car.slug }}" target="_blank" rel="noopener noreferrer" aria-label="{{ _('addon.open') }}" title="{{ _('addon.open') }}">{{ icon('open-in-new', 18) }}</a></div></div>{% endfor %}
   </div>{% endif %}
 </section>
 </div>
@@ -46,7 +59,7 @@
 {% if ext_set or not port_on %}{% include "_settings_notify.html" %}{% endif %}  {# with a port, notifications and passkeys need the address saved under System #}
 <section class="card" id="blocked">
   <h2>{{ icon('shield') }} {{ _('user.blocked_title') }}</h2>
-  {% if port_on %}<p class="hint">{{ icon('lock', 14) }} {{ _('user.rule_lock', n=lock_after, m=lock_minutes) }}</p>{% endif %}
+  <p class="hint">{{ icon('info', 14) }} {{ _('user.blocked_hint') }}{% if port_on %} {{ _('user.rule_lock', n=lock_after, m=lock_minutes) }}{% endif %}</p>
   {% if acct_blocked %}
   <ul class="plain acct-blocked">
     {% for b in acct_blocked %}<li><span class="badge overdue">{{ _('user.kind_ip') if b.kind == 'ip' else _('user.kind_name') }}</span> <code>{{ b.key }}</code> <small class="muted">· {{ _('user.minutes_left', n=b.minutes) }}</small>

@@ -8,15 +8,15 @@
   <p class="flash warn">{{ _('svc.warning') if service else _('fil.warning') }}</p>
   {% set m = addon.m %}{% set f_source = addon.source_name %}{% set f_version = addon.m.version %}{% set f_sha = addon.pkg_sha %}
   {% include "_service_facts.html" %}
-  {% if service %}<p class="hint">{{ _('svc.rights') }}</p>{% else %}<p class="hint">{{ _('fil.rights') }}</p>{% endif %}
+  {% if service %}<p class="hint">{{ icon('info', 14) }} {{ _('svc.rights') }}</p>{% else %}<p class="hint">{{ icon('info', 14) }} {{ _('fil.rights') }}</p>{% endif %}
   {% if problems %}<p class="flash err">{{ _('svc.err_routes') }}: {{ problems|join(', ') }}</p>{% endif %}
 </section>
-{% if pkg_files %}<section class="card"><h2>{{ icon('download', 20) }} {{ _('fil.title') }}</h2><p class="hint">{{ _('fil.approve_hint') }}</p>{{ file_rows(pkg_files) }}</section>{% endif %}
-{% if files %}<section class="card"><h2>{{ icon('list', 20) }} {{ _('svc.files') }}</h2><p class="hint">{{ _('svc.files_hint') }}</p><div class="dbg-log">{% for f in files %}<div class="dbg-line"><span class="dbg-msg">{{ f }}</span></div>{% endfor %}</div></section>{% endif %}
+{% if pkg_files %}<section class="card"><h2>{{ icon('download', 20) }} {{ _('fil.title') }}</h2><p class="hint">{{ icon('info', 14) }} {{ _('fil.approve_hint') }}</p>{{ file_rows(pkg_files) }}</section>{% endif %}
+{% if files %}<section class="card"><h2>{{ icon('list', 20) }} {{ _('svc.files') }}</h2><p class="hint">{{ icon('info', 14) }} {{ _('svc.files_hint') }}</p><div class="dbg-log">{% for f in files %}<div class="dbg-line"><span class="dbg-msg">{{ f }}</span></div>{% endfor %}</div></section>{% endif %}
 <section class="card">
-  {% if not may %}<p class="hint">{{ _('acct.need_admin') }}</p>
+  {% if not may %}<p class="hint">{{ icon('info', 14) }} {{ _('acct.need_admin') }}</p>
   {% elif approved %}
-    <p class="hint">{{ _('svc.is_approved') if service else _('fil.is_approved') }}</p>
+    <p class="hint">{{ icon('info', 14) }} {{ _('svc.is_approved') if service else _('fil.is_approved') }}</p>
     <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service/revoke" class="inline"><button class="danger">{{ icon('close', 18) }} {{ _('svc.revoke') }}</button></form>
   {% else %}
     <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/service/approve" class="inline"><button class="primary" {{ 'disabled' if problems }}>{{ icon('check', 18) }} {{ _('svc.approve') }}</button></form>

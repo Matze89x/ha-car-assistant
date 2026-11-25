@@ -20,7 +20,7 @@
       <a href="#stations" id="st-me" class="{{ 'on' if s.where == 'me' }}">{{ icon('pin', 18) }}<span>{{ _('stn.me') }}</span></a>
     </nav>
   </form>
-  {% if not s.car_pos %}<p class="hint">{{ _('stations.no_car_pos') }}</p>{% endif %}
+  {% if not s.car_pos %}<p class="hint">{{ icon('info', 14) }} {{ _('stations.no_car_pos') }}</p>{% endif %}
   <div class="flash err" id="st-msg" hidden></div>
   {% if s.error %}<div class="flash err">{{ _(s.error) }}</div>{% endif %}
   {% if s.searched and not s.error %}
@@ -41,7 +41,7 @@
         <div class="stn-list">{% for r in s.results[10:] %}{{ row(r) }}{% endfor %}</div></details>{% endif %}
     </div>
     {% else %}<p class="muted">{{ _('stations.none') }}</p>{% endif %}
-    <p class="hint">{{ _('stations.attr_tk') if s.source == 'tankerkoenig' else (s.info.attribution or _('stations.attr_osm')) }}</p>
+    <p class="hint">{{ icon('info', 14) }} {{ _('stations.attr_tk') if s.source == 'tankerkoenig' else (s.info.attribution or _('stations.attr_osm')) }}</p>
   {% endif %}
 </section>
 {% endwith %}

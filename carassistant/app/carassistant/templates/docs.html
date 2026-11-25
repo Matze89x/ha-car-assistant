@@ -4,7 +4,7 @@
 {% set cat_icon = {'manual': 'book-open-page', 'invoice': 'file-document-outline', 'insurance': 'shield', 'registration': 'card-text-outline', 'inspection': 'shield-check', 'other': 'docs'} %}
 {% set cat_chip = {'manual': 'c4', 'invoice': 'c3', 'insurance': 'c1', 'registration': 'c2', 'inspection': 'c7', 'other': 'c5'} %}
 {% call page_head('docs', _('tab.docs')) %}<form method="post" enctype="multipart/form-data" action="{{ base }}/v/{{ v.slug }}/docs" class="up-form"><label class="button primary" title="{{ _('docs.upload') }}" aria-label="{{ _('docs.upload') }}">{{ icon('upload', 18) }}<span class="lbl">{{ _('docs.upload') }}</span><input type="file" name="file" required hidden data-send accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.txt,.csv"></label></form>{% endcall %}
-<p class="hint">{{ _('docs.hint') }}</p>
+<p class="hint">{{ icon('info', 14) }} {{ _('docs.hint') }}</p>
 {% if docs %}
 <div class="rec-grid doc-grid" id="doclist">
   {% for d in docs %}

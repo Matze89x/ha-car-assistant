@@ -1,7 +1,7 @@
 {% from "_macros.html" import icon with context %}
 <section class="card">
   <h2>{{ icon('view-dashboard', 20) }} {{ _('addon.functions') }}</h2>
-  <p class="hint">{{ _('addon.functions_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('addon.functions_hint') }}</p>
   <div class="fn-list">
   {% for m, on, system_off in functions %}
     <div class="fn-row {{ '' if on and not system_off else 'off' }}">

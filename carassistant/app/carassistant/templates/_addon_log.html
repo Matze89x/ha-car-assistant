@@ -13,8 +13,8 @@
     <div class="dbg-log">
       {% for l in lines %}<div class="dbg-line lv-{{ l.level }}"><span class="dbg-ts">{{ flog(l.ts) }}</span><span class="dbg-lv">{{ l.level }}</span><span class="dbg-msg">{{ l.message }}</span></div>{% endfor %}
     </div>
-    <p class="hint">{{ _('dbg.keep', n=keep) }}</p>
-    {% else %}<p class="hint">{{ _('log.problems_empty') if log_level == 'problems' else _('dbg.empty') }}</p>{% endif %}
+    <p class="hint">{{ icon('info', 14) }} {{ _('dbg.keep', n=keep) }}</p>
+    {% else %}<p class="hint">{{ icon('info', 14) }} {{ _('log.problems_empty') if log_level == 'problems' else _('dbg.empty') }}</p>{% endif %}
   </div>
 </section>
 
@@ -22,10 +22,10 @@
   <details class="eq">
     <summary><span class="mi-ic c4">{{ icon('swap-vertical', 19) }}</span><span class="eq-t">{{ _('dbg.traffic') }}</span><span class="eq-n">{{ traffic|length }}</span>{{ icon('chevron-down', 18) }}</summary>
     <div class="tp-tools">
-      <p class="hint">{{ _('dbg.traffic_hint') }}</p>
+      <p class="hint">{{ icon('info', 14) }} {{ _('dbg.traffic_hint') }}</p>
       {% if traffic %}<div class="dbg-log">
         {% for t in traffic %}<div class="dbg-line {{ 'lv-error' if t.status >= 400 else '' }}"><span class="dbg-ts">{{ flog(t.ts) }}</span><span class="dbg-lv">{{ _('dbg.kind_car') if t.kind == 'car' else _('dbg.kind_api') }}</span><span class="dbg-lv">{{ t.status }}</span><span class="dbg-msg">{{ t.method }} {{ t.path }}{% if t.detail %} · {{ t.detail }}{% endif %}</span></div>{% endfor %}
-      </div>{% else %}<p class="hint">{{ _('dbg.traffic_empty') }}</p>{% endif %}
+      </div>{% else %}<p class="hint">{{ icon('info', 14) }} {{ _('dbg.traffic_empty') }}</p>{% endif %}
     </div>
   </details>
 </section>

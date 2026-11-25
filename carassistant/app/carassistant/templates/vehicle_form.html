@@ -28,6 +28,7 @@
 {% if source_vehicles %}
 <section class="card" id="vsource">
   <h2>{{ icon('download', 20) }} {{ _('vb.from_sources') }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ _('vb.from_sources_hint') }}</p>
   <div class="pkg-list">
     {% for p in source_vehicles %}
     <form method="post" action="{{ base }}/vehicles/from-source/{{ p.source_id }}/{{ p.pkg_id }}" class="pkg-form">
@@ -37,16 +38,15 @@
     </form>
     {% endfor %}
   </div>
-  <p class="hint">{{ _('vb.from_sources_hint') }}</p>
 </section>
 {% endif %}
 <details class="card add-card" id="vrestore">
   <summary><span class="add-ic">{{ icon('download', 18) }}</span><span>{{ _('vb.restore') }}</span></summary>
+  <p class="hint">{{ icon('info', 14) }} {{ _('vb.restore_hint') }}</p>
   <form method="post" enctype="multipart/form-data" action="{{ base }}/vehicles/restore" class="grid">
     <label class="wide">{{ _('vb.file') }}<input type="file" name="backup" accept=".zip,application/zip" required></label>
     <div class="wide">{{ form_bar(label=_('vb.restore_btn')) }}</div>
   </form>
-  <p class="hint">{{ _('vb.restore_hint') }}</p>
 </details>
 {% endif %}
 
@@ -124,14 +124,14 @@
         <label class="sp"><input form="vform" type="radio" name="energy_mode" value="{{ key }}" {{ 'checked' if cur_mode == key }}><span>{{ icon(ic, 22) }}<b>{{ _('energy.' ~ (key or 'auto')) }}</b></span></label>
         {% endfor %}
       </div>
-      <p class="hint">{{ _('energy.hint') }}</p>
+      <p class="hint">{{ icon('info', 14) }} {{ _('energy.hint') }}</p>
     </div>
     <div class="tf-field wide"><span class="tf-l">{{ _('energy.levels') }}</span></div>
     <label>{{ _('f.warn_pct') }}<input form="vform" name="warn_pct" inputmode="numeric" placeholder="25" value="{{ form.get('warn_pct') if form.get('warn_pct') is not none else '' }}"></label>
     <label>{{ _('f.crit_pct') }}<input form="vform" name="crit_pct" inputmode="numeric" placeholder="10" value="{{ form.get('crit_pct') if form.get('crit_pct') is not none else '' }}"></label>
     <label>{{ _('f.warn_range_km') }} ({{ units.dist_unit }})<input form="vform" name="warn_range_km" inputmode="numeric" value="{{ form.get('warn_range_km') if form.get('warn_range_km') is not none else '' }}"></label>
     <label>{{ _('f.crit_range_km') }} ({{ units.dist_unit }})<input form="vform" name="crit_range_km" inputmode="numeric" value="{{ form.get('crit_range_km') if form.get('crit_range_km') is not none else '' }}"></label>
-    <p class="hint wide">{{ _('energy.levels_hint') }}</p>
+    <p class="hint wide">{{ icon('info', 14) }} {{ _('energy.levels_hint') }}</p>
   {% endcall %}
 
 

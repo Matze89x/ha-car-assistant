@@ -38,7 +38,7 @@
 {% if manage and archived %}
 <section class="arch-box">
   <h2 class="arch-h">{{ icon('archive', 18) }} {{ _('vehicle.archived') }} <small>{{ archived|length }}</small></h2>
-  <p class="hint">{{ _('vehicle.archived_hint') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('vehicle.archived_hint') }}</p>
   {% for s in archived %}
   <div class="arch-row">
     <a href="{{ base }}/v/{{ s.vehicle.slug }}"><b>{{ s.vehicle.name }}</b>{% if s.vehicle.plate %}<span class="plate-chip">{{ s.vehicle.plate }}</span>{% endif %}</a>
@@ -53,11 +53,11 @@
 {% if manage and not setup_flow %}
 <details class="card add-card" id="vrestore">
   <summary><span class="add-ic">{{ icon('download', 18) }}</span><span>{{ _('vb.restore') }}</span></summary>
+  <p class="hint">{{ icon('info', 14) }} {{ _('vb.restore_hint') }}</p>
   <form method="post" enctype="multipart/form-data" action="{{ base }}/vehicles/restore" class="grid">
     <label class="wide">{{ _('vb.file') }}<input type="file" name="backup" accept=".zip,application/zip" required></label>
     <div class="wide">{{ form_bar(label=_('vb.restore_btn')) }}</div>
   </form>
-  <p class="hint">{{ _('vb.restore_hint') }}</p>
 </details>
 {% endif %}
 {% endblock %}

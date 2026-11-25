@@ -5,12 +5,17 @@
   --chart-4: #b583ff; /* the fourth colour of the cost charts (the fallback); themes.accent_css() works out the real one from the colour of the design */
   --sp-edge: 14px; /* distance to the screen / sidebar edge (left and right) */
   --sp-col: 14px; /* gap between two columns (list | page) */
+  --sp-card: 18px; /* the padding of a card; lines and markings of its rows reach out to its edges by exactly this much (docs/design.md, 4c) */
+  --sp-field: 14px; /* air between a field and the next thing under it (another field, or the line of a switch row) - a line never touches a field */
   --sp-top: 18px; /* top edge of the first element of every page */
   --sp-head: 16px; /* space under the page header */
   --sp-block: 20px; /* space between two blocks / groups */
   --head-h: 44px; /* height of the page header row */
   --sp-label-top: 28px; /* air above a section label ... */
   --sp-label-bottom: 10px; /* ... and how close it sits on the tile below */
+  --sp-sub: 10px; /* between two sub-windows of one card (and from the card's head to the first one) */
+  --sp-sub-pad-y: 10px; --sp-sub-pad-x: 12px; /* inside a sub-window: top / bottom and left / right */
+  --sp-sub-label: 8px; /* under the label of a sub-window */
   --sp-label-x: 6px; --lab-h: 25px; /* height of a small group label ("CURRENT VEHICLE", "VEHICLE" ...) */
   --glass:rgba(var(--fg-rgb),.055); --glass2:rgba(var(--fg-rgb),.055); --glass-b:rgba(var(--fg-rgb),.085); }
 html, body { background:var(--bg); }
@@ -529,14 +534,11 @@ details.add-card[open] > summary { margin-bottom: 14px; }
 .sw-custom-dark { --sw-bg: #0d1016; --sw-card: #1e222b; --sw-ac: var(--accent); }
 .sw-custom-light { --sw-bg: #eef0f4; --sw-card: #ffffff; --sw-ac: var(--accent); }
 
-.accent-card { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
 .accent-card[hidden] { display: none; }
-.ac-h { font-size: 15px; margin: 0 0 4px; }
 .ac-body { display: grid; gap: var(--sp-col); grid-template-columns: 1fr; align-items: center; }
 @media (min-width: 480px) {
   .ac-body { grid-template-columns: 148px 1fr; }
 }
-.accent-card .hint { margin: 0 0 8px; }
 .ac-wheel-box { position: relative; width: 148px; height: 148px; max-width: 100%; touch-action: none; justify-self: center; }
 .ac-wheel { width: 100%; height: 100%; border-radius: 50%; cursor: crosshair; box-shadow: 0 0 0 1px rgba(var(--fg-rgb), .22), 0 6px 18px rgba(var(--shade-rgb), .35); }
 .ac-dot { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; border: 3px solid var(--on-dark); box-shadow: 0 0 0 1px rgba(var(--shade-rgb), .55), 0 2px 6px rgba(var(--shade-rgb), .5); background: var(--accent); pointer-events: none; }
@@ -1037,9 +1039,9 @@ body.page-editing .hero-pic { outline: 2px dashed rgba(var(--accent-rgb), .5); o
 .form-bar { display: flex; gap: 10px; align-items: stretch; justify-content: flex-start; margin-top: 6px; }
 .form-bar button { flex: 0 0 auto; white-space: nowrap; margin: 0; }
 .form-bar .ico { flex-shrink: 0; }
-@media (max-width: 420px) {
-  .form-bar button.danger span { display: none; }
-  .form-bar button.danger { width: 44px; padding: 0; }
+@media (max-width: 420px) {  /* the big delete button keeps only its symbol on a phone; a small one (it says what it does in a word: Sign out, Delete) keeps its word */
+  .form-bar button.danger:not(.small) span { display: none; }
+  .form-bar button.danger:not(.small) { width: 44px; padding: 0; }
 }
 
 /* tires: one column, season-tinted cards with a big glowing icon */
@@ -1273,6 +1275,8 @@ input[type=date], input[type=time] { height: 48px; }
 
 /* settings window of a plugin / integration: fields, the token, and Save at the very end (it saves everything in the window and closes it) */
 dialog.addon-dlg { padding: 14px 12px 16px; }
+dialog.addon-dlg .form-bar { justify-content: flex-end; }  /* the buttons of a popup: bottom right */
+.addon-dlg .dlg-more { margin-top: 0; padding-top: 14px; border-top: 1px solid var(--glass-b); }  /* what removes something (the passkeys, the person, the passcode): its own bar under a line, after the save bar */
 .addon-dlg-body { display: grid; gap: 16px; padding: 12px 6px 0; }
 .addon-fields { display: grid; gap: 14px; margin: 0; }
 .addon-field label { display: grid; gap: 6px; }
@@ -1549,11 +1553,11 @@ label.button.pk-btn { position: relative; }
 .side .sb-brand small.sb-slogan { color: var(--ok); letter-spacing: .08em; text-transform: uppercase; font-size: 10px; font-weight: 600; }
 
 /* Account & login: compact rows in the app's own look (no disclosure arrows): a head with the person, one line per thing, the change form opens right below */
-.acct { display: grid; gap: 14px; }
+.acct { display: grid; gap: var(--sp-sub); }
 .acct h2 { margin: 0; }
 .acct-head { display: flex; align-items: center; gap: 12px; }
-.acct-av { flex: 0 0 auto; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-m); font-style: normal; font-weight: 700; font-size: 18px; color: var(--strong); background: linear-gradient(135deg, rgba(var(--accent-rgb), .55), rgba(var(--ok-rgb), .45)); border: 1px solid var(--glass-b); }
-.acct-av.s { width: 32px; height: 32px; border-radius: var(--r-s); font-size: 14px; }
+.acct-av { flex: 0 0 auto; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; font-style: normal; font-weight: 700; font-size: 16px; line-height: 1; color: var(--accent); background: rgba(var(--accent-rgb), .14); border: 1px solid rgba(var(--accent-rgb), .4); }  /* the person: the first letter of the name, no picture */
+.acct-av.s { width: 30px; height: 30px; font-size: 13px; }
 .acct-who { display: grid; min-width: 0; flex: 1; }
 .acct-who b { font-size: 16px; overflow-wrap: anywhere; }
 .acct-who small { color: var(--muted); }
@@ -1564,24 +1568,25 @@ label.button.pk-btn { position: relative; }
 .ar-l { flex: 0 0 8.5rem; color: var(--muted); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; font-weight: 600; }
 .ar-v { flex: 1 1 9ch; min-width: 9ch; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; overflow-wrap: break-word; }  /* never squeezed to a letter wide: the button after it moves to the next line instead */
 .ar-edit { margin-left: auto; }
-.ar-edit > summary, .ar-pill { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .05); color: var(--muted); font-size: 13px; font-weight: 600; }
-.ar-edit > summary::-webkit-details-marker { display: none; }
-.ar-pill { width: auto; min-height: 0; height: auto; line-height: 1.4; font-family: inherit; box-shadow: none; }
-.ar-edit > summary:hover, .ar-pill:hover { color: var(--strong); background: rgba(var(--fg-rgb), .1); }
-.ar-edit > summary svg, .ar-pill svg { flex: 0 0 auto; }
 
-/* On a phone the small buttons of this card keep only their icon (round, still 40 px to tap) */
+/* On a phone the edit buttons in the rows of this card keep only their icon (the standard small button, 36 px wide); a button that ADDS something keeps its words everywhere */
 @media (max-width: 640px) {
-  .ar-edit > summary > span, .ar-pill > span { display: none; }
-  .ar-edit > summary, .ar-pill { justify-content: center; width: 40px; height: 40px; padding: 0; border-radius: 50%; }
+  .ar-line .ar-edit:not(.ar-new) > button > span { display: none; }
+  .ar-line .ar-edit:not(.ar-new) > button { width: 36px; padding: 0; }
 }
-.ar-edit[open] { flex: 1 0 100%; margin-left: 0; }
-.ar-edit[open] > summary { margin-bottom: 12px; color: var(--strong); }
+.acct { container-type: inline-size; }
+@container (max-width: 470px) {  /* a narrow window (a column beside the More list, not only a phone): the edit buttons of the rows keep only their icon, so a row stays on ONE line; a button that creates (.ar-new) keeps its word */
+  .ar-line .ar-edit:not(.ar-new) > button > span { display: none; }
+  .ar-line .ar-edit:not(.ar-new) > button { width: 36px; padding: 0; }
+}
+.sub-card .ar-l { flex-basis: 7.5rem; }
+.acct > .sub-card { margin-top: 0; }  /* the card is a grid: its gap (the same token) spaces the windows */
+.sub-card .empty-state, .lm-detail .empty-state, .lmz-detail .empty-state, .push-box .empty-state, .sys-state.empty-state { display: flex; flex: 1 1 100%; align-items: center; justify-content: center; gap: 8px; padding: 6px 0; }  /* nothing there yet, inside a sub-window: the symbol in front of ONE centred sentence; the button that creates it follows bottom right */
+.sub-card .empty-state p, .lm-detail .empty-state p, .lmz-detail .empty-state p, .push-box .empty-state p, .sys-state.empty-state p { margin: 0; max-width: none; }
 #pk-add-box { margin-left: auto; }
 .ar-hint { margin: 6px 0 0; }
 .acct-form { display: grid; gap: 10px; }
 .acct-form label { margin: 0; }
-.acct-sub { margin: 4px 0 -6px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .acct-users .ar-v { flex-direction: row; }
 .acct-users .ar-edit { margin-left: auto; }
 .acct-foot { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 1px solid var(--glass-b); }
@@ -1612,7 +1617,9 @@ input[type=checkbox]:not(.switch input):not(.sw input):disabled { opacity: .45; 
 
 /* Two fields one under the other in a plain form: a clear gap between them */
 /* stacked input labels get a gap; a switch row (.sw-row) never does: it has its own height and divider and centres its content, a gap outside would make it look off-centre */
-form:not(.grid):not(.inline):not(.sys-ext) > label:not(.check):not(.sw-row) + label:not(.check):not(.sw-row) { margin-top: 14px; }
+form:not(.grid):not(.inline):not(.sys-ext) > label:not(.check):not(.sw-row) + label:not(.check):not(.sw-row) { margin-top: var(--sp-field); }
+/* a switch row (it begins with its own line) right under a field: the same air as between two fields, so the line does not touch the field above it (docs/design.md, 4b; tools/check_ui.py measures it) */
+label:not(.check):not(.sw-row) + label.nm-row.sw-row, .fld + label.nm-row.sw-row, .mk-field + label.nm-row.sw-row, select + label.nm-row.sw-row, input + label.nm-row.sw-row { margin-top: var(--sp-field); }
 
 /* Tick boxes: each row is box + text, the box level with the FIRST line of the text, rows of one height rhythm, no glow ring around a ticked box */
 label.check, .grid label.check { display: flex; flex-direction: row; align-items: flex-start; gap: 12px; min-height: 44px; padding: 10px 0; line-height: 1.4; cursor: pointer; }
@@ -2719,9 +2726,6 @@ html.is-app .ph-s[data-car] { display: none; }
 .ta-c { display: grid; place-items: center; min-height: 30px; border-radius: var(--r-s); font-size: 12px; font-weight: 600; background: var(--glass2); color: var(--text); }
 
 /* MCP card: every part is its own block with the same distance, a hairline between them */
-.mcp-sec { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--glass-b); }
-.mcp-sec:first-of-type { margin-top: 14px; }
-.mcp-h { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 
 .mcp-url code { display: block; padding: 10px 12px; border-radius: var(--r-m); background: var(--glass2); border: 1px solid var(--glass-b); font-size: 13px; overflow-wrap: anywhere; }
 
@@ -2732,9 +2736,17 @@ html.is-app .ph-s[data-car] { display: none; }
 .mk-steps { margin: 8px 0 12px 18px; padding: 0; display: grid; gap: 6px; font-size: 14px; }
 
 /* Values to copy: a read-only field with its Copy button next to it */
-.cp-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
-.cp-row input { min-width: 0; margin: 0; font-family: "Space Mono", monospace; font-size: 13px; }
-.cp-row .ghost-btn { white-space: nowrap; }
+/* ===== Field with its functions inside (docs/design.md, 4b): the input and, at its right edge, icon actions (open, copy, change, scan a photo) - the function sits IN the field, not next to it ===== */
+.fld { display: flex; align-items: stretch; min-height: 46px; border: 1px solid var(--glass-b); border-radius: var(--r-s); background: rgba(var(--fg-rgb), .06); overflow: hidden; }
+.fld:focus-within { border-color: rgba(var(--ok-rgb), .55); box-shadow: 0 0 0 3px rgba(var(--ok-rgb), .14); }
+.fld > input { flex: 1 1 auto; min-width: 0; width: auto; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; outline: none; text-overflow: ellipsis; }
+.fld > input:disabled { opacity: 1; -webkit-text-fill-color: var(--text); }  /* a locked field reads like the others; the lock is the missing cursor, the action beside it changes it */
+.fld.mono > input { font-family: "Space Mono", monospace; font-size: 14px; }  /* keys and tokens: every character can be told apart */
+.fld-act { flex: 0 0 auto; display: grid; place-items: center; width: 46px; min-height: 0; padding: 0; border: 0; border-left: 1px solid var(--glass-b); border-radius: 0; background: none; background-clip: padding-box; box-shadow: none; color: var(--muted); cursor: pointer; text-decoration: none; }  /* padding-box: the hover colour stops at the line, so the half-transparent line does not get brighter than the contour of the field */
+.fld-act:hover, .fld-act:focus-visible { color: var(--strong); border-color: var(--glass-b); background: rgba(var(--fg-rgb), .08); outline: none; }  /* only the surface gets lighter: the general button:hover also lightens the border, which would make the line brighter than the contour of the field */
+.fld-act:active { transform: none; background: rgba(var(--fg-rgb), .12); }  /* no press-shrink inside a field */
+.fld-act.copied { color: var(--ok); }
+.mk-field > .fld { grid-column: 1 / -1; }
 .wa-list { display: grid; gap: 4px; margin-top: 10px; }
 .mcp-key { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-m); background: var(--glass2); border: 1px solid var(--glass-b); margin-bottom: 8px; }
 .mcp-bar { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -2770,25 +2782,55 @@ html.is-app .page-head:not(:has(.ph-s:not([data-car]))) { min-height: var(--head
   .tpl-row b { font-size: 20px; }
 }
 
-/* Notification switches: a car is chosen above, then every kind of message is a switch with Yes / No (the round .switch of the design, in its accent) */
-.nm-pick { display: grid; gap: 6px; margin: 8px 0 4px; }
+/* Notification switches: a tab per car above, then every kind of message is a switch with Yes / No (the round .switch of the design, in its accent) */
 .nm-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--glass-b); }
 .nm-row .switch { display: block; margin: 0; }
 .nm-t { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 500; color: var(--text); text-transform: none; letter-spacing: 0; text-align: left; }
 .nm-state { flex: 0 0 auto; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); min-width: 34px; text-align: right; }
 .nm-state.on { color: var(--accent); }
 
-/* The notification card is built from calm blocks: how you are told, then what you are told about; buttons sit at the bottom right of their block */
-.nm-block { margin-top: 14px; padding: 14px 16px; border: 1px solid var(--glass-b); border-radius: var(--r-m); background: rgba(var(--fg-rgb), .03); }
-.nm-block > .acct-sub { margin: 0 0 12px; }
-.nm-block .hint { margin: 8px 0 0; }
+/* ===== Card with sub-windows (docs/design.md, section 4c) =====
+   A card is a category. When it has two or more sub-areas, each one is a framed sub-window (.sub-card) with its own label (.sub-h) - label, hint,
+   content, then the buttons bottom right (.form-bar / .nm-actions). Several of the same kind of thing (cars, seasons) are tabs (.seg-tabs) inside the window. */
+.sub-card { margin-top: var(--sp-sub); padding: var(--sp-sub-pad-y) var(--sp-sub-pad-x); border: 1px solid var(--glass-b); border-radius: var(--r-m); background: rgba(var(--fg-rgb), .03); --bleed: var(--sp-sub-pad-x); }
+.sub-card[hidden] { display: none; }
+.sub-h { display: flex; align-items: center; gap: 8px; margin: 0 0 var(--sp-sub-label); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.sub-h .ico { flex: none; color: var(--accent); }  /* the symbol in front of the name of every sub-window: always the main colour */
+.sub-h small { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 6px; }
+.sub-card .hint { margin: 6px 0 0; }
+.sub-card > .hint:first-of-type { margin-top: 0; }
+.sub-card .seg-tabs a { min-height: 36px; }
+/* EXPERIMENT (only where <html data-exp="subhead"> is set - the preview; not in the app): the label of a sub-window as a header band in the colour of the window's contour, with the bright title colour of a window */
+html[data-exp~="subhead"] .sub-card { padding-top: 0; overflow: hidden; }
+html[data-exp~="subhead"] .sub-h { margin: 0 calc(-1 * var(--sp-sub-pad-x)) var(--sp-sub-label); padding: 8px var(--sp-sub-pad-x); line-height: 18px; background: var(--glass-b); color: var(--text); }  /* 18 + 2 x 8 = 34 px: a whole number, so the lower edge of the band is a sharp pixel line */
+@supports (text-box: trim-both cap alphabetic) {  /* where the browser can trim the text box to the capital letters, the text (a flex item next to the symbol) is centred to the pixel in a band of 34 px */
+  html[data-exp~="subhead"] .sub-h { box-sizing: border-box; min-height: 34px; padding-block: 0; }
+  html[data-exp~="subhead"] .sub-h > span { text-box: trim-both cap alphabetic; }
+}
+.card-form { display: contents; }  /* a form that saves several windows at once takes no space of its own: the cards stay in their column */
+.sub-card .mk-field, .wa-list .mk-field { margin: 0; padding: 8px 0; border: 0; border-top: 1px solid var(--glass-b); border-radius: 0; background: none; }  /* inside a window the rows are flat: a hairline between them, never another box in the box */
+.wa-list { margin: 10px 0 0; gap: 0; }  /* a list of fields straight in a card (one area, no sub-window): flat rows with a hairline between them */
+.wa-list .mk-field { padding: 10px 0; }
+.wa-list .mk-field:first-child { border-top: 0; padding-top: 0; }
+.wa-list .mk-field:last-child { padding-bottom: 0; }
+.sub-card .acct-foot { border-top: 0; padding-top: 0; justify-content: flex-end; }  /* the buttons of this session: bottom right of their window */
+.sub-card .acct-head { margin-bottom: 0; padding-bottom: 10px; border-bottom: 1px solid var(--glass-b); }  /* who it is, a line, then the fields */
+.acct-fields { display: grid; gap: 0; }  /* the rows of the window (label above a field with its function): a hairline between them, equal air on both sides of every line */
+.sub-card .acct-fields .mk-field { margin: 0 calc(-1 * var(--bleed)); padding: 10px var(--bleed); border: 0; }
+.sub-card .acct-fields .mk-field + .mk-field { border-top: 1px solid var(--glass-b); }
+.sub-card .acct-fields + .form-bar { margin-top: 0; padding-top: 10px; border-top: 1px solid var(--glass-b); }  /* one line between the rows and the buttons after them; none at the bottom edge */
+.sub-card .acct-rows > li { padding: 6px 0; }
+.sub-card > .hint:first-of-type { margin-top: 0; }
+.nm-tabs { margin: 0 0 2px; }  /* one tab per car (it scrolls sideways when there are many, the edge with more behind it fades: app.js) */
+.nm-tabs a > span { max-width: 16em; overflow: hidden; text-overflow: ellipsis; }  /* a long car name does not push the other tabs away */
+.sub-card .nm-new-hint, .sub-card .nm-gen-hint { margin: 0 0 6px; }
 .push-box [hidden] { display: none !important; }  /* the buttons carry their own display: without this the script's hidden did nothing and a switch that cannot work stayed on the page */
 .push-where { margin: 8px 0 0; overflow-wrap: anywhere; }
 .push-where a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }  /* the https address to go to: a link that looks like one */
 .nm-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .nm-actions form { margin: 0; }
 .nm-actions button { white-space: nowrap; }
-.nm-block .ar-v { margin-top: 10px; }
+.push-box .ar-v { margin-top: 6px; }  /* the devices of this person, under the label of their window */
 
 /* The toggle switches follow the corners of the design (the same radius as buttons and fields), not full circles */
 .switch span { border-radius: var(--r-s); }
@@ -2814,6 +2856,7 @@ label.nm-row.sw-row { cursor: pointer; text-transform: none; letter-spacing: 0; 
 
 /* Setting rows (switches): a fine line above the first row and under every row, content centred vertically */
 .nm-row, .card label.nm-row.sw-row, form label.nm-row.sw-row { align-items: center; min-height: 52px; box-sizing: border-box; padding-top: 8px; padding-bottom: 8px; }
+.sub-card .nm-row, .sub-card label.nm-row.sw-row { min-height: 44px; }  /* a switch row inside a window: a little lower */
 .nm-row:first-child, .nm-panel > .nm-row:first-child, form > .nm-row:first-child, form > label.nm-row:first-child { border-top: 1px solid var(--glass-b); }
 .nm-row .nm-t, .nm-row .nm-state, .nm-row .switch { align-self: center; }
 
@@ -3007,6 +3050,11 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 
 /* every switch row has a line above AND below; two rows (or two forms with a row each) share one line; text after a row gets air */
 label.nm-row.sw-row, .card label.nm-row.sw-row, form label.nm-row.sw-row { border-top: 1px solid var(--glass-b); }
+.sub-card .nm-row, .card .sub-card label.nm-row.sw-row, form .sub-card label.nm-row.sw-row { border-bottom: 0; }  /* the lines of a list stand BETWEEN its rows: none after the last one (docs/design.md, 4c) */
+.card > label.nm-row.sw-row:last-child, .card > form:last-child > label.nm-row.sw-row:last-child { border-bottom: 0; padding-bottom: 0; min-height: 44px; }  /* a switch that ends its card: no line at the bottom edge, and no extra air under it (the card's own padding is enough) */
+.card .sub-card label.nm-row.sw-row:first-child, .card .sub-card :is(.hint, .sub-h, .seg-tabs) + label.nm-row.sw-row, form .sub-card label.nm-row.sw-row:first-child, form .sub-card :is(.hint, .sub-h, .seg-tabs) + label.nm-row.sw-row { border-top: 0; }  /* ... and none above the first one */
+.acct-users > li:first-child, .acct-rows > li:first-child { border-top: 0; }
+.acct-users:has(+ .form-bar) { margin-bottom: 10px; border-bottom: 1px solid var(--glass-b); }  /* the list of people, a line, then the button that adds one */
 .sw-row + .sw-row, form + form > .sw-row:first-child, form:has(> .sw-row:last-child) + form > .sw-row:first-child { border-top: 0 !important; }
 .sw-row + .hint, .sw-row + p, .sw-row + small, .sw-row + .mqtt-bar, .sw-row + details, .sw-row + .flash, .sw-row + ul { margin-top: 14px; }
 .hint + form > .sw-row:first-child, p + form > .sw-row:first-child { margin-top: 6px; }
@@ -3074,7 +3122,6 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .ac-val { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; padding: 0; border: 1px solid var(--glass-b); border-radius: 999px; background: linear-gradient(90deg, #0b0d12, var(--ac-c, var(--accent))); }
 .ac-val::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--strong); border: 2px solid rgba(var(--shade-rgb), .5); box-shadow: 0 1px 4px rgba(var(--shade-rgb), .4); cursor: pointer; }
 .ac-val::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--strong); border: 2px solid rgba(var(--shade-rgb), .5); cursor: pointer; }
-.ac-val-h { margin: 6px 0 0; font-size: 12px; }
 
 /* Live car data: ONE slim line per value, built to cope with any set of values (the car reports what it reports): the columns follow the room
    (one on a narrow widget, two, three on a wide one), a label may wrap, and when label and value do not fit side by side the value drops under
@@ -3091,27 +3138,29 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .hero-fresh .live.off { color: var(--overdue); }
 
 /* Region: ONE card - language, date, clock, time zone and units as slim rows (label left, choice right), no explanations */
-.rg-row { display: grid; grid-template-columns: 7.2em minmax(0, 1fr); align-items: center; gap: 8px 14px; padding: 8px 0; border-bottom: 1px solid var(--glass-b); margin: 0; }
-.rg-row:first-of-type { border-top: 1px solid var(--glass-b); }
+.rg-row { display: grid; grid-template-columns: 7.2em minmax(0, 1fr); align-items: center; gap: 8px 14px; padding: 8px 0; border: 0; border-top: 1px solid var(--glass-b); margin: 0; }  /* a line stands BETWEEN the rows: above every row except the first, none under the last (docs/design.md, 4c) */
+.rg > h2 + .rg-row { border-top: 0; }  /* none directly under the heading */
+.rg-units .rg-row:last-child { padding-bottom: 0; }
 .rg-row label { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .rg-row select { margin: 0; min-height: 40px; }
 .rg-now { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 8px 0 12px; font-size: 13px; color: var(--muted); }
 .rg-now b { color: var(--text); font-family: "Space Mono", monospace; font-size: 14px; }
 .rg-skew { flex: 1 1 100%; font-style: normal; color: var(--soon); }
 .rg-units .season-pick { margin: 0 0 8px; }
-.rg-units .rg-row { border-top: 0; }
+.rg-units { margin-inline: calc(-1 * var(--bleed)); padding: 12px var(--bleed) 0; border-top: 1px solid var(--glass-b); }  /* the unit systems: a line between them and the clock above */
 
 /* Settings: on a wide screen the cards flow into two columns that balance by themselves (no hole under the shorter one, no two cards squeezed together at the bottom);
    on a phone they stand one under the other */
 .sys-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-col); align-items: start; }
 .sys-col { display: flex; flex-direction: column; gap: var(--sp-col); min-width: 0; }
-.sys-col > .card, .sys-wide > .card { margin: 0; }
+.sys-col > .card, .sys-wide > .card, .sys-col > .card-form > .card { margin: 0; }
 .sys-wide { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-col); }  /* the distance to the columns above is the gap of .sys-grid - a margin on top of it made 28 px */
 @media (min-width: 1100px) {
   .sys-wide { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sys-cols { display: block; column-count: 2; column-gap: var(--sp-col); }
   .sys-cols > .sys-col { display: contents; }
   .sys-cols .card { break-inside: avoid; margin: 0 0 var(--sp-col); }
+  .sys-cols .card-form > .card { margin: 0 0 var(--sp-col); }
 }
 .rg-row select { width: 100%; min-width: 0; text-overflow: ellipsis; }
 .rg-units .season-pick .sp b { font-size: 12px; overflow-wrap: normal; }
@@ -3265,16 +3314,21 @@ path.me-ring { stroke: #3b82f6; fill: #3b82f6; fill-opacity: .12; stroke-width: 
 .lm-dot.idle { background: var(--soon); }
 @keyframes lm-pulse { 0% { box-shadow: 0 0 0 0 rgba(var(--ok-rgb), .55); } 70%, 100% { box-shadow: 0 0 0 8px rgba(var(--ok-rgb), 0); } }
 @media (prefers-reduced-motion: reduce) { .lm-dot.live { animation: none; } .lm-wires path.w { transition: none; } }
-.lm-tiles { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.lm-tiles { display: none; grid-template-columns: minmax(0, 1fr); gap: 0; margin: 0 calc(-1 * var(--sp-card)); padding: 0; list-style: none; border-top: 1px solid var(--glass-b); }  /* what a plugin talks to: flat rows through the whole width of the card, a line between the plugin and the first row and between the rows (docs/design.md, 4c) */
+.lm-card > .lm-tiles:last-child { margin-bottom: calc(-1 * var(--sp-card)); }  /* the last row reaches the lower edge of the card: its marking stands flush */
 .lm-tiles li { margin: 0; min-width: 0; }
-.lm-tile { white-space: normal; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 52px; padding: 8px 10px; box-sizing: border-box; text-align: left; border-radius: var(--r-m); background: rgba(var(--fg-rgb), .04); border: 1px solid var(--glass-b); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
-.lm-tile .mi-ic { flex: none; width: 30px; height: 30px; }
+.lm-tiles li + li { border-top: 1px solid var(--glass-b); }
+.lm-more-li { display: flex; justify-content: flex-end; padding: 10px var(--sp-card) var(--sp-card); }  /* the button that shows the rest: a standard small button, bottom right, one line above it */
+.lm-tile { white-space: normal; display: flex; align-items: center; gap: 12px; width: 100%; margin: 0; min-height: 52px; padding: 8px var(--sp-card); box-sizing: border-box; text-align: left; border-radius: 0; background: none; border: 0; box-shadow: none; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }  /* a flat row from edge to edge of the card: its marking fills it exactly from line to line */
+.lm-tile:hover { background: rgba(var(--fg-rgb), .06); }
+.lm-tile:active { transform: none; }
+.lm-tile .mi-ic { flex: none; width: 32px; height: 32px; }  /* as wide as the chip of the plugin above, so the names of the rows stand under its name */
 .lm-tn { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
 .lm-tn b { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.lm-tn small { color: var(--muted); font-size: 11px; }
-.lm-tile.sel { border-color: var(--accent); background: rgba(var(--accent-rgb), .09); }
+.lm-tn small { color: var(--muted); font-size: 12px; }
+.lm-tile.sel { background: var(--glass-b); }  /* the open one: square, in the colour of the lines - not red, not round */
 .lm-tile.idle small, .lm-tile.none small { opacity: .8; }
-.lm-tile-more { justify-content: center; border-style: dashed; color: var(--muted); }
+/* (the button that shows the rest is a plain .small button inside .lm-more-li) */
 .lm-card:not(.all) .lm-tiles li.extra { display: none; }
 .lm-card.all .lm-more-li { display: none; }
 .lm-rest { display: flex; flex-direction: column; gap: 12px; }
@@ -3284,9 +3338,9 @@ path.me-ring { stroke: #3b82f6; fill: #3b82f6; fill-opacity: .12; stroke-width: 
 .lm-detail { margin-top: 16px; }
 .lm-dh { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .lm-dh h2 { margin: 0; font-size: 16px; }
-.lm-filter { width: 100%; box-sizing: border-box; margin: 6px 0 10px; }
-.lm-rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--glass-b); }
+.lm-rows { list-style: none; margin: 0 calc(-1 * var(--sp-card)); padding: 0; }  /* the signals: rows through the whole width, no line directly under the hint */
 ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b); }
+ul.lm-rows > li.lm-row:last-child { border-bottom: 0; }
 .lm [hidden] { display: none !important; }  /* a .button or a flex row must not override the hidden attribute */
 .lm-rowbtn { display: grid; grid-template-columns: 44px minmax(0, 1.2fr) minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; box-sizing: border-box; padding: 10px 2px; background: none; border: 0; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
 .lm-nm { display: flex; flex-direction: column; min-width: 0; }
@@ -3306,18 +3360,23 @@ ul.lm-rows > li.lm-row { display: block; border-bottom: 1px solid var(--glass-b)
 .lm-hist code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "Space Mono", monospace; }
 @media (max-width: 860px) {
   /* phone and small windows: no lines and no second column - a plugin is one card with the tiles of what it talks to; its signals open under it */
-  .lm-board { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .lm-board { grid-template-columns: minmax(0, 1fr); gap: var(--sp-col); }
   .lm-hub, .lm-wires, .lm-col-areas, .lm-h, .lm-legend { display: none; }
-  .lm-col-plugins { gap: 12px; }
-  .lm-card { gap: 0; padding: 14px; background: var(--glass); border: 1px solid var(--glass-b); box-shadow: 0 1px 0 rgba(var(--fg-rgb),.05) inset, 0 12px 32px rgba(0,0,0,.28); }
-  .lm-card .lm-plugin { padding: 0; border: 0; border-left: 0; background: none; }
+  .lm-col-plugins { gap: var(--sp-col); }
+  .lm-card { gap: 0; margin: 0; }  /* the card IS a .card (the markup says so): its look, padding and spacing come from the design, nothing is repeated here */
+  .lm-card .lm-plugin { width: calc(100% + 2 * var(--sp-card)); margin: calc(-1 * var(--sp-card)) calc(-1 * var(--sp-card)) 0; padding: var(--sp-card) var(--sp-card) 14px; border: 0; border-left: 0; border-radius: 0; background: none; box-shadow: none; }  /* the plugin's name: not a button box (no frame, no top highlight); a band from the top and the sides of the card down to the line, so its marking is flush */
+  .lm-card > .lm-plugin:last-child { margin-bottom: calc(-1 * var(--sp-card)); padding-bottom: var(--sp-card); }
+  .lm-card .lm-plugin:hover, .lm-card .lm-plugin:active { background: rgba(var(--fg-rgb), .06); box-shadow: none; transform: none; }
+  .lm-card .lm-plugin.sel { background: var(--glass-b); }
+  .lm-card:has(.lm-tile.sel) .lm-plugin.sel { background: none; }  /* one row is marked at a time: when a row of the plugin is open, the plugin's name is not marked as well */
+  .lm-tile .lm-dot.live { animation: none; }  /* only the light of the plugin itself pulses; many pulsing dots at once were restless */
   .lm-board.has-sel .lm-node:not(.sel) { opacity: 1; }
   .lm-board.has-sel .lm-card:not(:has(.sel)) { opacity: .5; }  /* what is not open steps back */
   .lm-tiles { display: grid; }
-  .lm-card .lm-detail { margin: 12px 0 0; padding: 12px 0 0; border: 0; border-top: 1px solid var(--glass-b); border-radius: 0; background: none; box-shadow: none; }
-  .lm-rowbtn { grid-template-columns: 44px minmax(0, 1fr) auto; }
+  .lm-card .lm-detail { margin: 0 calc(-1 * var(--sp-card)) calc(-1 * var(--sp-card)); padding: 14px var(--sp-card) var(--sp-card); border: 0; border-top: 1px solid var(--glass-b); border-radius: 0; background: none; box-shadow: none; }  /* the signals open right under the last row: the line IS the end of the list, no gap before it */
+  .lm-rowbtn { grid-template-columns: 44px minmax(0, 1fr) auto; padding-inline: var(--sp-card); }
   .lm-rowbtn .lm-val { grid-column: 2 / 4; grid-row: 2; }
-  .lm-raw { padding-left: 4px; }
+  .lm-raw { padding-left: var(--sp-card); padding-right: var(--sp-card); }
 }
 
 /* ------------------------------------------------------------------ the zoomable connection map (wide screens; phones keep the cards above) */
@@ -3504,3 +3563,17 @@ html.lmz-lock { overflow: hidden; }
 .pkg-more p.pre { white-space: pre-line; }  /* the paragraphs and line breaks of a plugin's docs */
 .lf-tpl { display: flex; gap: 8px; margin: 6px 0 8px; }
 .lf-tpl select { flex: 1 1 auto; min-width: 0; }
+
+/* ------------------------------------------------------------------ LINES RUN THROUGH THE WHOLE WINDOW (docs/design.md, 4c)
+   A hairline that separates the rows or the parts of a card, a sub-window or a popup runs from the one edge of the window to the other - never only as wide as the
+   text. The row reaches out by the padding of its window (--bleed) and pads its content back in, so the text stays where it was. tools/check_ui.py measures every line. */
+.card, dialog.addon-dlg .addon-dlg-body { --bleed: var(--sp-card); }
+:is(.card, .sub-card, dialog.addon-dlg .addon-dlg-body) :is(.nm-row, label.nm-row.sw-row, .about-row, .icon-row, .rg-row, .odo-hrow, .odo-add, .ad-row, .ifc-row, .addon-value, .acct-head, .dlg-more, .za-reset, .vc-facts > div),
+.sub-card .mk-field, .wa-list .mk-field, .sub-card .acct-fields + .form-bar {
+  margin-inline: calc(-1 * var(--bleed)); padding-inline: var(--bleed);
+}
+.sub-card .acct-users { margin-inline: calc(-1 * var(--bleed)); }  /* the list of people: the list reaches the edges, each row pads its content back in - so the line between two rows and the line under the list run through the window */
+.sub-card .acct-users > li { padding-inline: var(--bleed); }
+.card > h2 + .icon-row { border-top: 0; }  /* none directly under the heading of a window */
+/* In a sub-window the lines of a list of switches stand BETWEEN the rows (a row carries the line ABOVE itself, the first has none): the rules above that share one line in a plain card must not take them away here. tools/check_ui.py fails when two rows stand one under the other without a line. */
+.sub-card .sw-row + .sw-row, .sub-card form + form > .sw-row:first-child, .sub-card form:has(> .sw-row:last-child) + form > .sw-row:first-child { border-top: 1px solid var(--glass-b) !important; }

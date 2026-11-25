@@ -1,10 +1,10 @@
-{% from "_macros.html" import icon with context %}
+{% from "_macros.html" import icon, sub_h with context %}
 <div class="eq-panel tp-add fs-panel" id="fuel-settings" {{ 'hidden' if not request.query_params.get('fs') else '' }}>
   <h2 class="fs-h">{{ icon('settings', 20) }} {{ _('fs.title') }}</h2>
-  <p class="hint">{{ _('fs.intro') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('fs.intro') }}</p>
 
-  <div class="nm-block">
-    <h3 class="acct-sub">{{ _('fs.sources') }}</h3>
+  <div class="sub-card">
+    {{ sub_h('gas-station', _('fs.sources')) }}
     {% for o in stn.sources %}
     <div class="fs-src">
       <div class="fs-name"><b>{{ o.name }}</b>{% if o.id == stn.source %}<span class="badge ok">{{ _('fs.in_use') }}</span>{% endif %}
@@ -26,8 +26,8 @@
     {% endfor %}
   </div>
 
-  <div class="nm-block">
-    <h3 class="acct-sub">{{ _('fs.start_with') }}</h3>
+  <div class="sub-card">
+    {{ sub_h('cog', _('fs.start_with')) }}
     <form method="post" action="{{ base }}/settings/fuel-defaults" data-live class="grid">
       <input type="hidden" name="back" value="/v/{{ v.slug }}/e/fuel">
       <label>{{ _('stations.source') }}<select name="source"><option value="">{{ _('fs.auto') }}</option>{% for o in stn.sources %}<option value="{{ o.id }}" {{ 'selected' if fs_pref == o.id }}>{{ o.name }}</option>{% endfor %}</select></label>

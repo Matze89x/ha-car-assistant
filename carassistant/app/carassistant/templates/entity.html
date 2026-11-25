@@ -15,8 +15,8 @@
     {% else %}<button type="button" class="button primary" data-add-toggle="addcard" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>{% endif %}
 {% endcall %}
 
-{% if entity.key == 'tasks' %}<p class="hint">{{ _('tasks.hint') }}</p>{% endif %}
-{% if entity.key == 'counters' %}<p class="hint">{{ _('counters.hint') }}</p>{% endif %}
+{% if entity.key == 'tasks' %}<p class="hint">{{ icon('info', 14) }} {{ _('tasks.hint') }}</p>{% endif %}
+{% if entity.key == 'counters' %}<p class="hint">{{ icon('info', 14) }} {{ _('counters.hint') }}</p>{% endif %}
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
 
 {% if stn %}{% include "_stations_card.html" %}{% endif %}
@@ -49,7 +49,7 @@
     <label>{{ _('f.category') }}<select name="category">{% for c in ['private', 'business', 'commute'] %}<option value="{{ c }}">{{ _('category.' ~ c) }}</option>{% endfor %}</select></label>
     <button>{{ _('btn.import') }}</button>
   </form>
-  <p class="hint">{{ _('exp.disclaimer') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('exp.disclaimer') }}</p>
 </details>
 {% endif %}
 

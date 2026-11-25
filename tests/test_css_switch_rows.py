@@ -11,6 +11,8 @@ def test_no_stacked_label_rule_adds_a_gap_around_switch_rows():
     and later switch rows made their text look pushed down)."""
     for match in re.finditer(r"([^{}]*label[^{}]*\+\s*label[^{}]*)\{([^}]*)\}", CSS):
         selector, body = match.group(1), match.group(2)
+        if "var(--sp-field)" in body and ".nm-row.sw-row" in selector:
+            continue  # the ONE deliberate gap: a switch row right under a field keeps the air of the design, so its line does not touch the field
         if "margin-top" in body or re.search(r"margin\s*:", body):
             assert selector.count(":not(.sw-row)") >= 2, selector.strip()
 
