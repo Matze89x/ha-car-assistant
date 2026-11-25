@@ -12,6 +12,7 @@
     {% else %}<span class="addon-sw"><span class="addon-st{{ ' on' if a.active }}">{{ (_('addon.running') if a.active else _('addon.stopped')) if plugin else (_('addon.on') if a.active else _('addon.off')) }}</span><label class="switch" aria-label="{{ (_('addon.stop') if a.active else _('addon.start')) if plugin else (_('addon.switch_off') if a.active else _('addon.switch_on')) }}"><input type="checkbox" data-fn="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/active" {{ 'checked' if a.active }}><span></span></label></span>{% endif %}
   </div>
   {% if a.has_update and not a.missing %}<p class="addon-status upd">{{ icon('refresh', 16) }}<span>{{ _('addon.update_to_from', v=a.latest, source=a.offer_source) if a.offer_source else _('addon.update_to', v=a.latest) }}</span></p>{% endif %}
+  {% if a.can_link and not a.has_update %}<p class="addon-status">{{ icon('info', 16) }}<span>{{ _('addon.link_hint', v=a.m.version, source=a.offer_source) }}</span></p>{% endif %}
   {% if a.m.description %}<p class="addon-d">{{ a.m.description }}</p>{% endif %}
   {% set need_review = (a.svc and not a.svc.approved) or (a.pkgfiles and not a.svc and not a.pkgfiles.approved) %}
   {% if a.pkgfiles and not a.svc and not a.pkgfiles.approved %}<p class="addon-status">{{ icon('info', 16) }}<span>{{ _('fil.state_wait') }}</span></p>{% endif %}
@@ -42,6 +43,7 @@
       {% for b in free %}{% if b.page %}<a class="button lite-lbl" href="{{ base }}/v/{{ v.slug }}/m/{{ a.addon_id }}/{{ b.page }}" aria-label="{{ b.label }}" title="{{ b.label }}">{{ icon(b.icon, 18) }}<span class="lbl2">{{ b.label }}</span></a>
       {% elif b.step %}<a class="button lite-lbl" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/guide?step={{ b.step_n }}" aria-label="{{ b.label }}" title="{{ b.label }}">{{ icon(b.icon, 18) }}<span class="lbl2">{{ b.label }}</span></a>
       {% else %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/button/{{ b.id }}"{% if b.confirm %} data-confirm="{{ b.confirm }}"{% endif %}><button class="lite-lbl" aria-label="{{ b.label }}" title="{{ b.label }}">{{ icon(b.icon, 18) }}<span class="lbl2">{{ b.label }}</span></button></form>{% endif %}{% endfor %}
+      {% if a.can_link %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/link"><button class="lite-lbl" aria-label="{{ _('addon.link') }}" title="{{ _('addon.link_tip', source=a.offer_source) }}">{{ icon('database', 18) }}<span class="lbl2">{{ _('addon.link') }}</span></button></form>{% endif %}
       {% for d in dls %}<a class="button lite-lbl" href="{{ base }}{{ d.path }}" download aria-label="{{ d.label }}" title="{{ d.note or d.label }}">{{ icon('download', 18) }}<span class="lbl2">{{ d.label }}</span></a>{% endfor %}
       {% if need_review %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/service">{{ icon('shield', 18) }}<span>{{ _('svc.review') }}</span></a>
       {% elif a.has_update %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/update"><button class="primary">{{ icon('refresh', 18) }}<span>{{ _('addon.update') }}</span></button></form>

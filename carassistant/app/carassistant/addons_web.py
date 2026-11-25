@@ -420,6 +420,24 @@ def addons_update(request: Request, vid: int, aid: int):
     return go(request, _manage(addon["kind"], vid), "addon.updated")
 
 
+@app.post("/v/{vid}/integrations/{aid}/link")
+def addons_link(request: Request, vid: int, aid: int):
+    """A package installed without a source, and a source offers exactly its version: link it (its next updates come from there). Nothing else changes."""
+    if (denied := _guard(request, vid)) is not None:
+        return denied
+    with db.tx() as conn:
+        addon = addons.get(conn, vid, aid)
+        if addon is None:
+            return go(request, f"/v/{vid}/integrations", "addon.err_id")
+        offer = addons.unlinked_offer(conn, addon) if addon["source_id"] is None and addon["status"] != "missing" else None
+        have = addon["m"].get("version", "")
+        if offer is None or sources.is_newer(offer["version"], have) or sources.is_newer(have, offer["version"]):
+            return go(request, _manage(addon["kind"], vid), "addon.err_id")
+        conn.execute("UPDATE vehicle_addons SET source_id = ? WHERE id = ? AND source_id IS NULL", (offer["source_id"], addon["id"]))
+    events.changed()
+    return go(request, _manage(addon["kind"], vid), "addon.linked")
+
+
 @app.post("/v/{vid}/integrations/{aid}/active")
 async def addons_active(request: Request, vid: int, aid: int):
     if (denied := _guard(request, vid)) is not None:

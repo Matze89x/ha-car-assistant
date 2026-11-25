@@ -316,6 +316,38 @@ def test_a_package_without_a_source_that_is_newer_than_the_source_is_left_alone(
     assert "Installed · no source" in add_page and "/packages/" not in add_page  # not shown as "not installed"
 
 
+def test_a_package_without_a_source_is_linked_when_a_source_offers_exactly_its_version(client, fake_source):
+    sid = _default_id()
+    vid, slug = _car(client)
+    _file_package(client, vid, version="1.9")  # the source offers 1.9 as well
+    client.post(f"/sources/{sid}/refresh", data={"kind": "plugin"})
+    with db.tx() as conn:
+        item = addons.list_for(conn, vid)[0]
+    assert item["source_id"] is None and not item["has_update"] and item["can_link"]
+    page = client.get(f"/v/{slug}/plugins").text
+    assert "Link to source" in page and "The same version (v1.9) is in" in page
+    before = item["m"]
+    client.post(f"/v/{vid}/integrations/{item['id']}/link")
+    with db.tx() as conn:
+        item = addons.list_for(conn, vid)[0]
+    assert item["source_id"] == sid and item["m"] == before and not item["can_link"]  # linked, nothing else changed
+    assert "Link to source" not in client.get(f"/v/{slug}/plugins").text and "no source" not in client.get(f"/v/{slug}/plugins").text
+
+
+def test_a_package_is_not_linked_when_the_versions_differ(client, fake_source):
+    sid = _default_id()
+    vid, slug = _car(client)
+    _file_package(client, vid, version="5")  # newer than the source (1.9): nothing to link to
+    client.post(f"/sources/{sid}/refresh", data={"kind": "plugin"})
+    with db.tx() as conn:
+        item = addons.list_for(conn, vid)[0]
+    assert not item["can_link"]
+    client.post(f"/v/{vid}/integrations/{item['id']}/link")  # refused: nothing changes
+    with db.tx() as conn:
+        assert addons.list_for(conn, vid)[0]["source_id"] is None
+    assert "Link to source" not in client.get(f"/v/{slug}/plugins").text
+
+
 def test_the_two_update_buttons_and_the_icon_of_the_index(client, fake_source):
     import json as _json
 
