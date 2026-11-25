@@ -174,6 +174,17 @@ def check(target: Path) -> tuple[list[str], list[str]]:
             notes.append(
                 f"Setting '{field['key']}': a choice needs 'options' (each with a 'value' without a comma) - it became a text field."
             )
+    for field in data.get("settings", []) if isinstance(data.get("settings"), list) else []:
+        if (
+            isinstance(field, dict)
+            and field.get("type") == "bool"
+            and field.get("default") is not None
+            and not isinstance(field["default"], bool)
+            and field["default"] not in ("0", "1")
+        ):
+            notes.append(
+                f"Setting '{field.get('key')}': a switch starts on with default true / \"1\" and off with false / \"0\"; '{field['default']}' counts as off."
+            )
     asked = data.get("downloads") if isinstance(data.get("downloads"), list) else []
     if len(asked) != len(manifest.get("downloads", [])):
         notes.append(

@@ -143,8 +143,12 @@ def clean_service(raw: object) -> dict | None:
         ):
             raise AddonError("addon.err_service")
         env[name] = value[:200]
+    token = raw.get("token")
+    if token is not None and not isinstance(token, bool):  # ``false`` = a service without a token; anything but a yes/no is refused
+        raise AddonError("addon.err_service")
     return {
         "entry": entry,
+        **({"token": False} if token is False else {}),
         **({"python": python.replace(" ", "")} if python else {}),
         "requirements": [r.replace(" ", "") for r in reqs],
         "routes": routes,
@@ -176,6 +180,9 @@ def clean_downloads(raw, service: dict | None, setting_types: dict[str, str] | N
                 "note": _text(item, "note", 200),
                 **({"place": "settings"} if item.get("place") == "settings" else {}),
                 **({"when": when} if when else {}),
+                **(
+                    {"l10n": texts} if (texts := _l10n(item.get("l10n"), {"label": 60, "note": 200})) else {}
+                ),  # label / note in other languages
             }
         )
     return out
@@ -1076,7 +1083,9 @@ def clean_setting_fields(raw) -> list[dict]:
                 field["state"] = states
         if f.get("advanced") is True and kind not in NO_VALUE:
             field["advanced"] = True  # the set-up guide shows it folded under "Advanced settings"
-        if _text(f, "default", 200) and kind not in NO_VALUE:
+        if kind == "bool" and isinstance(f.get("default"), bool):
+            field["default"] = "1" if f["default"] else "0"  # a switch may start as true / false (stored like every switch: 1 / 0)
+        elif _text(f, "default", 200) and kind not in NO_VALUE:
             field["default"] = _text(f, "default", 200)  # what the setting is until the user changes it
         if _l10n(f.get("l10n"), {"label": 60, "help": 300}):
             field["l10n"] = _l10n(f.get("l10n"), {"label": 60, "help": 300})
@@ -1222,6 +1231,8 @@ def parse_package(raw: bytes) -> dict:
         types,
     )
     buttons = clean_buttons(data.get("buttons"), pages, service, types, [st["id"] for st in (setup or {}).get("flow", [])])
+    if service and service.get("token") is False:
+        _check_tokenless(service, conn_file, bundles, tiles, fields, setup)
     docs = _docs_text(data.get("docs"))  # a longer description for the Interfaces page (paragraphs and line breaks stay)
     icon = data.get("icon") if data.get("icon") in icons.ICONS else ""  # one of the app's icons (docs/icons.md); shown on the plugin's tile
     return {
@@ -1475,7 +1486,14 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
             }
             for b in manifest.get("buttons", [])
         ]  # which of them show right now (their ``when``), and the number of the flow step a button opens
-        manifest["downloads"] = [{**d, "shown": when_holds(d.get("when", []), **judge)} for d in manifest.get("downloads", [])]
+        manifest["downloads"] = [
+            {
+                **d,
+                **{k: v for k, v in ((d.get("l10n") or {}).get(lang) or {}).items() if k in ("label", "note")},
+                "shown": when_holds(d.get("when", []), **judge),
+            }
+            for d in manifest.get("downloads", [])
+        ]  # the label and note in the language of the page, when the package brings them
         out.append(
             {
                 **dict(r),
@@ -1941,12 +1959,29 @@ def guide_form(addon: dict, form: dict, keys: set[str] | None) -> dict:
     return merged
 
 
+def _check_tokenless(
+    service: dict, conn_file: dict | None, bundles: list[dict], tiles: list[dict], fields: list[dict], setup: dict | None = None
+) -> None:
+    """``service.token: false`` (a plugin with a service that has NO token and no Plugin API): refuse what only works with a token - a connection file with
+    ``{token}``, a bundle that carries it, a public route that checks it (``token_header``), tiles (the plugin fills them through the API), settings the
+    service writes itself (``value`` fields, ``service_writable``) and a guide step that shows the token. A promise the package cannot keep is refused when it is read, never dropped quietly."""
+    if (
+        (conn_file and "{token}" in conn_file["template"])
+        or any(b.get("connection_file_to") for b in bundles)
+        or any(r.get("token_header") for r in service.get("routes", []))
+        or tiles
+        or any(f.get("type") == "value" or f.get("service_writable") for f in fields)
+        or any(st.get("type") == "token" for st in (setup or {}).get("flow", []))  # a guide that asks for the token
+    ):
+        raise AddonError("addon.err_service_token")
+
+
 def needs_token(manifest: dict) -> bool:
-    """Does the plugin use a token at all? A plugin with a service always does (the service reports with it). Without a service it does not when its
+    """Does the plugin use a token at all? A plugin with a service does (the service reports with it) unless it says ``service.token: false``. Without a service it does not when its
     connection file has no ``{token}`` (a file with only settings, nothing secret) or when it says so (``setup.token: false``): then the guide leaves the
     token part out, no token is made and the page shows no token card."""
     if manifest.get("service"):
-        return True
+        return manifest["service"].get("token") is not False  # ``service.token: false``: a service without a token (docs/plugins.md)
     if (manifest.get("setup") or {}).get("token") is False:
         return False
     cfile = manifest.get("connection_file")
@@ -2089,6 +2124,11 @@ def update_manifest(
         "UPDATE vehicle_addons SET manifest = ?, pkg_sha = COALESCE(?, pkg_sha), source_id = COALESCE(source_id, ?) WHERE id = ?",
         (json.dumps(manifest), pkg_sha, source_id, addon["id"]),
     )
+    if (
+        addon["kind"] == "plugin" and addon.get("token_id") and not needs_token(manifest)
+    ):  # the new version has no token: the old one is revoked
+        connectors.delete_token(conn, addon["token_id"])
+        conn.execute("UPDATE vehicle_addons SET token_id = NULL WHERE id = ?", (addon["id"],))
 
 
 def set_active(conn: sqlite3.Connection, addon: dict, on: bool) -> None:

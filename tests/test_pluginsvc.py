@@ -1034,3 +1034,94 @@ def test_refused_requests_are_counted_in_the_plugin_log_once_a_minute(client, mo
     assert (
         "wrong-value" not in json.dumps(lines()) and "8.8.8.8" not in json.dumps(lines()) and "secret" not in json.dumps(lines())
     )  # nothing of the sender
+
+
+def test_a_service_can_say_it_needs_no_token(client):
+    """``service.token: false``: a plugin WITH a service and no Plugin API - no token, no ``CA_API_*`` in its environment; an old token is revoked on update."""
+    tokenless = {**MANIFEST, "version": "2", "service": {**MANIFEST["service"], "token": False}}
+    parsed = addons.parse_package(json.dumps(tokenless).encode())
+    assert parsed["service"]["token"] is False and addons.needs_token(parsed) is False
+    assert addons.needs_token(addons.parse_package(json.dumps(MANIFEST).encode())) is True  # the default stays
+    assert (
+        "token" not in addons.parse_package(json.dumps({**MANIFEST, "service": {**MANIFEST["service"], "token": True}}).encode())["service"]
+    )
+
+    vid, pk = _install(client, manifest=MANIFEST)  # version 1: has a token
+    with db.tx() as conn:
+        addon = addons.get(conn, vid, pk)
+        folder, token = pluginsvc._prepare_run(conn, addon)
+        assert token and addons.get(conn, vid, pk)["token_id"] and (folder / ".token").is_file()
+        env = pluginsvc._env(addons.get(conn, vid, pk), folder, token, 4321)
+        assert env["CA_API_TOKEN"] == token and env["CA_API_URL"]
+        old_id = addons.get(conn, vid, pk)["token_id"]
+        addons.update_manifest(conn, addons.get(conn, vid, pk), parsed, addon["pkg_sha"])  # the update to a version without a token
+        assert addons.get(conn, vid, pk)["token_id"] is None
+        assert conn.execute("SELECT COUNT(*) FROM api_tokens WHERE id = ?", (old_id,)).fetchone()[0] == 0  # revoked, not just forgotten
+        folder, token = pluginsvc._prepare_run(conn, addons.get(conn, vid, pk))  # the next start
+        assert token == "" and not (folder / ".token").exists() and addons.get(conn, vid, pk)["token_id"] is None
+        env = pluginsvc._env(addons.get(conn, vid, pk), folder, token, 4321)
+        assert not any(k.startswith("CA_API") for k in env) and env["CA_PORT"] == "4321" and env["CA_VEHICLE_ID"] == str(vid)
+        assert "CA_DATA_DIR" in env
+        assert addons.set_up(conn, vid, addons.get(conn, vid, pk), {"greeting": "hi"}) is None  # saving the settings makes no token either
+        assert addons.get(conn, vid, pk)["token_id"] is None
+
+
+def test_a_service_without_a_token_cannot_use_what_needs_one():
+    """Refused when the package is read (a promise it cannot keep is never dropped quietly): the token in a file or a bundle, a route that checks it,
+    tiles, settings the service writes itself - and the value must be a yes / no."""
+    base = {**MANIFEST, "service": {**MANIFEST["service"], "token": False}}
+    bad = [
+        {"connection_file": {"name": "l.cfg", "template": "token={token}"}},
+        {
+            "connection_file": {"name": "l.cfg", "template": "x=1"},
+            "bundles": [{"name": "a.zip", "entries": [{"from": "service/main.py", "to": "m.py"}], "connection_file_to": "l.cfg"}],
+        },
+        {"service": {**base["service"], "routes": [{"prefix": "/open/", "public": True, "token_header": "X-My-Token"}]}},
+        {"tiles": [{"id": "t", "label": "T", "signal": "my.signal"}]},
+        {"settings": [{"key": "state", "label": "State", "type": "value"}]},
+        {"connection_file": {"name": "l.cfg", "template": "x=1"}, "setup": {"flow": [{"id": "tok", "type": "token"}]}},
+        {"settings": [{"key": "mode", "label": "Mode", "type": "text", "service_writable": True}]},
+    ]
+    for extra in bad:
+        with pytest.raises(addons.AddonError) as err:
+            addons.parse_package(json.dumps({**base, **extra}).encode())
+        assert err.value.key == "addon.err_service_token", extra
+    with pytest.raises(addons.AddonError):
+        addons.parse_package(json.dumps({**MANIFEST, "service": {**MANIFEST["service"], "token": "no"}}).encode())
+    # what stays allowed: a connection file without the token, pages, downloads, capabilities
+    ok = addons.parse_package(json.dumps({**base, "connection_file": {"name": "l.cfg", "template": "vehicle={vehicle}"}}).encode())
+    assert addons.needs_token(ok) is False
+
+
+def test_a_switch_may_start_as_true_and_a_download_has_its_texts_in_other_languages(client, monkeypatch):
+    """A ``bool`` ``default`` may be ``true`` / ``false`` (stored as 1 / 0 like every switch); ``downloads`` carry ``l10n`` (label, note)."""
+    manifest = {
+        **MANIFEST,
+        "settings": [
+            {"key": "a", "label": "A", "type": "bool", "default": True},
+            {"key": "b", "label": "B", "type": "bool", "default": False},
+            {"key": "c", "label": "C", "type": "bool", "default": "1"},
+            {"key": "d", "label": "D", "type": "bool"},
+        ],
+        "downloads": [
+            {
+                "label": "Data package",
+                "path": "/svc/pack.zip",
+                "note": "All of it",
+                "l10n": {"de": {"label": "Datenpaket", "note": "Alles"}},
+            },
+            {"label": "Plain", "path": "/svc/plain.zip"},
+        ],
+    }
+    parsed = addons.parse_package(json.dumps(manifest).encode())
+    assert [f.get("default") for f in parsed["settings"]] == ["1", "0", "1", None]
+    assert parsed["downloads"][0]["l10n"] == {"de": {"label": "Datenpaket", "note": "Alles"}} and "l10n" not in parsed["downloads"][1]
+
+    vid, pk = _install(client, manifest=manifest)
+    from carassistant import config
+
+    for lang, label, note in (("de", "Datenpaket", "Alles"), ("en", "Data package", "All of it")):
+        monkeypatch.setattr(config, "language", lambda lang=lang: lang)
+        with db.tx() as conn:
+            first = addons.get(conn, vid, pk)["m"]["downloads"][0]
+        assert (first["label"], first["note"]) == (label, note)

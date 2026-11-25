@@ -410,6 +410,15 @@ def _prepare_run(conn, addon: dict) -> tuple[Path, str]:
     token = token_file.read_text().strip() if token_file.is_file() else ""
     if addon["kind"] == "integration":  # an integration has no token and cannot call the Plugin API: just its own data folder
         token = ""
+    elif not addons.needs_token(
+        addon["m"]
+    ):  # a plugin with ``service.token: false``: no token at all - one it had is revoked, its copy deleted
+        token = ""
+        if addon.get("token_id"):
+            connectors.delete_token(conn, addon["token_id"])
+            conn.execute("UPDATE vehicle_addons SET token_id = NULL WHERE id = ?", (addon["id"],))
+        with contextlib.suppress(OSError):
+            token_file.unlink()
     elif (not token or not addon.get("token_id")) and not addons.token_by_guide(addon["m"]):  # with a guide the token is chosen in step 2
         if addon.get("token_id"):
             connectors.delete_token(conn, addon["token_id"])
@@ -462,7 +471,11 @@ def _env(addon: dict, folder: Path, token: str, port: int) -> dict[str, str]:
         "LANG": "C.UTF-8",
         "PYTHONUNBUFFERED": "1",
         "PYTHONPATH": str(pkg_dir(addon["addon_id"], addon["pkg_sha"])),
-        **({"CA_API_URL": f"http://127.0.0.1:{config.port()}", "CA_API_TOKEN": token} if addon["kind"] != "integration" else {}),
+        **(
+            {"CA_API_URL": f"http://127.0.0.1:{config.port()}", "CA_API_TOKEN": token}
+            if addon["kind"] != "integration" and addons.needs_token(addon["m"])
+            else {}
+        ),  # an integration, or a plugin with ``service.token: false``, has no Plugin API
         "CA_VEHICLE_ID": str(addon["vehicle_id"]),
         "CA_DATA_DIR": str(folder),
         "CA_PORT": str(port),
