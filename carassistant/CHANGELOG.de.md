@@ -4,6 +4,18 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.29 Beta
+- **Plugins können mehr** - eine Einstellung kann von mehreren anderen ein- oder ausgeblendet werden (`show_if` mit `not`, `in`, `not_in`, `has`, zusammengesetzt mit `any` / `all`); eine Spalte einer Liste kann eine Zahl, ein Datum oder eine Auswahl sein, und ein Dienst bekommt Zahlen als Zahlen; ein Wert kann eine gespeicherte Zeit in der Zone des Systems zeigen und vor bekannte Texte einen grünen, gelben oder roten Punkt setzen. Pakete, die nichts davon nutzen, bleiben unverändert.
+- **Plugins mit Dienst** - solange du den Dienst nicht freigegeben hast, werden die Knöpfe, die ihn aufrufen, die Seiten, die er liefert, und seine Downloads nicht angeboten (die Einrichtung und *Prüfen und freigeben* bleiben).
+- **Zurück und Seitenleiste in Plugins** - in einem Plugin oder einer Integration führt *Zurück* zur Liste, aus der man kam, und am Tablet oder Computer bleibt dieser Eintrag auf jeder Seite des Pakets markiert; eine Seite mit eigenem Eintrag in *Weiteres* (wie *Coding*) lässt ihn markiert und führt zurück nach *Weiteres*.
+- **Coding-Seite** - der aufgeklappte Byte-Editor passt auf jeden Bildschirm (er war breiter als ein Handy), die Bytes bilden ein gleichmäßiges Raster, Felder haben 16 px, damit iPhone-Safari nicht zoomt, es gibt keine Drehpfeile über Zahlen, und Bytes sind per Tastatur erreichbar.
+- **Kilometerstand im Fahrzeugpass** - der Stand wird in einem Feld oben in der Karte *Kilometerstände* eingetragen (tippen oder aus einem Foto lesen), nur solange niemand den Kilometerstand meldet; das Dashboard zeigt das Zählwerk nur einmal.
+- **Am Handy** - die Reiterleiste von Plugins und Integrationen passt auf den Bildschirm (nur der offene Reiter zeigt sein Wort).
+- **Startseiten-Video** - lehnt der Video-Player des Handys die Adresse des Videos ab, obwohl die Datei in Ordnung ist, lädt die Seite die Datei selbst und spielt sie aus dem Speicher ab; lässt sich ein Video wirklich nicht abspielen, nennt ein Tipp, was der Server geliefert hat.
+- **Benachrichtigungen** - ein Auto bietet nur die Meldungen an, die es wirklich liefern kann (keine Reifendruck-Meldung ohne Reifendrücke, keine Meldung für offene Türen ohne Türdaten); was eingeschaltet ist, bleibt sichtbar.
+- **Ladevorgänge** - die Dauer eines Vorgangs steht in der Sprache der Seite.
+- **Doku** - Anleitung, Design-Buch und Plugin-Doku auf Deutsch und Englisch auf den neuen Stand gebracht; neue Screenshots.
+
 ## 0.5.28 Beta
 - **Einstellungen und Listen aufgeräumt** - *Einstellungen* öffnet beim Auto, die Karten jedes Einstellungs-Reiters gleichen sich in zwei Spalten von selbst aus, *Sortieren* ist von den Seiten Integrationen und Plugins verschwunden, die Passkey-Liste und die Anmeldedaten brechen nicht mehr Buchstabe für Buchstabe um, der Benutzer hat ein Fahrer-Piktogramm, die Web-App jedes Autos hat *Öffnen* (in einer neuen Seite) statt *Kopieren*, und die *Über*-Seite hat die Zeile *Gemacht von* verloren. Listen laden 5 Einträge auf einmal (5, 10, 25, 50 oder 100 wählbar).
 - **Kilometerstand** - die Kilometerstände im Fahrzeugpass sind eine richtige Gruppe im Design der anderen, laden in Teilen wie jede Liste und erscheinen nur, solange niemand den Kilometerstand für das Auto meldet (ein Plugin oder eine Home-Assistant-Entität); das Aussehen *Zählwerk* im Dashboard steht in einer Kachel mit den Sechs-Monats-Balken wie die anderen beiden; das Tacho-Foto liest auch eine Zahl mit einem falsch gelesenen *km* dahinter und gibt Zahlen mit sechs oder sieben Stellen etwas mehr Gewicht.

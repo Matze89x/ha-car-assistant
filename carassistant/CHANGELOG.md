@@ -4,6 +4,18 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.29 Beta
+- **Plugins can do more** - a setting can be shown or hidden by several others (`show_if` with `not`, `in`, `not_in`, `has`, put together with `any` / `all`); a column of a list can be a number, a date or a choice, and a service gets the numbers as numbers; a value can show a stored time in the system's zone and put a green, amber or red dot in front of known texts. Packages that use none of it are unchanged.
+- **Plugins with a service** - until you have approved the service, the buttons that call it, the pages it serves and its downloads are not offered (the set-up and *Review and approve* stay).
+- **Back and side bar in plugins** - inside a plugin or integration *Back* leads to the list it came from, and on a tablet or computer that entry stays marked on every page of the package; a page with an entry of its own in *More* (like *Coding*) keeps it marked and leads back to *More*.
+- **Coding page** - the opened byte editor fits every screen (it was wider than a phone), the bytes form an even grid, fields are 16 px so iPhone Safari does not zoom in, there are no spin arrows over numbers, and bytes can be reached by keyboard.
+- **Odometer in the vehicle passport** - the reading is entered in a box at the top of the card *Odometer readings* (type it or read it from a photo), only while nobody reports the odometer; the dashboard shows the plate once.
+- **Phones** - the tab bar of Plugins and Integrations fits the screen (only the open tab shows its word).
+- **Home video** - when the phone's video player refuses the video's address although the file is fine, the page fetches the file itself and plays it from memory; when a video really cannot be played, a tap names what the server delivered.
+- **Notifications** - a car only offers the messages it can really tell (no tyre message without tyre pressures, no open-door message without door data); what is switched on stays visible.
+- **Charging sessions** - the length of a session is written in the language of the page.
+- **Docs** - guide, design book and plugin documentation brought up to date in English and German; new screenshots.
+
 ## 0.5.28 Beta
 - **Settings and lists tidied up** - *Settings* opens on the car, the cards of every settings tab balance in two columns by themselves, *Sort* is gone from the Integrations and Plugins pages, the passkey list and the login details no longer break letter by letter, the user has a driver pictogram, the web app of each car has *Open* (in a new page) instead of *Copy*, and the *About* page lost the *made by* line. Lists load 5 entries at a time (5, 10, 25, 50 or 100 to choose).
 - **Odometer** - the readings in the vehicle passport are a proper group in the design of the others, load in batches like every list, and only show while nobody reports the odometer for the car (a plugin or a Home Assistant entity); the dashboard look *Zählwerk* sits in a tile with the six-month bars like the other two looks; the odometer photo also reads a number with a misread *km* behind it and gives figures with six or seven digits a little more weight.
