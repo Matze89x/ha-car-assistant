@@ -440,7 +440,11 @@ document.addEventListener("click", function (event) {
   function bitsOf(mask) { var out = []; for (var i = 0; i < 8; i++) { if ((mask >> i) & 1) { out.push(i); } } return out; }
   function gValue(byte, mask) { var r = 0, bs = bitsOf(mask); for (var n = 0; n < bs.length; n++) { r |= ((byte >> bs[n]) & 1) << n; } return r; }
   function gSet(byte, mask, val) { var bs = bitsOf(mask), v = byte; for (var n = 0; n < bs.length; n++) { v = ((val >> n) & 1) ? (v | (1 << bs[n])) : (v & ~(1 << bs[n])); } return v & 255; }
-  function label(bs, word) { var run = true, i; for (i = 1; i < bs.length; i++) { if (bs[i] !== bs[i - 1] + 1) { run = false; } } return word + " " + (run ? bs[0] + "–" + bs[bs.length - 1] : bs.join(", ")); }
+  function bitLabel(sel, bs) {  // "Bit 1+2" for two or not-adjacent bits, "Bit 0–3" for a run of three or more
+    var run = bs.length > 2, i;
+    for (i = 1; i < bs.length; i++) { if (bs[i] !== bs[i - 1] + 1) { run = false; } }
+    return sel.getAttribute("data-bit") + " " + (run ? bs[0] + "–" + bs[bs.length - 1] : bs.join("+"));
+  }
   function newByte(cell) { var n = parseInt(cell.getAttribute("data-new") || cell.getAttribute("data-old"), 16); return isNaN(n) ? 0 : n; }
   function markCells(code) {  // a dot on every byte that has a note or a group
     var n = notes(code).get(), g = groups(code).get();
@@ -450,45 +454,70 @@ document.addEventListener("click", function (event) {
       var dot = c.querySelector(".dot"); if (dot) { dot.hidden = !has; }
     });
   }
-  function renderGroups(code, idx) {
-    var sel = selOf(code), box = sel.querySelector(".pm-glist"), g = (groups(code).get()[String(idx)] || []), cell = curCell(code), by = newByte(cell);
-    box.innerHTML = "";
-    g.forEach(function (gr, gi) {
-      var row = document.createElement("div"); row.className = "pm-grow"; row.setAttribute("data-g", String(gi));
-      var bs = bitsOf(gr.m), max = (1 << bs.length) - 1;
-      row.innerHTML = '<b class="pm-gl"></b><input type="text" class="pm-gname" maxlength="200" autocomplete="off"><input type="number" class="pm-gval" min="0" max="' + max + '" inputmode="numeric"><button type="button" class="pm-gdrop"></button>';
-      row.querySelector(".pm-gl").textContent = label(bs, sel.getAttribute("data-t-bits"));
-      var nm = row.querySelector(".pm-gname"); nm.value = gr.l || ""; nm.placeholder = sel.getAttribute("data-t-name"); nm.setAttribute("aria-label", sel.getAttribute("data-t-name"));
-      var vl = row.querySelector(".pm-gval"); vl.value = String(gValue(by, gr.m)); vl.setAttribute("aria-label", sel.getAttribute("data-t-value") + " 0–" + max);
-      row.querySelector(".pm-gdrop").textContent = sel.getAttribute("data-t-drop");
-      box.appendChild(row);
-    });
+  function chips(code, idx) {  // the round bit buttons: a bit that stands in a group cannot be chosen again
+    var sel = selOf(code), g = (groups(code).get()[String(idx)] || []);
     Array.prototype.forEach.call(sel.querySelectorAll(".pm-gchip"), function (chip) {
       var b = parseInt(chip.getAttribute("data-bit"), 10), taken = g.some(function (gr) { return (gr.m >> b) & 1; });
       chip.disabled = taken; if (taken) { chip.setAttribute("aria-pressed", "false"); }
     });
   }
+  function blocks(g) {  // the rows from top to bottom: a single bit, or the bits of one group (together, at the place of the lowest of them)
+    var out = [], done = {}, b, gr, bs;
+    for (b = 0; b < 8; b++) {
+      if (done[b]) { continue; }
+      gr = g.filter(function (x) { return (x.m >> b) & 1; })[0];
+      bs = gr ? bitsOf(gr.m) : [b];
+      bs.forEach(function (x) { done[x] = true; });
+      out.push({ bits: bs, g: gr || null, gi: gr ? g.indexOf(gr) : -1 });
+    }
+    return out;
+  }
+  function span(el, row, n) { el.style.gridRow = n > 1 ? row + " / span " + n : String(row); }
   function paint(code) {  // the selected byte: original (one line), new (bits), the bit rows with their notes, the groups, the count
     var cell = curCell(code), sel = selOf(code);
     if (!cell) { return; }
     var o = bin(cell.getAttribute("data-old")), n = bin(cell.getAttribute("data-new")), idx = curIdx(code), g = groups(code).get()[String(idx)] || [], nt = notes(code).get();
+    var ul = sel.querySelector(".pm-bitrows"), lis = {}, row = 2;  // row 1 is the heading
     sel.querySelector(".pm-bn").textContent = sel.getAttribute("data-byte") + " " + idx;
     var bo = sel.querySelector(".pm-bo"); if (bo) { bo.textContent = o || "--------"; }
     var inp = sel.querySelector(".pm-bi"); if (document.activeElement !== inp) { inp.value = n || ""; }
-    Array.prototype.forEach.call(sel.querySelectorAll(".pm-bitrows li:not(.pm-bh)"), function (li, k) {
-      var cO = li.querySelector(".pm-bk-o"), cN = li.querySelector(".pm-bk-n"), note = li.querySelector(".pm-bnote");
-      cO.checked = !!o && o.charAt(7 - k) === "1"; cN.checked = !!n && n.charAt(7 - k) === "1";
-      li.classList.toggle("ch", !!o && !!n && o.charAt(7 - k) !== n.charAt(7 - k));
-      var grp = g.filter(function (gr) { return (gr.m >> k) & 1; })[0];
-      li.classList.toggle("grp", !!grp);
-      note.disabled = !!grp;
-      if (grp) { note.value = ""; note.placeholder = sel.getAttribute("data-t-grouped") + (grp.l ? ": " + grp.l : ""); }
-      else if (document.activeElement !== note) { note.value = nt[idx + "." + k] || ""; note.placeholder = note.getAttribute("data-ph") || note.placeholder; }
+    Array.prototype.forEach.call(ul.querySelectorAll("li[data-bit]"), function (li) { lis[li.getAttribute("data-bit")] = li; });
+    var all = blocks(g);
+    all.forEach(function (bl, bi) {
+      var cnt = bl.bits.length, anyCh = false;
+      bl.bits.forEach(function (k, j) {  // one row per bit: its two boxes; label and note stand once over all rows of a group
+        var li = lis[String(k)], lab = li.querySelector(".pm-bl"), cO = li.querySelector(".pm-bk-o"), cN = li.querySelector(".pm-bk-n"), w = li.querySelector(".pm-bnw"), note = li.querySelector(".pm-bnote"), gx = li.querySelector(".pm-gx");
+        ul.appendChild(li);
+        var ch = !!o && !!n && o.charAt(7 - k) !== n.charAt(7 - k); anyCh = anyCh || ch;
+        cO.checked = !!o && o.charAt(7 - k) === "1"; cN.checked = !!n && n.charAt(7 - k) === "1";
+        li.classList.toggle("ch", ch); li.classList.toggle("gm", cnt > 1 && j < cnt - 1);
+        Array.prototype.forEach.call(li.querySelectorAll(".pm-bd"), function (c) { span(c, row + j, 1); });
+        lab.hidden = w.hidden = j > 0;
+        if (j > 0) { w.removeAttribute("data-g"); return; }
+        span(lab, row, cnt); span(w, row, cnt);
+        lab.textContent = cnt > 1 ? bitLabel(sel, bl.bits) : sel.getAttribute("data-bit") + " " + k;
+        if (!note.hasAttribute("data-ph")) { note.setAttribute("data-ph", note.placeholder); }
+        if (bl.g) {  // a group: ONE note (its name), its value as a number, dissolve
+          w.setAttribute("data-g", String(bl.gi)); gx.hidden = false;
+          if (document.activeElement !== note) { note.value = bl.g.l || ""; }
+          note.placeholder = sel.getAttribute("data-t-name"); note.setAttribute("aria-label", sel.getAttribute("data-t-name"));
+          var max = (1 << cnt) - 1, vl = gx.querySelector(".pm-gval");
+          vl.max = String(max); vl.setAttribute("aria-label", sel.getAttribute("data-t-value") + " 0–" + max);
+          if (document.activeElement !== vl) { vl.value = String(gValue(newByte(cell), bl.g.m)); }
+        } else {
+          w.removeAttribute("data-g"); gx.hidden = true;
+          if (document.activeElement !== note) { note.value = nt[idx + "." + k] || ""; }
+          note.placeholder = note.getAttribute("data-ph");
+        }
+      });
+      bl.bits.forEach(function (k) { var li = lis[String(k)]; li.querySelector(".pm-bl").classList.toggle("ch", anyCh); li.classList.toggle("lb", bi === all.length - 1); });
+      row += cnt;
     });
-    renderGroups(code, idx); markCells(code);
+    chips(code, idx); markCells(code);
     sel.hidden = false;
-    var card = cardOf(code), cnt = card && card.querySelector(".pm-cnt");
-    if (cnt) { var c = code.querySelectorAll(".pm-byte.ch").length; cnt.textContent = c + " B"; cnt.classList.toggle("on", c > 0); }
+    var card = cardOf(code), cnt2 = card && card.querySelector(".pm-cnt");
+    if (cnt2) { var c = code.querySelectorAll(".pm-byte.ch").length; cnt2.textContent = c + " B"; cnt2.classList.toggle("on", c > 0); }
+    dirty(card);
   }
   function refreshCell(c, v) {  // a byte of the new value: its text, whether it differs from the original, the small "was ..."
     c.setAttribute("data-new", v);
@@ -509,6 +538,27 @@ document.addEventListener("click", function (event) {
     Array.prototype.forEach.call(cell.parentNode.children, function (c) { c.classList.toggle("sel", c === cell); });
     paint(code);
   }
+  function resync(code) {  // the bytes follow the hex field (typed by hand, or taken back by a reset)
+    var f = hexField(code), hex = ((f && f.value) || "").replace(/\s+/g, "");
+    cells(code).forEach(function (c, i) { refreshCell(c, /^[0-9a-fA-F]*$/.test(hex) ? hex.substr(i * 2, 2).toUpperCase() : (c.getAttribute("data-new") || "")); });
+    paint(code);
+  }
+  function canon(v) { if (v && typeof v === "object") { return Array.isArray(v) ? v.map(canon) : Object.keys(v).sort().reduce(function (o, k) { o[k] = canon(v[k]); return o; }, {}); } return v; }
+  function snap(form) {  // what the form would send, in a fixed order (the notes and groups as text in a fixed order too)
+    var out = [];
+    new FormData(form).forEach(function (v, k) {
+      if (typeof v !== "string") { return; }
+      if (k === "bitnotes" || k === "bitgroups") { try { v = JSON.stringify(canon(JSON.parse(v || "{}"))); } catch (err) { /* stays as it is */ } }
+      out.push(k + "=" + v);
+    });
+    return out.join("&");
+  }
+  function dirty(card) {  // something of this control unit is not saved yet: the line says so and "Reset" works - nothing is saved before "Save"
+    var form = card && card.querySelector("form.pm-form"); if (!form || form.__snap === undefined) { return; }
+    var d = snap(form) !== form.__snap, hint = form.querySelector(".pm-unsaved"), rs = form.querySelector(".pm-reset");
+    card.classList.toggle("dirty", d); if (hint) { hint.hidden = !d; } if (rs) { rs.disabled = !d; }
+  }
+  function firstByte(d) { Array.prototype.forEach.call(d.querySelectorAll(".pm-code"), function (code) { var c = cells(code)[0]; if (c) { show(c); } }); }
   function err(code, text) { var p = selOf(code).querySelector(".pm-gerr"); p.textContent = text || ""; p.hidden = !text; }
   list.addEventListener("change", function (e) {  // a bit row ticked or unticked
     var box = e.target; if (!box.classList || !box.classList.contains("pm-bk-n")) { return; }
@@ -525,15 +575,20 @@ document.addEventListener("click", function (event) {
       if (el.value.length === 8) { var code = codeOf(el), cell = curCell(code); if (cell) { write(code, cells(code).indexOf(cell), parseInt(el.value, 2)); } }
       return;
     }
-    if (cl.contains("pm-bnote")) {  // the note of a bit
-      var cd = codeOf(el), ix = curIdx(cd), st = notes(cd), all = st.get(), key = ix + "." + el.getAttribute("data-bit");
+    if (cl.contains("pm-bnote")) {  // the note of a bit - or the name of a group (its note stands over all its rows)
+      var cd = codeOf(el), ix = curIdx(cd), wrap = el.closest(".pm-bnw");
+      if (wrap && wrap.hasAttribute("data-g")) {
+        var gs0 = groups(cd), all0 = gs0.get(), gr0 = (all0[String(ix)] || [])[parseInt(wrap.getAttribute("data-g"), 10)];
+        if (gr0) { gr0.l = el.value; gs0.set(all0); }
+        return;
+      }
+      var st = notes(cd), all = st.get(), key = ix + "." + el.getAttribute("data-bit");
       if (el.value.trim()) { all[key] = el.value; } else { delete all[key]; }
       st.set(all); markCells(cd); return;
     }
-    if (cl.contains("pm-gname") || cl.contains("pm-gval")) {  // a group: its name, or its value as a number (sets its bits)
-      var cd2 = codeOf(el), ix2 = curIdx(cd2), gs = groups(cd2), allg = gs.get(), list2 = allg[String(ix2)] || [], row = el.closest(".pm-grow"), gr = list2[parseInt(row.getAttribute("data-g"), 10)];
+    if (cl.contains("pm-gval")) {  // the value of a group as a number (sets its bits)
+      var cd2 = codeOf(el), ix2 = curIdx(cd2), gs = groups(cd2), allg = gs.get(), w2 = el.closest(".pm-bnw"), gr = w2 && (allg[String(ix2)] || [])[parseInt(w2.getAttribute("data-g"), 10)];
       if (!gr) { return; }
-      if (cl.contains("pm-gname")) { gr.l = el.value; gs.set(allg); return; }
       var max = (1 << bitsOf(gr.m).length) - 1, v = parseInt(el.value, 10);
       if (isNaN(v) || v < 0 || v > max) { err(cd2, selOf(cd2).getAttribute("data-t-range") + " 0–" + max); return; }
       err(cd2, ""); write(cd2, ix2, gSet(newByte(curCell(cd2)), gr.m, v)); return;
@@ -541,15 +596,20 @@ document.addEventListener("click", function (event) {
     if (el.tagName === "INPUT" && el.closest(".pm-form")) {  // the hex field typed by hand: the cells follow
       var card = el.closest(".pm-unit"), code2 = card && card.querySelector(".pm-code"), sel = code2 && selOf(code2);
       if (!sel || el.getAttribute("name") !== sel.getAttribute("data-field")) { return; }
-      var hex = (el.value || "").replace(/\s+/g, "");
-      cells(code2).forEach(function (c, i) { refreshCell(c, /^[0-9a-fA-F]*$/.test(hex) ? hex.substr(i * 2, 2).toUpperCase() : (c.getAttribute("data-new") || "")); });
-      paint(code2);
+      resync(code2);
     }
   });
   list.addEventListener("click", function (e) {
     var t = e.target, c = t.closest && t.closest(".pm-byte");
     if (c) { show(c); return; }
     if (!t.classList) { return; }
+    if (t.classList.contains("pm-reset")) {  // take back everything of this control unit that is not saved
+      var form = t.closest("form.pm-form"), card0 = form && form.closest(".pm-unit"); if (!form) { return; }
+      form.reset();
+      Object.keys(form.__hidden || {}).forEach(function (name) { var h = form.querySelector('input[type="hidden"][name="' + name + '"]'); if (h) { h.value = form.__hidden[name]; } });  // a hidden field keeps its edited value through reset()
+      Array.prototype.forEach.call(card0.querySelectorAll(".pm-code"), resync);
+      dirty(card0); return;
+    }
     var code = t.closest && t.closest(".pm-code"); if (!code) { return; }
     if (t.classList.contains("pm-gchip")) { t.setAttribute("aria-pressed", t.getAttribute("aria-pressed") === "true" ? "false" : "true"); err(code, ""); return; }
     if (t.classList.contains("pm-gbtn")) {  // group the chosen bits: their notes become the name of the group
@@ -564,7 +624,7 @@ document.addEventListener("click", function (event) {
       err(code, ""); paint(code); return;
     }
     if (t.classList.contains("pm-gdrop")) {  // dissolve a group: its name stays with its lowest bit
-      var cd = code, ix = curIdx(cd), g2 = groups(cd), a2 = g2.get(), arr = a2[String(ix)] || [], row = t.closest(".pm-grow"), gi = parseInt(row.getAttribute("data-g"), 10), gone = arr.splice(gi, 1)[0];
+      var cd = code, ix = curIdx(cd), g2 = groups(cd), a2 = g2.get(), arr = a2[String(ix)] || [], wd = t.closest(".pm-bnw"), gi = wd ? parseInt(wd.getAttribute("data-g"), 10) : -1, gone = gi >= 0 ? arr.splice(gi, 1)[0] : null;
       if (!arr.length) { delete a2[String(ix)]; }
       g2.set(a2);
       if (gone && gone.l) { var n2 = notes(cd), an = n2.get(); an[ix + "." + bitsOf(gone.m)[0]] = gone.l; n2.set(an); }
@@ -572,6 +632,15 @@ document.addEventListener("click", function (event) {
     }
   });
   list.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("pm-byte")) { e.preventDefault(); show(e.target); } });
+  ["input", "change"].forEach(function (ev) { list.addEventListener(ev, function (e) { dirty(e.target.closest && e.target.closest(".pm-unit")); }); });  // after the handlers above: the hidden fields are up to date
+  list.addEventListener("toggle", function (e) {  // a control unit opened: its first byte is already chosen, so one goes through the bytes from the start
+    var d = e.target; if (d.classList && d.classList.contains("pm-unit") && d.open) { firstByte(d); }
+  }, true);
+  Array.prototype.forEach.call(list.querySelectorAll("form.pm-form"), function (f) {  // the state as it was loaded: what "not saved" and "Reset" go back to
+    f.__snap = snap(f); f.__hidden = {};
+    Array.prototype.forEach.call(f.querySelectorAll('input[type="hidden"]'), function (h) { f.__hidden[h.name] = h.value; });
+  });
+  Array.prototype.forEach.call(list.querySelectorAll("details.pm-unit[open]"), firstByte);
 })();
 
 

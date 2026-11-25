@@ -4,6 +4,6 @@
   <div class="wd-v">{% if last_fuel.amount %}{{ fnum(units.v(last_fuel.amount, unit), 1) }} <small>{{ units.vol_unit(unit) }}</small>{% else %}–{% endif %}</div>
   <div class="wd-s">{{ fdate(last_fuel.date) }}{% if last_fuel.price_total %} · {{ fnum(last_fuel.price_total, 2) }} {{ units.cur }}{% endif %}</div>
   {{ spark_price|safe }}
-  {% if price_cap %}<div class="wd-s">{{ _('wd.price_cap', u=units.vol_unit(unit), n=price_cap.n) }} <b>{{ fnum(units.price_vol(price_cap.last, unit), 3) }} {{ units.cur }}</b></div>{% endif %}
+  {% if price_cap %}<div class="wd-s">{{ _('wd.price_cap', u=units.vol_unit(unit)) }} <b>{{ fnum(units.price_vol(price_cap.last, unit), 3) }} {{ units.cur }}</b></div>{% endif %}
 {% endcall %}
 {% endif %}

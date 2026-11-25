@@ -145,5 +145,5 @@ def test_the_two_small_charts_say_what_they_show(client):
             data={"date": f"2026-0{i + 1}-10", "amount": str(litres), "price_total": str(total), "odometer_km": str(km), "full_tank": "1"},
         )
     page = client.get(f"/v/{s}").text
-    assert "Price per L, last 5 fill-ups:" in page and "1.800 €" in page  # 72.0 / 40
-    assert "Per fill-up, last 4:" in page and "–" in page.split("Per fill-up, last 4:")[1][:80]
+    assert "Price per L:" in page and "1.800 €" in page and "fill-ups" not in page.split("Price per L:")[0][-40:]  # 72.0 / 40
+    assert "Per fill-up:" in page and "last 4" not in page and "–" in page.split("Per fill-up:")[1][:80]

@@ -139,9 +139,10 @@ def hero_range(live: Live, t: Translator, capacity: float | None = None, unit: s
 
 
 def freshness(live: Live, t: Translator) -> str:
-    """When the car last reported anything ("5 min ago"); empty when nothing came in yet."""
+    """When the car last reported anything ("5 minutes ago", on its own: a capital letter, "Vor 5 Minuten"); empty when nothing came in yet."""
     stamps = [stamp for _, stamp in live.values() if stamp]
-    return ago(max(stamps), t) if stamps else ""
+    text = ago(max(stamps), t) if stamps else ""
+    return text[:1].upper() + text[1:]
 
 
 CONNECTED_MINUTES = 30  # a car that reported within this time counts as connected
@@ -183,6 +184,14 @@ def hero_badges(live: Live, t: Translator) -> dict[str, list[dict]]:
     return {"left": left, "right": right}
 
 
+def _count_text(t: Translator, base: str, n: int) -> str:
+    """ "1 hour ago" / "3 hours ago", "vor einem Tag" / "vor 5 Tagen": a word of its own for one and for many. A language file that only has the
+    short forms ("{n} h ago") keeps them."""
+    one_many = f"{base}_one" if n == 1 else f"{base}_other"
+    has = getattr(t, "has", None)
+    return t(one_many, n=n) if has is None or has(one_many) else t(base, n=n)
+
+
 def ago(stamp: datetime | None, t: Translator, now: datetime | None = None) -> str:
     if stamp is None:
         return ""
@@ -190,10 +199,10 @@ def ago(stamp: datetime | None, t: Translator, now: datetime | None = None) -> s
     if seconds < 60:
         return t("ago.now")
     if seconds < 3600:
-        return t("ago.min", n=seconds // 60)
+        return _count_text(t, "ago.min", seconds // 60)
     if seconds < 86400:
-        return t("ago.hours", n=seconds // 3600)
-    return t("ago.days", n=seconds // 86400)
+        return _count_text(t, "ago.hours", seconds // 3600)
+    return _count_text(t, "ago.days", seconds // 86400)
 
 
 def _coords(raw: str | None) -> tuple[float, float] | None:

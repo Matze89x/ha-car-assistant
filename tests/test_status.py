@@ -67,8 +67,29 @@ def test_ago_wording():
         NOW - timedelta(hours=3),
         NOW - timedelta(days=2),
     )
-    assert [status.ago(s, T, NOW) for s in (just, five, three_h, two_d)] == ["just now", "5 min ago", "3 h ago", "2 d ago"]
+    assert [status.ago(s, T, NOW) for s in (just, five, three_h, two_d)] == ["just now", "5 minutes ago", "3 hours ago", "2 days ago"]
     assert status.ago(None, T, NOW) == ""
+
+
+def test_the_time_since_is_written_out_with_one_and_many_forms():
+    from datetime import timedelta
+
+    from carassistant import i18n
+
+    de = i18n.translator("de")
+    one = [status.ago(NOW - d, de, NOW) for d in (timedelta(minutes=1), timedelta(hours=1), timedelta(days=1))]
+    many = [status.ago(NOW - d, de, NOW) for d in (timedelta(minutes=5), timedelta(hours=3), timedelta(days=5))]
+    assert one == ["vor 1 Minute", "vor 1 Stunde", "vor einem Tag"]
+    assert many == ["vor 5 Minuten", "vor 3 Stunden", "vor 5 Tagen"]
+    from datetime import UTC, datetime
+
+    live = {"speed": ("0", datetime.now(UTC) - timedelta(days=1, minutes=5))}
+    assert status.freshness(live, de) == "Vor einem Tag"  # on its own at the car: a capital letter
+    assert status.freshness({}, de) == ""
+    # a language file that only knows the short forms keeps them
+    short = lambda key, **kw: {"ago.hours": "{n} h"}.get(key, key).format(**kw)  # noqa: E731
+    short.has = lambda key: key == "ago.hours"  # type: ignore[attr-defined]
+    assert status.ago(NOW - timedelta(hours=3), short, NOW) == "3 h"
 
 
 def test_location_needs_a_valid_position():
@@ -80,7 +101,7 @@ def test_location_needs_a_valid_position():
 def test_location_card_parked_and_links():
     card = status.location(live(position="52.516275,13.377704", ignition="off"), T, NOW)
     assert card["title"].startswith("Your car has been parked here since ") and card["coords"] == "52.51628, 13.37770"
-    assert [c["text"] for c in card["chips"]][1] == "Last signal 5 min ago"
+    assert [c["text"] for c in card["chips"]][1] == "Last signal 5 minutes ago"
     assert card["chips"][0]["text"].startswith("Parked since ") and card["chips"][0]["tone"] == "ok"
     urls = {link["key"]: link["url"] for link in card["links"]}
     assert urls["waze"] == "https://waze.com/ul?ll=52.516275,13.377704&navigate=yes"

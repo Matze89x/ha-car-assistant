@@ -59,12 +59,11 @@
         <div class="pm-bytes">
           {% for c in d.diff.cells %}<div class="pm-byte{{ ' ch' if c.changed }}" data-old="{{ c.old }}" data-new="{{ c.new }}" tabindex="0" role="button" aria-label="{{ _('pm.byte') }} {{ c.i }}"><i>{{ '%02d' | format(c.i) }}</i><b class="n">{{ c.new or '–' }}</b><em class="was"{{ '' if c.changed else ' hidden' }}>{{ _('pm.was') }} {{ c.old or '–' }}</em><u class="dot" hidden></u></div>{% endfor %}
         </div>
-        <div class="pm-sel" data-field="{{ d.key }}" data-bit="{{ _('pm.bit') }}" data-byte="{{ _('pm.byte') }}" data-t-bits="{{ _('pm.bits_word') }}" data-t-name="{{ _('pm.group_name') }}" data-t-value="{{ _('pm.group_value') }}" data-t-drop="{{ _('pm.group_drop') }}" data-t-need="{{ _('pm.group_need') }}" data-t-range="{{ _('pm.group_range') }}" data-t-grouped="{{ _('pm.in_group') }}" hidden>
+        <div class="pm-sel" data-field="{{ d.key }}" data-bit="{{ _('pm.bit') }}" data-byte="{{ _('pm.byte') }}" data-t-name="{{ _('pm.group_name') }}" data-t-value="{{ _('pm.group_value') }}" data-t-need="{{ _('pm.group_need') }}" data-t-range="{{ _('pm.group_range') }}" hidden>
           <label class="pm-selrow"><b class="pm-bn">{{ _('pm.byte') }} 0</b><input class="pm-bi mono" type="text" inputmode="numeric" maxlength="8" autocomplete="off" spellcheck="false" aria-label="{{ d.label }}"></label>
-          <ul class="pm-bitrows"><li class="pm-bh"><span>{{ _('pm.bit') }}</span><span>{{ _('pm.col_old') }}</span><span>{{ _('pm.col_new') }}</span><span>{{ _('pm.bit_note') }}</span></li>{% for n in range(8) %}<li><span class="pm-bl">{{ _('pm.bit') }} {{ n }}</span><span class="pm-bd"><input type="checkbox" disabled class="pm-bk-o" aria-label="{{ d.old_label }}"></span><span class="pm-bd"><input type="checkbox" class="pm-bk-n" data-bit="{{ n }}" aria-label="{{ d.label }}"></span><input type="text" class="pm-bnote" data-bit="{{ n }}" maxlength="200" autocomplete="off" placeholder="{{ _('pm.bit_note_ph') }}" aria-label="{{ _('pm.bit_note') }} {{ n }}"></li>{% endfor %}</ul>
+          <ul class="pm-bitrows"><li class="pm-bh"><span>{{ _('pm.bit') }}</span><span>{{ _('pm.col_old') }}</span><span>{{ _('pm.col_new') }}</span><span>{{ _('pm.bit_note') }}</span></li>{% for n in range(8) %}<li data-bit="{{ n }}"><span class="pm-bl">{{ _('pm.bit') }} {{ n }}</span><span class="pm-bd"><input type="checkbox" disabled class="pm-bk-o" aria-label="{{ d.old_label }}"></span><span class="pm-bd"><input type="checkbox" class="pm-bk-n" data-bit="{{ n }}" aria-label="{{ d.label }}"></span><div class="pm-bnw"><input type="text" class="pm-bnote" data-bit="{{ n }}" maxlength="200" autocomplete="off" placeholder="{{ _('pm.bit_note_ph') }}" aria-label="{{ _('pm.bit_note') }} {{ n }}"><div class="pm-gx" hidden><input type="number" class="pm-gval" min="0" inputmode="numeric" aria-label="{{ _('pm.group_value') }}"><button type="button" class="ghost-btn small pm-gdrop">{{ _('pm.group_drop') }}</button></div></div></li>{% endfor %}</ul>
           <div class="pm-groups">
             <h4>{{ _('pm.groups') }}</h4>
-            <div class="pm-glist"></div>
             <div class="pm-gmake"><span class="pm-gpick">{% for n in range(8) %}<button type="button" class="pm-gchip" data-bit="{{ n }}" aria-pressed="false">{{ n }}</button>{% endfor %}</span><button type="button" class="pm-gbtn">{{ _('pm.group_make') }}</button></div>
             <p class="hint pm-gerr" hidden></p>
           </div>
@@ -97,8 +96,12 @@
           </div>
           <button class="ghost-btn small warn ib" formaction="{{ base }}{{ base_url }}/{{ r.id }}/delete" formnovalidate data-confirm="{{ _('confirm.delete') }}">{{ icon('delete-outline', 16) }}<span class="sr">{{ _('btn.delete') }}</span></button>
         </details>
-        <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
-          {% if has_compare %}<button class="ghost-btn small" name="same_as_old" value="1" formnovalidate>{{ icon('swap', 16) }}<span>{{ _('pm.same_as_old') }}</span></button>{% endif %}</div>
+        <p class="hint pm-unsaved" hidden>{{ icon('alert-circle-outline', 14) }} {{ _('pm.unsaved') }}</p>
+        <div class="eq-acts pm-acts">
+          {% if has_compare %}<button class="ghost-btn small" name="same_as_old" value="1" formnovalidate>{{ icon('swap', 16) }}<span>{{ _('pm.same_as_old') }}</span></button>{% endif %}
+          <button type="button" class="ghost-btn small pm-reset" disabled>{{ _('pm.reset') }}</button>
+          <button class="button primary small pm-save">{{ _('btn.save') }}</button>
+        </div>
       </form>
 
     </div>
