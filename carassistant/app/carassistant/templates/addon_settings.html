@@ -45,8 +45,8 @@
 {% if car_files or dl_set %}
 <section class="card addon-token"{{ tabfor() }}>
   <h2>{{ icon('download', 20) }} {{ _('addon.files_car') }}</h2>
-  {% if car_files %}<p class="hint">{{ icon('info', 14) }} {{ _('addon.files_car_hint') }}</p>{{ file_rows(car_files) }}
-  {% if car_files|selectattr('guide_only')|list %}<p class="hint">{{ icon('info', 14) }} {{ _('addon.files_token') }}</p><div class="actions"><a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ addon.m.setup.title or _('addon.guide') if addon.m.setup else _('addon.guide') }}</span></a></div>{% endif %}{% endif %}
+  {% if car_files %}<p class="hint">{{ icon('info', 14) }} {{ _('addon.files_car_hint_token' if car_files|selectattr('guide_only')|list else 'addon.files_car_hint') }}</p>{{ file_rows(car_files) }}
+  {% if car_files|selectattr('guide_only')|list %}<div class="actions"><a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ addon.m.setup.title or _('addon.guide') if addon.m.setup else _('addon.guide') }}</span></a></div>{% endif %}{% endif %}
   {% if dl_set %}<div class="actions fit">{% for d in dl_set %}<a class="button" href="{{ base }}{{ d.path }}" download title="{{ d.note or d.label }}">{{ icon('download', 18) }}<span>{{ d.label }}</span></a>{% endfor %}</div>{% endif %}
 </section>
 {% endif %}
