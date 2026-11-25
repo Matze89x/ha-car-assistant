@@ -4,6 +4,14 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.34 Beta
+- **Settings → Car in the new look** - *Photo and video* (for the dashboard, as the car's photo, video background) and *Back up and manage* (back up, archive, delete) are sub-windows with a header band, one explanation on top and the button bottom right; *Home Assistant entities* has a shorter heading.
+- **Dashboard range** - what the range is based on and when the car last said so stand in ONE row (*about 14.0 L left · as reported by the car* on the left, *last: 24.11 14:26* on the right); on a very narrow phone the second part drops below.
+- **One explanation per window** - at the top of a window there is ONE sentence with the info symbol. *Account & sign-in* (the strict rules are part of it when they apply), *Web app for one car*, *Notifications for you* (it names the https address), *Online services* and *Backup* had two; so did installing a package (*Allow*), the package description, *Files for the car* and the token step of the set-up. A state such as *Needs an address under System* has its own line with the warning symbol. The UI check fails on a second explanation; the rule is in the design book.
+- **Blocked sign-ins** - *Nothing is blocked.* is the centred empty state with a symbol.
+- **A switch at the end of a card** (*Gentle tap on the bottom bar*) stands in the middle between its line and the card's edge (it had more air below); the UI check measures it.
+- **Screenshots** - the settings (Car, User, System) and the dashboard in the documentation show the new look.
+
 ## 0.5.33 Beta
 - **Windows with a header band** - the label of every sub-window is now a header band in the colour of the window's contour (full width, bright title, the symbol in the main colour); the design book and the UI check measure it.
 - **Odometer widget** - the look *Tile* is called *Text* now and is the standard look (*Drums* and *Counter box* stay to choose).

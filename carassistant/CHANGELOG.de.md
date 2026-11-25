@@ -4,6 +4,14 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.34 Beta
+- **Einstellungen → Auto im neuen Look** - *Foto und Video* (für die Startseite, als Foto des Autos, Video-Hintergrund) und *Sichern & verwalten* (sichern, archivieren, löschen) sind Unterfenster mit Kopfleiste, einer Erklärung oben und dem Knopf unten rechts; *Home-Assistant-Entitäten* hat eine kürzere Überschrift.
+- **Reichweite auf dem Dashboard** - worauf die Reichweite beruht und wann das Auto sich zuletzt gemeldet hat, stehen in EINER Zeile (*noch ca. 14,0 L übrig · laut Fahrzeug* links, *zuletzt: 24.11 14:26* rechts); auf einem sehr schmalen Handy rutscht der zweite Teil darunter.
+- **Eine Erklärung je Fenster** - oben in einem Fenster steht EIN Satz mit dem Info-Symbol. *Konto & Login* (die strengen Regeln gehören dazu, wenn sie gelten), *Web-App für ein Auto*, *Benachrichtigungen für dich* (er nennt die https-Adresse), *Online-Dienste* und *Sicherung* hatten zwei; ebenso das Installieren eines Pakets (*Erlauben*), die Paket-Beschreibung, *Dateien fürs Auto* und der Token-Schritt der Einrichtung. Ein Zustand wie *Braucht eine Adresse unter System* hat eine eigene Zeile mit dem Warn-Symbol. Die UI-Prüfung schlägt bei einer zweiten Erklärung an; die Regel steht im Design-Buch.
+- **Gesperrte Anmeldungen** - *Nichts ist gesperrt.* ist der zentrierte leere Zustand mit Symbol.
+- **Ein Schalter am Ende einer Karte** (*Sanfter Tipp bei der unteren Leiste*) steht in der Mitte zwischen seiner Linie und dem Rand der Karte (unten war mehr Luft); die UI-Prüfung misst es.
+- **Screenshots** - die Einstellungen (Auto, Benutzer, System) und das Dashboard in der Dokumentation zeigen den neuen Look.
+
 ## 0.5.33 Beta
 - **Fenster mit Kopfleiste** - die Beschriftung jedes Unterfensters ist jetzt eine Kopfleiste in der Farbe der Fensterkontur (volle Breite, helle Schrift, das Symbol in der Hauptfarbe); Design-Buch und UI-Prüfung messen sie.
 - **Kilometerstand-Widget** - die Darstellung *Kachel* heißt jetzt *Text* und ist die Voreinstellung (*Walzen* und *Zählwerk* bleiben zur Wahl).
