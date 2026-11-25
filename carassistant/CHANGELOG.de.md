@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.30 Beta
+- **Benachrichtigungen** - auf einer Seite, die nicht über deine https-Adresse geöffnet ist (zum Beispiel die Home-Assistant-App zuhause, die ihre http-Adresse nimmt), sagt die Karte jetzt, wo die Seite gerade geöffnet ist, und bietet deine gespeicherte https-Adresse als Link an; sie liest sich nicht mehr, als wäre keine https-Adresse gespeichert. Auf so einer Seite sind der Schalter und der Testknopf jetzt wirklich ausgeblendet (sie blieben sichtbar, obwohl der Schalter nicht funktionieren konnte).
+
 ## 0.5.29 Beta
 - **Plugins können mehr** - eine Einstellung kann von mehreren anderen ein- oder ausgeblendet werden (`show_if` mit `not`, `in`, `not_in`, `has`, zusammengesetzt mit `any` / `all`); eine Spalte einer Liste kann eine Zahl, ein Datum oder eine Auswahl sein, und ein Dienst bekommt Zahlen als Zahlen; ein Wert kann eine gespeicherte Zeit in der Zone des Systems zeigen und vor bekannte Texte einen grünen, gelben oder roten Punkt setzen. Pakete, die nichts davon nutzen, bleiben unverändert.
 - **Plugins mit Dienst** - solange du den Dienst nicht freigegeben hast, werden die Knöpfe, die ihn aufrufen, die Seiten, die er liefert, und seine Downloads nicht angeboten (die Einrichtung und *Prüfen und freigeben* bleiben).

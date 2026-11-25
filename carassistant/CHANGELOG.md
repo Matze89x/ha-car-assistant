@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.30 Beta
+- **Notifications** - on a page that is not open through your https address (for example the Home Assistant app at home, which uses its http address) the card now says where the page is open right now and offers your saved https address as a link; it no longer reads as if no https address was saved. On such a page the switch and the test button are really hidden now (they stayed visible, although the switch could not work).
+
 ## 0.5.29 Beta
 - **Plugins can do more** - a setting can be shown or hidden by several others (`show_if` with `not`, `in`, `not_in`, `has`, put together with `any` / `all`); a column of a list can be a number, a date or a choice, and a service gets the numbers as numbers; a value can show a stored time in the system's zone and put a green, amber or red dot in front of known texts. Packages that use none of it are unchanged.
 - **Plugins with a service** - until you have approved the service, the buttons that call it, the pages it serves and its downloads are not offered (the set-up and *Review and approve* stay).
