@@ -35,12 +35,12 @@
     {% if ext_set or not acct_external %}
     <div class="sub-card" id="passkeys">
       {{ sub_h('key-variant', _('account.passkeys')) }}
+      {% if not acct_external %}<p class="hint ar-hint">{{ icon('info', 14) }} {{ _('account.passkey_ingress') }}</p>{% endif %}
         {% if acct_passkeys %}<div class="ar-line ar-pk"><span class="ar-v">{% for p in acct_passkeys %}<span class="chip-pk">{{ icon('key-variant', 14) }} <span class="pk-l" title="{{ p.label }}">{{ p.label }}</span>
             <form method="post" action="{{ base }}/account/passkey/{{ p.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% endfor %}</span>
         </div>
         {% else %}<div class="empty-state">{{ icon('key-variant', 20) }}<p>{{ _('account.passkeys_none') }}</p></div>{% endif %}
-      {% if acct_external %}<p class="acct-msg" id="pk-msg" hidden></p>{% else %}<p class="hint ar-hint">{{ icon('info', 14) }} {{ _('account.passkey_ingress') }}</p>{% endif %}
-      {% if acct_external %}<div class="form-bar"><div id="pk-add-box" class="ar-edit" data-base="{{ base }}" data-unsupported="{{ _('acct.passkey_unsupported') }}" data-cancelled="{{ _('acct.passkey_cancelled') }}" data-exists="{{ _('acct.passkey_exists') }}">
+      {% if acct_external %}<p class="acct-msg" id="pk-msg" hidden></p><div class="form-bar"><div id="pk-add-box" class="ar-edit" data-base="{{ base }}" data-unsupported="{{ _('acct.passkey_unsupported') }}" data-cancelled="{{ _('acct.passkey_cancelled') }}" data-exists="{{ _('acct.passkey_exists') }}">
             <button type="button" id="pk-add" class="small" aria-label="{{ _('account.passkey_add') }}">{{ icon('plus', 16) }}<span>{{ _('btn.create') }}</span></button></div></div>{% endif %}
     </div>
     {% endif %}
