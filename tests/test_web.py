@@ -514,7 +514,7 @@ def test_vehicle_can_be_deleted_from_its_edit_page_not_from_a_tiny_icon(client):
     cards = client.get("/vehicles").text
     assert f'action="/v/{slug(vid)}/delete"' in cards and 'class="round-del"' in cards  # the manage list (Weiteres -> Vehicles)
     edit = client.get(f"/settings/car?car={slug(vid)}").text
-    assert f'action="/v/{slug(vid)}/delete"' in edit and 'class="ghost-btn small warn"' in edit
+    assert f'action="/v/{slug(vid)}/delete"' in edit and 'class="small danger"' in edit
     assert client.post(f"/v/{slug(vid)}/delete", follow_redirects=False).status_code == 303
     assert f"/v/{slug(vid)}" not in client.get("/vehicles").text
 
