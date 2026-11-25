@@ -1129,3 +1129,27 @@ document.addEventListener("click", function (e) {
   });
   window.addEventListener("resize", function () { Array.prototype.forEach.call(bars, edges); });
 })();
+
+// A long title in a tile (an appointment, a task, a station) at half width: the type gets a little smaller - down to 15px - until its longest word fits,
+// so that no word is torn apart ("Verbandskas-ten"). Only when even that is not enough does it break at a syllable (the CSS does that).
+(function () {
+  var MIN = 15, timer = 0;
+  function noBreaks(el, on) {
+    ["hyphens", "-webkit-hyphens"].forEach(function (name) { if (on) { el.style.setProperty(name, "none"); } else { el.style.removeProperty(name); } });
+    if (on) { el.style.setProperty("overflow-wrap", "normal"); } else { el.style.removeProperty("overflow-wrap"); }
+  }
+  function fit(el) {
+    el.style.removeProperty("font-size");
+    var size = parseFloat(window.getComputedStyle(el).fontSize);
+    if (!size || !el.clientWidth) { return; }
+    noBreaks(el, true);
+    while (el.scrollWidth > el.clientWidth + 0.5 && size > MIN) { size -= 1; el.style.fontSize = size + "px"; }
+    noBreaks(el, false);
+  }
+  function run() { Array.prototype.forEach.call(document.querySelectorAll(".wd-v:not(.wd-fixed)"), fit); }
+  function later() { window.clearTimeout(timer); timer = window.setTimeout(run, 120); }
+  if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", run); } else { run(); }
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(run); }
+  window.addEventListener("resize", later);
+  window.addEventListener("orientationchange", later);
+})();

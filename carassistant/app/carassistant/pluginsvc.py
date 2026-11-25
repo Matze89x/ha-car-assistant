@@ -156,6 +156,9 @@ def _unlock(path: Path) -> None:
             os.chmod(p, 0o755 if p.is_dir() else 0o644)
 
 
+_files_view_lock = threading.Lock()
+
+
 def ensure_files_view(addon: dict) -> Path | None:
     """For a service with ``"files": "read"``: the approved files of the package, read-only and under their names, in ``files_view_dir``. Every file is
     checked against its checksum and size when it is copied. None when the service does not ask for it, the package has no files, or one of them
@@ -164,27 +167,28 @@ def ensure_files_view(addon: dict) -> Path | None:
     if (service_of(addon) or {}).get("files") != "read" or not files or not addon.get("pkg_sha"):
         return None
     dest = files_view_dir(addon["addon_id"], addon["pkg_sha"])
-    if dest.is_dir() and all((dest / f["name"]).is_file() and (dest / f["name"]).stat().st_size == f["size"] for f in files):
-        return dest
-    src, tmp = asset_dir(addon["addon_id"], addon["pkg_sha"]), dest.with_name(dest.name + ".tmp")
-    _unlock(tmp)
-    shutil.rmtree(tmp, ignore_errors=True)
-    try:
-        tmp.mkdir(parents=True)
-        for f in files:
-            data = (src / f["name"]).read_bytes()
-            if len(data) != f["size"] or hashlib.sha256(data).hexdigest() != f["sha256"]:
-                raise ValueError("checksum")
-            (tmp / f["name"]).write_bytes(data)
-            os.chmod(tmp / f["name"], 0o444)  # read-only, never executable
-        os.chmod(tmp, 0o555)  # noqa: S103 - read and enter, nobody writes
-        _unlock(dest)
-        shutil.rmtree(dest, ignore_errors=True)
-        tmp.replace(dest)
-    except (OSError, ValueError):
+    with _files_view_lock:  # two cars with the same package may start at the same moment
+        if dest.is_dir() and all((dest / f["name"]).is_file() and (dest / f["name"]).stat().st_size == f["size"] for f in files):
+            return dest
+        src, tmp = asset_dir(addon["addon_id"], addon["pkg_sha"]), dest.with_name(dest.name + ".tmp")
         _unlock(tmp)
         shutil.rmtree(tmp, ignore_errors=True)
-        return None
+        try:
+            tmp.mkdir(parents=True)
+            for f in files:
+                data = (src / f["name"]).read_bytes()
+                if len(data) != f["size"] or hashlib.sha256(data).hexdigest() != f["sha256"]:
+                    raise ValueError("checksum")
+                (tmp / f["name"]).write_bytes(data)
+                os.chmod(tmp / f["name"], 0o444)  # read-only, never executable
+            os.chmod(tmp, 0o555)  # noqa: S103 - read and enter, nobody writes
+            _unlock(dest)
+            shutil.rmtree(dest, ignore_errors=True)
+            tmp.replace(dest)
+        except (OSError, ValueError):
+            _unlock(tmp)
+            shutil.rmtree(tmp, ignore_errors=True)
+            return None
     return dest
 
 

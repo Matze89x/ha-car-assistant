@@ -15,4 +15,5 @@
 - ✅ Every page follows the design book, measured in a real browser: alignment with the *More* list, section labels, buttons (one line, one height, one main action), tap areas, names and labels; temperatures follow the unit system (°C / °F)
 - ✅ Pages of the car in the original's style: vehicle passport with equipment, trips with km counters and trip cards, fuel with stations, tyres, extra work, modifications, manual (import / search / EPUB export), logs per plugin, plans for reminders (additive plan), Coding as collapsible rows
 - ✅ Charging points near the car for electric cars (OpenStreetMap, Open Charge Map with your own key, your own JSON files - [Charging point providers](charge-providers.md)); the cost of slow charging at home from your price per kWh
+- ✅ Plugins with a service can read the files of their package, read-only (`CA_FILES_DIR`), a file can be hidden from the downloads, and a package installed without a source can be linked to a source that offers its version ([Plugins](plugins.md), [Sources](sources.md))
 - Next: more integrations for car brands; a country pack for the charging point registers; live availability per country
