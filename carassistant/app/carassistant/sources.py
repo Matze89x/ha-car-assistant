@@ -410,9 +410,14 @@ def available(conn: sqlite3.Connection, kind: str, vehicle_id: int) -> list[sqli
     A package waiting for its files after a restore (``missing``) does not count as installed."""
     return conn.execute(
         "SELECT q.*, (q.origin IS NOT NULL) AS installed FROM ("
-        "SELECT p.*, s.name AS source_name, (SELECT CASE WHEN a.source_id IS NULL THEN 'none' WHEN a.source_id = p.source_id THEN 'here' ELSE 'other' END "
-        "FROM vehicle_addons a WHERE a.vehicle_id = ?2 AND a.addon_id = p.pkg_id AND a.kind = p.kind AND a.status != 'missing' "
-        "ORDER BY (a.source_id = p.source_id) DESC, a.id LIMIT 1) AS origin "
+        # three plain EXISTS tests (older SQLite versions cannot refer to the outer row inside an ORDER BY): from here, from no source, from another one
+        "SELECT p.*, s.name AS source_name, CASE "
+        "WHEN EXISTS (SELECT 1 FROM vehicle_addons a WHERE a.vehicle_id = ?2 AND a.addon_id = p.pkg_id AND a.kind = p.kind AND a.status != 'missing' "
+        "AND a.source_id = p.source_id) THEN 'here' "
+        "WHEN EXISTS (SELECT 1 FROM vehicle_addons a WHERE a.vehicle_id = ?2 AND a.addon_id = p.pkg_id AND a.kind = p.kind AND a.status != 'missing' "
+        "AND a.source_id IS NULL) THEN 'none' "
+        "WHEN EXISTS (SELECT 1 FROM vehicle_addons a WHERE a.vehicle_id = ?2 AND a.addon_id = p.pkg_id AND a.kind = p.kind AND a.status != 'missing') "
+        "THEN 'other' END AS origin "
         "FROM source_packages p JOIN sources s ON s.id = p.source_id "
         "WHERE p.kind = ?1 AND (CASE p.kind WHEN 'plugin' THEN s.for_plugin ELSE s.for_integration END) = 1 "
         "AND NOT (s.url = ?3 AND p.kind = 'plugin' AND p.pkg_id = ?4)"  # the demo plugin only belongs to the demo cars: never offered to pick
