@@ -1378,7 +1378,6 @@ details.add-card-top > summary, details.add-card-top:not([open]) { display: none
 /* the picture fills its whole tile, no bars above and below */
 
 /* page modules: a hex value compared byte by byte with its original, differences marked */
-.pm-code-h small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .pm-byte { font-size: 12px; }
 .pm-byte .o { color: var(--muted); }
 .pm-byte.ch .n { color: var(--soon); font-weight: 700; }
@@ -2357,7 +2356,6 @@ form.set-form > .form-bar { display: flex; justify-content: space-between; align
    every bit with a note, bits that belong together as a group. Looser than before. */
 .pm-code { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 14px 0 6px; }
 .pm-code > * { min-width: 0; }
-.pm-code-h { font-size: 15px; font-weight: 600; }
 .pm-tag { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 .pm-oldline { overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; padding: 12px 14px; border-radius: var(--r-s); border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .03); scrollbar-width: thin; }
 .pm-oldline code { white-space: nowrap; font-size: 14px; letter-spacing: .04em; color: var(--muted); }

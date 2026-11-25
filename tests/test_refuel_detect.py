@@ -125,3 +125,25 @@ def test_completed_sessions_give_cost_price_loss_and_a_summary(client):
         assert total["n"] == 2 and total["fast"] == 1 and total["slow"] == 1 and total["cost"] == 12 and total["avg_kw"] == 65.5
     page = client.get(f"/v/{vid}/e/fuel").text
     assert "Charging loss" in page or "Ladeverlust" in page
+
+
+def test_the_length_of_a_charging_session_is_written_in_the_language_of_the_page(client):
+    """The sessions list had a German "Min." built into the template: an English page said "40 Min."."""
+    from datetime import timedelta
+
+    vid = create_vehicle(client, "Words")
+    with db.tx() as conn:
+        conn.execute("UPDATE vehicles SET fuel_type = 'electric', battery_kwh = 60 WHERE id = ?", (vid,))
+        connectors._store(conn, vid, "battery_pct", "30")
+        connectors._store(conn, vid, "charging", "yes")
+        connectors._store(conn, vid, "battery_pct", "80")
+        conn.execute(
+            "UPDATE charge_sessions SET started = ? WHERE ended IS NULL",
+            ((datetime.now(UTC) - timedelta(minutes=40)).isoformat(timespec="seconds"),),
+        )
+        connectors._store(conn, vid, "charging", "no")
+    client.post("/settings/language", data={"language": "en"})
+    page = client.get(f"/v/{vid}/e/fuel").text
+    assert " minutes)" in page and "Min.)" not in page
+    client.post("/settings/language", data={"language": "de"})
+    assert " Min.)" in client.get(f"/v/{vid}/e/fuel").text
