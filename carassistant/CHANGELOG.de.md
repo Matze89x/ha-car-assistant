@@ -4,6 +4,9 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.32 Beta
+- **Kacheln auf dem Dashboard** - ein kurzer fester Status wie „Alles in Ordnung" in den Kacheln *Sicherheit* und *Service* bricht am Handy jetzt an der Lücke um und wird nicht mehr mitten im Wort getrennt („Ord-/nung"); lange Titel (ein Termin, eine Aufgabe) behalten die Silbentrennung.
+
 ## 0.5.31 Beta
 - **Fenster sehen überall gleich aus** - eine Karte mit mehreren Bereichen besteht aus gerahmten Unterfenstern mit einem Symbol in der Hauptfarbe vor jeder Überschrift und festen Abständen; jede Linie eines Fensters läuft von Rand zu Rand und berührt nie ein Feld; jedes Fenster der Einstellungen beginnt mit einer kurzen Erklärung (Info-Symbol, ein Satz), und die Knöpfe, die speichern, stehen unten rechts.
 - **Einstellungen → Benutzer** - Zugangsdaten, Passkeys, Passcode und Benutzer in Unterfenstern; *Verwalten*, *Benutzer hinzufügen* und der Passcode öffnen als Popup statt in der Zeile aufzuklappen; „Noch nichts da" ist ein kompakter, mittiger Zustand mit *Anlegen*-Knopf; *Startseite bestimmen* und *Aussehen & Bedienung* sind eigene Fenster; die Web-App-Links sind flache Zeilen.

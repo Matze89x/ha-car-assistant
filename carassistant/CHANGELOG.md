@@ -4,6 +4,9 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.32 Beta
+- **Dashboard tiles** - a short fixed status such as "All good" in the tiles *Security* and *Service* now wraps at the gap and no longer splits inside a word ("Ord-/nung") on a phone; long titles (an appointment, a task) keep the syllable breaks.
+
 ## 0.5.31 Beta
 - **Windows look the same everywhere** - a card with several areas is made of framed sub-windows with a symbol in the main colour in front of each label and fixed spacing; every line of a window runs from one edge to the other and never touches a field; every window of the settings begins with a short explanation (info symbol, one sentence) and the buttons that save stand bottom right.
 - **Settings → User** - sign-in details, passkeys, passcode and users in sub-windows; *Manage*, *Add user* and the passcode open in a popup instead of unfolding in the row; "nothing here yet" is a compact centred state with a *Create* button; *Start page* and *Look & feel* are windows of their own; the web-app links are flat rows.
