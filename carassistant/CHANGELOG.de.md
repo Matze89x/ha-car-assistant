@@ -4,6 +4,15 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.33 Beta
+- **Fenster mit Kopfleiste** - die Beschriftung jedes Unterfensters ist jetzt eine Kopfleiste in der Farbe der Fensterkontur (volle Breite, helle Schrift, das Symbol in der Hauptfarbe); Design-Buch und UI-Prüfung messen sie.
+- **Kilometerstand-Widget** - die Darstellung *Kachel* heißt jetzt *Text* und ist die Voreinstellung (*Walzen* und *Zählwerk* bleiben zur Wahl).
+- **Plugin-Listen: Auswahlzellen und alte Werte** - für Plugin-Autoren: `value_options` macht die Zelle `value` einer `list`-Zeile zu einer Auswahl (die gespeicherte Zeile bleibt `name | value`, der Dienst bekommt den Wert weiter als Text; eine ältere App zeigt ein Textfeld). Eine gespeicherte Zelle, die nicht mehr zu ihrer Spalte passt (ein alter Text in einer Datums-, Zahlen- oder Auswahlspalte), wird als *alter Wert* gezeigt und bleibt gespeichert - sie wird nie geleert oder beim nächsten Speichern verworfen. Ein neuer Eintrag, der nicht passt, wird weiter abgelehnt. Siehe `docs/plugins.de.md`.
+- **MCP: die Seiten von Integrationen** - neue Werkzeuge `list_pages`, `list_page_entries`, `add_page_entry`, `update_page_entry` und `delete_page_entry`. Claude kann die Seite *Coding* lesen und - mit Schreibzugriff - die Notizen einzelner Bits ausfüllen und Bits gruppieren. Zugangscodes werden nie gezeigt oder angenommen, und das Original einer Codierung bleibt, sobald es geschrieben ist. Siehe `docs/mcp.de.md`.
+- **Einrichten** - dasselbe Wort auf dem Knopf der Plugin-Kachel, auf ihrer Einstellungskarte und in der Überschrift der Einrichtung (ein Plugin kann es weiter selbst benennen).
+- **Klarere Texte** - die Regel für wenig Tank / Batterie fragt *Wann melden?* (nach Füllstand oder Reichweite), der Google-Hinweis und die Grenze der Quellen sind besser formuliert, und jeder Menüpfad nutzt denselben Pfeil (→).
+- **Behoben** - eine Änderung eines Eintrags über die Plugin-API schaltet einen gespeicherten Schalter nicht mehr wieder ein (eine gespeicherte 0 zählte als angehakt).
+
 ## 0.5.32 Beta
 - **Kacheln auf dem Dashboard** - ein kurzer fester Status wie „Alles in Ordnung" in den Kacheln *Sicherheit* und *Service* bricht am Handy jetzt an der Lücke um und wird nicht mehr mitten im Wort getrennt („Ord-/nung"); lange Titel (ein Termin, eine Aufgabe) behalten die Silbentrennung.
 

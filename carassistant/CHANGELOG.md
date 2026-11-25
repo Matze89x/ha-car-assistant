@@ -4,6 +4,15 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.33 Beta
+- **Windows with a header band** - the label of every sub-window is now a header band in the colour of the window's contour (full width, bright title, the symbol in the main colour); the design book and the UI check measure it.
+- **Odometer widget** - the look *Tile* is called *Text* now and is the standard look (*Drums* and *Counter box* stay to choose).
+- **Plugin lists: choice cells and old values** - for plugin authors: `value_options` makes the value cell of a `list` row a choice (the stored row stays `name | value`, the service still gets the value as text; an older app shows a text field). A stored cell that does not fit its column any more (an old text in a date, number or choice column) is shown as *old value* and stays stored - it is never emptied or dropped on the next save. A new entry that does not fit is still refused. See `docs/plugins.md`.
+- **MCP: the pages of integrations** - new tools `list_pages`, `list_page_entries`, `add_page_entry`, `update_page_entry` and `delete_page_entry`. Claude can read the *Coding* page and - with write access - fill in the notes of single bits and group bits. Access codes are never shown or accepted, and the original of a coding stays once it is written. See `docs/mcp.md`.
+- **Set up** - the same word on the button of a plugin's tile, on its settings card and in the heading of the set-up guide (a plugin may still name it itself).
+- **Clearer texts** - the low tank / battery rule asks *When to tell me* (by level or by range), the Google search hint and the limit of sources are worded better, and every menu path uses the same arrow (→).
+- **Fix** - a change of an entry through the Plugin API no longer switches a stored switch on again (a stored 0 counted as ticked).
+
 ## 0.5.32 Beta
 - **Dashboard tiles** - a short fixed status such as "All good" in the tiles *Security* and *Service* now wraps at the gap and no longer splits inside a word ("Ord-/nung") on a phone; long titles (an appointment, a task) keep the syllable breaks.
 
