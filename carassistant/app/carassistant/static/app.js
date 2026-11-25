@@ -496,7 +496,7 @@ document.addEventListener("click", function (event) {
         if (j > 0) { w.removeAttribute("data-g"); return; }
         span(lab, row, cnt); span(w, row, cnt);
         lab.textContent = cnt > 1 ? bitLabel(sel, bl.bits) : sel.getAttribute("data-bit") + " " + k;
-        if (!note.hasAttribute("data-ph")) { note.setAttribute("data-ph", note.placeholder); }
+        if (!note.hasAttribute("data-ph")) { note.setAttribute("data-ph", note.placeholder); note.setAttribute("data-al", note.getAttribute("aria-label") || ""); }
         if (bl.g) {  // a group: ONE note (its name), its value as a number, dissolve
           w.setAttribute("data-g", String(bl.gi)); gx.hidden = false;
           if (document.activeElement !== note) { note.value = bl.g.l || ""; }
@@ -507,7 +507,7 @@ document.addEventListener("click", function (event) {
         } else {
           w.removeAttribute("data-g"); gx.hidden = true;
           if (document.activeElement !== note) { note.value = nt[idx + "." + k] || ""; }
-          note.placeholder = note.getAttribute("data-ph");
+          note.placeholder = note.getAttribute("data-ph"); note.setAttribute("aria-label", note.getAttribute("data-al"));  // a bit's own note again (it had been the name of a group)
         }
       });
       bl.bits.forEach(function (k) { var li = lis[String(k)]; li.querySelector(".pm-bl").classList.toggle("ch", anyCh); li.classList.toggle("lb", bi === all.length - 1); });

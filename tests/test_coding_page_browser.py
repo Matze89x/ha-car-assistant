@@ -222,3 +222,26 @@ def test_new_equals_factory_changes_the_field_and_saves_nothing(coding):
     time.sleep(0.4)
     back = json.loads(b.run(state))
     assert back["changed"] == 1 and not back["unsaved"] and back["field"] == NEW.replace(" ", ""), back  # Reset: as it was loaded
+
+
+def test_a_dissolved_group_gives_the_first_bit_its_own_note_again(coding):
+    import json
+
+    b, page = coding
+    b.open(page, 390, 900, 1, settle=0.8)
+    b.wait_for("document.querySelector('.pm-unit .pm-byte')", seconds=15)
+    b.run("document.querySelector('.pm-unit').open = true")
+    time.sleep(0.5)
+    got = json.loads(
+        b.run(
+            """JSON.stringify((function () {
+      var u = document.querySelector('.pm-unit'), drop = u.querySelector('li[data-bit="1"] .pm-gdrop'), q = function (x) { return u.querySelector(x); };
+      var before = q('li[data-bit="1"] .pm-bnote').getAttribute('aria-label');
+      drop.click();
+      return { before: before, after: q('li[data-bit="1"] .pm-bnote').getAttribute('aria-label'), label: q('li[data-bit="1"] .pm-bl').textContent,
+               second: q('li[data-bit="2"] .pm-bl').hidden, placeholder: q('li[data-bit="1"] .pm-bnote').placeholder };
+    })())"""
+        )
+    )
+    assert got["before"] != got["after"] and got["after"].endswith("1"), got  # "Note 1" again, not "Name of the group"
+    assert got["label"] == "Bit 1" and not got["second"], got  # two rows again
