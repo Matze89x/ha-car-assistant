@@ -416,6 +416,7 @@ a.wd:active { background: rgba(var(--fg-rgb),.1); }
 .wd-t { flex: 1; min-width: 0; font: 600 11px 'Space Grotesk', system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
 .wd-b { display: flex; flex-direction: column; min-width: 0; }
 .wd-v { font: 700 21px/1.2 'Space Grotesk', system-ui, sans-serif; letter-spacing: -.01em; overflow-wrap: anywhere; hyphens: auto; }  /* a long word breaks at a syllable first (lang is set), anywhere only as the last resort */
+.wd-v.wd-fixed { overflow-wrap: normal; hyphens: manual; text-wrap: balance; }  /* a fixed short status ("All good") never breaks inside a word: it wraps at the gap only ("Alles in / Ordnung"); only a long title keeps the syllable breaks */
 .wd-v small { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
 .wd-s { color: var(--muted); }
 .wd.st-soon .wd-v { color: var(--soon); }

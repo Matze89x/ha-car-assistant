@@ -1,7 +1,7 @@
 {% from "_macros.html" import widget with context %}
 {% if has_tasks or recent_service %}
 {% call widget('wrench', 'c4', _('nav.service'), '/e/service', w.size, 'st-ok' if not s.attention else ('st-warn' if s.overdue else 'st-soon')) %}
-  <div class="wd-v">{% if s.attention %}{{ s.attention[0].title }}{% else %}{{ _('dash.all_ok') }}{% endif %}</div>
+  <div class="wd-v{{ '' if s.attention else ' wd-fixed' }}">{% if s.attention %}{{ s.attention[0].title }}{% else %}{{ _('dash.all_ok') }}{% endif %}</div>
   {% if recent_service and not odo_next %}<div class="wd-s">{{ _('wd.last') }} {{ fdate(recent_service[0].date) }}</div>{% endif %}
   {% if odo_next %}<div class="wd-s">{% if odo_next.km_left < 0 %}{{ _('odo.next_over', n=fnum(units.d(-odo_next.km_left)), u=units.dist_unit) }}{% else %}{{ _('odo.next', n=fnum(units.d(odo_next.km_left)), u=units.dist_unit) }}{% endif %}</div>{% endif %}
   {% if odo_next %}<div class="wd-bar {{ 'over' if odo_next.km_left < 0 else ('soon' if odo_next.pct >= 85 else '') }}" role="img" aria-label="{{ odo_next.title }}"><i style="width: {{ odo_next.pct }}%"></i></div>{% endif %}

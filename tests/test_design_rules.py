@@ -394,6 +394,20 @@ def test_every_explanation_begins_with_the_info_symbol():
             assert start.startswith("{{ icon('info', 14) }}"), f"{path.name}: an explanation without the info symbol: {start[:36]!r}"
 
 
+def test_a_fixed_status_in_a_dashboard_tile_never_breaks_inside_a_word():
+    """ "All good" is a short fixed text in a half-width tile: it wraps at the gap ("Alles in / Ordnung"), never at a syllable ("Ord-/nung"). Only a long
+    title (an appointment, a task) keeps the syllable breaks."""
+    css = (TEMPLATES.parent / "static" / "pc-core.css").read_text(encoding="utf-8")
+    rule = re.search(r"\n\.wd-v\.wd-fixed \{([^}]*)\}", css)
+    assert rule and "hyphens: manual" in rule.group(1) and "overflow-wrap: normal" in rule.group(1)
+    security = (TEMPLATES / "widgets" / "security.html").read_text(encoding="utf-8")
+    service = (TEMPLATES / "widgets" / "service.html").read_text(encoding="utf-8")
+    assert 'class="wd-v wd-fixed"' in security and "wd-fixed" in service
+    assert 'class="wd-v">{% if s.attention %}{{ s.attention[0].title }}' not in service, (
+        "a long title keeps its syllable breaks, a fixed status does not"
+    )
+
+
 def test_every_sub_window_label_has_its_symbol_in_the_main_colour():
     """The label of a sub-window always carries a symbol (docs/design.md, 4c): it comes from the ONE macro ``sub_h`` - never a hand-written ``<h3 class="sub-h">`` -
     with an icon that exists, and the symbol takes the main colour from the one rule in pc-core.css."""
