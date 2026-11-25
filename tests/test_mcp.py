@@ -348,3 +348,112 @@ def test_the_key_in_the_address_can_be_switched_off_and_is_never_in_our_own_log(
     from carassistant import __main__ as entry
 
     assert "access_log=False" in Path(entry.__file__).read_text()  # the server writes no access log: the key never shows in our own log
+
+
+CODING = {
+    "id": "coding-demo",
+    "kind": "integration",
+    "name": "Coding demo",
+    "version": "1",
+    "icon": "memory",
+    "pages": [
+        {
+            "id": "units",
+            "title": "Units",
+            "item": "Unit",
+            "fields": [
+                {"key": "addr", "label": "Address", "type": "hex", "required": True, "role": "title"},
+                {"key": "name", "label": "Name", "type": "text", "required": True, "role": "title"},
+                {"key": "old", "label": "Original", "type": "hex", "once": True},
+                {"key": "new", "label": "Now", "type": "hex", "compare": "old"},
+                {"key": "code", "label": "Access code", "type": "secret"},
+                {"key": "on", "label": "Active", "type": "bool"},
+            ],
+        }
+    ],
+}
+
+
+def test_the_pages_of_an_integration_such_as_coding_can_be_read_and_completed_with_notes_and_groups_of_bits(ing, program, monkeypatch):
+    """Full access for the client to the pages of integrations: read the entries, add, change, delete; for a coding fill the notes of the bits and group
+    bits - with the same checks as the page, no access codes in either direction, the original kept once written, a stored switch not turned on."""
+    import json
+
+    from carassistant import db
+
+    _ready(ing, monkeypatch, "write")
+    with db.tx() as conn:
+        vid = conn.execute("INSERT INTO vehicles(name, slug, fuel_type) VALUES('Test Car', 'test-car', 'petrol')").lastrowid
+    ing.post(f"/v/{vid}/integrations/upload", files={"package": ("plugin.json", json.dumps(CODING), "application/json")})
+    with db.tx() as conn:
+        pk = conn.execute("SELECT id FROM vehicle_addons WHERE addon_id = 'coding-demo'").fetchone()["id"]
+    ing.post(f"/v/{vid}/integrations/{pk}/active", data={"active": "1"})
+    key = _key(ing)
+
+    error, pages = call(program, key, "list_pages", vehicle="test-car")
+    page = pages[0]["pages"][0]
+    assert not error and pages[0]["integration"] == "coding-demo" and page["page"] == "units" and page["has_bits"] and page["entries"] == 0
+    assert {f["key"] for f in page["fields"]} == {"addr", "name", "old", "new", "code", "on"}
+    assert next(f for f in page["fields"] if f["key"] == "code")["access_code"] is True
+
+    where = {"vehicle": "test-car", "integration": "coding-demo", "page": "units"}
+    error, answer = call(
+        program,
+        key,
+        "add_page_entry",
+        **where,
+        values={"addr": "09", "name": "Unit A", "old": "0A0B0C", "new": "0A0B0D", "on": False},
+        bit_notes={"new": {"1.3": "Comfort light"}},
+        bit_groups={"new": {"2": [{"m": 12, "l": "Mode"}]}},
+    )
+    assert not error and answer["ok"]
+    rid = answer["id"]
+    error, listed = call(program, key, "list_page_entries", **where)
+    row = listed["rows"][0]
+    assert not error and listed["total"] == 1 and row["id"] == rid and "code" not in row["values"]
+    assert row["values"]["new"] == "0A0B0D" and row["values"]["on"] == "0"
+    assert row["bit_notes"] == {"new": {"1.3": "Comfort light"}} and row["bit_groups"] == {"new": {"2": [{"m": 12, "l": "Mode"}]}}
+
+    error, _ = call(
+        program,
+        key,
+        "update_page_entry",
+        **where,
+        id=rid,
+        values={"name": "Unit A renamed", "old": "FFFF"},
+        bit_notes={"new": {"0.0": "Zero", "1.3": ""}},
+    )
+    assert not error
+    row = call(program, key, "list_page_entries", **where)[1]["rows"][0]
+    assert row["values"]["name"] == "Unit A renamed" and row["values"]["old"] == "0A0B0C"  # the original stays once written
+    assert row["values"]["on"] == "0"  # a stored switch is not turned on by an unrelated change
+    assert (
+        row["bit_notes"] == {"new": {"0.0": "Zero"}} and row["bit_groups"]["new"]["2"][0]["l"] == "Mode"
+    )  # merged: one note gone, one added, groups kept
+    error, _ = call(program, key, "update_page_entry", **where, id=rid, bit_groups={"new": {"2": []}})
+    assert not error and call(program, key, "list_page_entries", **where)[1]["rows"][0]["bit_groups"] == {}
+
+    for bad, needle in (
+        ({"bit_notes": {"new": {"1.9": "x"}}}, "<byte>.<bit>"),
+        ({"bit_notes": {"nope": {"1.1": "x"}}}, "not a hex field"),
+        ({"bit_groups": {"new": {"2": [{"m": 12, "l": "a"}, {"m": 4, "l": "b"}]}}}, "overlap"),
+        ({"bit_groups": {"new": {"2": [{"m": 4, "l": "single bit"}]}}}, "at least two bits"),
+        ({"values": {"code": "1234"}}, "access code"),
+        ({"values": {"unknown": "1"}}, "Unknown field"),
+        ({"values": {"new": "ZZ"}}, "Invalid value"),
+    ):
+        error, answer = call(program, key, "update_page_entry", **where, id=rid, **bad)
+        assert error and needle in answer["error"], (bad, answer)
+    assert call(program, key, "update_page_entry", **where, id=rid)[0]  # nothing to change
+    assert call(program, key, "update_page_entry", **{**where, "page": "nope"}, id=rid, values={"name": "x"})[0]
+    assert call(program, key, "delete_page_entry", **where, id=rid + 99)[0]
+    assert call(program, key, "delete_page_entry", **where, id=rid)[1]["ok"]
+    assert call(program, key, "list_page_entries", **where)[1]["total"] == 0
+
+
+def test_a_read_key_sees_the_pages_but_not_the_tools_that_change_them(ing, program, monkeypatch):
+    _ready(ing, monkeypatch, "read")
+    key = _key(ing)
+    names = {t["name"] for t in rpc(program, key, "tools/list").json()["result"]["tools"]}
+    assert {"list_pages", "list_page_entries"} <= names
+    assert not names & {"add_page_entry", "update_page_entry", "delete_page_entry"}

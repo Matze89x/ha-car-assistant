@@ -1471,6 +1471,8 @@ details.pk-add:not([open]) { gap: 0; }
 .lf-cols > :last-child:nth-child(odd) { grid-column: 1 / -1; }  /* the extra cells (a second line, a logo address) go in pairs under the name and the value; a last one alone takes the whole line */
 .lf-del { width: 36px; height: 36px; min-height: 0; padding: 0; border-radius: var(--r-s); background: rgba(var(--fg-rgb),.07); color: var(--muted); align-self: start; }  /* on the first line of a row that has several (stacked cells), level with the handle */
 @media (max-width: 560px) { .lf-in { grid-template-columns: minmax(0, 1fr); } }
+.lf-oldnote { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--soon); }  /* a stored value that does not fit its cell any more: kept, and said so */
+.lf-old { border-color: rgba(var(--soon-rgb), .55); }
 .lf-add { justify-self: start; }
 .pk-tile.pk-add:not(.pk-grid > *) { margin-top: 6px; }
 .pk-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin: 6px 0 12px; }
@@ -2801,12 +2803,13 @@ html.is-app .page-head:not(:has(.ph-s:not([data-car]))) { min-height: var(--head
 .sub-card .hint { margin: 6px 0 0; }
 .sub-card > .hint:first-of-type { margin-top: 0; }
 .sub-card .seg-tabs a { min-height: 36px; }
-/* EXPERIMENT (only where <html data-exp="subhead"> is set - the preview; not in the app): the label of a sub-window as a header band in the colour of the window's contour, with the bright title colour of a window */
-html[data-exp~="subhead"] .sub-card { padding-top: 0; overflow: hidden; }
-html[data-exp~="subhead"] .sub-h { margin: 0 calc(-1 * var(--sp-sub-pad-x)) var(--sp-sub-label); padding: 8px var(--sp-sub-pad-x); line-height: 18px; background: var(--glass-b); color: var(--text); }  /* 18 + 2 x 8 = 34 px: a whole number, so the lower edge of the band is a sharp pixel line */
+/* The label of a sub-window is its header band: the colour of the window's contour, the bright title colour of a window, the full width of the window. 18 + 2 x 8 = 34 px
+   is a whole number, so the lower edge of the band is a sharp pixel line. The band sits in the corners of the frame (its own top radius), nothing is clipped. */
+.sub-card:has(> .sub-h:first-child) { padding-top: 0; }
+.sub-card > .sub-h:first-child { margin: 0 calc(-1 * var(--sp-sub-pad-x)) var(--sp-sub-label); padding: 8px var(--sp-sub-pad-x); line-height: 18px; background: var(--glass-b); color: var(--text); border-radius: calc(var(--r-m) - 1px) calc(var(--r-m) - 1px) 0 0; }
 @supports (text-box: trim-both cap alphabetic) {  /* where the browser can trim the text box to the capital letters, the text (a flex item next to the symbol) is centred to the pixel in a band of 34 px */
-  html[data-exp~="subhead"] .sub-h { box-sizing: border-box; min-height: 34px; padding-block: 0; }
-  html[data-exp~="subhead"] .sub-h > span { text-box: trim-both cap alphabetic; }
+  .sub-card > .sub-h:first-child { box-sizing: border-box; min-height: 34px; padding-block: 0; }
+  .sub-card > .sub-h:first-child > span { text-box: trim-both cap alphabetic; }
 }
 .card-form { display: contents; }  /* a form that saves several windows at once takes no space of its own: the cards stay in their column */
 .sub-card .mk-field, .wa-list .mk-field { margin: 0; padding: 8px 0; border: 0; border-top: 1px solid var(--glass-b); border-radius: 0; background: none; }  /* inside a window the rows are flat: a hairline between them, never another box in the box */

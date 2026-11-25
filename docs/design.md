@@ -117,8 +117,8 @@ A **card is a category** (its title is `h2`: symbol, name, a badge at the right 
 
 | Part | Class | Rule |
 |---|---|---|
-| Sub-window | `.sub-card` | framed, `--r-m` corners, the faint glass fill; **always** spaced by `--sp-sub`, padded by `--sp-sub-pad-y` / `--sp-sub-pad-x` - never a margin or padding of its own |
-| Label | `.sub-h` (an `h3`, always written with the macro `sub_h(icon, text)`) | a **symbol in the main colour** (16 px, `--accent`) in front of the name, small, upper case, dim, `--sp-sub-label` above the content; names the area in one or two words |
+| Sub-window | `.sub-card` | framed, `--r-m` corners, the faint glass fill; **always** spaced by `--sp-sub`, padded by `--sp-sub-pad-y` (below the header band: its own height) / `--sp-sub-pad-x` - never a margin or padding of its own |
+| Label = header band | `.sub-h` (an `h3`, always written with the macro `sub_h(icon, text)`) | the **header band** of the window: the full width of the window, 34 px high, at its top edge (the window has no padding on top then), in the colour of the contour (`--glass-b`) with the bright title colour; a **symbol in the main colour** (16 px, `--accent`) in front of the name, small, upper case; `--sp-sub-label` between the band and the content; names the area in one or two words. `tools/check_ui.py` measures band, width and padding |
 | Order inside | | label, one short hint (`.hint`), the content, then the buttons **bottom right** (`.form-bar`); what is only an explanation stays in the hint |
 | Several of one kind | `.seg-tabs` inside the window | one tab per car (or season, ...), the tab bar scrolls sideways when there are many; under the open tab only what that item really has |
 | Buttons in a window | `.button.small` | **only** the standard small button (36 px, `--r-s`) - no pills or private buttons. An edit button in a row (`.ar-edit > button`) has words (*Change*) while the window is wide and only the pencil while it is narrow, so a row stays on one line; a button that **adds** something keeps its words everywhere |

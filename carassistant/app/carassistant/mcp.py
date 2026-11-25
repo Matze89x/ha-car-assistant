@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import secrets
 import sqlite3
 import time
@@ -21,7 +22,7 @@ from dataclasses import asdict
 from datetime import UTC, date, datetime
 from urllib.parse import urlparse
 
-from . import STAGE, __version__, accounts, addons, config, db, entities, events, fuelstats, ha, slugs, summary, units
+from . import STAGE, __version__, accounts, addons, config, db, entities, events, fuelstats, ha, pagemods, slugs, summary, units
 
 LEVELS = ("off", "read", "write")
 SETTING = "mcp.level"
@@ -551,6 +552,222 @@ def t_delete_entry(conn, args):
     return {"ok": True, "id": row_id}
 
 
+# ------------------------------------------------------------------ pages of integrations (for example Coding)
+
+
+def _module_pages(conn, vid: int) -> list[tuple[dict, dict]]:
+    """``(module, page)`` of every page with entries that an integration of the car describes (a frame page has no entries)."""
+    out = []
+    for m in pagemods.active_modules(conn, vid):
+        mod = pagemods.module(conn, vid, m["addon_id"])
+        for page in (mod or {}).get("pages", []):
+            if page.get("kind") != "frame" and page.get("fields"):
+                out.append((mod, page))
+    return out
+
+
+def _page(conn, vid: int, args: dict) -> tuple[dict, dict]:
+    mod = pagemods.module(conn, vid, str(args.get("integration") or "").strip())
+    page = pagemods.page_of(mod, str(args.get("page") or "").strip() or None) if mod else None
+    if mod is None or page is None or page.get("kind") == "frame" or not page.get("fields"):
+        raise ToolError(
+            "Unknown or stopped integration, or a page without entries. Use the 'integration' and 'page' names from list_pages."
+        )
+    return mod, page
+
+
+def _has_bits(page: dict) -> bool:
+    return any(f["type"] == "hex" and f.get("compare") for f in page["fields"])
+
+
+def _page_row(page: dict, row: dict) -> dict:
+    """An entry as a client sees it: the values (no access codes), and for a coding its notes and groups of bits."""
+    hidden = pagemods.secret_keys(page)
+    data = row["data"]
+    out = {"id": row["id"], "values": {k: v for k, v in data.items() if not k.startswith("_") and k not in hidden}}
+    if _has_bits(page):
+        out["bit_notes"] = pagemods._bit_notes(data.get("_bits", ""))
+        out["bit_groups"] = pagemods._bit_groups(data.get("_groups", ""))
+    return out
+
+
+def t_list_pages(conn, args):
+    vid = _vehicle(conn, args.get("vehicle"))
+    out: dict[str, dict] = {}
+    for mod, page in _module_pages(conn, vid):
+        entry = out.setdefault(mod["addon_id"], {"integration": mod["addon_id"], "name": mod["name"], "pages": []})
+        fields = [
+            {
+                k: v
+                for k, v in {
+                    "key": f["key"],
+                    "label": f["label"],
+                    "type": f["type"],
+                    "required": f.get("required") or None,
+                    "once": f.get("once") or None,
+                    "compare": f.get("compare"),
+                    "options": [o["value"] for o in f.get("options", [])] or None,
+                    "access_code": True if f["type"] == "secret" else None,
+                }.items()
+                if v is not None
+            }
+            for f in page["fields"]
+        ]
+        count = conn.execute(
+            "SELECT COUNT(*) FROM module_rows WHERE vehicle_id = ? AND addon_id = ? AND page = ?", (vid, mod["addon_id"], page["id"])
+        ).fetchone()[0]
+        entry["pages"].append(
+            {"page": page["id"], "title": page.get("title") or page["id"], "entries": count, "has_bits": _has_bits(page), "fields": fields}
+        )
+    return list(out.values())
+
+
+def t_list_page_entries(conn, args):
+    vid = _vehicle(conn, args.get("vehicle"))
+    mod, page = _page(conn, vid, args)
+    limit, offset = _int(args, "limit", 25, 1, MAX_ROWS), _int(args, "offset", 0, 0, 10**7)
+    rows = pagemods.rows(conn, vid, mod["addon_id"], page["id"])
+    return {
+        "integration": mod["addon_id"],
+        "page": page["id"],
+        "total": len(rows),
+        "offset": offset,
+        "rows": [_page_row(page, r) for r in rows[offset : offset + limit]],
+    }
+
+
+def _check_values(page: dict, values) -> dict:
+    if values is None:
+        return {}
+    if not isinstance(values, dict):
+        raise ToolError("'values' must be an object with the fields to set (field key: value, see list_pages).")
+    hidden = pagemods.secret_keys(page)
+    known = {f["key"] for f in page["fields"]}
+    bad = sorted(k for k in values if k in hidden)
+    if bad:
+        raise ToolError(f"Not allowed here: {', '.join(bad)} (an access code - only the person types it in).")
+    unknown = sorted(k for k in values if k not in known)
+    if unknown:
+        raise ToolError(f"Unknown field: {', '.join(unknown)}. Fields: {', '.join(sorted(known - hidden))}.")
+    return values
+
+
+def _bit_forms(page: dict, old_data: dict | None, args: dict) -> dict[str, str]:
+    """The form texts ``bitnotes`` / ``bitgroups`` after merging the notes and groups of the call into the stored ones (notes: one note per bit, an empty text
+    deletes it; groups: the list given for a byte replaces that byte's groups, an empty list removes them)."""
+    notes_in, groups_in = args.get("bit_notes"), args.get("bit_groups")
+    if notes_in is None and groups_in is None:
+        return {}
+    if not _has_bits(page):
+        raise ToolError("This page has no coding field, so there are no bits to describe.")
+    hexes = [f["key"] for f in page["fields"] if f["type"] == "hex"]
+    old = old_data or {}
+    form: dict[str, str] = {}
+    if notes_in is not None:
+        if not isinstance(notes_in, dict):
+            raise ToolError('\'bit_notes\' must look like {"<hex field>": {"12.5": "text"}}.')
+        merged = pagemods._bit_notes(old.get("_bits", ""))
+        for field, per in notes_in.items():
+            if field not in hexes or not isinstance(per, dict):
+                raise ToolError(f"'{field}' is not a hex field of this page. One of: {', '.join(hexes)}.")
+            mine = dict(merged.get(field, {}))
+            for where, text in per.items():
+                if not re.fullmatch(r"\d{1,4}\.[0-7]", str(where)) or int(str(where).split(".")[0]) >= 1100:
+                    raise ToolError(
+                        f"Bit '{where}': write <byte>.<bit> - the byte counted from 0 along the hex value, the bit 0-7 (0 = the lowest), e.g. 12.5."
+                    )
+                text = " ".join(str(text or "").split())[:200]
+                if text:
+                    mine[str(where)] = text
+                else:
+                    mine.pop(str(where), None)
+            merged[field] = mine
+        form["bitnotes"] = json.dumps(merged)
+    if groups_in is not None:
+        if not isinstance(groups_in, dict):
+            raise ToolError('\'bit_groups\' must look like {"<hex field>": {"12": [{"m": 12, "l": "name"}]}}.')
+        merged_g = pagemods._bit_groups(old.get("_groups", ""))
+        for field, per_byte in groups_in.items():
+            if field not in hexes or not isinstance(per_byte, dict):
+                raise ToolError(f"'{field}' is not a hex field of this page. One of: {', '.join(hexes)}.")
+            mine_g = dict(merged_g.get(field, {}))
+            for byte, groups in per_byte.items():
+                if not (str(byte).isdigit() and int(byte) < 1100 and isinstance(groups, list) and len(groups) <= 8):
+                    raise ToolError(f'Byte \'{byte}\': a number counted from 0, with a list of at most 8 groups {{"m": mask, "l": name}}.')
+                used = 0
+                for g in groups:
+                    mask = g.get("m") if isinstance(g, dict) else None
+                    if not (
+                        isinstance(mask, int)
+                        and not isinstance(mask, bool)
+                        and 1 <= mask <= 255
+                        and bin(mask).count("1") >= 2
+                        and not mask & used
+                    ):
+                        raise ToolError(
+                            f"Byte {byte}: a group's mask 'm' is the bits of one byte as a number (1-255, at least two bits, e.g. bits 2 and 3 = 12); groups must not overlap."
+                        )
+                    used |= mask
+                if groups:
+                    mine_g[str(byte)] = groups
+                else:
+                    mine_g.pop(str(byte), None)
+            merged_g[field] = mine_g
+        form["bitgroups"] = json.dumps(merged_g)
+    return form
+
+
+def _parsed(page: dict, form: dict, old: dict | None, keep_once: bool = True) -> dict:
+    try:
+        return pagemods.parse(page, form, old, keep_once=keep_once)
+    except pagemods.PageError as exc:
+        raise ToolError(f"Invalid value: {' / '.join(str(a) for a in exc.args)}") from None
+
+
+def t_add_page_entry(conn, args):
+    vid = _vehicle(conn, args.get("vehicle"))
+    mod, page = _page(conn, vid, args)
+    values = _check_values(page, args.get("values"))
+    if not values:
+        raise ToolError("'values' must be an object with the fields of the entry (see list_pages).")
+    form = {**pagemods.form_from(page, None, values), **_bit_forms(page, None, args)}
+    try:
+        row_id = pagemods.add(conn, vid, mod["addon_id"], page, _parsed(page, form, None))
+    except pagemods.PageError as exc:
+        raise ToolError(f"Invalid value: {' / '.join(str(a) for a in exc.args)}") from None
+    events.changed()
+    return {"ok": True, "id": row_id}
+
+
+def t_update_page_entry(conn, args):
+    vid = _vehicle(conn, args.get("vehicle"))
+    mod, page = _page(conn, vid, args)
+    row_id = _int(args, "id", 0, 0, 10**12)
+    old = pagemods.get(conn, vid, mod["addon_id"], row_id)
+    if old is None or old["page"] != page["id"]:
+        raise ToolError("No such entry on this page.")
+    values = _check_values(page, args.get("values"))
+    bits = _bit_forms(page, old["data"], args)
+    if not values and not bits:
+        raise ToolError("Nothing to change: give 'values', 'bit_notes' or 'bit_groups'.")
+    form = {**pagemods.form_from(page, old["data"], values), **bits}
+    pagemods.update(conn, row_id, _parsed(page, form, old["data"]))
+    events.changed()
+    return {"ok": True, "id": row_id}
+
+
+def t_delete_page_entry(conn, args):
+    vid = _vehicle(conn, args.get("vehicle"))
+    mod, page = _page(conn, vid, args)
+    row_id = _int(args, "id", 0, 0, 10**12)
+    old = pagemods.get(conn, vid, mod["addon_id"], row_id)
+    if old is None or old["page"] != page["id"]:
+        raise ToolError("No such entry on this page.")
+    pagemods.delete(conn, row_id)
+    events.changed()
+    return {"ok": True, "id": row_id}
+
+
 def _schema(props: dict, required: tuple[str, ...] = ()) -> dict:
     return {"type": "object", "properties": props, "required": list(required), "additionalProperties": False}
 
@@ -560,6 +777,18 @@ _KIND = {"type": "string", "description": "The kind of record: service, appointm
 _VALUES = {
     "type": "object",
     "description": "Field values by name (dates as YYYY-MM-DD, numbers in base units: km, litres, bar). See list_entries for the field names.",
+}
+
+_INTEGRATION = {"type": "string", "description": "The integration: its id from list_pages."}
+_PAGE = {"type": "string", "description": "The page: its id from list_pages."}
+_PAGE_VALUES = {"type": "object", "description": "Field values by field key (see list_pages); hex fields as hex text, dates as YYYY-MM-DD."}
+_BIT_NOTES = {
+    "type": "object",
+    "description": 'Notes of bits: {"<hex field key>": {"<byte>.<bit>": "text"}}, byte counted from 0, bit 0-7 (0 = lowest), an empty text deletes the note.',
+}
+_BIT_GROUPS = {
+    "type": "object",
+    "description": 'Groups of bits of one byte: {"<hex field key>": {"<byte>": [{"m": 12, "l": "name"}]}}; m = the bits as a number (1-255, at least two, no overlap).',
 }
 
 TOOLS: tuple[tuple[str, str, dict, bool, object], ...] = (
@@ -632,6 +861,32 @@ TOOLS: tuple[tuple[str, str, dict, bool, object], ...] = (
         t_list_documents,
     ),
     (
+        "list_pages",
+        "The pages that integrations of a vehicle keep (for example Coding: one entry per control unit): per integration its pages with the fields "
+        "(key, label, type) and how many entries each has. Start here, then use list_page_entries.",
+        _schema({"vehicle": _VEHICLE}, ("vehicle",)),
+        False,
+        t_list_pages,
+    ),
+    (
+        "list_page_entries",
+        "The entries of one page of an integration (paged). Access codes are never shown. A coding page also gives per entry its bit_notes "
+        '({field: {"<byte>.<bit>": "note"}}) and bit_groups ({field: {"<byte>": [{"m": mask, "l": name}]}}); the byte is counted from 0 along the hex '
+        "value, the bit 0-7 with 0 the lowest, a group's mask is its bits as one number (bits 2 and 3 = 12).",
+        _schema(
+            {
+                "vehicle": _VEHICLE,
+                "integration": _INTEGRATION,
+                "page": _PAGE,
+                "limit": {"type": "integer", "description": "1-100, default 25"},
+                "offset": {"type": "integer"},
+            },
+            ("vehicle", "integration", "page"),
+        ),
+        False,
+        t_list_page_entries,
+    ),
+    (
         "get_charging",
         "Charging sessions of an electric or plug-in car: when, battery level from and to, strongest charging power.",
         _schema({"vehicle": _VEHICLE, "limit": {"type": "integer", "description": "1-100, default 25"}}, ("vehicle",)),
@@ -696,6 +951,54 @@ TOOLS: tuple[tuple[str, str, dict, bool, object], ...] = (
         t_set_tyre_pressure,
     ),
     (
+        "add_page_entry",
+        "Add an entry to a page of an integration (needs write access), for example a control unit on the Coding page. 'values' by field key; for a coding "
+        "page 'bit_notes' and 'bit_groups' describe its bits (same shape as list_page_entries gives).",
+        _schema(
+            {
+                "vehicle": _VEHICLE,
+                "integration": _INTEGRATION,
+                "page": _PAGE,
+                "values": _PAGE_VALUES,
+                "bit_notes": _BIT_NOTES,
+                "bit_groups": _BIT_GROUPS,
+            },
+            ("vehicle", "integration", "page", "values"),
+        ),
+        True,
+        t_add_page_entry,
+    ),
+    (
+        "update_page_entry",
+        "Change an entry of a page (needs write access): only the given 'values' change. The ORIGINAL value of a field that is written once is kept once it has one. "
+        "'bit_notes' adds or changes one note per bit (an empty text deletes it); 'bit_groups' replaces the groups of each byte you list (an empty list removes them). "
+        "Describe the bits of a coding this way: fill the notes bit by bit and group bits that belong together under a name.",
+        _schema(
+            {
+                "vehicle": _VEHICLE,
+                "integration": _INTEGRATION,
+                "page": _PAGE,
+                "id": {"type": "integer"},
+                "values": _PAGE_VALUES,
+                "bit_notes": _BIT_NOTES,
+                "bit_groups": _BIT_GROUPS,
+            },
+            ("vehicle", "integration", "page", "id"),
+        ),
+        True,
+        t_update_page_entry,
+    ),
+    (
+        "delete_page_entry",
+        "Delete an entry of a page of an integration (needs write access; cannot be undone).",
+        _schema(
+            {"vehicle": _VEHICLE, "integration": _INTEGRATION, "page": _PAGE, "id": {"type": "integer"}},
+            ("vehicle", "integration", "page", "id"),
+        ),
+        True,
+        t_delete_page_entry,
+    ),
+    (
         "delete_entry",
         "Delete a record (needs write access; cannot be undone).",
         _schema({"vehicle": _VEHICLE, "kind": _KIND, "id": {"type": "integer"}}, ("vehicle", "kind", "id")),
@@ -709,6 +1012,7 @@ INSTRUCTIONS = (
     "Car Assistant keeps the data of vehicles (fuel, service, appointments, parts, tyres, trips, documents). "
     "Start with list_vehicles; use the slug as 'vehicle'. To complete data call data_gaps first, ask the user for the missing values, then use "
     "update_entry / add_entry. Values are in base units (km, litres, bar). "
+    "Integrations keep pages too (for example Coding, one entry per control unit): list_pages, list_page_entries, then update_page_entry to fill in the notes and groups of bits. "
     "Write tools change real data: say what you will change and prefer small, checked steps."
 )
 

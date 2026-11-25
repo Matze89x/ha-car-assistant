@@ -106,7 +106,7 @@ def test_the_flow_goes_through_its_steps_and_a_wrong_login_stores_nothing(client
     monkeypatch.setattr(pluginsvc, "restart", lambda pk_: None)
     base = f"/v/{slug(vid)}/integrations/{pk}/guide"
     first = client.get(base).text
-    assert "Welcome" in first and "<b>account</b>" in first and "Connect the account" in first and "Set-up" not in first.split("<h2>")[0]
+    assert "Welcome" in first and "<b>account</b>" in first and "Connect the account" in first and "Set up" not in first.split("<h2>")[0]
     assert client.get(base + "?step=2").text.count('name="password"') == 1  # the second step shows the fields of the check
     asked = []
 

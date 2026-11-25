@@ -1020,12 +1020,17 @@ def render_text(text: str):
     return Markup("".join(html))  # noqa: S704  every piece went through escape() first
 
 
-def _options(f: dict) -> list[dict]:
-    return [
-        {"value": _text(o, "value", 40), "label": _text(o, "label", 60) or _text(o, "value", 40)}
-        for o in (f.get("options") if isinstance(f.get("options"), list) else [])[:MAX_OPTIONS]
-        if isinstance(o, dict) and _text(o, "value", 40) and "," not in _text(o, "value", 40)
-    ]
+def _options(f: dict, key: str = "options", l10n: bool = False) -> list[dict]:
+    """The choices of a setting (``options``), or of the value cell of a ``list`` (``value_options``, with the label per language if ``l10n``)."""
+    out = []
+    for o in (f.get(key) if isinstance(f.get(key), list) else [])[:MAX_OPTIONS]:
+        if not (isinstance(o, dict) and _text(o, "value", 40) and "," not in _text(o, "value", 40)):
+            continue
+        item = {"value": _text(o, "value", 40), "label": _text(o, "label", 60) or _text(o, "value", 40)}
+        if l10n and _l10n(o.get("l10n"), {"label": 60}):
+            item["l10n"] = _l10n(o.get("l10n"), {"label": 60})
+        out.append(item)
+    return out
 
 
 def clean_setting_fields(raw) -> list[dict]:
@@ -1087,6 +1092,8 @@ def clean_setting_fields(raw) -> list[dict]:
             columns = _list_columns(f.get("columns"))  # more cells in a row (a second line, a logo address): the row stays one line of text
             if columns:
                 field["columns"] = columns
+            if value_options := _options(f, "value_options", l10n=True):  # the value cell is a choice (the stored row stays "name | value")
+                field["value_options"] = value_options
             vmax = f.get("value_max")  # how long the value of a row may be (a stream address is long)
             if isinstance(vmax, int) and not isinstance(vmax, bool) and 1 <= vmax <= LIST_CELL_MAX:
                 field["value_max"] = vmax
@@ -1418,6 +1425,10 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
         for f in manifest["settings"]:
             if f.get("templates"):  # the ready-made rows of a list in the language of the page
                 f["templates"] = [{**t, "label": ((t.get("l10n") or {}).get(lang) or {}).get("label", t["label"])} for t in f["templates"]]
+            if f.get("value_options"):  # the choices of the value cell
+                f["value_options"] = [
+                    {**o, "label": ((o.get("l10n") or {}).get(lang) or {}).get("label", o["label"])} for o in f["value_options"]
+                ]
             if f.get("columns"):  # the names of the extra cells, too
                 f["columns"] = [{**c, "label": ((c.get("l10n") or {}).get(lang) or {}).get("label", c["label"])} for c in f["columns"]]
         if manifest.get("setup") and manifest["setup"].get("title"):
@@ -1658,10 +1669,26 @@ def _cell_fits(cell: str, column: dict) -> bool:
     return cell in {o["value"] for o in column.get("options", [])}
 
 
-def list_cells_fit(key: str, form: dict, columns: list[dict] | tuple = ()) -> bool:
-    """Do all cells of the list fit their columns? (The page offers the right input for each type; this catches a request that did not come from it.)"""
-    typed = [(j, c) for j, c in enumerate(columns) if c.get("type")]
-    return all(_cell_fits(cells[2 + j], c) for i in range(LIST_ROWS) for cells in [_form_cells(key, form, i, columns)] for j, c in typed)
+cell_fits = _cell_fits  # the page asks the same question for a cell it is about to draw
+
+
+def list_cells_fit(key: str, form: dict, columns: list[dict] | tuple = (), value_options: list[dict] | tuple = (), old: str = "") -> bool:
+    """Do all cells of the list fit their columns (and the choices of the value cell)? The page offers the right input for each type; this catches a
+    request that did not come from it. A cell that does not fit but is **stored already** (an old value) is let through: it is kept, never refused and
+    never dropped quietly - the person chooses a new one when it suits."""
+    typed = [(2 + j, c) for j, c in enumerate(columns) if c.get("type")]
+    if value_options:
+        typed.append((1, {"type": "select", "options": list(value_options)}))
+    if not typed:
+        return True
+    stored = [split_line(line, columns) for line in (old or "").splitlines()]
+    kept = {pos: {cells[pos].strip() for cells in stored} for pos, _ in typed}
+    return all(
+        _cell_fits(cells[pos], c) or cells[pos].strip() in kept[pos]
+        for i in range(LIST_ROWS)
+        for cells in [_form_cells(key, form, i, columns)]
+        for pos, c in typed
+    )
 
 
 HEX_COLOR = re.compile(r"#[0-9a-fA-F]{6}")
@@ -1699,7 +1726,11 @@ def check_settings(manifest: dict, form: dict, old: dict) -> dict[str, str]:
             errors[key] = "err.min_rows"
         if kind == "list" and _is_shown(f, manifest, form) and list_too_long(key, form, f.get("columns", ()), f.get("value_max", 200)):
             errors[key] = "err.cell_long"
-        elif kind == "list" and _is_shown(f, manifest, form) and not list_cells_fit(key, form, f.get("columns", ())):
+        elif (
+            kind == "list"
+            and _is_shown(f, manifest, form)
+            and not list_cells_fit(key, form, f.get("columns", ()), f.get("value_options", ()), old.get(key) or "")
+        ):
             errors[key] = "err.cell_type"
         if kind in NO_VALUE or kind in ("bool", "list", "value"):
             continue

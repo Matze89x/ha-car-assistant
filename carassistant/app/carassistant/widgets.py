@@ -53,8 +53,8 @@ REGISTRY: tuple[Widget, ...] = (
     Widget("service", "s", "wrench", "c4", "nav.service", "service"),
     Widget("appointments", "s", "calendar", "c6", "tab.appointments", "appointments"),
     Widget(
-        "odometer", "m", "counter", "c3", "f.odometer", on=False, options=(("design", ("drums", "tile", "plate")),)
-    ),  # the plate under the car is the odometer; the widget is an extra look
+        "odometer", "m", "counter", "c3", "f.odometer", on=False, options=(("design", ("tile", "drums", "plate")),)
+    ),  # the plate under the car is the odometer; the widget is an extra look. The first look is the standard: the plain figure ("tile", shown as *Text*)
     Widget("trips", "s", "route", "c7", "tile.last_trip", "trips"),
     Widget("fuel", "s", "fuel", "c1", "nav.fuel", "fuel"),
     Widget("fuel_avg", "s", "chart", "c5", "tile.avg", "fuel"),

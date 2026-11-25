@@ -932,10 +932,78 @@ def test_a_plugin_may_name_its_set_up_guide_and_without_a_name_nothing_changes(c
     assert "Install &amp; uninstall on the car" in client.get(f"/v/{slug(vid)}/integrations/{by_id['named-guide']}/settings").text
     assert "Install &amp; uninstall on the car" in client.get(f"/v/{slug(vid)}/integrations/{by_id['named-guide']}/guide").text
     plain = client.get(f"/v/{slug(vid)}/integrations/{by_id['plain-guide']}/settings").text
-    assert "Install &amp; uninstall" not in plain and "Set-up guide" in plain  # no name: the app's own name stays
+    assert (
+        "Install &amp; uninstall" not in plain and "Set up" in plain
+    )  # no name: the app's own name stays (the same word as the button on the tile)
 
 
 def test_a_settings_page_may_have_twelve_tabs_and_the_bar_scrolls():
     many = {**TABBED, "id": "twelve", "settings": [{"type": "tab", "id": f"t{i}", "label": f"Tab {i}"} for i in range(14)]}
     tabs = [f for f in addons.parse_package(json.dumps(many).encode())["settings"] if f["type"] == "tab"]
     assert len(tabs) == 12 == addons.MAX_TABS
+
+
+def test_a_list_value_can_be_a_choice_and_an_old_value_is_kept(client):
+    """``value_options`` makes the value cell of a row a choice (the stored row stays ``name | value | ...``); a stored cell that does not fit its
+    column any more (an old text in a date column, a value that is no choice any more) is shown as an old value and stays stored - never emptied or
+    dropped quietly on the next save - while a NEW entry that does not fit is still refused."""
+    manifest = {
+        "id": "choice-list",
+        "name": "Choice list",
+        "version": "1",
+        "kind": "plugin",
+        "settings": [
+            {
+                "key": "pairs",
+                "type": "list",
+                "label": "Pairs",
+                "value_label": "Profile",
+                "value_options": [
+                    {"value": "comfort_dynamic", "label": "Comfort / Dynamic", "l10n": {"de": {"label": "Komfort / Dynamisch"}}},
+                    {"value": "eco", "label": "Eco"},
+                    {"value": "no,comma", "label": "dropped: a comma"},
+                ],
+                "columns": [
+                    {"key": "since", "label": "Since", "type": "date"},
+                    {"key": "mode", "label": "Mode", "type": "select", "options": [{"value": "on", "label": "On"}]},
+                ],
+            }
+        ],
+    }
+    field = addons.parse_package(json.dumps(manifest).encode())["settings"][0]
+    assert [o["value"] for o in field["value_options"]] == ["comfort_dynamic", "eco"]  # a value with a comma is no usable choice
+    assert field["value_options"][0]["l10n"]["de"]["label"] == "Komfort / Dynamisch" and "l10n" not in field["value_options"][1]
+    vid = create_vehicle(client)
+    upload(client, vid, json.dumps(manifest).encode())
+    with db.tx() as conn:
+        aid = addons.list_for(conn, vid)[0]["id"]
+    url = f"/v/{slug(vid)}/integrations/{aid}"
+    page = client.get(f"{url}/settings").text
+    assert '<select name="pairs__#v"' in page and "Comfort / Dynamic" in page and "old value" not in page  # the row to add is a choice
+
+    def row() -> dict:
+        with db.tx() as conn:
+            return addons.service_settings(addons.get(conn, vid, aid))["pairs"][0]
+
+    ok = client.post(
+        f"{url}/setup",
+        data={"pairs__0n": "ADS", "pairs__0v": "eco", "pairs__0c0": "2026-01-02", "pairs__0c1": "on"},
+        follow_redirects=False,
+    )
+    assert ok.status_code in (200, 303) and row()["value"] == "eco" and row()["since"] == "2026-01-02"  # the service gets the value as text
+    new_bad = {"pairs__0n": "ADS", "pairs__0v": "turbo", "pairs__0c0": "2026-01-02", "pairs__0c1": "on"}
+    assert client.post(f"{url}/setup", data=new_bad).status_code == 400  # a new value that is no choice: refused as before
+
+    with db.tx() as conn:  # data from before: a date in the old notation, a mode that is no choice, a value that is no choice
+        conn.execute("UPDATE vehicle_addons SET settings = ? WHERE id = ?", (json.dumps({"pairs": "ADS | Off | 201701010000 | gone"}), aid))
+    page = client.get(f"{url}/settings").text
+    assert page.count("old value") >= 3 and "201701010000" in page and "Off" in page and "gone" in page  # shown, not empty
+    assert 'class="lf-old"' in page and "lf-oldnote" in page
+    same = {"pairs__0n": "ADS", "pairs__0v": "Off", "pairs__0c0": "201701010000", "pairs__0c1": "gone"}
+    assert client.post(f"{url}/setup", data=same, follow_redirects=False).status_code in (200, 303)
+    assert (row()["value"], row()["since"], row()["mode"]) == ("Off", "201701010000", "gone")  # saved unchanged: still there
+    assert client.post(f"{url}/setup", data={**same, "pairs__0v": "Other"}).status_code == 400  # another bad value is a new one
+    assert client.post(f"{url}/setup", data={**same, "pairs__0c0": "2026-02-30x"}).status_code == 400
+    fixed = {**same, "pairs__0v": "eco", "pairs__0c0": "2026-03-04", "pairs__0c1": "on"}
+    assert client.post(f"{url}/setup", data=fixed, follow_redirects=False).status_code in (200, 303)
+    assert (row()["value"], row()["since"], row()["mode"]) == ("eco", "2026-03-04", "on")  # a new choice replaces the old value

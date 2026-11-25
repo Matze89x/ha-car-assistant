@@ -75,7 +75,7 @@ def test_odometer_widget_look_is_saved_per_car(client):
 
     vid = create_vehicle(client, "Look Car")
     with db.tx() as conn:
-        assert {w.key: w.design for w in widgets.layout(conn, vid)}["odometer"] == "drums"  # default look
+        assert {w.key: w.design for w in widgets.layout(conn, vid)}["odometer"] == "tile"  # default look: the plain figure, shown as "Text"
     client.post(
         f"/v/{vid}/widgets",
         data={"ajax": "1", "k": ["odometer", "fuel"], "size_odometer": "s", "on_odometer": "1", "opt_odometer_design": "tile"},

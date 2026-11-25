@@ -280,6 +280,21 @@ def add(conn: sqlite3.Connection, vehicle_id: int, addon_id: str, page: dict, da
 MAX_API_ROWS = 500  # entries per request
 
 
+def form_from(page: dict, old_data: dict | None, values: dict) -> dict[str, str]:
+    """The strings of a form for ``parse``: the stored entry (without access codes and the bit data, which ``parse`` keeps itself) with ``values`` on
+    top. A stored bool of ``0`` is an unticked box (the string ``"0"`` would count as ticked)."""
+    hidden = secret_keys(page)
+    kinds = {f["key"]: f["type"] for f in page["fields"]}
+    form: dict[str, str] = {}
+    for k, v in (old_data or {}).items():
+        if k in kinds and k not in hidden:
+            form[k] = "" if kinds[k] == "bool" and str(v) in ("", "0") else str(v)
+    for k, v in values.items():
+        if isinstance(k, str) and k in kinds and k not in hidden:
+            form[k] = "1" if v is True else "" if v is False or v is None else str(v)
+    return form
+
+
 def api_write(conn: sqlite3.Connection, vehicle_id: int, addon_id: str, page: dict, body) -> dict:
     """Entries sent by a plugin: ``{"rows": [{"id"?, "values": {...}}], "delete": [ids]}``. Everything is validated like a form; the
     request is all or nothing (the caller's transaction rolls back on an error)."""
@@ -293,20 +308,14 @@ def api_write(conn: sqlite3.Connection, vehicle_id: int, addon_id: str, page: di
         values = item.get("values") if isinstance(item, dict) else None
         if not isinstance(values, dict):
             raise PageError("err.required", "values")
-        hidden = secret_keys(page)
-        form = {
-            k: ("1" if v is True else "" if v is False or v is None else str(v))
-            for k, v in values.items()
-            if isinstance(k, str) and k not in hidden
-        }
         if item.get("id") is not None:
             old = get(conn, vehicle_id, addon_id, item["id"]) if isinstance(item["id"], int) else None
             if old is None or old["page"] != page["id"]:
                 raise PageError("err.required", f"id {item['id']}")
-            update(conn, old["id"], parse(page, {**{k: str(v) for k, v in old["data"].items()}, **form}, old["data"]))
+            update(conn, old["id"], parse(page, form_from(page, old["data"], values), old["data"]))
             changed += 1
         else:
-            added.append(add(conn, vehicle_id, addon_id, page, parse(page, form)))
+            added.append(add(conn, vehicle_id, addon_id, page, parse(page, form_from(page, None, values))))
     removed = 0
     for rid in gone:
         row = get(conn, vehicle_id, addon_id, rid) if isinstance(rid, int) else None

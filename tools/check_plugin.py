@@ -139,6 +139,10 @@ def check(target: Path) -> tuple[list[str], list[str]]:
                 )
             elif kind == "select" and not addons._options(col):
                 notes.append(f"Setting '{field.get('key')}': the select column '{col.get('key')}' has no usable options (becomes text).")
+        if field.get("value_options") is not None and field.get("type") == "list" and not addons._options(field, "value_options"):
+            notes.append(
+                f"Setting '{field.get('key')}': value_options has no usable choice (the value stays a text field). A value needs 1 to 40 characters and no comma."
+            )
         if field.get("type") == "value":
             if field.get("format") is not None and field.get("format") not in addons.VALUE_FORMATS:
                 notes.append(

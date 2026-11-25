@@ -62,6 +62,7 @@ from . import (
     units,
     userprefs,
 )
+from . import addons as addons_mod
 from . import fuel_export as fuel_export_mod
 from . import (
     icons as icon_set,
@@ -121,6 +122,9 @@ app.mount("/static", _FreshStatic(directory=HERE / "static"), name="static")
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)  # pages and styles shrink to about a fifth
 templates = Jinja2Templates(directory=HERE / "templates")
 templates.env.globals["asset_v"] = _asset_version()
+templates.env.globals["list_cell_fits"] = (
+    addons_mod.cell_fits
+)  # does a stored cell of a plugin list fit its column (else the page shows it as an old value)
 
 
 # ------------------------------------------------------------------ middleware

@@ -64,15 +64,22 @@ Die Request headers lassen sich später nicht ändern: für einen neuen Schlüss
 | `list_documents` | Lesen | die Dokumente eines Fahrzeugs (Titel, Kategorie, Größe - nicht die Dateien) |
 | `get_charging` | Lesen | Ladevorgänge eines Elektroautos |
 | `get_tyres` | Lesen | empfohlene Reifendrücke und Reifensätze |
+| `list_pages` | Lesen | die Seiten, die Integrationen für ein Fahrzeug führen (zum Beispiel *Coding*): ihre Felder und wie viele Einträge jede hat |
+| `list_page_entries` | Lesen | die Einträge einer solchen Seite, seitenweise; bei einer Codierung auch die Notizen und Gruppen ihrer Bits (Zugangscodes werden nie gezeigt) |
 | `get_settings` | Lesen | Sprache, Einheiten, Währung und wie viele Fahrzeuge / Plugins / Integrationen es gibt |
 | `add_entry` | Schreiben | einen Eintrag anlegen (falsche Werte werden mit Grund abgelehnt) |
 | `update_entry` | Schreiben | nur die genannten Felder eines Eintrags ändern |
 | `update_vehicle` | Schreiben | die Stammdaten eines Fahrzeugs ergänzen (FIN, Kennzeichen, Marke, Modell, Baujahr, ...) |
 | `update_document` | Schreiben | Titel, Kategorie, Datum, Gültigkeit oder Notiz eines Dokuments ändern |
 | `set_tyre_pressure` | Schreiben | den empfohlenen Reifendruck einer Saison setzen |
+| `add_page_entry` | Schreiben | einen Eintrag auf einer Seite einer Integration anlegen (ein Steuergerät bei *Coding*), mit Notizen und Gruppen seiner Bits |
+| `update_page_entry` | Schreiben | angegebene Felder eines Eintrags ändern; Notizen einzelner Bits setzen, ändern oder löschen; die Gruppen eines Bytes setzen oder entfernen |
+| `delete_page_entry` | Schreiben | einen Eintrag einer solchen Seite löschen (nicht rückgängig zu machen) |
 | `delete_entry` | Schreiben | einen Eintrag löschen (nicht rückgängig zu machen) |
 
 Werte sind in Basiseinheiten (km, Liter oder kWh, bar, °C, Geld als reine Zahl), unabhängig von den Einheiten, die du zur Anzeige gewählt hast.
+
+**Eine Codierung beschreiben.** Auf der Seite *Coding* hat jedes Steuergerät einen Hex-Wert; ein Tipp auf ein Byte öffnet seine acht Bits, und jedes Bit kann eine Notiz tragen, zusammengehörige Bits lassen sich unter einem Namen gruppieren. Was ein Bit bedeutet, steht nicht im Hex-Wert, deshalb schreibt die Notizen, wer das Auto kennt - oder, mit Schreibzugriff, gemeinsam mit Claude: `list_page_entries` zeigt die Steuergeräte mit ihren `bit_notes` und `bit_groups`, `update_page_entry` füllt sie aus. Eine **Notiz** wird als `<Byte>.<Bit>` angesprochen (das Byte ab 0 entlang des Hex-Werts gezählt, das Bit 0-7 mit 0 als niedrigstem, zum Beispiel `12.5`), ein leerer Text löscht sie; eine **Gruppe** ist ein Byte mit `{"m": Maske, "l": "Name"}`, die Maske sind die Bits der Gruppe als eine Zahl (Bits 2 und 3 = `12`; mindestens zwei Bits, Gruppen eines Bytes überlappen nicht), die für ein Byte angegebene Liste ersetzt dessen Gruppen. Es gelten dieselben Prüfungen wie auf der Seite: der *Originalwert* eines Steuergeräts bleibt, sobald er geschrieben ist, Zugangscodes werden weder gezeigt noch angenommen, und was nicht passt, wird mit der Begründung abgelehnt.
 
 ## Was nie geht
 

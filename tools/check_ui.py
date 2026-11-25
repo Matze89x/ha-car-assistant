@@ -168,8 +168,15 @@ MEASURE = r"""
   document.querySelectorAll('.sub-card').forEach(function (a) {
     if (!vis(a) || a.closest('[hidden], dialog')) { return; }
     var cs = getComputedStyle(a), lab = ((a.querySelector('.sub-h') || a).textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24);
-    if (Math.abs(parseFloat(cs.paddingTop) - padY) > .5 || Math.abs(parseFloat(cs.paddingBottom) - padY) > .5 || Math.abs(parseFloat(cs.paddingLeft) - padX) > .5 || Math.abs(parseFloat(cs.paddingRight) - padX) > .5) {
-      out.push('a sub-window is not padded by the tokens (' + cs.paddingTop + ' ' + cs.paddingRight + ' instead of ' + padY + 'px ' + padX + 'px): "' + lab + '"');
+    var band = a.firstElementChild && a.firstElementChild.classList.contains('sub-h') ? a.firstElementChild : null;  /* the label is the header band: it sits at the top edge of the window, so the window has no padding on top (the band has its own) */
+    if (band) {
+      var bh = band.getBoundingClientRect(), ah = a.getBoundingClientRect();
+      if (Math.abs(bh.top - ah.top - 1) > 1 || Math.abs(bh.height - 34) > 1 || Math.abs(bh.width - (ah.width - 2)) > 1.5) {
+        out.push('the header band of a sub-window is not 34 px high and as wide as the window (' + Math.round(bh.height) + ' x ' + Math.round(bh.width) + ' px, ' + Math.round(bh.top - ah.top) + ' px from the top): "' + lab + '"');
+      }
+    }
+    if (Math.abs(parseFloat(cs.paddingTop) - (band ? 0 : padY)) > .5 || Math.abs(parseFloat(cs.paddingBottom) - padY) > .5 || Math.abs(parseFloat(cs.paddingLeft) - padX) > .5 || Math.abs(parseFloat(cs.paddingRight) - padX) > .5) {
+      out.push('a sub-window is not padded by the tokens (' + cs.paddingTop + ' ' + cs.paddingRight + ' instead of ' + (band ? 0 : padY) + 'px ' + padX + 'px): "' + lab + '"');
     }
     var b = a.nextElementSibling;
     while (b && !vis(b)) { b = b.nextElementSibling; }

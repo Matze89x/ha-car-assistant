@@ -64,15 +64,22 @@ Request headers cannot be changed later: for a new key remove the connector and 
 | `list_documents` | read | the documents of a vehicle (title, category, size - not the files) |
 | `get_charging` | read | charging sessions of an electric car |
 | `get_tyres` | read | recommended tyre pressures and tyre sets |
+| `list_pages` | read | the pages integrations keep for a vehicle (for example *Coding*): their fields and how many entries each has |
+| `list_page_entries` | read | the entries of one such page, paged; for a coding also the notes and groups of its bits (access codes are never shown) |
 | `get_settings` | read | language, units, currency and how many vehicles / plugins / integrations exist |
 | `add_entry` | write | add a record (wrong values are refused with the reason) |
 | `update_entry` | write | change only the given fields of a record |
 | `update_vehicle` | write | fill in the master data of a vehicle (vin, plate, make, model, year, ...) |
 | `update_document` | write | change title, category, date, validity or note of a document |
 | `set_tyre_pressure` | write | set the recommended tyre pressure of a season |
+| `add_page_entry` | write | add an entry to a page of an integration (a control unit on *Coding*), with the notes and groups of its bits |
+| `update_page_entry` | write | change given fields of an entry; add, change or delete notes of single bits; set or remove the groups of a byte |
+| `delete_page_entry` | write | delete an entry of such a page (cannot be undone) |
 | `delete_entry` | write | delete a record (cannot be undone) |
 
 Values are in base units (km, litres or kWh, bar, °C, money as a plain number), independent of the units you chose for display.
+
+**Describing a coding.** On the page *Coding* every control unit has a hex value; tapping a byte opens its eight bits, and each bit can carry a note, bits that belong together can be grouped under a name. Nobody can know the meaning of a bit from the hex alone, so the notes are written by the person who knows the car - or, with write access, together with Claude: `list_page_entries` shows the units with their `bit_notes` and `bit_groups`; `update_page_entry` fills them in. A **note** is addressed as `<byte>.<bit>` (the byte counted from 0 along the hex value, the bit 0-7 with 0 the lowest, for example `12.5`), an empty text deletes it; a **group** is a byte with `{"m": mask, "l": "name"}` where the mask is the bits of the group as one number (bits 2 and 3 = `12`; at least two bits, groups of a byte do not overlap), the list given for a byte replaces that byte's groups. The same checks as on the page apply: the *original* value of a unit stays once it is written, access codes are neither shown nor accepted, and everything is refused with the reason when it does not fit.
 
 ## What it can never do
 

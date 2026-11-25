@@ -117,8 +117,8 @@ Eine **Karte ist eine Kategorie** (ihr Titel ist `h2`: Symbol, Name, rechts ein 
 
 | Teil | Klasse | Regel |
 |---|---|---|
-| Unterfenster | `.sub-card` | gerahmt, Ecken `--r-m`, die schwache Glasfüllung; **immer** mit `--sp-sub` Abstand und `--sp-sub-pad-y` / `--sp-sub-pad-x` Innenabstand - nie ein eigener Rand oder Abstand |
-| Überschrift | `.sub-h` (ein `h3`, immer mit dem Makro `sub_h(icon, text)` geschrieben) | davor ein **Symbol in der Hauptfarbe** (16 px, `--accent`), klein, Großbuchstaben, gedämpft, `--sp-sub-label` über dem Inhalt; nennt den Bereich in ein bis zwei Wörtern |
+| Unterfenster | `.sub-card` | gerahmt, Ecken `--r-m`, die schwache Glasfüllung; **immer** mit `--sp-sub` Abstand und `--sp-sub-pad-y` (unter der Kopfleiste: deren eigene Höhe) / `--sp-sub-pad-x` Innenabstand - nie ein eigener Rand oder Abstand |
+| Überschrift = Kopfleiste | `.sub-h` (ein `h3`, immer mit dem Makro `sub_h(icon, text)` geschrieben) | die **Kopfleiste** des Fensters: so breit wie das Fenster, 34 px hoch, am oberen Rand (das Fenster hat dann oben keinen Innenabstand), in der Farbe der Kontur (`--glass-b`) mit der hellen Titelfarbe; davor ein **Symbol in der Hauptfarbe** (16 px, `--accent`), klein, Großbuchstaben; `--sp-sub-label` zwischen Leiste und Inhalt; nennt den Bereich in ein bis zwei Wörtern. `tools/check_ui.py` misst Leiste, Breite und Innenabstand |
 | Reihenfolge innen | | Überschrift, ein kurzer Hinweis (`.hint`), der Inhalt, dann die Knöpfe **unten rechts** (`.form-bar`); was nur eine Erklärung ist, steht im Hinweis |
 | Mehrere gleicher Art | `.seg-tabs` im Fenster | ein Reiter je Auto (oder Saison, ...), die Leiste scrollt zur Seite, wenn es viele sind; unter dem offenen Reiter nur, was dieses Ding wirklich hat |
 | Knöpfe im Fenster | `.button.small` | **nur** der Standard-Knopf klein (36 px, `--r-s`) - keine Pillen und keine eigenen Knöpfe. Ein Bearbeiten-Knopf in einer Zeile (`.ar-edit > button`) hat sein Wort (*Ändern*), solange das Fenster breit ist, und nur den Stift, wenn es schmal ist - so bleibt eine Zeile eine Zeile; ein Knopf, der etwas **hinzufügt**, behält überall sein Wort |

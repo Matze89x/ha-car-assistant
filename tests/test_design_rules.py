@@ -464,3 +464,17 @@ def test_a_field_with_a_function_carries_it_inside_and_names_it():
             assert "aria-label=" in tag and "title=" in tag, (
                 f"{path.name}: an icon action in a field needs aria-label and title: {tag[:80]}"
             )
+
+
+def test_the_label_of_a_sub_window_is_its_header_band():
+    """The label of a sub-window is a header band (docs/design.md, 4c): the colour of the contour, the full width, 34 px - one definition, no leftover of
+    the old preview switch (``data-exp``), and the window has no padding on top where the band sits."""
+    css = (TEMPLATES.parent / "static" / "pc-core.css").read_text(encoding="utf-8")
+    assert "data-exp" not in css, "the preview switch is gone: the band is the standard"
+    band = re.search(r"\n\.sub-card > \.sub-h:first-child \{([^}]*)\}", css)
+    assert band and "background: var(--glass-b)" in band.group(1) and "color: var(--text)" in band.group(1)
+    assert "min-height: 34px" in css
+    assert re.search(r"\n\.sub-card:has\(> \.sub-h:first-child\) \{ padding-top: 0; \}", css)
+    for name in ("design.md", "design.de.md"):
+        text = (TEMPLATES.parents[3] / "docs" / name).read_text(encoding="utf-8")
+        assert "34 px" in text, f"{name}: the band is written down"
