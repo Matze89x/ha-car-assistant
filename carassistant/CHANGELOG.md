@@ -4,6 +4,14 @@
 
 Versioning: `RELEASE.FEATURES.FIXES` – the first number counts releases (it becomes `1` with the first official release), the middle one feature versions, the last one bug fixes and corrections. The stage (Alpha, Beta) stands next to the version.
 
+## 0.5.31 Beta
+- **Windows look the same everywhere** - a card with several areas is made of framed sub-windows with a symbol in the main colour in front of each label and fixed spacing; every line of a window runs from one edge to the other and never touches a field; every window of the settings begins with a short explanation (info symbol, one sentence) and the buttons that save stand bottom right.
+- **Settings → User** - sign-in details, passkeys, passcode and users in sub-windows; *Manage*, *Add user* and the passcode open in a popup instead of unfolding in the row; "nothing here yet" is a compact centred state with a *Create* button; *Start page* and *Look & feel* are windows of their own; the web-app links are flat rows.
+- **Notifications by car** - under *Settings → User* every car has a tab (the car you work with is open first, the tabs scroll sideways when there are many) and shows only the messages that car can really tell; the last tab, *More cars*, is what a car you add later starts with; the messages that are not about one car (*General*) have a window of their own. The notice about https is one short sentence now, without an address or a link.
+- **Settings → System** - *Reachable from outside Home Assistant* in two steps (the port in your network, then the https address for notifications and the web app); the sensors for Home Assistant, online services, navigation, MCP access and region are rebuilt with the explanation on top; *Reinstall the system* instead of "reset to factory settings".
+- **Plugins → Connections on the phone** - one standard card per plugin with flat rows (no framed tiles), the open row is marked square in the colour of the lines, the signal filter is gone and "no signals yet" is the compact empty state.
+- **Fixes** - the small red buttons keep their word on a phone; a line never touches a field; lines between switches are back in every sub-window.
+
 ## 0.5.30 Beta
 - **Notifications** - on a page that is not open through your https address (for example the Home Assistant app at home, which uses its http address) the card now says where the page is open right now and offers your saved https address as a link; it no longer reads as if no https address was saved. On such a page the switch and the test button are really hidden now (they stayed visible, although the switch could not work).
 

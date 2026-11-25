@@ -4,6 +4,14 @@
 
 Versionierung: `RELEASE.FEATURES.FEHLER` – die erste Zahl zählt Releases (sie wird mit dem ersten offiziellen Release zu `1`), die mittlere Feature-Versionen, die letzte Fehlerkorrekturen. Die Stufe (Alpha, Beta) steht neben der Version.
 
+## 0.5.31 Beta
+- **Fenster sehen überall gleich aus** - eine Karte mit mehreren Bereichen besteht aus gerahmten Unterfenstern mit einem Symbol in der Hauptfarbe vor jeder Überschrift und festen Abständen; jede Linie eines Fensters läuft von Rand zu Rand und berührt nie ein Feld; jedes Fenster der Einstellungen beginnt mit einer kurzen Erklärung (Info-Symbol, ein Satz), und die Knöpfe, die speichern, stehen unten rechts.
+- **Einstellungen → Benutzer** - Zugangsdaten, Passkeys, Passcode und Benutzer in Unterfenstern; *Verwalten*, *Benutzer hinzufügen* und der Passcode öffnen als Popup statt in der Zeile aufzuklappen; „Noch nichts da" ist ein kompakter, mittiger Zustand mit *Anlegen*-Knopf; *Startseite bestimmen* und *Aussehen & Bedienung* sind eigene Fenster; die Web-App-Links sind flache Zeilen.
+- **Benachrichtigungen je Auto** - unter *Einstellungen → Benutzer* hat jedes Auto einen Reiter (das Auto, mit dem du arbeitest, ist zuerst offen, bei vielen scrollen die Reiter zur Seite) und zeigt nur die Meldungen, die dieses Auto wirklich liefern kann; der letzte Reiter, *Weitere Autos*, ist das, womit ein später hinzugefügtes Auto startet; die Meldungen, die zu keinem Auto gehören (*Allgemein*), haben ein eigenes Fenster. Der Hinweis zu https ist jetzt ein kurzer Satz ohne Adresse und ohne Link.
+- **Einstellungen → System** - *Extern von HA erreichbar* in zwei Schritten (der Port im Netzwerk, dann die https-Adresse für Benachrichtigungen und die Web-App); die Sensoren für Home Assistant, Online-Dienste, Navigation, MCP-Zugriff und Region sind mit der Erklärung oben neu aufgebaut; *Neuinstallation des Systems* statt „Auf Werkseinstellungen zurücksetzen".
+- **Plugins → Anbindungen am Handy** - pro Plugin eine Standard-Karte mit flachen Zeilen (keine gerahmten Kacheln), die geöffnete Zeile ist eckig in der Farbe der Linien markiert, das Signal-Filterfeld ist weg und „Noch keine Signale" ist der kompakte leere Zustand.
+- **Korrekturen** - die kleinen roten Knöpfe behalten am Handy ihr Wort; eine Linie berührt nie ein Feld; Linien zwischen Schaltern sind in jedem Unterfenster wieder da.
+
 ## 0.5.30 Beta
 - **Benachrichtigungen** - auf einer Seite, die nicht über deine https-Adresse geöffnet ist (zum Beispiel die Home-Assistant-App zuhause, die ihre http-Adresse nimmt), sagt die Karte jetzt, wo die Seite gerade geöffnet ist, und bietet deine gespeicherte https-Adresse als Link an; sie liest sich nicht mehr, als wäre keine https-Adresse gespeichert. Auf so einer Seite sind der Schalter und der Testknopf jetzt wirklich ausgeblendet (sie blieben sichtbar, obwohl der Schalter nicht funktionieren konnte).
 
