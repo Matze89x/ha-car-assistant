@@ -83,7 +83,8 @@ def test_fuel_page_holds_the_station_search_and_the_history(client):
     page = client.get("/v/diesel-one/e/fuel").text
     assert 'id="stations"' in page and page.index('id="stations"') < page.index('id="fuel"')  # the stations come first, the history below
     assert 'id="fuel-add"' in page and "static/stations.js" in page
-    assert 'id="stations"' not in client.get("/v/volt-one/e/fuel").text  # an electric car has no fuel stations
+    ev = client.get("/v/volt-one/e/fuel").text  # an electric car has no FUEL stations - it searches charging points in the same place
+    assert 'id="stations"' in ev and "Charging points nearby" in ev and "Fuel stations nearby" not in ev
     assert (
         client.get("/v/diesel-one/stations?go=1", follow_redirects=False).headers["location"].endswith("/e/fuel?go=1#stations")
     )  # the old page
