@@ -35,8 +35,10 @@
   <div class="range-block st-{{ hero_range.state or 'ok' }}">
     <div class="range-top"><div class="range-km">{% if hero_range.estimated %}≈ {% endif %}{{ fnum(units.d(hero_range.km)) }}<span class="unit">{{ units.dist_unit }}</span></div>{% if hero_range.pct is not none %}<div class="range-pct">{{ icon('plug' if energy_mode == 'charge' else 'gas-station', 17) }}<span>{{ hero_range.pct }} % {{ _('tile.fuel_level') }}</span></div>{% endif %}</div>
     {% if hero_range.pct is not none %}<div class="bar"><i class="bar-fill" style="width: {{ hero_range.pct }}%"></i></div>{% endif %}
-    <div class="range-sub">{% if hero_range.liters %}{{ _('hero.liters', l=fnum(units.v(hero_range.liters, hero_range.unit), 1), u=units.vol_unit(hero_range.unit)) }} · {% endif %}{{ _('hero.estimated') if hero_range.estimated else _('hero.range_src') }}</div>
-    {% if hero_range.when %}<div class="range-sub range-last">{{ _('hero.last', when=fshort(hero_range.when)) }}</div>{% endif %}
+    <div class="range-foot">
+      <div class="range-sub">{% if hero_range.liters %}{{ _('hero.liters', l=fnum(units.v(hero_range.liters, hero_range.unit), 1), u=units.vol_unit(hero_range.unit)) }} · {% endif %}{% if hero_range.estimated %}{{ _('hero.estimated') }}{% elif hero_range.liters %}{{ _('hero.src_short') }}{% else %}{{ _('hero.range_src') }}{% endif %}</div>
+      {% if hero_range.when %}<div class="range-sub range-last">{{ _('hero.last', when=fshort(hero_range.when)) }}</div>{% endif %}
+    </div>
   </div>
   {% endif %}
   {% if odometer is not none and odo_from_car is defined and odo_from_car %}  {# a plugin reports it: nothing to type, so not on the dashboard - the odometer widget shows it #}

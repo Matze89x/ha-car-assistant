@@ -1,4 +1,4 @@
-{% from "_macros.html" import icon with context %}
+{% from "_macros.html" import icon, sub_h with context %}
 {% if not car %}
 <section class="card"><p class="muted">{{ _('car.none') }}</p><p><a class="button primary" href="{{ base }}/vehicles/new">{{ icon('plus', 18) }}<span>{{ _('vehicle.add') }}</span></a></p></section>
 {% else %}
@@ -43,16 +43,26 @@
 <section class="card" id="vbackup">
   <h2>{{ icon('settings', 20) }} {{ _('vb.manage_title') }}</h2>
   <p class="hint">{{ icon('info', 14) }} {{ _('vb.manage_hint') }}</p>
-  <ul class="cv-list">
-    <li><span class="mi-ic c1">{{ icon('download', 19) }}</span><div class="vm-t"><b>{{ _('vb.row_backup') }}</b><small>{{ _('vb.row_backup_hint') }}</small></div>
-      <a class="ghost-btn small" href="{{ base }}/v/{{ car.slug }}/backup.zip">{{ icon('download', 16) }}<span>{{ _('vb.download_short') }}</span></a></li>
-    {% if has_codes %}<li><span class="mi-ic c6">{{ icon('lock', 19) }}</span><div class="vm-t"><b>{{ _('vb.row_codes') }}</b><small>{{ _('vb.row_codes_hint') }}</small></div>
-      <a class="ghost-btn small" href="{{ base }}/v/{{ car.slug }}/backup.zip?codes=1">{{ icon('download', 16) }}<span>{{ _('vb.download_short') }}</span></a></li>{% endif %}
-    <li><span class="mi-ic c5">{{ icon('archive', 19) }}</span><div class="vm-t"><b>{{ _('vehicle.archive') }}</b><small>{{ _('vehicle.archive_hint') }}</small></div>
-      <form method="post" action="{{ base }}/v/{{ car.slug }}/archive" class="inline"><button class="ghost-btn small">{{ icon('archive', 16) }}<span>{{ _('vehicle.archive') }}</span></button></form></li>
-    <li><span class="mi-ic c6">{{ icon('delete', 19) }}</span><div class="vm-t"><b>{{ _('vehicle.delete_btn') }}</b><small>{{ _('vehicle.delete_hint') }}</small></div>
-      <form method="post" action="{{ base }}/v/{{ car.slug }}/delete" class="inline" data-confirm="{{ _('confirm.delete_vehicle') }}" data-confirm-ok="{{ _('btn.delete') }}"><button class="ghost-btn small warn">{{ icon('delete-outline', 16) }}<span>{{ _('btn.delete') }}</span></button></form></li>
-  </ul>
+  <div class="sub-card">
+    {{ sub_h('download', _('vb.row_backup')) }}
+    <p class="hint">{{ icon('info', 14) }} {{ _('vb.row_backup_hint') }}</p>
+    <div class="form-bar"><a class="button small" href="{{ base }}/v/{{ car.slug }}/backup.zip">{{ icon('download', 16) }}<span>{{ _('vb.download_short') }}</span></a></div>
+  </div>
+  {% if has_codes %}<div class="sub-card">
+    {{ sub_h('lock', _('vb.row_codes')) }}
+    <p class="hint">{{ icon('info', 14) }} {{ _('vb.row_codes_hint') }}</p>
+    <div class="form-bar"><a class="button small" href="{{ base }}/v/{{ car.slug }}/backup.zip?codes=1">{{ icon('download', 16) }}<span>{{ _('vb.download_short') }}</span></a></div>
+  </div>{% endif %}
+  <div class="sub-card">
+    {{ sub_h('archive', _('vehicle.archive')) }}
+    <p class="hint">{{ icon('info', 14) }} {{ _('vehicle.archive_hint') }}</p>
+    <form method="post" action="{{ base }}/v/{{ car.slug }}/archive" class="form-bar"><button class="small">{{ icon('archive', 16) }}<span>{{ _('vehicle.archive') }}</span></button></form>
+  </div>
+  <div class="sub-card">
+    {{ sub_h('delete', _('vehicle.delete_btn')) }}
+    <p class="hint">{{ icon('info', 14) }} {{ _('vehicle.delete_hint') }}</p>
+    <form method="post" action="{{ base }}/v/{{ car.slug }}/delete" class="form-bar" data-confirm="{{ _('confirm.delete_vehicle') }}" data-confirm-ok="{{ _('btn.delete') }}"><button class="small danger">{{ icon('delete-outline', 16) }}<span>{{ _('btn.delete') }}</span></button></form>
+  </div>
 </section>
 
 </div>

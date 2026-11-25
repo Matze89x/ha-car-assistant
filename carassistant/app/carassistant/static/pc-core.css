@@ -375,7 +375,9 @@ dialog.cdlg { width: min(440px, calc(100% - 28px)); }
 
 /* freshness: the model line without a dot, the dot belongs to the "last signal" line */
 .hero-fresh + .hero-fresh.live { margin-top: 4px; }
-.range-last { margin-top: 2px; }
+.range-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; margin-top: 8px; }  /* what the figure is based on on the left, when the car last said so on the right: one line while there is room */
+.range-foot .range-sub { margin-top: 0; }
+.range-foot .range-last { margin-left: auto; white-space: nowrap; text-align: right; }
 
 /* Home hero without a reported range: the odometer in a glass card with an icon chip (and the tank level when known) */
 .odo-card { grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 14px; }
@@ -813,7 +815,9 @@ a, .tab, .wd, .mi, .sb-brand, button, .icon-btn { -webkit-touch-callout: none; -
 }
 
 /* library page */
-.media-add { display: grid; gap: 10px; }
+.media-up { margin: 12px 0 0; }
+.media-add { display: grid; gap: 10px; margin: 0; }
+.sub-card .media-grid { margin: 8px 0 0; padding: 2px 0 6px; }
 .media-add .photo-drop { min-height: 72px; cursor: pointer; }
 .media-add .photo-drop input[type=file] { display: none; }
 .media-grid { margin: 0 0 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
@@ -1108,7 +1112,6 @@ body.page-editing .hero-pic { outline: 2px dashed rgba(var(--accent-rgb), .5); o
 .media-item.on { border-color: var(--ok); }
 .media-pick { background: rgba(var(--fg-rgb), .06); cursor: pointer; }
 .media-pick video { background: var(--black); }
-.fgroup.live .mbox, .mbox { padding: 14px; border-radius: var(--r-m); border: 1px solid rgba(var(--fg-rgb), .12); background: rgba(var(--fg-rgb), .035); }
 
 /* Photo and video: content lines up with the other boxes (no second indent) */
 
@@ -1117,11 +1120,7 @@ body.page-editing .hero-pic { outline: 2px dashed rgba(var(--accent-rgb), .5); o
 /* the Save of a box starts exactly where its fields start */
 
 /* photo and video panel: four equal boxes, one inner rhythm (title, hint, content with the same gap), tidy delete buttons */
-.mbox { display: grid; gap: 12px; padding: 16px; margin: 0 0 14px; border-radius: var(--r-m); border: 1px solid rgba(var(--fg-rgb), .12); background: rgba(var(--fg-rgb), .035); }
-.mbox > *, .mbox .mg-head, .mbox .mg-head h2, .mbox p.hint, .mbox .media-grid, .mbox .media-add { margin: 0; }
-.mbox .mg-head h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.mbox .season-pick { margin: 0; }
-.mbox .media-grid { padding: 0; }
+.sub-card .season-pick { margin: 8px 0 0; }
 .media-item .media-x .round-del, .media-item .media-x button.round-del { width: 26px; height: 26px; background: rgba(0,0,0,.65); border: 1px solid rgba(var(--fg-rgb), .25); color: var(--on-dark); box-shadow: none; }
 .media-item .media-x .round-del:hover { background: var(--overdue); border-color: var(--overdue); }
 .pe-body > .hint { margin: 0 0 12px; }
@@ -1374,7 +1373,7 @@ details.add-card-top > summary, details.add-card-top:not([open]) { display: none
 /* the add button: just the plus, always the last one on the right */
 
 /* the photo / video library is a slider: big pictures in one row that you push left and right (about 5 visible on a wide screen, 2 and a half on a phone) */
-.media-grid, .mbox .media-grid { display: flex; grid-template-columns: none; gap: 12px; overflow-x: auto; scroll-snap-type: x proximity; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; padding: 2px 2px 12px; scrollbar-width: thin; }
+.media-grid { display: flex; grid-template-columns: none; gap: 12px; overflow-x: auto; scroll-snap-type: x proximity; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; padding: 2px 2px 12px; scrollbar-width: thin; }
 .media-grid > .media-item { flex: 0 0 max(150px, calc((100% - 48px) / 5)); scroll-snap-align: start; }
 .media-grid .media-pick { aspect-ratio: 4 / 3; }
 
@@ -2667,20 +2666,6 @@ svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5
 .mk-n { display: flex; flex-direction: column; min-width: 0; }
 .mk-n small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Car tab: backup and manage - icon | text | button in one row (the button drops under the text on a phone) */
-.cv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.cv-list li { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px; border-radius: var(--r-m); background: var(--glass2); border: 1px solid var(--glass-b); }
-.cv-list .vm-t b { display: block; font-size: 15px; }
-.cv-list .vm-t small { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; line-height: 1.35; }
-.cv-list form { margin: 0; }
-.cv-list .ghost-btn { width: auto; white-space: nowrap; }
-@media (max-width: 520px) {
-  .cv-list li { grid-template-columns: 36px minmax(0, 1fr); }
-  .cv-list li > form, .cv-list li > a { grid-column: 2; justify-self: start; }
-}
-
-/* the photo and video box sits directly in its card (no second frame) */
-#media > .mbox, #media .mbox:first-of-type { margin-top: 8px; }
 .set-scope { display: flex; gap: 8px; align-items: flex-start; margin: 0 2px 14px; }
 
 /* Sensors card: what the two refresh buttons do is written above them; the buttons share ONE line */
@@ -2696,9 +2681,9 @@ svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5
 .ha-check li.bad .ico { color: var(--overdue); }
 
 /* the three choices of the video background: the explanation wraps inside its tile instead of running out of it */
-.mbox .season-pick .sp small { white-space: normal; text-align: center; overflow-wrap: anywhere; }
+.sub-card .season-pick .sp small { white-space: normal; text-align: center; overflow-wrap: anywhere; }
 @media (max-width: 520px) {
-  .mbox .season-pick { grid-template-columns: minmax(0, 1fr); }
+  .sub-card .season-pick { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* In an installed web app the "change car" signs are hidden (every car has its own web app) */

@@ -478,3 +478,20 @@ def test_the_label_of_a_sub_window_is_its_header_band():
     for name in ("design.md", "design.de.md"):
         text = (TEMPLATES.parents[3] / "docs" / name).read_text(encoding="utf-8")
         assert "34 px" in text, f"{name}: the band is written down"
+
+
+def test_the_car_settings_use_sub_windows_like_every_other_page_and_the_range_footer_is_one_row():
+    """The tab *Car* of the settings: photo and video, backup and delete are sub-windows with a header band and a symbol (no boxes in boxes, no rows of
+    their own); the line under the range of the dashboard (what it is based on, and when the car last said so) is one row."""
+    tpl = TEMPLATES
+    car = (tpl / "_settings_car.html").read_text(encoding="utf-8")
+    media = (tpl / "_media_panel.html").read_text(encoding="utf-8")
+    css = (tpl.parent / "static" / "pc-core.css").read_text(encoding="utf-8")
+    assert "cv-list" not in car and "cv-list" not in css and "mbox" not in media and "mbox" not in css
+    assert car.count("sub_h(") == 4 and media.count("sub_h(") == 3 and "form-bar" in car
+    assert "mg-head" not in media, "the labels of the sub-windows are the header bands"
+    tabs = (tpl / "_tabs.html").read_text(encoding="utf-8")
+    foot = tabs[tabs.index('class="range-foot"') :]
+    assert foot.index("range-last") < foot.index("</div>\n  {% endif %}"), "both lines live in the one row"
+    assert re.search(r"\.range-foot \{[^}]*display: flex[^}]*justify-content: space-between", css)
+    assert re.search(r"\.range-foot \.range-last \{[^}]*margin-left: auto[^}]*white-space: nowrap", css)

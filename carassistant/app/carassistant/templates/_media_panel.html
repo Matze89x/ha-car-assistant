@@ -1,5 +1,5 @@
-{% from "_macros.html" import icon with context %}
-<section class="mbox">
+{% from "_macros.html" import icon, sub_h with context %}
+<section class="media-up">
   <form method="post" enctype="multipart/form-data" action="{{ base }}/v/{{ v.slug }}/media" class="media-add">
     <input type="hidden" name="back" value="{{ media_back }}">
     <label class="photo-drop">{{ icon('camera', 22) }}<span>{{ _('media.add') }}</span>
@@ -27,22 +27,22 @@
 {% endmacro %}
 
 <form method="post" action="{{ base }}/v/{{ v.slug }}/media/choose" id="mediasel" class="mediasel"><input type="hidden" name="back" value="{{ media_back }}"></form>
-<div class="mbox">
-<div class="mg-head"><h2>{{ _('media.home_title') }} <small>{{ library|length }}</small></h2></div>
+<div class="sub-card">
+{{ sub_h('view-dashboard', _('media.home_title')) }}
 <p class="hint">{{ icon('info', 14) }} {{ _('media.home_hint') }}</p>
-{% if library %}{{ media_grid(library, 'home', 'media.home_badge', 'home') }}{% else %}<p class="hint">{{ icon('info', 14) }} {{ _('media.none') }}</p>{% endif %}
+{% if library %}{{ media_grid(library, 'home', 'media.home_badge', 'home') }}{% else %}<div class="empty-state">{{ icon('view-dashboard', 20) }}<p>{{ _('media.none') }}</p></div>{% endif %}
 </div>
 
-<div class="mbox">
-<div class="mg-head"><h2>{{ _('media.photo_title') }} <small>{{ photos|length }}</small></h2></div>
+<div class="sub-card">
+{{ sub_h('camera', _('media.photo_title')) }}
 <p class="hint">{{ icon('info', 14) }} {{ _('media.photo_hint') }}</p>
-{% if photos %}{{ media_grid(photos, 'photo', 'media.photo_badge', 'photo') }}{% else %}<p class="hint">{{ icon('info', 14) }} {{ _('media.none_photo') }}</p>{% endif %}
+{% if photos %}{{ media_grid(photos, 'photo', 'media.photo_badge', 'photo') }}{% else %}<div class="empty-state">{{ icon('camera', 20) }}<p>{{ _('media.none_photo') }}</p></div>{% endif %}
 </div>
 {% for m in library %}<form method="post" action="{{ base }}/v/{{ v.slug }}/media/{{ m.id }}/delete" id="mdel-{{ m.id }}" data-confirm="{{ _('media.confirm_delete') }}" hidden><input type="hidden" name="back" value="{{ media_back }}"></form>{% endfor %}
 
 {% if videos %}
-<section class="mbox">
-  <div class="mg-head"><h2>{{ _('media.bg') }}</h2></div>
+<section class="sub-card">
+  {{ sub_h('play', _('media.bg')) }}
   <p class="hint">{{ icon('info', 14) }} {{ _('media.bg_hint') }}</p>
   <form method="post" action="{{ base }}/v/{{ v.slug }}/media/kind" class="season-pick" data-live>
     <input type="hidden" name="back" value="{{ media_back }}">
