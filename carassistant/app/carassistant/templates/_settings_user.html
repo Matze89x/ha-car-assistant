@@ -42,10 +42,9 @@
 <section class="card" id="webapp">
   <h2>{{ icon('home') }} {{ _('webapp.title') }}</h2>
   <p class="hint">{{ icon('info', 14) }} {{ _('webapp.text') }}</p>
-  <p class="hint">{{ icon('info', 14) }} {{ _('webapp.steps') }}</p>
-  {% if app_car %}<p class="hint">{{ icon('info', 14) }} {{ _('webapp.only', name=app_car.name) }} <a href="{{ base }}/app-all">{{ _('webapp.all') }}</a></p>{% endif %}
+  {% if app_car %}<p class="acct-warn">{{ icon('alert', 14) }} <span>{{ _('webapp.only', name=app_car.name) }} <a href="{{ base }}/app-all">{{ _('webapp.all') }}</a></span></p>{% endif %}
   {% set ext = external_url.rstrip('/') if external_url else '' %}
-  {% if not ext %}<p class="hint">{{ icon('info', 14) }} {{ _('webapp.need_ext') }} <a href="{{ base }}/settings/system#external">{{ _('set.system') }}</a></p>{% else %}
+  {% if not ext %}<p class="acct-warn">{{ icon('alert', 14) }} <span>{{ _('webapp.need_ext') }} <a href="{{ base }}/settings/system#external">{{ _('set.system') }}</a></span></p>{% else %}
   <div class="wa-list">
     {% for car in vehicle_rows if not car.archived and car.slug %}
     <div class="mk-field"><span class="mk-fl">{{ car.name }}</span>
@@ -66,7 +65,7 @@
       <form method="post" action="{{ base }}/settings/unblock" class="inline"><input type="hidden" name="kind" value="{{ b.kind }}"><input type="hidden" name="key" value="{{ b.key }}"><button class="small">{{ _('user.release') }}</button></form></li>{% endfor %}
   </ul>
   <form method="post" action="{{ base }}/settings/unblock" class="inline"><button class="small">{{ _('user.release_all') }}</button></form>
-  {% else %}<p class="muted">{{ _('user.blocked_none') }}</p>{% endif %}
+  {% else %}<div class="empty-state">{{ icon('lock-open-variant', 20) }}<p>{{ _('user.blocked_none') }}</p></div>{% endif %}
 </section>
 
 </div>

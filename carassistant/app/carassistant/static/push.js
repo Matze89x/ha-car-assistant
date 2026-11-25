@@ -6,22 +6,12 @@
   var btn = document.getElementById("push-on"), msg = document.getElementById("push-msg"), base = box.getAttribute("data-base") || "";
   var labels = { on: box.getAttribute("data-label-on"), off: box.getAttribute("data-label-off") };
   function say(t) { msg.textContent = t; msg.hidden = !t; }
-  function sayInfo(t) {  // a notice (not an error): an explanation of the design - the info symbol, then one short sentence, no address and no link
-    msg.className = "hint push-where"; msg.textContent = ""; msg.hidden = false;
-    var ico = document.getElementById("push-ico");  /* the symbol comes from the page: icons are not drawn here */
-    if (ico) { msg.appendChild(ico.content.cloneNode(true)); }
-    msg.appendChild(document.createTextNode(" " + t));
-  }
   function toBuf(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) { s += "="; } var b = atob(s), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) { a[i] = b.charCodeAt(i); } return a; }
   function label() { var u = navigator.userAgent; return /iPhone/.test(u) ? "iPhone" : /iPad/.test(u) ? "iPad" : /Macintosh/.test(u) ? "Mac" : /Android/.test(u) ? "Android" : /Windows/.test(u) ? "Windows" : "Device"; }
   function post(url, body) { return fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).then(function (r) { return r.json(); }); }
   var testForm = document.getElementById("push-test");
   function off() { btn.hidden = true; if (testForm) { testForm.hidden = true; } }
-  if (location.protocol !== "https:" || !window.isSecureContext) {  // notifications only work on an https page: nothing is offered anywhere else, the person is told so in one sentence
-    off();
-    sayInfo(box.getAttribute("data-https"));
-    return;
-  }
+  if (location.protocol !== "https:" || !window.isSecureContext) { off(); return; }  // notifications only work on an https page: nothing is offered anywhere else (the explanation at the top of the card says so)
   var ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   var installed = window.navigator.standalone === true || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
   if (ios && !installed) { off(); say(box.getAttribute("data-ios")); return; }  // iOS only delivers web push to an app added to the home screen

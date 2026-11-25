@@ -346,35 +346,36 @@ def test_notifications_are_only_offered_on_an_https_page(client):
 
     js = (Path(__file__).resolve().parents[1] / "carassistant" / "app" / "carassistant" / "static" / "push.js").read_text()
     assert 'location.protocol !== "https:"' in js and "btn.hidden = true" in js  # nothing is offered on a page that is not https
-    from carassistant import i18n
-
-    assert i18n.translator("de")("push.https_only") != "push.https_only"
-    assert i18n.translator("en")("push.https_only") != "push.https_only"
 
 
-def test_the_notice_is_one_short_sentence_without_an_address_or_a_link(client, monkeypatch):
-    """The check looks at how THIS page was opened (the Home Assistant app at home uses its http address). The notice says in one short sentence that
-    notifications need the https address - it names no address and carries no link (that looked strange), and it begins with the info symbol."""
+def test_the_notification_card_has_one_explanation_that_names_the_https_address(client, monkeypatch):
+    """ONE explanation with the info symbol at the top of the card (docs/design.md, 4c): how and about what you are notified, and that it only works through
+    the https address - without an address saved it says so, too. No second notice is put in by the script, no address and no link in it."""
     from pathlib import Path
 
     from carassistant import accounts, db, ha, i18n
 
-    js = (Path(__file__).resolve().parents[1] / "carassistant" / "app" / "carassistant" / "static" / "push.js").read_text()
-    assert 'sayInfo(box.getAttribute("data-https"))' in js and "location.host" not in js and "a.href" not in js and "push-ico" in js
-    css = (Path(__file__).resolve().parents[1] / "carassistant" / "app" / "carassistant" / "static" / "pc-core.css").read_text()
+    base = Path(__file__).resolve().parents[1] / "carassistant" / "app" / "carassistant" / "static"
+    js = (base / "push.js").read_text()
+    assert "sayInfo" not in js and "push-ico" not in js and "location.host" not in js and "a.href" not in js
+    css = (base / "pc-core.css").read_text()
     assert (
         ".push-box [hidden] { display: none !important; }" in css
     )  # the buttons have their own display: without this rule "hidden" left them on the page
     for lang in ("en", "de"):
         t = i18n.translator(lang)
-        assert "Needs an https address." != t("push.https_only") != "Braucht eine https-Adresse."  # no bare "needs an address"
+        assert "https" in t("notify.user_intro") and "https" in t("notify.user_intro_ext")  # the one sentence says it
+        assert t("notify.user_intro_ext") != t("notify.user_intro")
     monkeypatch.setattr(ha, "network_port", lambda: (True, 8321))
     with db.tx() as conn:
         accounts.create_user(conn, "owner", "A-very-Long-Passw0rd!x", admin=True)
     ha._cache.clear()
+    before = client.get("/settings/user").text
     client.post("/settings/external-url", data={"host": "auto.example.com"})
     page = client.get("/settings/user").text
-    assert 'data-https="' in page and "data-ext=" not in page and "data-open-now" not in page and 'id="push-ico"' in page
+    assert 'data-https="' not in page and "data-ext=" not in page and 'id="push-ico"' not in page
+    assert page.count(i18n.translator("de")("notify.user_intro")) + page.count(i18n.translator("en")("notify.user_intro")) == 1
+    assert before.count("notify.user_intro_ext") == 0  # (a text key never shows up in a page)
 
 
 def test_a_manual_trip_is_checked_for_sense(client):

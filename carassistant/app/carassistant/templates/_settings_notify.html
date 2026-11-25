@@ -19,11 +19,10 @@
   {% if not acct_me %}
     <p class="hint">{{ icon('info', 14) }} {{ _('notify.user_need') }}</p>
   {% else %}
-  <p class="hint">{{ icon('info', 14) }} {{ _('notify.user_intro') }}</p>
+  <p class="hint">{{ icon('info', 14) }} {{ _('notify.user_intro' if ext_set else 'notify.user_intro_ext') }}</p>
   {% if port_on %}
-  <div id="push-box" class="push-box" data-base="{{ base }}" data-unsupported="{{ _('push.unsupported') }}" data-ios="{{ _('push.ios_home') }}" data-failed="{{ _('push.failed') }}" data-https="{{ _('push.https_only') }}" data-denied="{{ _('push.denied') }}" data-label-on="{{ _('push.enable') }}" data-label-off="{{ _('push.disable') }}">
-    {% if not ext_set %}<p class="hint">{{ icon('info', 14) }} {{ _('ext.needed') }}</p>{% endif %}
-    <p class="acct-msg" id="push-msg" hidden></p><template id="push-ico">{{ icon('info', 14) }}</template>
+  <div id="push-box" class="push-box" data-base="{{ base }}" data-unsupported="{{ _('push.unsupported') }}" data-ios="{{ _('push.ios_home') }}" data-failed="{{ _('push.failed') }}" data-denied="{{ _('push.denied') }}" data-label-on="{{ _('push.enable') }}" data-label-off="{{ _('push.disable') }}">
+    <p class="acct-msg" id="push-msg" hidden></p>
     {% if push_devices %}<div class="ar-v">{% for d in push_devices %}<span class="chip-pk">{{ icon('bell', 14) }} {{ d.label or _('push.device') }} <small class="muted">{{ d.created_at[:10] }}</small>
       <form method="post" action="{{ base }}/settings/push/{{ d.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% endfor %}</div>
     {% else %}<div class="empty-state">{{ icon('bell-outline', 20) }}<p>{{ _('push.no_devices') }}</p></div>{% endif %}

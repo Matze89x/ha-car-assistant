@@ -264,6 +264,27 @@ MEASURE = r"""
     if (before.length) { out.push('an explanation stands below the content of its window, not at the top ("' + title + '"): "' + name(h) + '"'); }
   });
 
+  /* ONE explanation with the info symbol per window (docs/design.md, 4c): at the top of a window (before anything to touch) there is one such sentence - two are put together, or only the one that applies is shown */
+  document.querySelectorAll('.card, .sub-card').forEach(function (win) {
+    if (!vis(win) || win.closest('dialog, [hidden], .lm-detail, .lmz-detail')) { return; }
+    var first = Array.prototype.slice.call(win.querySelectorAll('input:not([type=hidden]), select, textarea, button, .nm-row, .mk-field, .fld, .switch, a.button')).filter(vis)[0];
+    var hints = Array.prototype.slice.call(win.querySelectorAll('p.hint')).filter(function (p) {
+      var s = p.querySelector('svg path');
+      return vis(p) && (p.textContent || '').trim() && s && s.getAttribute('d') === INFO && p.closest('.card, .sub-card') === win && !p.closest('.addon-field, .nm-thr, details') && (!first || (p.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING));
+    });
+    if (hints.length > 1) { out.push('a window shows ' + hints.length + ' explanations with an info symbol at its top - put them together into one ("' + ((win.querySelector('h2, .sub-h') || win).textContent || '').trim().replace(/\s+/g, ' ').slice(0, 30) + '")'); }
+  });
+
+  /* a switch that ends its card: its text stands in the middle between the line above it and the edge of the card (not more air below than above) */
+  document.querySelectorAll('.card').forEach(function (c) {
+    if (!vis(c) || c.closest('dialog, [hidden]')) { return; }
+    var row = c.querySelector(':scope > label.nm-row.sw-row:last-child, :scope > form:last-child > label.nm-row.sw-row:last-child');
+    if (!row || !vis(row) || parseFloat(getComputedStyle(row).borderTopWidth) < 1) { return; }
+    var tr = row.querySelector('.nm-t').getBoundingClientRect(), rr = row.getBoundingClientRect(), cr = c.getBoundingClientRect(), cs = getComputedStyle(c);
+    var above = tr.top - rr.top - 1, below = cr.bottom - parseFloat(cs.borderBottomWidth) - tr.bottom;
+    if (Math.abs(above - below) > 3) { out.push('the text of a switch at the end of a card is not centred between its line and the card edge (' + Math.round(above) + ' px above, ' + Math.round(below) + ' px below): "' + name(row) + '"'); }
+  });
+
   /* rows that stand directly one under the other have a line between them (docs/design.md, 4c): a missing line is a rendering bug the eye sees at once */
   (function () {
     var ROWS = '.nm-row, .rg-row, .about-row, .icon-row, .odo-hrow, .ifc-row, .addon-value, .tpl-row, .acct-users > li, .lm-tiles > li, .wa-list > .mk-field, .sub-card .mk-field';

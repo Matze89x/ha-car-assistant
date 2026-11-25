@@ -433,7 +433,7 @@ def test_an_empty_sub_window_shows_the_compact_empty_state_and_a_create_button()
     assert (
         len(
             re.findall(
-                r"\n\.sub-card \.empty-state, \.lm-detail \.empty-state, \.lmz-detail \.empty-state, \.push-box \.empty-state, \.sys-state\.empty-state \{",
+                r"\n\.sub-card \.empty-state, \.card > \.empty-state, \.lm-detail \.empty-state, \.lmz-detail \.empty-state, \.push-box \.empty-state, \.sys-state\.empty-state \{",
                 css,
             )
         )
@@ -495,3 +495,20 @@ def test_the_car_settings_use_sub_windows_like_every_other_page_and_the_range_fo
     assert foot.index("range-last") < foot.index("</div>\n  {% endif %}"), "both lines live in the one row"
     assert re.search(r"\.range-foot \{[^}]*display: flex[^}]*justify-content: space-between", css)
     assert re.search(r"\.range-foot \.range-last \{[^}]*margin-left: auto[^}]*white-space: nowrap", css)
+
+
+def test_one_explanation_per_window_is_a_rule_of_the_book_and_of_the_check():
+    """Two hints with the info symbol under each other are put together (docs/design.md, 4c); the check measures it and the notification card, the web-app
+    card, the account card, the online services and the backup have each ONE hint now (the texts have a variant for the case that applies)."""
+    tpl = TEMPLATES
+    check = (tpl.parents[3] / "tools" / "check_ui.py").read_text(encoding="utf-8")
+    assert "explanations with an info symbol at its top" in check and "not centred between its line and the card edge" in check
+    for name in ("design.md", "design.de.md"):
+        assert "check_ui.py" in (tpl.parents[3] / "docs" / name).read_text(encoding="utf-8")
+    notify = (tpl / "_settings_notify.html").read_text(encoding="utf-8")
+    assert "notify.user_intro_ext" in notify and "ext.needed" not in notify and "push-ico" not in notify
+    assert "account.intro_strict" in (tpl / "_account.html").read_text(encoding="utf-8")
+    user = (tpl / "_settings_user.html").read_text(encoding="utf-8")
+    assert "webapp.steps" not in user and user.count("webapp.text") == 1
+    system = (tpl / "_settings_system.html").read_text(encoding="utf-8")
+    assert "settings.fuel_moved" not in system and "settings.backup_codes" not in system

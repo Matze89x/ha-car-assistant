@@ -151,7 +151,6 @@
 <section class="card" id="online">
   <h2>{{ icon('map-marker-radius') }} {{ _('sys.online') }}</h2>
   <p class="hint">{{ icon('info', 14) }} {{ _('sys.online_hint') }}</p>
-  <p class="hint">{{ icon('info', 14) }} {{ _('settings.fuel_moved') }}</p>
   <form method="post" action="{{ base }}/settings/map" data-live id="map">
     {{ switch_row('tiles', _('settings.map_tiles'), map_tiles, hint=_('settings.map_hint')) }}
   </form>
@@ -168,7 +167,6 @@
 <section class="card" id="backup">
   <h2>{{ icon('download') }} {{ _('settings.backup') }}</h2>
   <p class="hint">{{ icon('info', 14) }} {{ _('settings.backup_hint') }}</p>
-  <p class="hint">{{ icon('info', 14) }} {{ _('settings.backup_codes') }}</p>
   <p><a class="button" href="{{ base }}/settings/backup.zip">{{ icon('download', 16) }} {{ _('settings.download') }}</a></p>
   {{ sub_h('upload', _('settings.restore')) }}
   <form method="post" enctype="multipart/form-data" action="{{ base }}/settings/restore" class="acct-form" data-confirm="{{ _('confirm.restore') }}">

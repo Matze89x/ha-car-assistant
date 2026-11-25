@@ -12,8 +12,7 @@
     </form>
   {% else %}
     <h2>{{ icon('account') }} {{ _('account.title') }} {% if acct_me %}{% if acct_port == 'off' %}<span class="badge">{{ _('account.badge_off') }}</span>{% else %}<span class="badge ok">{{ _('account.badge_on') }}</span>{% endif %}{% endif %}</h2>
-    <p class="hint">{{ icon('info', 14) }} {{ _('account.intro') }}</p>
-    {% if acct_strict %}<p class="hint acct-strict">{{ icon('info', 14) }} {{ _('account.strict_on') }}</p>{% endif %}
+    <p class="hint">{{ icon('info', 14) }} {{ _('account.intro_strict' if acct_strict else 'account.intro') }}</p>
     {% if acct_me %}
     <div class="sub-card">
       {{ sub_h('account', _('account.you')) }}

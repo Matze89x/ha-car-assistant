@@ -1563,7 +1563,6 @@ label.button.pk-btn { position: relative; }
 .acct-who { display: grid; min-width: 0; flex: 1; }
 .acct-who b { font-size: 16px; overflow-wrap: anywhere; }
 .acct-who small { color: var(--muted); }
-.acct-strict { margin: -4px 0 0; }
 .acct-rows, .acct-users { list-style: none; margin: 0; padding: 0; display: grid; }
 .acct-rows > li, .acct-users > li { padding: 10px 0; border-top: 1px solid var(--glass-b); }
 .ar-line { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
@@ -1583,8 +1582,8 @@ label.button.pk-btn { position: relative; }
 }
 .sub-card .ar-l { flex-basis: 7.5rem; }
 .acct > .sub-card { margin-top: 0; }  /* the card is a grid: its gap (the same token) spaces the windows */
-.sub-card .empty-state, .lm-detail .empty-state, .lmz-detail .empty-state, .push-box .empty-state, .sys-state.empty-state { display: flex; flex: 1 1 100%; align-items: center; justify-content: center; gap: 8px; padding: 6px 0; }  /* nothing there yet, inside a sub-window: the symbol in front of ONE centred sentence; the button that creates it follows bottom right */
-.sub-card .empty-state p, .lm-detail .empty-state p, .lmz-detail .empty-state p, .push-box .empty-state p, .sys-state.empty-state p { margin: 0; max-width: none; }
+.sub-card .empty-state, .card > .empty-state, .lm-detail .empty-state, .lmz-detail .empty-state, .push-box .empty-state, .sys-state.empty-state { display: flex; flex: 1 1 100%; align-items: center; justify-content: center; gap: 8px; padding: 6px 0; }  /* nothing there yet, inside a sub-window: the symbol in front of ONE centred sentence; the button that creates it follows bottom right */
+.sub-card .empty-state p, .card > .empty-state p, .lm-detail .empty-state p, .lmz-detail .empty-state p, .push-box .empty-state p, .sys-state.empty-state p { margin: 0; max-width: none; }
 #pk-add-box { margin-left: auto; }
 .ar-hint { margin: 6px 0 0; }
 .acct-form { display: grid; gap: 10px; }
@@ -2814,8 +2813,6 @@ html.is-app .page-head:not(:has(.ph-s:not([data-car]))) { min-height: var(--head
 .nm-tabs a > span { max-width: 16em; overflow: hidden; text-overflow: ellipsis; }  /* a long car name does not push the other tabs away */
 .sub-card .nm-new-hint, .sub-card .nm-gen-hint { margin: 0 0 6px; }
 .push-box [hidden] { display: none !important; }  /* the buttons carry their own display: without this the script's hidden did nothing and a switch that cannot work stayed on the page */
-.push-where { margin: 8px 0 0; overflow-wrap: anywhere; }
-.push-where a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }  /* the https address to go to: a link that looks like one */
 .nm-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .nm-actions form { margin: 0; }
 .nm-actions button { white-space: nowrap; }
@@ -3040,7 +3037,7 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 /* every switch row has a line above AND below; two rows (or two forms with a row each) share one line; text after a row gets air */
 label.nm-row.sw-row, .card label.nm-row.sw-row, form label.nm-row.sw-row { border-top: 1px solid var(--glass-b); }
 .sub-card .nm-row, .card .sub-card label.nm-row.sw-row, form .sub-card label.nm-row.sw-row { border-bottom: 0; }  /* the lines of a list stand BETWEEN its rows: none after the last one (docs/design.md, 4c) */
-.card > label.nm-row.sw-row:last-child, .card > form:last-child > label.nm-row.sw-row:last-child { border-bottom: 0; padding-bottom: 0; min-height: 44px; }  /* a switch that ends its card: no line at the bottom edge, and no extra air under it (the card's own padding is enough) */
+.card > label.nm-row.sw-row:last-child, .card > form:last-child > label.nm-row.sw-row:last-child { border-bottom: 0; padding-bottom: 0; padding-top: calc(var(--sp-card) - 1px); min-height: 0; }  /* the same air above the text (line + padding) as below it (the card's padding): the text stands in the middle between its line and the card's edge */  /* a switch that ends its card: no line at the bottom edge, and no extra air under it (the card's own padding is enough) */
 .card .sub-card label.nm-row.sw-row:first-child, .card .sub-card :is(.hint, .sub-h, .seg-tabs) + label.nm-row.sw-row, form .sub-card label.nm-row.sw-row:first-child, form .sub-card :is(.hint, .sub-h, .seg-tabs) + label.nm-row.sw-row { border-top: 0; }  /* ... and none above the first one */
 .acct-users > li:first-child, .acct-rows > li:first-child { border-top: 0; }
 .acct-users:has(+ .form-bar) { margin-bottom: 10px; border-bottom: 1px solid var(--glass-b); }  /* the list of people, a line, then the button that adds one */
