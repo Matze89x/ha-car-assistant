@@ -51,7 +51,7 @@ def _source(addon: dict, path: str) -> Path | None:
 def read_file(addon: dict, name: str) -> tuple[bytes, str] | None:
     """(bytes, content type) of a file, checked against its checksum once more; None when it is not there or does not match."""
     meta = next((f for f in addon["m"].get("files", []) if f["name"] == name), None)
-    if meta is None:
+    if meta is None or meta.get("hidden"):  # a hidden file is never handed out
         return None
     path = pluginsvc.asset_dir(addon["addon_id"], addon["pkg_sha"]) / name
     try:
@@ -104,8 +104,9 @@ def bundle_info(addon: dict, bundle: dict) -> dict:
     return _bundle_cache[key]
 
 
-def listing(addon: dict, offered: bool) -> list[dict]:
-    """The files and bundles of a package for the pages: name, label, note, size, checksum, and (when approved) the address to fetch them."""
+def listing(addon: dict, offered: bool, with_hidden: bool = False) -> list[dict]:
+    """The files and bundles of a package for the pages: name, label, note, size, checksum, and (when approved) the address to fetch them.
+    A hidden file (``hidden: true``) is left out - except on the approval page (``with_hidden``), which lists everything with its checksum."""
     rows = []
     vals = addon.get("vals") or {}
 
@@ -115,6 +116,8 @@ def listing(addon: dict, offered: bool) -> list[dict]:
         return {"version": item.get("version", ""), "have": have, "state": addons.version_state(have, item.get("version", ""))}
 
     for f in addon["m"].get("files", []):
+        if f.get("hidden") and not with_hidden:
+            continue
         rows.append(
             {
                 "name": f["name"],
@@ -123,7 +126,8 @@ def listing(addon: dict, offered: bool) -> list[dict]:
                 "size": f["size"],
                 "sha256": f["sha256"],
                 "kind": "file",
-                "href": f"/plugins/{addon['addon_id']}/files/{f['name']}" if offered else "",
+                "hidden": bool(f.get("hidden")),
+                "href": f"/plugins/{addon['addon_id']}/files/{f['name']}" if offered and not f.get("hidden") else "",
                 **versions(f),
             }
         )

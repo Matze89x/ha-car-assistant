@@ -260,6 +260,13 @@ def check(target: Path) -> tuple[list[str], list[str]]:
             for e in b["entries"]:
                 if e["from"] not in known and not (folder / e["from"]).is_file():
                     errors.append(f"Bundle '{b['name']}': '{e['from']}' is not a file of the package.")
+        in_bundle = {e["from"] for b in manifest.get("bundles", []) for e in b["entries"]}
+        reader = (manifest.get("service") or {}).get("files") == "read"
+        for f in manifest.get("files", []):  # a hidden file nobody can use is a mistake
+            if f.get("hidden") and not reader and f["path"] not in in_bundle:
+                notes.append(
+                    f'File \'{f["name"]}\' is hidden, but nothing can use it: add "files": "read" to the service, or put it into a bundle.'
+                )
         names = {f["name"] for f in manifest.get("files", [])} | {b["name"] for b in manifest.get("bundles", [])}
         for ref in re.findall(r"\{file:([^}]+)\}", data.get("docs", "") if isinstance(data.get("docs"), str) else ""):
             if ref not in names:

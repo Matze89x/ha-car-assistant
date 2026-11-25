@@ -10,6 +10,7 @@
     <p><span class="rv-l">{{ _('svc.routes') }}</span>{% if service.routes %}{% for r in service.routes %}<code>{{ r.prefix }}</code> {{ (_('svc.public_token', header=r.token_header) if r.token_header else _('svc.public')) if r.public else _('svc.local') }}{{ ' · ' if not loop.last }}{% endfor %}{% else %}{{ _('svc.none') }}{% endif %}</p>
     <p><span class="rv-l">{{ _('svc.connects') }}</span>{% if service.connects %}{% for h in service.connects %}<code>{{ h }}</code> {% endfor %}{% else %}{{ _('svc.connects_none') }}{% endif %}</p>
     {% if service.env %}<p><span class="rv-l">{{ _('svc.env') }}</span>{% for k, val in service.env.items() %}<code>{{ k }}={{ val }}</code> {% endfor %}</p>{% endif %}
+    {% if service.files == 'read' %}<p><span class="rv-l">{{ _('svc.reads_files') }}</span>{% for f in m.files or [] %}<code>{{ f.name }}</code> <small>sha256 {{ f.sha256[:12] }}…</small> {% else %}{{ _('svc.none') }}{% endfor %}</p>{% endif %}
     {% endif %}
   </div>
   {% else %}
@@ -22,6 +23,7 @@
     <dt>{{ _('svc.routes') }}</dt><dd>{% if service.routes %}{% for r in service.routes %}<code>{{ r.prefix }}</code> – {{ (_('svc.public_token', header=r.token_header) if r.token_header else _('svc.public')) if r.public else _('svc.local') }}<br>{% endfor %}{% else %}{{ _('svc.none') }}{% endif %}</dd>
     <dt>{{ _('svc.connects') }}</dt><dd>{% if service.connects %}{% for h in service.connects %}<code>{{ h }}</code> {% endfor %}{% else %}{{ _('svc.connects_none') }}{% endif %}<br><small>{{ _('svc.connects_hint') }}</small></dd>
     <dt>{{ _('svc.env') }}</dt><dd>{% if service.env %}{% for k, val in service.env.items() %}<code>{{ k }}={{ val }}</code> {% endfor %}{% else %}{{ _('svc.none') }}{% endif %}</dd>
+    {% if service.files == 'read' %}<dt>{{ _('svc.reads_files') }}</dt><dd>{% for f in m.files or [] %}<code>{{ f.name }}</code> <small>{{ f.size|filesizeformat }} · sha256 {{ f.sha256[:12] }}…</small><br>{% else %}{{ _('svc.none') }}{% endfor %}<small>{{ _('svc.reads_files_hint') }}</small></dd>{% endif %}
     {% endif %}
   </dl>
   {% endif %}

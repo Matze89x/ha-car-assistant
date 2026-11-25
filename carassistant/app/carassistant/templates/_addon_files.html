@@ -3,7 +3,7 @@
 {% macro file_rows(rows) %}
 {% for f in rows %}
 <div class="ifc-row">
-  <div class="ifc-head"><b>{{ f.label }}</b>{% if f.kind == 'bundle' %}<span class="badge">{{ _('fil.bundle') }}</span>{% endif %}</div>
+  <div class="ifc-head"><b>{{ f.label }}</b>{% if f.kind == 'bundle' %}<span class="badge">{{ _('fil.bundle') }}</span>{% endif %}{% if f.hidden %}<span class="badge">{{ _('fil.hidden') }}</span>{% endif %}</div>
   <div class="actions pk-actions">{% if f.href %}<a class="button pk-btn" href="{{ base }}{{ f.href }}" download>{{ icon('download', 18) }}<span>{{ f.name }}</span></a>{% else %}<code class="ifc-path">{{ f.name }}</code>{% endif %}</div>
   <small class="muted">{% if f.size %}{{ f.size|filesizeformat }} · {% endif %}{% if f.sha256 %}sha256 <code>{{ f.sha256[:12] }}…</code>{% else %}{{ _('fil.on_demand') }}{% endif %}</small>
   {% if f.version or f.have %}<div class="fv">{% if f.version %}<span>{{ _('addon.fv_ready') }} <b>{{ f.version }}</b></span>{% endif %}{% if f.have %}<span>{{ _('addon.fv_car') }} <b>{{ f.have }}</b></span>{% endif %}{% if f.state == 'update' %}<span class="badge soon">{{ _('addon.fv_update') }}</span>{% elif f.state == 'current' %}<span class="badge ok">{{ _('addon.fv_current') }}</span>{% elif f.state == 'newer' %}<span class="badge">{{ _('addon.fv_newer') }}</span>{% endif %}</div>{% endif %}

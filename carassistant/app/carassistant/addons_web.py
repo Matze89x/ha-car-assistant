@@ -1151,7 +1151,7 @@ def service_page(request: Request, vid: int, aid: int):
             addon=addon,
             service=service,
             files=code,
-            pkg_files=assets.listing(addon, False),
+            pkg_files=assets.listing(addon, False, with_hidden=True),
             approved=pluginsvc.approved(addon),
             problems=pluginsvc.check_routes(conn, addon) if service else [],
             may=_may_manage(request),

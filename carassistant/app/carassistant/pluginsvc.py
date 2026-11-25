@@ -143,6 +143,51 @@ def asset_dir(addon_id: str, sha: str) -> Path:
     return files_root() / addon_id / sha[:16]
 
 
+def files_view_dir(addon_id: str, sha: str) -> Path:
+    """The files of a package for a service that says ``"files": "read"``: a read-only copy next to its code (a service reaches that folder, never
+    ``plugin-files``)."""
+    return root() / addon_id / "files" / sha[:16]
+
+
+def _unlock(path: Path) -> None:
+    """Read-only folders and files made removable again (before they are deleted)."""
+    for p in [path, *path.rglob("*")]:
+        with contextlib.suppress(OSError):
+            os.chmod(p, 0o755 if p.is_dir() else 0o644)
+
+
+def ensure_files_view(addon: dict) -> Path | None:
+    """For a service with ``"files": "read"``: the approved files of the package, read-only and under their names, in ``files_view_dir``. Every file is
+    checked against its checksum and size when it is copied. None when the service does not ask for it, the package has no files, or one of them
+    does not match (the service then starts without ``CA_FILES_DIR``)."""
+    files = (addon.get("m") or {}).get("files") or []
+    if (service_of(addon) or {}).get("files") != "read" or not files or not addon.get("pkg_sha"):
+        return None
+    dest = files_view_dir(addon["addon_id"], addon["pkg_sha"])
+    if dest.is_dir() and all((dest / f["name"]).is_file() and (dest / f["name"]).stat().st_size == f["size"] for f in files):
+        return dest
+    src, tmp = asset_dir(addon["addon_id"], addon["pkg_sha"]), dest.with_name(dest.name + ".tmp")
+    _unlock(tmp)
+    shutil.rmtree(tmp, ignore_errors=True)
+    try:
+        tmp.mkdir(parents=True)
+        for f in files:
+            data = (src / f["name"]).read_bytes()
+            if len(data) != f["size"] or hashlib.sha256(data).hexdigest() != f["sha256"]:
+                raise ValueError("checksum")
+            (tmp / f["name"]).write_bytes(data)
+            os.chmod(tmp / f["name"], 0o444)  # read-only, never executable
+        os.chmod(tmp, 0o555)  # noqa: S103 - read and enter, nobody writes
+        _unlock(dest)
+        shutil.rmtree(dest, ignore_errors=True)
+        tmp.replace(dest)
+    except (OSError, ValueError):
+        _unlock(tmp)
+        shutil.rmtree(tmp, ignore_errors=True)
+        return None
+    return dest
+
+
 def store_package(
     addon_id: str, raw: bytes, sha: str, entry: str | None = None, files: list[dict] | None = None, bundles: list[dict] | None = None
 ) -> None:
@@ -406,6 +451,7 @@ def _prepare_run(conn, addon: dict) -> tuple[Path, str]:
     folder.mkdir(parents=True, exist_ok=True)
     os.chmod(folder, 0o700)
     _own(folder, addon["id"])
+    ensure_files_view(addon)  # a service that reads the files of its package gets them, read-only (CA_FILES_DIR)
     token_file = folder / ".token"
     token = token_file.read_text().strip() if token_file.is_file() else ""
     if addon["kind"] == "integration":  # an integration has no token and cannot call the Plugin API: just its own data folder
@@ -480,6 +526,8 @@ def _env(addon: dict, folder: Path, token: str, port: int) -> dict[str, str]:
         "CA_DATA_DIR": str(folder),
         "CA_PORT": str(port),
     }
+    if service.get("files") == "read" and addon.get("pkg_sha") and files_view_dir(addon["addon_id"], addon["pkg_sha"]).is_dir():
+        env["CA_FILES_DIR"] = str(files_view_dir(addon["addon_id"], addon["pkg_sha"]))  # the approved files of the package, read-only
     for name, template in service.get("env", {}).items():
         env[name] = re.sub(r"\{([a-z][a-z0-9_]*)\}", lambda m: str(addon["vals"].get(m.group(1), "")), template)
     return env
@@ -822,6 +870,7 @@ def forget(addon: dict) -> None:
     with db.tx() as conn:
         others = conn.execute("SELECT 1 FROM vehicle_addons WHERE addon_id = ? AND id != ?", (addon["addon_id"], addon["id"])).fetchone()
     if not others:
+        _unlock(root() / addon["addon_id"] / "files")  # the read-only copies for the service
         shutil.rmtree(root() / addon["addon_id"], ignore_errors=True)
         folder = files_root() / addon["addon_id"]
         for p in [folder, *folder.rglob("*")]:  # the files are read-only: make them removable first

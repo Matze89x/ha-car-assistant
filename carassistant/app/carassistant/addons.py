@@ -146,9 +146,13 @@ def clean_service(raw: object) -> dict | None:
     token = raw.get("token")
     if token is not None and not isinstance(token, bool):  # ``false`` = a service without a token; anything but a yes/no is refused
         raise AddonError("addon.err_service")
+    files = raw.get("files")
+    if files is not None and files != "read":  # ``"read"``: the service may READ the files of the package; nothing else exists
+        raise AddonError("addon.err_service")
     return {
         "entry": entry,
         **({"token": False} if token is False else {}),
+        **({"files": "read"} if files == "read" else {}),
         **({"python": python.replace(" ", "")} if python else {}),
         "requirements": [r.replace(" ", "") for r in reqs],
         "routes": routes,
@@ -344,6 +348,9 @@ def clean_files(raw) -> list[dict]:
             raise AddonError("addon.err_files")
         name, path = item.get("name"), _safe_path(item.get("path"))
         sha, size = item.get("sha256"), item.get("size")
+        hidden = item.get("hidden")
+        if hidden is not None and not isinstance(hidden, bool):  # a yes / no; anything else refuses the package
+            raise AddonError("addon.err_files")
         ext = ("." + name.rsplit(".", 1)[-1].lower()) if isinstance(name, str) and "." in name else ""
         if (
             not isinstance(name, str)
@@ -368,6 +375,7 @@ def clean_files(raw) -> list[dict]:
                 "note": _text(item, "note", 300),
                 "sha256": sha.lower(),
                 "size": size,
+                **({"hidden": True} if hidden else {}),  # not offered as a download; only a service that reads the files sees it
                 **_file_version(item),
             }
         )
@@ -442,7 +450,9 @@ def approval_fingerprint(manifest: dict) -> str:
 
     thing = {
         "service": manifest.get("service"),
-        "files": [(f["name"], f["sha256"], f["size"]) for f in manifest.get("files", [])],
+        "files": [
+            (f["name"], f["sha256"], f["size"], *((True,) if f.get("hidden") else ())) for f in manifest.get("files", [])
+        ],  # a hidden file is part of what is approved (only then: approvals given before stay valid)
         "bundles": [
             {k: v for k, v in b.items() if k not in ("version", "installed")} for b in manifest.get("bundles", [])
         ],  # the version a bundle is shown with is no part of what is approved

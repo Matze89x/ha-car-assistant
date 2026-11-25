@@ -65,7 +65,7 @@
   <div class="pkg-body">
     <p class="hint">{{ icon('info', 14) }} {{ _('fil.install_hint') }}</p>
     <ul class="pkg-rows">
-    {% for f in manifest.files or [] %}<li class="pkg-row"><b>{{ f.label }}</b><small><code>{{ f.name }}</code> · {{ f.size|filesizeformat }} · sha256 <code>{{ f.sha256[:12] }}…</code></small></li>{% endfor %}
+    {% for f in manifest.files or [] %}<li class="pkg-row"><b>{{ f.label }}{% if f.hidden %} <span class="badge">{{ _('fil.hidden') }}</span>{% endif %}</b><small><code>{{ f.name }}</code> · {{ f.size|filesizeformat }} · sha256 <code>{{ f.sha256[:12] }}…</code></small></li>{% endfor %}
     {% for b in manifest.bundles or [] %}<li class="pkg-row"><b>{{ b.label }}</b><small><code>{{ b.name }}</code> · {{ _('fil.bundle') }} · {{ b.entries|length }}</small></li>{% endfor %}
     </ul>
   </div>
