@@ -39,7 +39,7 @@ Eine Integration kann in ihrer `plugin.json` **Seiten** beschreiben. Car Assista
 - Eine Integration hat einen **Ein/Aus-Schalter** auf ihrer Karte (und in der Liste unter *Navigation verwalten*): ausgeschaltet sind ihre Seite und ihr Eintrag unter *Weiteres* weg und die Karte bietet kein *Öffnen* an; die Einträge bleiben und sind beim Einschalten wieder da. Ob sie in der Leiste oder unter *Weiteres* steht, stellst du unter *Navigation verwalten* ein.
 - Ein Plugin desselben Autos liest die Einträge mit `GET /api/v1/vehicles/<id>/modules/<integration>/<page>` ([Plugin-API](api.de.md)).
 
-Offizielle Beispiele liegen im [Quellen-Repository](https://github.com/Matze89x/ha-car-assistant-sources): *Coding* (Steuergeräte, Original neben aktueller Codierung) und *Additiv* (ein Additiv-Plan für den Kraftstoff).
+Offizielle Beispiele liegen im [Quellen-Repository](https://github.com/Matze89x/ha-car-assistant-sources): *Coding* (Steuergeräte, Werkswert neben aktueller Codierung) und *Additiv* (ein Additiv-Plan für den Kraftstoff).
 
 
 ### Zugangscodes (`secret`)

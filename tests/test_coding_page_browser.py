@@ -163,7 +163,7 @@ def test_groups_and_notes_survive_saving(coding):
     b.run(
         """(function () {
       var u = document.querySelector('.pm-unit'), name = u.querySelector('li[data-bit="1"] .pm-bnote');
-      name.value = 'Language'; name.dispatchEvent(new Event('input', { bubbles: true }));
+      name.value = 'Language <b>&"x"'; name.dispatchEvent(new Event('input', { bubbles: true }));
       var note = u.querySelector('li[data-bit="3"] .pm-bnote');
       note.value = 'Comfort mode'; note.dispatchEvent(new Event('input', { bubbles: true }));
     })()"""
@@ -188,7 +188,9 @@ def test_groups_and_notes_survive_saving(coding):
         )
     )
     assert got["label"] == "Bit 1+2" and got["second"], got  # the group is still ONE block
-    assert got["name"] == "Language" and got["note"] == "Comfort mode", got  # the name of the group and the note of a single bit came back
+    assert got["name"] == 'Language <b>&"x"' and got["note"] == "Comfort mode", (
+        got
+    )  # the name of the group (with characters that mean something in HTML) and the note of a bit came back as typed
     assert got["big"] == "Bit 4–6" and got["firstByte"], got  # the second group, and byte 0 chosen again
     assert got["resetDisabled"] and not got["unsaved"], got  # just loaded: nothing unsaved
 

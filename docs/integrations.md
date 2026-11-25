@@ -39,7 +39,7 @@ An integration may describe **pages** in its `plugin.json`. Car Assistant draws 
 - An integration has an **on/off switch** on its card (and in the list under *Manage navigation*): switched off, its page and its entry in *More* are gone and the card offers no *Open*; the entries are kept and come back when it is switched on again. Whether it sits in the bar or in *More* is chosen under *Manage navigation*.
 - A plugin of the same car reads the entries with `GET /api/v1/vehicles/<id>/modules/<integration>/<page>` ([Plugin API](api.md)).
 
-Official examples live in the [sources repository](https://github.com/Matze89x/ha-car-assistant-sources): *Coding* (control units, original next to current coding) and *Additive* (a plan for the fuel additive).
+Official examples live in the [sources repository](https://github.com/Matze89x/ha-car-assistant-sources): *Coding* (control units, factory value next to current coding) and *Additive* (a plan for the fuel additive).
 
 
 ### Access codes (`secret`)
