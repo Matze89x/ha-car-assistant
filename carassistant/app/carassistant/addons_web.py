@@ -392,15 +392,21 @@ def addons_update(request: Request, vid: int, aid: int):
         return denied
     with db.tx() as conn:
         addon = addons.get(conn, vid, aid)
-        if addon is None or addon["source_id"] is None:
+        if addon is None:
             return go(request, f"/v/{vid}/integrations", "addon.err_id")
+        source_id = addon["source_id"]
+        if source_id is None:  # installed without a source: a source that offers a NEWER version takes it over
+            offer = addons.unlinked_offer(conn, addon)
+            if offer is None or not sources.is_newer(offer["version"], addon["m"].get("version", "")):
+                return go(request, f"/v/{vid}/integrations", "addon.err_id")
+            source_id = offer["source_id"]
     try:
         with db.tx() as conn:
-            manifest = sources.fetch_manifest(conn, addon["source_id"], addon["kind"], addon["addon_id"])
-        sha = _fetch_service_package(manifest, addon["source_id"], addon["kind"], addon["addon_id"])
+            manifest = sources.fetch_manifest(conn, source_id, addon["kind"], addon["addon_id"])
+        sha = _fetch_service_package(manifest, source_id, addon["kind"], addon["addon_id"])
         with db.tx() as conn:
             was_approved = pluginsvc.approved(addon)
-            addons.update_manifest(conn, addon, manifest, sha)
+            addons.update_manifest(conn, addon, manifest, sha, source_id)
             if (
                 sha and was_approved
             ):  # the administrator allowed this package when installing it and now pressed Update: the allowance carries over

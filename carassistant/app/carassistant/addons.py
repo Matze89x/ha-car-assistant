@@ -1344,7 +1344,10 @@ def _newer_versions(conn: sqlite3.Connection, rows: list[sqlite3.Row]) -> dict[i
     """For installed packages that came from a source: the version that source offers now (by addon row id)."""
     out: dict[int, str] = {}
     for r in rows:
-        if r["source_id"] is None:
+        if r["source_id"] is None:  # installed without a source (a file, an older built-in offer): a source that offers it can update it
+            offer = unlinked_offer(conn, r) if r["status"] != "missing" else None
+            if offer:
+                out[r["id"]] = offer["version"]
             continue
         found = conn.execute(
             "SELECT version FROM source_packages WHERE source_id = ? AND kind = ? AND pkg_id = ?",
@@ -1353,6 +1356,20 @@ def _newer_versions(conn: sqlite3.Connection, rows: list[sqlite3.Row]) -> dict[i
         if found:
             out[r["id"]] = found["version"]
     return out
+
+
+def unlinked_offer(conn: sqlite3.Connection, r) -> sqlite3.Row | None:
+    """For a package installed WITHOUT a source (a file, an older built-in offer): the newest version that any source of its list offers
+    (``source_id``, ``version``, ``name`` of the source), or None. An update takes the package from there - and links it to that source."""
+    from .sources import version_key
+
+    flag = "for_plugin" if r["kind"] == "plugin" else "for_integration"
+    found = conn.execute(
+        f"SELECT p.source_id, p.version, s.name FROM source_packages p JOIN sources s ON s.id = p.source_id "
+        f"WHERE p.kind = ? AND p.pkg_id = ? AND s.{flag} = 1 AND p.version != ''",
+        (r["kind"], r["addon_id"]),
+    ).fetchall()
+    return max(found, key=lambda o: version_key(o["version"]), default=None)
 
 
 def _need(conn: sqlite3.Connection, r: sqlite3.Row) -> dict:
@@ -1437,6 +1454,9 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
                 "title": ((manifest["setup"].get("l10n") or {}).get(lang) or {}).get("title") or manifest["setup"]["title"],
             }
         offered = latest.get(r["id"], "")
+        offer = (
+            unlinked_offer(conn, r) if offered and r["source_id"] is None else None
+        )  # where an update of a package without a source comes from
         need = _need(conn, r) if r["status"] == "missing" else None
         defaults = {f["key"]: f["default"] for f in manifest.get("settings", []) if "default" in f}
         secret = {f["key"] for f in manifest.get("settings", []) if f.get("type") == "password"}
@@ -1468,6 +1488,7 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
                 "latest": offered,
                 "has_update": is_newer(offered, manifest.get("version", "")),
                 "source_name": names.get(r["source_id"]),
+                "offer_source": offer["name"] if offer else None,
                 "debug": connectors.plugin_debug(conn, vehicle_id, r["addon_id"]),
                 "debug_state": connectors.plugin_debug_state(conn, vehicle_id, r["addon_id"]),
                 "missing": r["status"] == "missing",
@@ -2056,13 +2077,17 @@ def new_token(conn: sqlite3.Connection, vehicle_id: int, addon: dict) -> str:
     return token
 
 
-def update_manifest(conn: sqlite3.Connection, addon: dict, manifest: dict, pkg_sha: str | None = None) -> None:
+def update_manifest(
+    conn: sqlite3.Connection, addon: dict, manifest: dict, pkg_sha: str | None = None, source_id: int | None = None
+) -> None:
     """A newer version from the source: replace the description, keep the settings, the token and the state. When the service description
-    changed, the approval no longer matches (service_fingerprint) and the service waits for a new one."""
+    changed, the approval no longer matches (service_fingerprint) and the service waits for a new one. A package that had NO source is linked
+    to ``source_id`` (the source the update came from), so its next updates come from there."""
     if needs_package(manifest) and not pkg_sha:
         raise AddonError("addon.err_service_upload")
     conn.execute(
-        "UPDATE vehicle_addons SET manifest = ?, pkg_sha = COALESCE(?, pkg_sha) WHERE id = ?", (json.dumps(manifest), pkg_sha, addon["id"])
+        "UPDATE vehicle_addons SET manifest = ?, pkg_sha = COALESCE(?, pkg_sha), source_id = COALESCE(source_id, ?) WHERE id = ?",
+        (json.dumps(manifest), pkg_sha, source_id, addon["id"]),
     )
 
 

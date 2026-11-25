@@ -1,4 +1,4 @@
-"""Charging points nearby (electric cars): OpenStreetMap without a key, Open Charge Map with a key of the person's own - read from data, shown with
+"""Charging station search (electric cars): OpenStreetMap without a key, Open Charge Map with a key of the person's own - read from data, shown with
 the plugs and their power, filtered by power and plug, with the sources named. Nothing is requested before a person looks for charging points."""
 
 import json
@@ -267,7 +267,7 @@ def test_the_charging_page_of_an_electric_car_searches_and_filters(client, monke
     page = client.get(base).text
     assert 'id="stations"' in page and asked == []  # nothing is looked up before a person presses search
     assert (
-        "Charging points nearby" in page
+        "Charging station search" in page
         and "Fuel stations nearby" not in page
         and "gas-station" not in page.split('id="stations"')[1][:600]
     )
@@ -312,7 +312,7 @@ def test_the_charging_sources_have_their_own_key_and_default(client):
 def test_a_fuel_car_still_gets_the_fuel_stations(client, monkeypatch):
     vid = create_vehicle(client, "Diesel One")
     page = client.get(f"/v/{slug(vid)}/e/fuel").text
-    assert "Fuel stations nearby" in page and "Charging points nearby" not in page
+    assert "Fuel stations nearby" in page and "Charging station search" not in page
 
 
 def test_the_home_price_estimates_slow_charging_without_a_bill_and_says_so(client):

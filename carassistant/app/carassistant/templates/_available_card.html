@@ -9,7 +9,7 @@
     <span class="pk-head"><span class="mi-ic c{{ loop.index0 % 4 + 1 }} pk-ic">{{ icon(p.icon or ('plug' if kind == 'plugin' else 'puzzle'), 26) }}</span>
       <span class="pk-t"><b>{{ p.name }}</b><small class="pk-src">{{ p.source_name }}{% if p.version %} · v{{ p.version }}{% endif %}</small></span></span>
     {% if p.description %}<span class="pk-d">{{ p.description }}</span>{% endif %}
-    <span class="pk-foot">{% if p.installed %}<span class="badge ok">{{ icon('check', 12) }} {{ _('pk.installed') }}</span>{% else %}<span class="button small primary pk-go">{{ icon('download', 16) }}<span>{{ _('addon.install') }}</span></span>{% endif %}</span>
+    <span class="pk-foot">{% if p.installed %}<span class="badge ok">{{ icon('check', 12) }} {{ _('pk.installed') if p.origin == 'here' else (_('pk.installed_nosrc') if p.origin == 'none' else _('pk.installed_other')) }}</span>{% else %}<span class="button small primary pk-go">{{ icon('download', 16) }}<span>{{ _('addon.install') }}</span></span>{% endif %}</span>
   </{{ 'div' if p.installed else 'a' }}>
   {% endfor %}
 </div>

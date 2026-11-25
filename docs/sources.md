@@ -51,6 +51,8 @@ The description of one package, see [plugins.md](plugins.md) (id, name, version,
 2. **Add** (per vehicle) - the packages of all sources, tap one to read its description, then *Install*.
 3. **Manage** (per vehicle) - settings, *Check for updates* (reads the sources and marks tiles that have a newer version) and *Update* on such a tile, *Start / Stop* (plugins only; integrations have no on/off), *Uninstall*.
 
+A package that was installed **without a source** (from a file) shows *no source* on its tile and is marked *Installed · no source* under *Add* - it is not offered a second time. When a source offers a **newer** version of it, it gets an *Update* like any other and is linked to that source from then on (settings, token and state stay). A source with an older or equal version changes nothing.
+
 If GitHub answers "403" because its hourly limit for anonymous requests (60 per address) is used up, the app says so - the access key is not the problem; try again later.
 
 A source can only be deleted when **no package installed from it** remains.

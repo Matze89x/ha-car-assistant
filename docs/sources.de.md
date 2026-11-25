@@ -51,6 +51,8 @@ Die Beschreibung eines Pakets, siehe [plugins.de.md](plugins.de.md) (id, name, v
 2. **Hinzufügen** (je Fahrzeug) – die Pakete aller Quellen, eines antippen zeigt die Beschreibung, dann *Installieren*.
 3. **Verwalten** (je Fahrzeug) – Einstellungen, *Nach Updates suchen* (liest die Quellen und markiert Kacheln mit neuerer Version) und *Update* auf so einer Kachel, *Start / Stopp* (nur Plugins; Integrationen haben kein An/Aus), *Deinstallieren*.
 
+Ein Paket, das **ohne Quelle** installiert wurde (aus einer Datei), zeigt auf seiner Karte *ohne Quelle* und steht unter *Hinzufügen* als *Installiert · ohne Quelle* – es wird nicht ein zweites Mal angeboten. Bietet eine Quelle eine **neuere** Version davon an, bekommt es ein *Update* wie jedes andere und gehört danach zu dieser Quelle (Einstellungen, Token und Zustand bleiben). Eine Quelle mit älterer oder gleicher Version ändert nichts.
+
 Antwortet GitHub mit „403“, weil sein Stundenlimit für anonyme Anfragen (60 pro Adresse) verbraucht ist, sagt die App das – am Zugangsschlüssel liegt es nicht; später noch einmal versuchen.
 
 Eine Quelle lässt sich nur löschen, wenn **kein daraus installiertes Paket** mehr vorhanden ist.

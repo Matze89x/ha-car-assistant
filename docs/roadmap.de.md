@@ -14,5 +14,5 @@
 - ✅ Erinnerungen von Integrationen (Kraftstoff-Additiv) und Coding als Seiten einer Integration
 - ✅ Jede Seite folgt dem Design-Buch, in einem echten Browser gemessen: Ausrichtung zur *Weiteres*-Liste, Abschnittsbeschriftungen, Knöpfe (eine Zeile, eine Höhe, eine Hauptaktion), Tippflächen, Namen und Beschriftungen; Temperaturen folgen dem Einheitensystem (°C / °F)
 - ✅ Seiten des Autos im Stil des Originals: Fahrzeugpass mit Ausstattung, Fahrten mit Km-Zählern und Fahrtenkarten, Tanken mit Tankstellen, Reifen, Zusatzarbeiten, Umbauten, Handbuch (Import / Suche / EPUB-Export), Protokolle je Plugin, Pläne für Erinnerungen (Additiv-Plan), Coding als aufklappbare Zeilen
-- ✅ Ladepunkte in der Nähe des Autos für E-Autos (OpenStreetMap, Open Charge Map mit eigenem Schlüssel, eigene JSON-Dateien - [Ladepunkt-Anbieter](charge-providers.de.md)); die Kosten des langsamen Ladens zu Hause aus deinem Preis je kWh
-- Als Nächstes: weitere Integrationen für Automarken; ein Länderpaket für die Ladepunkt-Register; Live-Belegung je Land
+- ✅ Ladesäulensuche in der Nähe des Autos für E-Autos (OpenStreetMap, Open Charge Map mit eigenem Schlüssel, eigene JSON-Dateien - [Ladesäulen-Anbieter](charge-providers.de.md)); die Kosten des langsamen Ladens zu Hause aus deinem Preis je kWh
+- Als Nächstes: weitere Integrationen für Automarken; ein Länderpaket für die Ladesäulen-Register; Live-Belegung je Land

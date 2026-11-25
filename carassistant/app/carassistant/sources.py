@@ -405,13 +405,18 @@ DEMO_PLUGIN = "demo-connector"
 
 
 def available(conn: sqlite3.Connection, kind: str, vehicle_id: int) -> list[sqlite3.Row]:
-    """Packages of the known indexes; ``installed`` marks the ones this vehicle already has."""
+    """Packages of the known indexes; ``installed`` marks the ones this vehicle already has - whatever they came from. ``origin`` says where the
+    installed one came from: ``here`` (this source), ``other`` (another source) or ``none`` (a file, or no source at all); None when it is not installed.
+    A package waiting for its files after a restore (``missing``) does not count as installed."""
     return conn.execute(
-        "SELECT p.*, s.name AS source_name, EXISTS (SELECT 1 FROM vehicle_addons a WHERE a.vehicle_id = ?2 AND a.addon_id = p.pkg_id AND a.source_id = p.source_id) AS installed "
+        "SELECT q.*, (q.origin IS NOT NULL) AS installed FROM ("
+        "SELECT p.*, s.name AS source_name, (SELECT CASE WHEN a.source_id IS NULL THEN 'none' WHEN a.source_id = p.source_id THEN 'here' ELSE 'other' END "
+        "FROM vehicle_addons a WHERE a.vehicle_id = ?2 AND a.addon_id = p.pkg_id AND a.kind = p.kind AND a.status != 'missing' "
+        "ORDER BY (a.source_id = p.source_id) DESC, a.id LIMIT 1) AS origin "
         "FROM source_packages p JOIN sources s ON s.id = p.source_id "
         "WHERE p.kind = ?1 AND (CASE p.kind WHEN 'plugin' THEN s.for_plugin ELSE s.for_integration END) = 1 "
-        "AND NOT (s.url = ?3 AND p.kind = 'plugin' AND p.pkg_id = ?4) "  # the demo plugin only belongs to the demo cars: never offered to pick
-        "ORDER BY p.name COLLATE NOCASE",
+        "AND NOT (s.url = ?3 AND p.kind = 'plugin' AND p.pkg_id = ?4)"  # the demo plugin only belongs to the demo cars: never offered to pick
+        ") q ORDER BY q.name COLLATE NOCASE",
         (kind, vehicle_id, DEFAULT_URL, DEMO_PLUGIN),
     ).fetchall()
 

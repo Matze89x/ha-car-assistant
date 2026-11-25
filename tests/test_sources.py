@@ -264,11 +264,56 @@ def test_a_package_installed_from_a_file_is_taken_over_by_its_source(client, fak
     )
     client.post(f"/sources/{sid}/refresh", data={"kind": "plugin"})
     add_page = client.get(f"/v/{slug}/plugins/add").text
-    assert "/packages/" in add_page  # still offered: the installed copy does not come from this source
+    assert (
+        "/packages/" not in add_page and "Installed · no source" in add_page
+    )  # it IS installed, only not from this source: no second install
     client.post(f"/v/{vid}/packages/{sid}/plugin/demo-one/install")
     with db.tx() as conn:
         item = addons.list_for(conn, vid)[0]
     assert item["source_id"] == sid and item["m"]["name"] == "Demo One"  # now it has its source and updates come from there
+
+
+def _file_package(client, vid, pkg_id="demo-one", version="1.0"):
+    client.post(
+        f"/v/{vid}/integrations/upload",
+        files={
+            "package": ("plugin.json", json.dumps({"id": pkg_id, "kind": "plugin", "name": "Mine", "version": version}), "application/json")
+        },
+    )
+
+
+def test_a_package_without_a_source_gets_the_update_of_a_source_that_offers_a_newer_one(client, fake_source):
+    sid = _default_id()
+    vid, slug = _car(client)
+    _file_package(client, vid, version="1.0")  # installed from a file: no source
+    client.post(f"/sources/{sid}/refresh", data={"kind": "plugin"})  # the source offers 1.9
+    with db.tx() as conn:
+        item = addons.list_for(conn, vid)[0]
+    assert item["source_id"] is None and item["has_update"] and item["latest"] == "1.9" and item["offer_source"]
+    page = client.get(f"/v/{slug}/plugins").text
+    assert "no source" in page and "Update available: v1.9 from" in page
+    client.post(f"/v/{vid}/integrations/{item['id']}/update")
+    with db.tx() as conn:
+        item = addons.list_for(conn, vid)[0]
+    assert (
+        item["source_id"] == sid and item["m"]["version"] == "1.9" and not item["has_update"]
+    )  # taken over: its next updates come from there
+
+
+def test_a_package_without_a_source_that_is_newer_than_the_source_is_left_alone(client, fake_source):
+    sid = _default_id()
+    vid, slug = _car(client)
+    _file_package(client, vid, version="5")  # the source only has 1.9
+    client.post(f"/sources/{sid}/refresh", data={"kind": "plugin"})
+    with db.tx() as conn:
+        item = addons.list_for(conn, vid)[0]
+    assert item["source_id"] is None and not item["has_update"]
+    client.post(f"/v/{vid}/integrations/{item['id']}/update")  # nothing newer on offer: refused, nothing changes
+    with db.tx() as conn:
+        item = addons.list_for(conn, vid)[0]
+    assert item["source_id"] is None and item["m"]["version"] == "5"
+    add_page = client.get(f"/v/{slug}/plugins/add").text
+    assert "Installed · no source" in add_page and "/packages/" not in add_page  # not shown as "not installed"
 
 
 def test_the_two_update_buttons_and_the_icon_of_the_index(client, fake_source):
