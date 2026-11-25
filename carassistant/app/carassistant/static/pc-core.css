@@ -3558,6 +3558,8 @@ html.lmz-lock { overflow: hidden; }
 .wd-look-plate .odo-front .odo-drum i { width: min(34px, 10.5cqw); }
 .wd-look-plate .odo-front .odo-drum i, .wd-look-plate .odo-strip span { font-size: min(32px, 9.5cqw); }
 @media (prefers-reduced-motion: reduce) { .odo-card3d, .odo-flip { transition: none; } .odo-strip { animation: none; } }
+/* safety net (app.js): the roll-in starts from "invisible". Should an animation never run (a home-screen web app that starts in the background), the figures show after a moment anyway - the cells are drawn in their final state without the animation */
+html.odo-settled .odo-drum i, html.odo-settled .odo-strip { animation: none; }
 .tg b .badge { max-width: 100%; white-space: normal; line-height: 1.25; padding-block: 3px; border-radius: var(--r-s); }  /* a status in a figure tile ("no MQTT broker found") wraps inside the tile instead of being cut off */
 
 /* THE SPACE AT THE BOTTOM OF A CARD IS THE CARD'S OWN PADDING - the same distance below the last thing as at its left (design book). Whatever stands last inside adds

@@ -814,6 +814,19 @@ document.addEventListener("click", function (event) {
   });
 })();
 
+// Safety net for the roll-in of the odometer: its figures start "invisible" (opacity 0) and an animation makes them appear. In a web app on the home screen the page
+// can be drawn while the app is still starting in the background - the animation may then never run, and the plate stays empty (a gap under the range text).
+// After a moment, and whenever the page comes back to the front, the animation is switched off: the cells stand there in their final state.
+(function () {
+  var hiddenOnce = false;
+  function settle() { document.documentElement.classList.add("odo-settled"); }
+  window.setTimeout(settle, 2600);
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) { hiddenOnce = true; } else if (hiddenOnce) { window.setTimeout(settle, 300); }
+  });
+  window.addEventListener("pageshow", function (event) { if (event.persisted) { window.setTimeout(settle, 300); } });
+})();
+
 // A form with data-sort-save sends itself in the background (with ajax=1) whenever one of its sortable lists is put in order, like the old arrows did.
 document.addEventListener("sortchange", function (e) {
   var form = e.target.closest && e.target.closest("form[data-sort-save]");
