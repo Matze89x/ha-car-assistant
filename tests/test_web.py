@@ -352,6 +352,38 @@ def test_notifications_are_only_offered_on_an_https_page(client):
     assert i18n.translator("en")("push.https_only") != "push.https_only"
 
 
+def test_the_notice_says_where_the_page_is_open_and_does_not_read_as_no_https_address(client, monkeypatch):
+    """The check looks at how THIS page was opened (the Home Assistant app at home uses its http address), not at the saved address: the notice
+    names the address in use and offers the saved https address as a link, instead of 'needs an https address' next to an https address."""
+    from pathlib import Path
+
+    from carassistant import accounts, db, ha, i18n
+
+    js = (Path(__file__).resolve().parents[1] / "carassistant" / "app" / "carassistant" / "static" / "push.js").read_text()
+    assert (
+        "location.host" in js
+        and '"data-open-now"' in js
+        and '"data-not-secure"' in js
+        and 'a.href = link + "/settings/user#notifications"' in js
+    )
+    css = (Path(__file__).resolve().parents[1] / "carassistant" / "app" / "carassistant" / "static" / "pc-core.css").read_text()
+    assert (
+        ".push-box [hidden] { display: none !important; }" in css
+    )  # the buttons have their own display: without this rule "hidden" left them on the page
+    for lang in ("en", "de"):
+        t = i18n.translator(lang)
+        assert "{a}" in t("push.open_now") and "{a}" in t("push.not_secure")  # the JS puts the address in
+        assert t("push.go") != "push.go"
+        assert "Needs an https address." != t("push.https_only") != "Braucht eine https-Adresse."  # no bare "needs an address"
+    monkeypatch.setattr(ha, "network_port", lambda: (True, 8321))
+    with db.tx() as conn:
+        accounts.create_user(conn, "owner", "A-very-Long-Passw0rd!x", admin=True)
+    ha._cache.clear()
+    client.post("/settings/external-url", data={"host": "auto.example.com"})
+    page = client.get("/settings/user").text
+    assert 'data-ext="https://auto.example.com"' in page and 'data-open-now="' in page and 'data-go="' in page
+
+
 def test_a_manual_trip_is_checked_for_sense(client):
     url = f"/v/{create_vehicle(client)}/e/trips"
     base = {"date": "2020-01-02", "start_km": "1000", "end_km": "1100"}

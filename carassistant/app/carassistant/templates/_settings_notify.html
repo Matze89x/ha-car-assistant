@@ -22,7 +22,7 @@
   <div class="nm-block">
     <h3 class="acct-sub">{{ _('notify.how_title') }}</h3>
     {% if port_on %}
-    <div id="push-box" class="push-box" data-base="{{ base }}" data-unsupported="{{ _('push.unsupported') }}" data-ios="{{ _('push.ios_home') }}" data-failed="{{ _('push.failed') }}" data-https="{{ _('push.https_only') }}" data-ext="{{ external_url if ext_set else '' }}" data-denied="{{ _('push.denied') }}" data-label-on="{{ _('push.enable') }}" data-label-off="{{ _('push.disable') }}">
+    <div id="push-box" class="push-box" data-base="{{ base }}" data-unsupported="{{ _('push.unsupported') }}" data-ios="{{ _('push.ios_home') }}" data-failed="{{ _('push.failed') }}" data-https="{{ _('push.https_only') }}" data-open-now="{{ _('push.open_now') }}" data-not-secure="{{ _('push.not_secure') }}" data-go="{{ _('push.go') }}" data-ext="{{ external_url if ext_set else '' }}" data-denied="{{ _('push.denied') }}" data-label-on="{{ _('push.enable') }}" data-label-off="{{ _('push.disable') }}">
       {% if push_devices %}<div class="ar-v">{% for d in push_devices %}<span class="chip-pk">{{ icon('bell', 14) }} {{ d.label or _('push.device') }} <small class="muted">{{ d.created_at[:10] }}</small>
         <form method="post" action="{{ base }}/settings/push/{{ d.id }}/delete" class="inline" data-confirm="{{ _('confirm.delete') }}"><button class="x" aria-label="{{ _('btn.delete') }}">{{ icon('close', 14) }}</button></form></span>{% endfor %}</div>
       {% else %}<p class="muted">{{ _('push.no_devices') }}</p>{% endif %}
