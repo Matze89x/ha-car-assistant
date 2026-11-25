@@ -603,6 +603,17 @@ document.addEventListener("click", function (event) {
     var t = e.target, c = t.closest && t.closest(".pm-byte");
     if (c) { show(c); return; }
     if (!t.classList) { return; }
+    var same = t.closest && t.closest("[name=same_as_old]");
+    if (same) {  // New = factory: only the field and the bytes change; nothing is saved before the unit's own Save (without a factory value the button works as it always did)
+      var card1 = same.closest(".pm-unit"), code1 = card1 && card1.querySelector(".pm-code"), field1 = code1 && hexField(code1);
+      var orig = code1 ? cells(code1).map(function (c) { return c.getAttribute("data-old") || ""; }).join("") : "";
+      if (field1 && orig) {
+        e.preventDefault();
+        field1.value = /\s/.test(field1.value || "") ? orig.replace(/(..)(?=.)/g, "$1 ") : orig;
+        resync(code1); dirty(card1);
+      }
+      return;
+    }
     if (t.classList.contains("pm-reset")) {  // take back everything of this control unit that is not saved
       var form = t.closest("form.pm-form"), card0 = form && form.closest(".pm-unit"); if (!form) { return; }
       form.reset();

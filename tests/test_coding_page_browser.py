@@ -147,3 +147,76 @@ def test_a_group_joins_its_rows_and_a_unit_is_saved_or_reset_by_its_buttons(codi
     assert back["resetDisabled"] and back["hintHidden"] and back["visibleNotes"] == 8 and back["groups"] in ("", "{}"), (
         back
     )  # Reset: everything as it was loaded
+
+
+def test_groups_and_notes_survive_saving(coding):
+    """The whole way: group bits, write the name of the group and a note, press Save, load the page again - the groups are still joined, nothing was lost."""
+    import json
+
+    b, page = coding
+    b.open(page, 390, 900, 1, settle=0.8)
+    b.wait_for("document.querySelector('.pm-unit .pm-byte')", seconds=15)
+    b.run("document.querySelector('.pm-unit').open = true")
+    time.sleep(0.5)
+    b.run(GROUP)
+    time.sleep(0.3)
+    b.run(
+        """(function () {
+      var u = document.querySelector('.pm-unit'), name = u.querySelector('li[data-bit="1"] .pm-bnote');
+      name.value = 'Language'; name.dispatchEvent(new Event('input', { bubbles: true }));
+      var note = u.querySelector('li[data-bit="3"] .pm-bnote');
+      note.value = 'Comfort mode'; note.dispatchEvent(new Event('input', { bubbles: true }));
+    })()"""
+    )
+    time.sleep(0.2)
+    b.run("document.querySelector('.pm-unit .pm-save').click()")
+    time.sleep(1.5)
+    b.wait_for("document.querySelector('.pm-unit .pm-byte')", seconds=15)
+    b.run("document.querySelector('.pm-unit').open = true")
+    time.sleep(0.6)
+    got = json.loads(
+        b.run(
+            """JSON.stringify((function () {
+      var u = document.querySelector('.pm-unit'), q = function (x) { return u.querySelector(x); };
+      return {
+        label: q('li[data-bit="1"] .pm-bl').textContent, second: q('li[data-bit="2"] .pm-bl').hidden,
+        name: q('li[data-bit="1"] .pm-bnote').value, note: q('li[data-bit="3"] .pm-bnote').value,
+        big: q('li[data-bit="4"] .pm-bl').textContent, firstByte: q('.pm-byte.sel') !== null,
+        resetDisabled: q('.pm-reset').disabled, unsaved: !q('.pm-unsaved').hidden
+      };
+    })())"""
+        )
+    )
+    assert got["label"] == "Bit 1+2" and got["second"], got  # the group is still ONE block
+    assert got["name"] == "Language" and got["note"] == "Comfort mode", got  # the name of the group and the note of a single bit came back
+    assert got["big"] == "Bit 4–6" and got["firstByte"], got  # the second group, and byte 0 chosen again
+    assert got["resetDisabled"] and not got["unsaved"], got  # just loaded: nothing unsaved
+
+
+def test_new_equals_factory_changes_the_field_and_saves_nothing(coding):
+    """The button only puts the factory value into the field (and marks the unit as not saved); Save and Reset decide what happens next."""
+    import json
+
+    b, page = coding
+    b.open(page, 390, 900, 1, settle=0.8)
+    b.wait_for("document.querySelector('.pm-unit .pm-byte')", seconds=15)
+    b.run("document.querySelector('.pm-unit').open = true")
+    time.sleep(0.5)
+    before = b.run("location.href")
+    state = """JSON.stringify((function () {
+      var u = document.querySelector('.pm-unit'), f = u.querySelector('input[name=new]');
+      return { href: location.href, field: f.value.replace(/ /g, ''), changed: u.querySelectorAll('.pm-byte.ch').length, unsaved: !u.querySelector('.pm-unsaved').hidden, reset: u.querySelector('.pm-reset').disabled };
+    })())"""
+    start = json.loads(b.run(state))
+    assert start["changed"] == 1 and not start["unsaved"], start  # one byte differs from the factory value
+    b.run("document.querySelector('.pm-unit [name=same_as_old]').click()")
+    time.sleep(0.5)
+    got = json.loads(b.run(state))
+    assert got["href"] == before and got["changed"] == 0 and got["unsaved"] and not got["reset"], (
+        got
+    )  # no page change, the bytes follow, "not saved yet"
+    assert got["field"] == OLD.replace(" ", ""), got
+    b.run("document.querySelector('.pm-unit .pm-reset').click()")
+    time.sleep(0.4)
+    back = json.loads(b.run(state))
+    assert back["changed"] == 1 and not back["unsaved"] and back["field"] == NEW.replace(" ", ""), back  # Reset: as it was loaded
