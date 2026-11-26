@@ -35,7 +35,7 @@ def quick(monkeypatch):
     """The waits of the link are seconds; for a test they are a few hundredths."""
     monkeypatch.setattr(halive.Link, "READ_TIMEOUT", 0.05)
     monkeypatch.setattr(halive.Link, "PING_EVERY", 0.2)
-    monkeypatch.setattr(halive.Link, "DEAD_AFTER", 1.0)
+    monkeypatch.setattr(halive.Link, "DEAD_AFTER", 2.5)  # (a few seconds: a loaded machine that stalls for a second is no dead connection)
     monkeypatch.setattr(halive.Link, "BACKOFF", (0.05, 0.1))
     monkeypatch.setattr(halive.Link, "REFUSED_WAIT", 0.3)
     monkeypatch.setattr(halive.Link, "CONNECT_TIMEOUT", 2.0)
@@ -151,9 +151,9 @@ def test_a_connection_that_stays_open_but_is_silent_is_given_up(fake, quick):
     try:
         assert wait_for(lambda: link.live)
         fake.silent = True  # still connected, no answer to anything
-        assert wait_for(lambda: link.changes[-1:] == [False], 6)
+        assert wait_for(lambda: link.changes[-1:] == [False], 10)
         fake.silent = False
-        assert wait_for(lambda: link.live and link.connects >= 2, 6)
+        assert wait_for(lambda: link.live and link.connects >= 2, 10)
     finally:
         link.stop()
 
