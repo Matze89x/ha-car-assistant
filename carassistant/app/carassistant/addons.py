@@ -881,11 +881,14 @@ def _oauth_url(value) -> str | None:
 
 def clean_oauth(raw, types: dict[str, str]) -> tuple[dict | None, str]:
     """The ``oauth`` of a step of type ``oauth`` (docs/plugins.md, "Logging in with an account"): ``(cleaned, "")`` or ``(None, why)`` - the reason is for the
-    checker of the package. ``types`` = the settings of the package and their types: the client id / secret may come from a setting the person fills in."""
+    checker of the package. ``types`` = the settings of the package and their types: the client id / secret may come from a setting the person fills in.
+    ``grant`` is ``code`` (the default: the person logs in at ``authorize_url`` and the browser comes back) or ``device`` (the person types a short code at
+    the provider on another screen - ``device_url``; for a provider that has no address to come back to)."""
     if not isinstance(raw, dict):
         return None, "'oauth' must be an object"
-    out: dict = {}
-    for key in ("authorize_url", "token_url"):
+    grant = "device" if raw.get("grant") == "device" else "code"
+    out: dict = {"grant": grant}
+    for key in ("device_url", "token_url") if grant == "device" else ("authorize_url", "token_url"):
         if not (url := _oauth_url(raw.get(key))):
             return None, f"'{key}' must be an https address with a host name (no IP number, no log-in inside, at most 300 characters)"
         out[key] = url
@@ -902,14 +905,15 @@ def clean_oauth(raw, types: dict[str, str]) -> tuple[dict | None, str]:
         out["client_secret_setting"] = secret
     scopes = raw.get("scopes")
     out["scopes"] = [w for w in scopes[:20] if isinstance(w, str) and OAUTH_SCOPE.fullmatch(w)] if isinstance(scopes, list) else []
-    out["pkce"] = raw.get("pkce") is not False  # on unless the package says no
+    out["pkce"] = raw.get("pkce") is not False  # on unless the package says no (a device login has none)
     out["client_auth"] = "basic" if raw.get("client_auth") == "basic" else "post"
-    out["redirect"] = raw.get("redirect") if raw.get("redirect") in OAUTH_REDIRECTS else "paste"
-    if out["redirect"] == "paste":
-        uri = raw.get("redirect_uri")
-        if not (isinstance(uri, str) and (_oauth_url(uri) or OAUTH_LOCAL.fullmatch(uri))) or len(uri) > 300:
-            return None, "'redirect_uri' (the address the provider sends the person to) must be an https address or one on localhost"
-        out["redirect_uri"] = uri
+    if grant == "code":
+        out["redirect"] = raw.get("redirect") if raw.get("redirect") in OAUTH_REDIRECTS else "paste"
+        if out["redirect"] == "paste":
+            uri = raw.get("redirect_uri")
+            if not (isinstance(uri, str) and (_oauth_url(uri) or OAUTH_LOCAL.fullmatch(uri))) or len(uri) > 300:
+                return None, "'redirect_uri' (the address the provider sends the person to) must be an https address or one on localhost"
+            out["redirect_uri"] = uri
     extra = raw.get("extra") if isinstance(raw.get("extra"), dict) else {}
     out["extra"] = {
         k: v

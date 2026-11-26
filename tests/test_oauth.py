@@ -109,10 +109,13 @@ class Provider:
         self.calls: list[dict] = []
         self.count = 0
         self.reply = None  # a function (form) -> (status, body) that takes over
+        self.route = None  # a function (url, form) -> (status, body) or None, asked first
 
     def send(self, url, body, headers):
         form = {k: v[0] for k, v in urllib.parse.parse_qs(body.decode()).items()}
         self.calls.append({"url": url, "form": form, "headers": headers})
+        if self.route and (got := self.route(url, form)):
+            return got
         if self.reply:
             return self.reply(form)
         self.count += 1
@@ -586,3 +589,176 @@ def test_the_request_really_leaves_as_a_form_post_over_https_and_a_redirect_is_n
     with pytest.raises(oauth.OAuthError) as down:
         oauth._post(f"{base}/token", {})  # nobody is listening any more
     assert down.value.key == "err.oauth_net"
+
+
+def _install_on(vid, client_id="cid-1"):
+    """The same package on another car (with the app registered at the provider under ``client_id``); returns (install, plugin token)."""
+    with db.tx() as conn:
+        source = conn.execute("SELECT id FROM sources LIMIT 1").fetchone()["id"]
+        m = addons.parse_package(json.dumps(manifest()).encode())
+        pk = addons.add(conn, vid, m, source, None)
+        conn.execute(
+            "UPDATE vehicle_addons SET active = 1, settings = ? WHERE id = ?",
+            (json.dumps(addons._sealed(m, {"client_id": client_id, "client_secret": "shh-secret"})), pk),
+        )
+        return pk, addons.new_token(conn, vid, addons.get(conn, vid, pk))
+
+
+def test_a_second_car_can_use_the_login_of_the_first_and_only_of_the_same_app(client, provider):
+    vid, pk, token = _connected(client, provider)
+    with db.tx() as conn:
+        cid = conn.execute("SELECT id FROM connections").fetchone()["id"]
+    second = create_vehicle(client, "Second Car")
+    other, other_token = _install_on(second)
+    base = f"/v/{slug(second)}/integrations/{other}/guide"
+    page = client.get(base).text
+    assert "Use the login of My Car" in page and f'name="use" value="{cid}"' in page  # the login of the first car is offered
+    assert _api(client, second, other_token).status_code == 404  # but not used before the person says so
+    taken = client.post(base + "/flow", data={"step": "1", "use": str(cid)})
+    assert taken.status_code == 303
+    page = client.get(base).text
+    assert "Connected." in page and "The same login is used by: My Car." in page and "Stop using the shared login" in page
+    assert _api(client, second, other_token).json()["access_token"] == "AT1" and _api(client, vid, token).json()["access_token"] == "AT1"
+    assert len(provider.calls) == 1  # no second login at the provider
+    assert "The same login is used by: Second Car." in client.get(f"/v/{slug(vid)}/integrations/{pk}/guide").text
+    # a car whose app is registered under another client id gets no offer, and cannot take the login by a forged number
+    third = create_vehicle(client, "Third Car")
+    stranger, _t = _install_on(third, client_id="cid-other")
+    base3 = f"/v/{slug(third)}/integrations/{stranger}/guide"
+    assert 'name="use"' not in client.get(base3).text
+    assert client.post(base3 + "/flow", data={"step": "1", "use": str(cid)}).status_code == 422
+    # the second car stops sharing: it has no login any more, the first keeps its own
+    client.post(base + "/flow", data={"step": "1", "do": "forget"})
+    assert _api(client, second, other_token).status_code == 404 and _api(client, vid, token).json()["access_token"] == "AT1"
+    with db.tx() as conn:
+        assert conn.execute("SELECT COUNT(*) AS n FROM connections").fetchone()["n"] == 1
+
+
+DEVICE_SPEC = {
+    "grant": "device",
+    "device_url": "https://login.example.com/oauth/device",
+    "token_url": "https://login.example.com/oauth/token",
+    "scopes": ["read"],
+    "client_id_setting": "client_id",
+}
+
+
+def _due():
+    """The provider's pause is over (the page would have waited for it)."""
+    with db.tx() as conn:
+        row = conn.execute("SELECT state, extra FROM oauth_pending").fetchone()
+        extra = json.loads(vault.decrypt(row["extra"]))
+        extra["next"] = "2000-01-01T00:00:00Z"
+        conn.execute("UPDATE oauth_pending SET extra = ? WHERE state = ?", (vault.encrypt(json.dumps(extra)), row["state"]))
+
+
+def test_a_login_by_code_typed_at_the_provider(client, provider):
+    spec, why = addons.clean_oauth(DEVICE_SPEC, TYPES)
+    assert why == "" and spec["grant"] == "device" and "authorize_url" not in spec and "redirect" not in spec  # no way back to arrange
+    assert addons.clean_oauth({**DEVICE_SPEC, "device_url": "http://login.example.com/d"}, TYPES)[0] is None
+    assert addons.clean_oauth({k: v for k, v in DEVICE_SPEC.items() if k != "device_url"}, TYPES)[0] is None
+
+    answers = iter(["authorization_pending", "slow_down", "ok"])
+
+    def route(url, form):
+        if url.endswith("/device"):
+            return 200, json.dumps(
+                {
+                    "device_code": "DC1",
+                    "user_code": "WDJB-MJHT",
+                    "verification_uri": "https://login.example.com/activate",
+                    "interval": 5,
+                    "expires_in": 600,
+                }
+            ).encode()
+        if form.get("grant_type") == oauth.DEVICE_GRANT:
+            step = next(answers)
+            if step == "ok":
+                return 200, json.dumps({"access_token": "DT1", "refresh_token": "DR1", "expires_in": 3600}).encode()
+            return 400, json.dumps({"error": step}).encode()
+        return None
+
+    provider.route = route
+    vid, pk, token = _install(client, DEVICE_SPEC)
+    base = f"/v/{slug(vid)}/integrations/{pk}/guide"
+    page = client.get(base).text
+    assert (
+        "Not logged in yet." in page and "login.example.com" in page and "redirect address of your app" not in page
+    )  # nothing to register: no way back
+    started = client.post(base + "/flow", data={"step": "1", "do": "start"})
+    assert started.status_code == 303
+    assert provider.calls[0]["url"].endswith("/device") and provider.calls[0]["form"] == {"scope": "read", "client_id": "cid-1"}
+    page = client.get(base).text  # the page shows the code and the address; it did not ask yet - the provider's pause is not over
+    assert (
+        "WDJB-MJHT" in page
+        and 'href="https://login.example.com/activate"' in page
+        and "data-autoreload" in page
+        and len(provider.calls) == 1
+    )
+    _due()
+    client.get(base)  # pending: asked once, will ask again later
+    assert len(provider.calls) == 2 and provider.calls[1]["form"] == {
+        "grant_type": oauth.DEVICE_GRANT,
+        "device_code": "DC1",
+        "client_id": "cid-1",
+    }
+    client.get(base)
+    assert len(provider.calls) == 2  # the pause is not over: the page does not ask again, however often it is loaded
+    _due()
+    client.get(base)  # slow down: the pause grows by five seconds
+    with db.tx() as conn:
+        extra = json.loads(vault.decrypt(conn.execute("SELECT extra FROM oauth_pending").fetchone()["extra"]))
+    assert len(provider.calls) == 3 and extra["interval"] == 10
+    _due()
+    page = client.get(base).text  # the code was typed: the tokens are saved and the page says so
+    assert "Connected." in page and "WDJB-MJHT" not in page
+    assert _api(client, vid, token).json()["access_token"] == "DT1"
+    with db.tx() as conn:
+        assert conn.execute("SELECT COUNT(*) AS n FROM oauth_pending").fetchone()["n"] == 0
+
+
+def test_a_login_by_code_ends_when_the_person_says_no_or_the_code_runs_out(client, provider):
+    def route(url, form):
+        if url.endswith("/device"):
+            return 200, json.dumps(
+                {"device_code": "DC", "user_code": "ABCD", "verification_uri": "https://login.example.com/activate"}
+            ).encode()
+        return 400, json.dumps({"error": reply[0], "error_description": "The person said no"}).encode()
+
+    reply = ["access_denied"]
+    provider.route = route
+    vid, pk, token = _install(client, DEVICE_SPEC)
+    base = f"/v/{slug(vid)}/integrations/{pk}/guide"
+    client.post(base + "/flow", data={"step": "1", "do": "start"})
+    _due()
+    page = client.get(base).text
+    assert "refused the login" in page and "The person said no" in page and "ABCD" not in page  # over: the page offers a new start
+    assert 'name="do" value="start"' in page and _api(client, vid, token).status_code == 404
+    client.post(base + "/flow", data={"step": "1", "do": "start"})
+    reply[0] = "expired_token"
+    _due()
+    assert "not valid any more" in client.get(base).text
+    # a code that ran out by the clock is gone, too
+    client.post(base + "/flow", data={"step": "1", "do": "start"})
+    with db.tx() as conn:
+        row = conn.execute("SELECT state, extra FROM oauth_pending").fetchone()
+        extra = json.loads(vault.decrypt(row["extra"]))
+        extra["expires_at"] = "2000-01-01T00:00:00Z"
+        conn.execute("UPDATE oauth_pending SET extra = ? WHERE state = ?", (vault.encrypt(json.dumps(extra)), row["state"]))
+    assert "ABCD" not in client.get(base).text
+
+
+def test_what_the_provider_sends_for_a_login_by_code_is_checked(client, provider):
+    vid, pk, _token = _install(client, DEVICE_SPEC)
+    base = f"/v/{slug(vid)}/integrations/{pk}/guide"
+    for bad in (
+        {"device_code": "DC", "user_code": "ABCD", "verification_uri": "javascript:alert(1)"},  # it is shown as a link: only plain https
+        {"device_code": "DC", "user_code": "ABCD", "verification_uri": "http://login.example.com/a"},
+        {"device_code": "DC", "user_code": "x" * 100, "verification_uri": "https://login.example.com/a"},
+        {"user_code": "ABCD", "verification_uri": "https://login.example.com/a"},
+    ):
+        provider.route = lambda url, form, bad=bad: (200, json.dumps(bad).encode()) if url.endswith("/device") else None
+        refused = client.post(base + "/flow", data={"step": "1", "do": "start"})
+        assert refused.status_code == 422 and "could not be read" in refused.text, bad
+    with db.tx() as conn:
+        assert conn.execute("SELECT COUNT(*) AS n FROM oauth_pending").fetchone()["n"] == 0

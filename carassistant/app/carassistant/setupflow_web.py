@@ -84,13 +84,22 @@ def _say(exc: oauth.OAuthError, tr) -> str:
     return tr(exc.key) + (f" ({exc.detail})" if exc.detail else "")
 
 
-def _login_context(addon: dict, step: dict) -> dict:
+def _login_context(addon: dict, step: dict, poll: bool = False) -> dict:
     """What the page of a step of type ``oauth`` shows: connected or not, the login that was begun (its address opens in a new tab), where the provider
     sends the person back to, and the two hosts the app talks to - the one the person logs in at and the one the tokens are exchanged with."""
     spec = step["oauth"]
     uri = oauth.redirect_uri_of(spec, config.external_url() or "")
+    notice = ""
+    if poll and spec["grant"] == "device":  # the page asks the provider once, when it is loaded (the provider's interval is kept)
+        try:
+            oauth.device_poll(addon, step)
+        except oauth.OAuthError as exc:
+            notice = _say(exc, i18n.translator(config.language()))
     with db.tx() as conn:
+        device = oauth.device_pending(conn, addon["id"], step["id"]) if spec["grant"] == "device" else None
         link = oauth.status(conn, addon["id"], step["id"])
+        others = oauth.shared_with(conn, addon["id"], step["id"])
+        offers = oauth.candidates(conn, addon, step) if not link["connected"] or others else []
         begun = oauth.pending(conn, addon["id"], step["id"]) is not None
         try:
             oauth.provider(addon, step)
@@ -100,13 +109,24 @@ def _login_context(addon: dict, step: dict) -> dict:
             client_ok, url = False, ""
     return {
         **link,
-        "begun": begun and bool(url),
+        "begun": (begun and bool(url)) or bool(device),
         "url": url,
-        "mode": spec["redirect"],
+        "mode": "device" if spec["grant"] == "device" else spec["redirect"],
+        "device": {
+            "code": device["user_code"],
+            "url": device["full"] or device["uri"],
+            "host": urlsplit(device["uri"]).hostname or "",
+            "interval": device["interval"],
+        }
+        if device
+        else None,
+        "notice": notice,
         "redirect_uri": uri,
-        "need_external": spec["redirect"] == "app" and not uri,
+        "need_external": spec["grant"] == "code" and spec["redirect"] == "app" and not uri,
         "client_ok": client_ok,
-        "host": urlsplit(spec["authorize_url"]).hostname or "",
+        "shared": others,
+        "offers": [] if link["connected"] else offers,
+        "host": urlsplit(spec.get("authorize_url") or spec["device_url"]).hostname or "",
         "token_host": urlsplit(spec["token_url"]).hostname or "",
     }
 
@@ -204,7 +224,7 @@ def page(
             *addons.input_fields(cur, asked),
         ]  # the one-time inputs: always the ones without ``ask``, the others once asked for
     offered = pluginsvc.approved(addon)
-    login = _login_context(addon, cur) if cur["type"] == "oauth" else None
+    login = _login_context(addon, cur, poll=request.method == "GET") if cur["type"] == "oauth" else None
     rows = {r["name"]: r for r in assets.listing(addon, offered)} if cur["type"] == "files" else {}
     return render(
         request,
@@ -274,6 +294,8 @@ async def flow_post(request: Request, vid: int, aid: int):
     except ValueError:
         step = 1
     do = (form.get("do") or "next")[:12]
+    if (form.get("use") or "").isdigit():  # "use the login of that car" is a button with the number of the connection
+        do = "share"
     carried = (form.get("token") or "").strip()[:200]
     tr = i18n.translator(config.language())
     with db.tx() as conn:
@@ -292,7 +314,7 @@ async def flow_post(request: Request, vid: int, aid: int):
     if cur["type"] == "requirements" and not all(c["ok"] for c in needs_of(addon, vehicle, cur, tr)):
         return page(request, vid, aid, step, carried, status=409)
 
-    if cur["type"] == "oauth" and do in ("start", "paste", "forget", "next", "finish"):
+    if cur["type"] == "oauth" and do in ("start", "paste", "forget", "share", "next", "finish"):
         return await _oauth_post(request, vid, aid, step, cur, addon, do, form, carried, steps, tr)
 
     if cur["type"] == "token" and do == "new":
@@ -414,6 +436,14 @@ async def _oauth_post(request, vid: int, aid: int, step: int, cur: dict, addon: 
     """The buttons of a step of type ``oauth``: *Log in* (the login begins, the page shows its address), *Finish* with the address the person pasted,
     *Disconnect*, and *Next* - which waits until there is a connection."""
     back = f"/v/{vid}/integrations/{aid}/guide?step={step}"
+    if do == "start" and cur["oauth"]["grant"] == "device":
+        try:
+            data = await asyncio.to_thread(oauth.device_begin, addon, cur)
+            with db.tx() as conn:
+                oauth.device_save(conn, addon, cur, data)
+        except oauth.OAuthError as exc:
+            return page(request, vid, aid, step, carried, result={"ok": False, "message": _say(exc, tr)}, status=422)
+        return go(request, back)
     if do == "start":
         uri = oauth.redirect_uri_of(cur["oauth"], config.external_url() or "")
         if not uri:
@@ -429,6 +459,14 @@ async def _oauth_post(request, vid: int, aid: int, step: int, cur: dict, addon: 
     if do == "forget":
         with db.tx() as conn:
             oauth.forget(conn, aid, cur["id"])
+        events.changed()
+        return go(request, back)
+    if do == "share":
+        try:
+            with db.tx() as conn:
+                oauth.share(conn, addon, cur, int(form["use"]))
+        except oauth.OAuthError as exc:
+            return page(request, vid, aid, step, carried, result={"ok": False, "message": _say(exc, tr)}, status=422)
         events.changed()
         return go(request, back)
     if do == "paste":

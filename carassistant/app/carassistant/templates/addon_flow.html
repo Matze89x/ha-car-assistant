@@ -53,12 +53,23 @@
       {% if login.connected %}<p class="addon-status ok" role="status">{{ icon('check', 16) }}<span>{{ _('oauth.connected') }}</span></p>
       {% elif login.state == 'login_required' %}<p class="addon-status err" role="alert">{{ icon('alert', 16) }}<span>{{ _('oauth.login_required') }}{% if login.error %} ({{ login.error }}){% endif %}</span></p>
       {% else %}<p class="addon-status">{{ icon('info', 16) }}<span>{{ _('oauth.not_connected') }}</span></p>{% endif %}
+      {% if login.shared %}<p class="hint">{{ icon('info', 14) }} {{ _('oauth.shared_with', cars=login.shared|join(', ')) }}</p>{% endif %}
       <p class="hint">{{ icon('info', 14) }} {{ _('oauth.hosts', host=login.host, token_host=login.token_host) }}</p>
       {% if login.need_external %}<p class="addon-status err" role="alert">{{ icon('alert', 16) }}<span>{{ _('oauth.need_external') }}</span></p>
       {% elif not login.client_ok %}<p class="addon-status err" role="alert">{{ icon('alert', 16) }}<span>{{ _('err.oauth_client') }}</span></p>
       {% elif login.redirect_uri and not login.connected %}<p class="hint">{{ icon('info', 14) }} {{ _('oauth.register') }} <code>{{ login.redirect_uri }}</code></p>{% endif %}
-      {% if login.begun %}
-        <p><a class="button primary" href="{{ login.url }}" target="_blank" rel="noopener noreferrer">{{ icon('open-in-new', 18) }}<span>{{ _('oauth.open_login', host=login.host) }}</span></a></p>
+      {% if login.notice %}<p class="addon-status err" role="alert">{{ icon('alert', 16) }}<span>{{ login.notice }}</span></p>{% endif %}
+      {% if login.offers and not login.begun %}
+        <p class="hint">{{ icon('info', 14) }} {{ _('oauth.offer') }}</p>
+        <div class="addon-bar">{% for o in login.offers %}<button name="use" value="{{ o.id }}">{{ icon('account-multiple', 18) }}<span>{{ _('oauth.use_of', cars=o.cars|join(', ')) }}</span></button>{% endfor %}</div>
+      {% endif %}
+      {% if login.device %}
+        <p class="hint">{{ icon('info', 14) }} {{ _('oauth.device_help', host=login.device.host) }}</p>
+        <ul class="codes"><li class="mono token-line">{{ login.device.code }}</li></ul>
+        <p><a class="button" href="{{ login.device.url }}" target="_blank" rel="noopener noreferrer">{{ icon('open-in-new', 18) }}<span>{{ _('oauth.open_login', host=login.device.host) }}</span></a></p>
+        <p class="addon-status" data-autoreload="{{ login.device.interval }}" role="status">{{ icon('refresh', 16) }}<span>{{ _('oauth.waiting_code') }}</span></p>
+      {% elif login.begun %}
+        <p><a class="button" href="{{ login.url }}" target="_blank" rel="noopener noreferrer">{{ icon('open-in-new', 18) }}<span>{{ _('oauth.open_login', host=login.host) }}</span></a></p>
         {% if login.mode == 'paste' %}
         <label>{{ _('oauth.paste_label') }}<input type="text" name="pasted" value="" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="4000"></label>
         <p class="hint">{{ icon('info', 14) }} {{ _('oauth.paste_help') }}</p>
@@ -67,7 +78,7 @@
       {% else %}
         <div class="addon-bar">
           <button name="do" value="start"{% if login.need_external or not login.client_ok %} disabled{% endif %}>{{ icon('key-variant', 18) }}<span>{{ _('oauth.relogin') if login.connected or login.state == 'login_required' else (now.label or _('oauth.login', host=login.host)) }}</span></button>
-          {% if login.connected %}<button name="do" value="forget" class="danger">{{ icon('delete', 18) }}<span>{{ _('oauth.disconnect') }}</span></button>{% endif %}
+          {% if login.connected %}<button name="do" value="forget" class="danger">{{ icon('delete', 18) }}<span>{{ _('oauth.unshare') if login.shared else _('oauth.disconnect') }}</span></button>{% endif %}
         </div>
       {% endif %}
     </section>

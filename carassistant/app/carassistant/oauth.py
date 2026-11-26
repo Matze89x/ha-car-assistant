@@ -110,6 +110,8 @@ def provider(addon: dict, step: dict) -> dict:
 def redirect_uri_of(spec: dict, external: str) -> str:
     """Where the provider sends the person: the fixed address of the package (``paste``: the person copies the address from the bar) or the callback of
     this app under its https address (``app``). Empty = not possible yet (no https address set)."""
+    if spec.get("grant") == "device":
+        return ""  # a device login needs no address to come back to
     if spec["redirect"] == "paste":
         return spec["redirect_uri"]
     return f"{external.rstrip('/')}/oauth/callback" if external else ""
@@ -209,6 +211,116 @@ def finish(state: str, code: str, expect: tuple[int, str] | None = None) -> dict
             conn, addon["vehicle_id"], addon["addon_id"], [(connectors._now(), "info", "app", "logged in with an account")]
         )
     return addon
+
+
+# ------------------------------------------------------------------ the device login (RFC 8628): a code typed at the provider on another screen
+
+DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
+_device_locks: dict[tuple[int, str], threading.Lock] = {}
+
+
+def _bounded(value, low: int, high: int, default: int) -> int:
+    return min(high, max(low, int(value))) if isinstance(value, int | float) and not isinstance(value, bool) else default
+
+
+def device_begin(addon: dict, step: dict) -> dict:
+    """The login by code begins: ONE request to ``device_url``; returns what the person needs (the code to type, the address to open) and what the app
+    keeps for the polling. Nothing is stored yet (``device_save``)."""
+    spec = provider(addon, step)
+    form = {"scope": " ".join(spec["scopes"])} if spec["scopes"] else {}
+    body, basic = _client_form(spec, form)
+    data = _post(spec["device_url"], body, basic)
+    code, user = data.get("device_code"), data.get("user_code")
+    uri = addons._oauth_url(data.get("verification_uri") or data.get("verification_url"))  # shown as a link: only a plain https address
+    full = addons._oauth_url(data.get("verification_uri_complete")) if data.get("verification_uri_complete") else None
+    if not (isinstance(code, str) and 0 < len(code) <= 2000 and isinstance(user, str) and 0 < len(user) <= 64 and uri):
+        raise OAuthError("err.oauth_bad")
+    interval = _bounded(data.get("interval"), 2, 30, 5)
+    life = _bounded(data.get("expires_in"), 30, 1800, 600)
+    return {
+        "device_code": code,
+        "user_code": _plain(user),
+        "uri": uri,
+        "full": full or "",
+        "interval": interval,
+        "expires_at": _iso(_now() + timedelta(seconds=life)),
+        "next": _iso(_now() + timedelta(seconds=interval)),
+    }
+
+
+def device_save(conn, addon: dict, step: dict, data: dict) -> None:
+    conn.execute("DELETE FROM oauth_pending WHERE addon_pk = ? AND step = ?", (addon["id"], step["id"]))
+    conn.execute(
+        "INSERT INTO oauth_pending(state, addon_pk, step, kind, extra, created) VALUES(?,?,?,?,?,?)",
+        (secrets.token_urlsafe(24), addon["id"], step["id"], "device", vault.encrypt(json.dumps(data)), _iso(_now())),
+    )
+
+
+def device_pending(conn, addon_pk: int, step_id: str) -> dict | None:
+    """The login by code that was begun and has not ended: ``{"user_code", "uri", "full", "interval", ...}`` - or None (an old one is deleted)."""
+    row = conn.execute(
+        "SELECT state, extra FROM oauth_pending WHERE addon_pk = ? AND step = ? AND kind = 'device'", (addon_pk, step_id)
+    ).fetchone()
+    if row is None:
+        return None
+    try:
+        data = json.loads(vault.decrypt(row["extra"]) or "{}")
+    except ValueError:
+        data = {}
+    if not data.get("device_code") or (_when(data.get("expires_at")) or _now()) <= _now():
+        conn.execute("DELETE FROM oauth_pending WHERE state = ?", (row["state"],))
+        return None
+    return {**data, "state": row["state"]}
+
+
+def device_poll(addon: dict, step: dict) -> str:
+    """Asks the provider ONCE whether the person has typed the code - when the provider's interval allows it. ``"connected"`` (the tokens are saved),
+    ``"waiting"`` or ``"none"`` (no login by code was begun). Raises ``OAuthError`` when the person said no or the code ran out: the login is over then."""
+    key = (addon["id"], step["id"])
+    with _device_locks.setdefault(key, threading.Lock()):  # two open pages do not ask at the same moment
+        with db.tx() as conn:
+            pend = device_pending(conn, *key)
+        if pend is None:
+            return "none"
+        if _now() < (_when(pend.get("next")) or _now()):
+            return "waiting"
+        spec = provider(addon, step)
+        body, basic = _client_form(spec, {"grant_type": DEVICE_GRANT, "device_code": pend["device_code"]})
+        try:
+            data = _post(spec["token_url"], body, basic)
+        except ProviderRefused as exc:
+            if exc.code in ("authorization_pending", "slow_down"):  # not yet: ask again after the pause the provider wants
+                wait = int(pend.get("interval") or 5) + (5 if exc.code == "slow_down" else 0)
+                with db.tx() as conn:
+                    conn.execute(
+                        "UPDATE oauth_pending SET extra = ? WHERE state = ?",
+                        (
+                            vault.encrypt(
+                                json.dumps(
+                                    {
+                                        **{k: v for k, v in pend.items() if k != "state"},
+                                        "interval": wait,
+                                        "next": _iso(_now() + timedelta(seconds=wait)),
+                                    }
+                                )
+                            ),
+                            pend["state"],
+                        ),
+                    )
+                return "waiting"
+            with db.tx() as conn:
+                conn.execute("DELETE FROM oauth_pending WHERE state = ?", (pend["state"],))
+            if exc.code == "expired_token":
+                raise OAuthError("err.oauth_state") from exc
+            raise
+        tokens = _tokens(data)
+        with db.tx() as conn:
+            save(conn, addon, step["id"], tokens)
+            conn.execute("DELETE FROM oauth_pending WHERE state = ?", (pend["state"],))
+            connectors.write_logs(
+                conn, addon["vehicle_id"], addon["addon_id"], [(connectors._now(), "info", "app", "logged in with an account")]
+            )
+        return "connected"
 
 
 # ------------------------------------------------------------------ the provider
@@ -333,6 +445,56 @@ def status(conn, addon_pk: int, step_id: str) -> dict:
         row["state"] if vault.decrypt(row["secret"]) else "login_required"
     )  # tokens sealed by another system (a backup without a passphrase) are none here
     return {"connected": state == "ok", "state": state, "expires_at": row["expires_at"], "error": row["error"], "id": row["id"]}
+
+
+def candidates(conn, addon: dict, step: dict) -> list[dict]:
+    """Logins of the same package and step in OTHER installs that this install could use as well - the same app at the same provider (client id and token
+    address), still good: ``[{"id": connection, "cars": [names of the cars that use it]}]``."""
+    try:
+        own = provider(addon, step)
+    except OAuthError:
+        return []
+    found: dict[int, dict] = {}
+    for row in conn.execute(
+        "SELECT c.id, l.addon_pk, v.name FROM connections c JOIN connection_links l ON l.connection_id = c.id "
+        "JOIN vehicle_addons a ON a.id = l.addon_pk JOIN vehicles v ON v.id = a.vehicle_id "
+        "WHERE c.plugin = ? AND c.step = ? AND c.state = 'ok' AND c.secret != '' AND l.addon_pk != ? ORDER BY c.id, v.name",
+        (addon["addon_id"], step["id"], addon["id"]),
+    ).fetchall():
+        other = addon_of(conn, row["addon_pk"])
+        theirs = step_of(other, step["id"]) if other else None
+        try:
+            same = theirs is not None and (lambda p: (p["client_id"], p["token_url"]))(provider(other, theirs)) == (
+                own["client_id"],
+                own["token_url"],
+            )
+        except OAuthError:
+            same = False
+        if same:
+            found.setdefault(row["id"], {"id": row["id"], "cars": []})["cars"].append(row["name"])
+    return list(found.values())
+
+
+def shared_with(conn, addon_pk: int, step_id: str) -> list[str]:
+    """The names of the other cars that use the same login as this install."""
+    return [
+        r["name"]
+        for r in conn.execute(
+            "SELECT v.name FROM connection_links mine JOIN connection_links l ON l.connection_id = mine.connection_id AND l.addon_pk != mine.addon_pk "
+            "JOIN vehicle_addons a ON a.id = l.addon_pk JOIN vehicles v ON v.id = a.vehicle_id WHERE mine.addon_pk = ? AND mine.step = ? ORDER BY v.name",
+            (addon_pk, step_id),
+        )
+    ]
+
+
+def share(conn, addon: dict, step: dict, connection_id: int) -> None:
+    """This install uses the login of another one (the same account: ``candidates``). What it had before goes when nobody else uses it."""
+    if connection_id not in {c["id"] for c in candidates(conn, addon, step)}:
+        raise OAuthError("err.oauth_none")
+    conn.execute(
+        "INSERT OR REPLACE INTO connection_links(addon_pk, step, connection_id) VALUES(?,?,?)", (addon["id"], step["id"], connection_id)
+    )
+    prune(conn)
 
 
 def login_needed(conn, addon_pk: int) -> bool:

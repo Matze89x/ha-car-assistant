@@ -57,7 +57,10 @@ def preview(m: dict, t) -> dict:
         elif (
             step["type"] == "oauth"
         ):  # who the person logs in at, and who the tokens are exchanged with (the app does that, not the plugin)
-            hosts = (urlsplit(step["oauth"]["authorize_url"]).hostname or "", urlsplit(step["oauth"]["token_url"]).hostname or "")
+            hosts = (
+                urlsplit(step["oauth"].get("authorize_url") or step["oauth"]["device_url"]).hostname or "",
+                urlsplit(step["oauth"]["token_url"]).hostname or "",
+            )
             add("brings", t("pkg.row_login", host=hosts[0]), "", None, t("pkg.note_login", token_host=hosts[1]))
     for d in m.get("downloads", []):
         add("brings", t("pkg.row_download", label=d["label"]), d["path"], None, d.get("note", ""))
