@@ -1,13 +1,15 @@
 """Backup and restore of ONE vehicle (everything that belongs to that car only), separate from the backup of the whole system (backup.py).
 
-A vehicle backup is a zip: ``vehicle.json`` (the data) and ``files/`` (documents, photos, videos). It holds the vehicle, all its lists (service, fuel,
-trips with their route, ...), its live values, its settings (navigation, widgets, hidden functions), its connection tokens (as the hash the server
-keeps, so a plugin keeps working with the token it already has, plus the kept token itself: the file is as private as the tokens) and its integrations and plugins with their settings - but NOT the packages
-themselves. Restored as a NEW vehicle; integrations and plugins come back switched OFF (activate them on purpose) and, when their package is not
-installed, as "needs the package" (see addons.py).
+A vehicle backup is a zip: ``vehicle.json`` (the data), ``files/`` (documents, photos, videos) and - when the person chose a passphrase -
+``secrets.enc`` (tokens, passwords, access keys and codes of that car, encrypted: backupsecrets.py). It holds the vehicle, all its lists (service,
+fuel, charging sessions, trips with their route, ...), its live values, its settings, its connection tokens (as the hash the server keeps, so a
+plugin keeps working with the token it already has) and its integrations and plugins with their settings and where each came from (source,
+version, checksum, whether it was running) - but NOT the packages themselves: a restore fetches them again from their source (restoresetup.py).
+Restored as a NEW vehicle (or into the car it belongs to).
 
-Compatibility: ``format`` is the layout. From version 1.0 on every newer app restores every older format; a backup from a newer app is refused.
-The reader ignores columns it does not know and fills missing ones with their default, so small additions never break an old backup.
+Compatibility: ``format`` is the layout. Every newer app restores every older format (``MIN_FORMAT`` .. ``FORMAT``; tests/test_backup_compat.py restores
+the golden file of each one); a backup from a newer app is refused with a hint to update. The reader ignores columns it does not know and fills
+missing ones with their default, so small additions never break an old backup.
 """
 
 from __future__ import annotations
@@ -21,9 +23,10 @@ import zipfile
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
-from . import __version__, appicon, config, slugs
+from . import __version__, appicon, backupsecrets, config, slugs, vault
 
-FORMAT = 1
+FORMAT = 2  # 2: more tables of a car, every setting of a car, where a package came from, secrets in a passphrase block
+MIN_FORMAT = 1
 MAX_BYTES = 500 * 1024 * 1024
 MAX_ROWS = 500_000
 
@@ -47,6 +50,14 @@ LISTS = (
     "manual_chapters",
     "manual_pages",
     "live",
+    "charge_sessions",  # the fuel_id of a session follows the new id of its refuel (see _fill)
+    "trip_summaries",
+    "vehicle_events",
+    "vehicle_track",
+    "vehicle_signals",
+    "signal_state",
+    "signal_history",
+    "plugin_usage",
 )
 SETTINGS = (
     "home.widgets",
@@ -55,7 +66,29 @@ SETTINGS = (
     "debug",
     "interval",
     "equipment.order",
-)  # per-vehicle settings: "<prefix>.<vehicle id>"
+    "charge.home_price",
+    "manual.last",
+)  # per-vehicle settings: "<prefix>.<vehicle id>"; tests/test_backup_compat.py checks that every such key of the code is here or in SETTINGS_SKIPPED
+SETTINGS_SKIPPED = {
+    "sim.token": "the token of the demo player: made again when it is switched on",
+    "mqtt.notice": "what was last announced to Home Assistant: made again",
+}
+
+# Every table of the database is named in exactly one of these places (a test checks it, so a new table cannot be forgotten):
+HANDLED = frozenset(
+    {"vehicles", "api_tokens", "vehicle_addons", "module_rows", "settings", "trip_points", "addon_deliveries"}
+)  # taken care of by name in export / _fill / _wipe
+SKIPPED_TABLES = {
+    "vehicle_logs": "log lines of the plugins (kept for 7 days)",
+    "vehicle_traffic": "the traffic view of a plugin while debug is on (kept for 7 days)",
+}
+SYSTEM_TABLES = frozenset(  # people, devices and the packages' sources: part of the backup of the whole system only
+    {
+        "auth_challenges", "mcp_keys", "mcp_log", "notify_energy", "notify_log", "notify_state", "passkeys", "place_names",
+        "push_device_cars", "push_devices", "recovery_codes", "sessions", "source_packages", "sources", "user_notify",
+        "user_notify_vehicle", "user_prefs", "users",
+    }
+)  # fmt: skip
 SCALARS = (str, int, float, type(None))
 
 
@@ -69,10 +102,17 @@ def _rows(conn: sqlite3.Connection, sql: str, args: tuple = ()) -> list[dict]:
 
 def _safe(name: str) -> bool:
     p = PurePosixPath(name)
-    return not p.is_absolute() and ".." not in p.parts and (name == "vehicle.json" or p.parts[0] == "files")
+    return (
+        not p.is_absolute()
+        and ".." not in p.parts
+        and (name in ("vehicle.json", backupsecrets.NAME, backupsecrets.LOCAL_NAME) or p.parts[0] == "files")
+    )
 
 
-def export(conn: sqlite3.Connection, vid: int, with_codes: bool = False) -> bytes:
+def export(conn: sqlite3.Connection, vid: int, with_codes: bool = False, passphrase: str | None = None, local: bool = False) -> bytes:
+    """The backup of one car as a zip. Without ``passphrase`` it holds no secret (no kept token, no password, no key, no access code unless the older
+    ``with_codes`` is asked for); with one, all of them travel in the block ``secrets.enc``. ``local`` is for the safety copy that stays on this system:
+    the same block, sealed with this system's key instead (``secrets.sys``)."""
     from . import manual, media
 
     vehicle = conn.execute("SELECT * FROM vehicles WHERE id = ?", (vid,)).fetchone()
@@ -105,37 +145,65 @@ def export(conn: sqlite3.Connection, vid: int, with_codes: bool = False) -> byte
     data["tokens"] = _rows(conn, "SELECT id, name, token_hash, created_at FROM api_tokens WHERE vehicle_id = ?", (vid,))
     from . import connectors
 
-    for tok in data[
-        "tokens"
-    ]:  # the kept token goes in readable (the key of this system is not in the file): the file is as private as the tokens
+    secret: dict | None = {"v": 1, "tokens": {}, "addons": {}, "source_keys": {}, "modules": None} if (passphrase or local) else None
+    for tok in data["tokens"]:  # the hash is no secret (it opens nothing); the kept token itself goes into the secrets block only
         kept = connectors.remembered(conn, tok["id"])
-        if kept:
-            tok["token"] = kept
+        if kept and secret is not None:
+            secret["tokens"][str(tok["id"])] = kept
     for a in conn.execute(
-        "SELECT a.*, COALESCE(s.url, a.source_url) AS origin FROM vehicle_addons a LEFT JOIN sources s ON s.id = a.source_id WHERE a.vehicle_id = ? ORDER BY a.id",
+        "SELECT a.*, COALESCE(s.url, a.source_url) AS origin, s.name AS source_name FROM vehicle_addons a "
+        "LEFT JOIN sources s ON s.id = a.source_id WHERE a.vehicle_id = ? ORDER BY a.id",
         (vid,),
     ):
+        manifest = json.loads(a["manifest"])
+        if secret is not None:
+            passwords = {f["key"] for f in manifest.get("settings", []) if f.get("type") == "password"}
+            kept = {k: vault.decrypt(v) for k, v in json.loads(a["settings"] or "{}").items() if k in passwords and isinstance(v, str)}
+            if any(kept.values()):
+                secret["addons"][a["addon_id"]] = {k: v for k, v in kept.items() if v}
+            if a["origin"] and a["source_id"]:
+                key = vault.decrypt(
+                    (conn.execute("SELECT token FROM sources WHERE id = ?", (a["source_id"],)).fetchone() or {"token": None})["token"]
+                )
+                if key:
+                    secret["source_keys"][a["origin"]] = key
         data["addons"].append(
             {
+                "id": a["id"],  # the number it had here: the files it handed out (addon_deliveries) point to it
                 "addon_id": a["addon_id"],
                 "kind": a["kind"],
-                "manifest": json.loads(a["manifest"]),
-                "settings": {  # a password (login data of a web service, ...) is never part of a backup file: it is entered again after a restore
+                "manifest": manifest,
+                "settings": {  # a password (login data of a web service, ...) travels only in the passphrase block, never in the plain file
                     k: v
                     for k, v in json.loads(a["settings"] or "{}").items()
-                    if k not in {f["key"] for f in json.loads(a["manifest"]).get("settings", []) if f.get("type") == "password"}
+                    if k not in {f["key"] for f in manifest.get("settings", []) if f.get("type") == "password"}
                 },
                 "status": a["status"],
+                "active": bool(a["active"]),
                 "token_id": a["token_id"],
-                "source_url": a["origin"],
+                "source_url": a["origin"],  # (format 1 only knew this)
+                "source": {"url": a["origin"], "name": a["source_name"] or ""} if a["origin"] else None,
+                "version": str(manifest.get("version") or ""),
+                "pkg_sha": a["pkg_sha"],
             }
         )
+    data["tables"]["addon_deliveries"] = _rows(
+        conn, "SELECT d.* FROM addon_deliveries d JOIN vehicle_addons a ON a.id = d.addon_pk WHERE a.vehicle_id = ?", (vid,)
+    )
     from . import pagemods
 
     data["modules"] = pagemods.export(conn, vid, with_codes)  # the entries of the pages of the car's integrations
+    if secret is not None:
+        secret["modules"] = pagemods.export(conn, vid, True)  # the same entries WITH their access codes
+    data["secrets"] = secret is not None
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("vehicle.json", json.dumps(data, ensure_ascii=False))
+        if secret is not None:
+            if passphrase:
+                zf.writestr(backupsecrets.NAME, backupsecrets.seal(secret, passphrase))
+            else:
+                zf.writestr(backupsecrets.LOCAL_NAME, backupsecrets.seal_local(secret))
         for doc in data["tables"]["documents"]:
             path = config.files_dir() / str(vid) / f"{doc['id']}{Path(doc['filename']).suffix.lower()}"
             if path.is_file():
@@ -187,7 +255,39 @@ def read(raw: bytes) -> tuple[dict, zipfile.ZipFile]:
         raise VehicleBackupError("err.vb_kind")  # the backup of the whole system belongs under Settings -> System
     if int(data.get("format", 1)) > FORMAT:
         raise VehicleBackupError("err.vb_newer")  # made by a newer app: update this one first
-    return data, zf
+    return _upgrade(data), zf
+
+
+def _upgrade(data: dict) -> dict:
+    """A backup of an older format in the shape of the current one. Format 1 -> 2: an add-on says where it came from as ``source``; what the old
+    format did not know (activity, checksum, more tables) stays absent and is filled with its default when it is read."""
+    for entry in data.get("addons") or []:
+        if isinstance(entry, dict) and not entry.get("source") and isinstance(entry.get("source_url"), str) and entry["source_url"]:
+            entry["source"] = {"url": entry["source_url"], "name": ""}
+    return data
+
+
+def secrets_state(zf: zipfile.ZipFile) -> str:
+    """What a file says about secrets: ``none`` | ``passphrase`` (a block that needs one) | ``local`` (sealed by this system's key, opens only here)."""
+    names = zf.namelist()
+    if backupsecrets.NAME in names:
+        return "passphrase"
+    return "local" if backupsecrets.LOCAL_NAME in names else "none"
+
+
+def open_secrets(zf: zipfile.ZipFile, passphrase: str = "") -> dict | None:
+    """The secrets of a file, or None (none in it, no passphrase given, or a local block of another system). A wrong passphrase is an error."""
+    names = zf.namelist()
+    if backupsecrets.LOCAL_NAME in names:
+        payload = backupsecrets.unseal_local(zf.read(backupsecrets.LOCAL_NAME))
+        if payload is not None:
+            return payload
+    if backupsecrets.NAME in names and passphrase:
+        try:
+            return backupsecrets.unseal(zf.read(backupsecrets.NAME), backupsecrets.clean(passphrase))
+        except backupsecrets.WrongPassphrase:
+            raise VehicleBackupError("err.bk_passphrase") from None
+    return None
 
 
 def find_existing(conn: sqlite3.Connection, data: dict) -> sqlite3.Row | None:
@@ -212,10 +312,12 @@ def summary(data: dict) -> dict:
     }
 
 
-def restore(conn: sqlite3.Connection, raw: bytes) -> int:
-    """Create a NEW vehicle (as a copy: a taken name gets a number, so does its address) and return its id."""
+def restore(conn: sqlite3.Connection, raw: bytes, passphrase: str = "") -> int:
+    """Create a NEW vehicle (as a copy: a taken name gets a number, so does its address) and return its id. With the right ``passphrase`` the secrets of
+    the file come back as well (tokens, passwords, keys, codes); without it they are left out."""
     data, zf = read(raw)
     with zf:
+        secrets_found = open_secrets(zf, passphrase)
         vcols = _columns(conn, "vehicles")
         values = _clean(data["vehicle"], vcols)
         for forbidden in ("slug", "media_id", "photo_id", "uid"):
@@ -232,7 +334,7 @@ def restore(conn: sqlite3.Connection, raw: bytes) -> int:
         values.setdefault("created_at", datetime.now(UTC).isoformat(timespec="seconds"))
         new_id = _insert(conn, "vehicles", values)
         conn.execute("UPDATE vehicles SET slug = ? WHERE id = ?", (slugs.unique(conn, name, new_id), new_id))
-        _fill(conn, zf, data, new_id)
+        _fill(conn, zf, data, new_id, secrets_found)
     return new_id
 
 
@@ -244,6 +346,7 @@ def _wipe(conn: sqlite3.Connection, vid: int) -> None:
     for table in LISTS:
         conn.execute(f"DELETE FROM {table} WHERE vehicle_id = ?", (vid,))
     conn.execute("DELETE FROM api_tokens WHERE vehicle_id = ?", (vid,))
+    conn.execute("DELETE FROM addon_deliveries WHERE addon_pk IN (SELECT id FROM vehicle_addons WHERE vehicle_id = ?)", (vid,))
     conn.execute("DELETE FROM vehicle_addons WHERE vehicle_id = ?", (vid,))
     conn.execute("DELETE FROM module_rows WHERE vehicle_id = ?", (vid,))
     for prefix in SETTINGS:
@@ -254,17 +357,18 @@ def _wipe(conn: sqlite3.Connection, vid: int) -> None:
     appicon.reset(vid)
 
 
-def replace(conn: sqlite3.Connection, raw: bytes, vid: int) -> int:
+def replace(conn: sqlite3.Connection, raw: bytes, vid: int, passphrase: str = "") -> int:
     """Put the backup's data into an EXISTING car. A copy of its current state is saved first (data/backups, the last three are kept)."""
     data, zf = read(raw)
     with zf:
+        secrets_found = open_secrets(zf, passphrase)
         row = conn.execute("SELECT id, slug FROM vehicles WHERE id = ?", (vid,)).fetchone()
         if row is None:
             raise VehicleBackupError("err.vb_missing")
         safety = config.data_dir() / "backups"
         safety.mkdir(exist_ok=True)
         stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-        (safety / f"vehicle-{row['slug'] or vid}-before-restore-{stamp}.zip").write_bytes(export(conn, vid, with_codes=True))
+        (safety / f"vehicle-{row['slug'] or vid}-before-restore-{stamp}.zip").write_bytes(export(conn, vid, with_codes=True, local=True))
         for old in sorted(safety.glob(f"vehicle-{row['slug'] or vid}-before-restore-*.zip"))[:-3]:
             old.unlink()
         values = _clean(data["vehicle"], _columns(conn, "vehicles"))
@@ -273,16 +377,17 @@ def replace(conn: sqlite3.Connection, raw: bytes, vid: int) -> int:
         if values.get("name"):
             conn.execute("UPDATE vehicles SET " + ", ".join(f"{k} = ?" for k in values) + " WHERE id = ?", [*values.values(), vid])
         _wipe(conn, vid)
-        _fill(conn, zf, data, vid)
+        _fill(conn, zf, data, vid, secrets_found)
     return vid
 
 
-def _fill(conn: sqlite3.Connection, zf: zipfile.ZipFile, data: dict, new_id: int) -> None:
-    """The lists, files, settings, tokens, integrations and plugins of a backup into car ``new_id``."""
+def _fill(conn: sqlite3.Connection, zf: zipfile.ZipFile, data: dict, new_id: int, secret: dict | None = None) -> None:
+    """The lists, files, settings, tokens, integrations and plugins of a backup into car ``new_id``. ``secret`` is what its secrets block held."""
+    secret = secret or {}
     from . import addons, manual, media
 
     tables = data.get("tables") if isinstance(data.get("tables"), dict) else {}
-    ids: dict[str, dict] = {"trips": {}, "documents": {}, "vehicle_media": {}}
+    ids: dict[str, dict] = {"trips": {}, "documents": {}, "vehicle_media": {}, "fuel": {}}
     for table in LISTS:
         columns = _columns(conn, table)
         for row in (tables.get(table) or [])[:MAX_ROWS]:
@@ -290,6 +395,8 @@ def _fill(conn: sqlite3.Connection, zf: zipfile.ZipFile, data: dict, new_id: int
                 continue
             clean = _clean(row, columns)
             clean["vehicle_id"] = new_id
+            if table == "charge_sessions":  # the refuel it was made into has a new number now (fuel comes first in LISTS)
+                clean["fuel_id"] = ids["fuel"].get(row.get("fuel_id"))
             if table == "live":
                 conn.execute("INSERT OR REPLACE INTO live (vehicle_id, key, value, updated) VALUES (?,?,?,?)",
                              (new_id, clean.get("key"), clean.get("value"), clean.get("updated") or ""))  # fmt: skip
@@ -355,11 +462,27 @@ def _fill(conn: sqlite3.Connection, zf: zipfile.ZipFile, data: dict, new_id: int
             (str(tok.get("name") or "")[:40], tok["token_hash"], new_id, str(tok.get("created_at") or "")),
         ).lastrowid
         token_ids[tok.get("id")] = new_token
-        if isinstance(tok.get("token"), str):
+        kept = (secret.get("tokens") or {}).get(str(tok.get("id"))) or tok.get("token")  # (format 1 carried the kept token readable)
+        if isinstance(kept, str) and kept:
             from . import connectors
 
-            connectors.remember(conn, new_token, tok["token"])  # only kept when it really is the token of that fingerprint
-    addons.restore_all(conn, new_id, data.get("addons") or [], token_ids)
+            connectors.remember(conn, new_token, kept)  # only kept when it really is the token of that fingerprint
+    addon_ids = addons.restore_all(conn, new_id, data.get("addons") or [], token_ids, secret.get("addons"))
+    delivered = _columns(conn, "addon_deliveries")
+    for row in (tables.get("addon_deliveries") or [])[:MAX_ROWS]:  # which files of a package were handed out, and when
+        if isinstance(row, dict) and row.get("addon_pk") in addon_ids:
+            clean = _clean(row, delivered)
+            clean["addon_pk"] = addon_ids[row["addon_pk"]]
+            conn.execute(
+                "INSERT OR REPLACE INTO addon_deliveries(addon_pk, name, version, delivered_at, settings_hash) VALUES(?,?,?,?,?)",
+                (
+                    clean["addon_pk"],
+                    clean.get("name") or "",
+                    clean.get("version") or "",
+                    clean.get("delivered_at") or "",
+                    clean.get("settings_hash") or "",
+                ),
+            )
     from . import pagemods
 
-    pagemods.restore(conn, new_id, data.get("modules"))
+    pagemods.restore(conn, new_id, secret["modules"] if isinstance(secret.get("modules"), list) else data.get("modules"))

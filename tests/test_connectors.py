@@ -369,9 +369,10 @@ def test_nothing_is_deprecated_today_and_an_announced_change_is_shown_in_the_ans
     assert r.status_code == 200 and r.headers["deprecation"] == "true" and "sunset" not in r.headers
 
 
-def test_plugin_tokens_are_always_kept_encrypted_and_travel_in_backups(api):
-    from carassistant import backup, connectors, db, vault
+def test_plugin_tokens_are_always_kept_encrypted_and_travel_in_backups(api, monkeypatch):
+    from carassistant import backup, backupsecrets, connectors, db, vault
 
+    monkeypatch.setattr(backupsecrets, "SCRYPT_N", 2**10)  # (the real cost is for people, not for tests)
     token = setup(api)  # a token of a plugin-less setup: made by the integrations page
     with db.tx() as conn:
         token_id = conn.execute("SELECT id FROM api_tokens ORDER BY id DESC LIMIT 1").fetchone()["id"]
@@ -387,12 +388,26 @@ def test_plugin_tokens_are_always_kept_encrypted_and_travel_in_backups(api):
     import zipfile
     from pathlib import Path
 
-    zf = zipfile.ZipFile(io.BytesIO(backup.create()))  # the system backup holds the token readable (the key is not in the file) ...
-    with tempfile.TemporaryDirectory() as tmp:
-        (Path(tmp) / "x.db").write_bytes(zf.read("carassistant.db"))
-        inside = sqlite3.connect(Path(tmp) / "x.db").execute("SELECT token_enc FROM api_tokens WHERE id = ?", (token_id,)).fetchone()[0]
-    assert inside == token
-    with db.tx() as conn:  # ... and a restore seals it again with the key of the system
+    def kept_in(file: bytes):
+        """What the copy of the database inside a backup holds as the kept token, and whether the token can be read anywhere in the file."""
+        zf = zipfile.ZipFile(io.BytesIO(file))
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "x.db").write_bytes(zf.read("carassistant.db"))
+            inside = sqlite3.connect(Path(tmp) / "x.db").execute("SELECT token_enc FROM api_tokens WHERE id = ?", (token_id,)).fetchone()[0]
+        return inside, any(token.encode() in zf.read(n) for n in zf.namelist())
+
+    inside, readable = kept_in(backup.create())  # without a passphrase the token stays sealed with the key of this system ...
+    assert inside.startswith(vault.PREFIX) and not readable
+    inside, readable = kept_in(sealed := backup.create("a long enough passphrase"))  # ... with one it travels in the secrets block
+    assert inside is None and not readable and backup.secrets_state(sealed) == "passphrase"
+    with db.tx() as conn:  # a restore on another system: the key is another one, so nothing of the old copy can be read
+        conn.execute("UPDATE api_tokens SET token_enc = NULL WHERE id = ?", (token_id,))
+    backup.restore(sealed, "a long enough passphrase")
+    with db.tx() as conn:
+        assert connectors.remembered(conn, token_id) == token and conn.execute(
+            "SELECT token_enc FROM api_tokens WHERE id = ?", (token_id,)
+        ).fetchone()[0].startswith(vault.PREFIX)
+    with db.tx() as conn:  # a file of the old format carried the token readable: a restore seals it with the key of the system
         conn.execute("UPDATE api_tokens SET token_enc = ? WHERE id = ?", (token, token_id))
         connectors.reseal(conn)
         assert conn.execute("SELECT token_enc FROM api_tokens WHERE id = ?", (token_id,)).fetchone()[0].startswith(vault.PREFIX)

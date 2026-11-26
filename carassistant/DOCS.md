@@ -71,6 +71,7 @@ A plugin or integration may bring a small program of its own (a *service*) that 
 ## Backup
 - **One car:** *Settings → Car → Backup and manage* (everything of that car; restore it as a new car).
 - **Everything:** *Settings → System → Back up* (all cars, users, settings). A restore makes a safety copy first.
+- **Secrets:** a backup holds no token, password, key or access code - unless you type a passphrase when you make it; then they travel in one encrypted block and come back after a restore, also on another system.
 - The app is also part of every Home Assistant backup (`backup: cold`).
 
 ## More documents on GitHub

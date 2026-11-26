@@ -518,7 +518,10 @@ def test_access_codes_stay_out_of_the_plain_vehicle_backup(client):
     assert "12345-X" not in json.dumps(modules(plain.content)) and "with-codes" not in plain.headers["content-disposition"]
     full = client.get(f"/v/{slug}/backup.zip?codes=1")
     assert "12345-X" in json.dumps(modules(full.content)) and "with-codes" in full.headers["content-disposition"]
-    assert "Backup with access codes" in client.get(f"/settings/car?car={slug}").text
+    page = client.get(f"/settings/car?car={slug}").text
+    assert (
+        "Backup with access codes" not in page and 'name="passphrase"' in page
+    )  # the codes travel in the encrypted block of a backup with a passphrase
     with db.tx() as conn:
         copy = vehiclebackup.restore(conn, full.content)
         assert any(r["data"].get("access") == "12345-X" for r in pagemods.rows(conn, copy, "coding-history", "units"))

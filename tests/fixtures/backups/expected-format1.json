@@ -1,0 +1,30 @@
+{
+  "list_counts": {
+    "appointments": 8,
+    "counters": 2,
+    "documents": 0,
+    "equipment": 49,
+    "fuel": 32,
+    "live": 27,
+    "manual_chapters": 0,
+    "manual_pages": 0,
+    "manuals": 0,
+    "mods": 5,
+    "odometer": 26,
+    "parts": 8,
+    "service": 11,
+    "tasks": 10,
+    "tire_pressure": 3,
+    "tires": 3,
+    "trips": 14,
+    "vehicle_media": 0
+  },
+  "module_rows": 2,
+  "plugin_settings": {
+    "mode": "eco"
+  },
+  "schema": 61,
+  "token_present": true,
+  "trip_points": 36,
+  "vehicle_name": "Demo Car"
+}

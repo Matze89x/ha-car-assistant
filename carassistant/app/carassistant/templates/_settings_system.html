@@ -167,10 +167,15 @@
 <section class="card" id="backup">
   <h2>{{ icon('download') }} {{ _('settings.backup') }}</h2>
   <p class="hint">{{ icon('info', 14) }} {{ _('settings.backup_hint') }}</p>
-  <p><a class="button" href="{{ base }}/settings/backup.zip">{{ icon('download', 16) }} {{ _('settings.download') }}</a></p>
+  <form method="post" action="{{ base }}/settings/backup.zip" class="acct-form" autocomplete="off">
+    <label>{{ _('vb.passphrase_new') }}<input type="password" name="passphrase" minlength="8" autocomplete="new-password"></label>
+    <div class="form-bar"><button>{{ icon('download', 16) }}<span>{{ _('settings.download') }}</span></button></div>
+  </form>
   {{ sub_h('upload', _('settings.restore')) }}
-  <form method="post" enctype="multipart/form-data" action="{{ base }}/settings/restore" class="acct-form" data-confirm="{{ _('confirm.restore') }}">
+  <form method="post" enctype="multipart/form-data" action="{{ base }}/settings/restore" class="acct-form" data-confirm="{{ _('confirm.restore') }}" autocomplete="off">
     <label><input type="file" name="backup" accept=".zip" required></label>
+    <label>{{ _('vb.passphrase_open') }}<input type="password" name="passphrase" autocomplete="off"></label>
+    {{ switch_row('no_secrets', _('vb.no_secrets'), false, hint=_('vb.no_secrets_hint')) }}
     {{ switch_row('confirm', _('settings.restore_confirm'), false, required=True) }}
     <div class="form-bar"><button class="danger">{{ icon('refresh', 16) }}<span>{{ _('btn.restore') }}</span></button></div>
   </form>

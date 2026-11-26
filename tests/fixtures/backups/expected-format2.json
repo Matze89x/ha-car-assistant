@@ -1,0 +1,52 @@
+{
+  "access_code": "12345",
+  "active": {
+    "coding-demo": true,
+    "sim-plugin": true
+  },
+  "delivered": {
+    "name": "link.cfg",
+    "settings_hash": "abc"
+  },
+  "home_price": "0.31",
+  "kept_token": true,
+  "list_counts": {
+    "appointments": 8,
+    "charge_sessions": 1,
+    "counters": 2,
+    "documents": 0,
+    "equipment": 49,
+    "fuel": 32,
+    "live": 27,
+    "manual_chapters": 0,
+    "manual_pages": 0,
+    "manuals": 0,
+    "mods": 5,
+    "odometer": 26,
+    "parts": 8,
+    "plugin_usage": 1,
+    "service": 11,
+    "signal_history": 1,
+    "signal_state": 1,
+    "tasks": 10,
+    "tire_pressure": 3,
+    "tires": 3,
+    "trip_summaries": 1,
+    "trips": 14,
+    "vehicle_events": 1,
+    "vehicle_media": 0,
+    "vehicle_signals": 1,
+    "vehicle_track": 1
+  },
+  "module_rows": 2,
+  "passphrase": "golden format two",
+  "plugin_settings": {
+    "account_pw": "made-up-password",
+    "mode": "eco"
+  },
+  "push_key": "-----MADE-UP PUSH KEY-----",
+  "schema": 61,
+  "source_key": "made-up-key",
+  "trip_points": 36,
+  "vehicle_name": "Demo EV"
+}

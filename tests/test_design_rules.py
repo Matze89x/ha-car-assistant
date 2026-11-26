@@ -488,7 +488,9 @@ def test_the_car_settings_use_sub_windows_like_every_other_page_and_the_range_fo
     media = (tpl / "_media_panel.html").read_text(encoding="utf-8")
     css = (tpl.parent / "static" / "pc-core.css").read_text(encoding="utf-8")
     assert "cv-list" not in car and "cv-list" not in css and "mbox" not in media and "mbox" not in css
-    assert car.count("sub_h(") == 4 and media.count("sub_h(") == 3 and "form-bar" in car
+    assert (
+        car.count("sub_h(") == 3 and media.count("sub_h(") == 3 and "form-bar" in car
+    )  # car: back up, archive, delete (the access codes travel with the passphrase backup)
     assert "mg-head" not in media, "the labels of the sub-windows are the header bands"
     tabs = (tpl / "_tabs.html").read_text(encoding="utf-8")
     foot = tabs[tabs.index('class="range-foot"') :]

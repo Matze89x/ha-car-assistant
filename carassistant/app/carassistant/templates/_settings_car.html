@@ -46,13 +46,11 @@
   <div class="sub-card">
     {{ sub_h('download', _('vb.row_backup')) }}
     <p class="hint">{{ icon('info', 14) }} {{ _('vb.row_backup_hint') }}</p>
-    <div class="form-bar"><a class="button small" href="{{ base }}/v/{{ car.slug }}/backup.zip">{{ icon('download', 16) }}<span>{{ _('vb.download_short') }}</span></a></div>
+    <form method="post" action="{{ base }}/v/{{ car.slug }}/backup.zip" class="acct-form" autocomplete="off">
+      <label>{{ _('vb.passphrase_new') }}<input type="password" name="passphrase" minlength="8" autocomplete="new-password"></label>
+      <div class="form-bar"><button class="small">{{ icon('download', 16) }}<span>{{ _('vb.download_short') }}</span></button></div>
+    </form>
   </div>
-  {% if has_codes %}<div class="sub-card">
-    {{ sub_h('lock', _('vb.row_codes')) }}
-    <p class="hint">{{ icon('info', 14) }} {{ _('vb.row_codes_hint') }}</p>
-    <div class="form-bar"><a class="button small" href="{{ base }}/v/{{ car.slug }}/backup.zip?codes=1">{{ icon('download', 16) }}<span>{{ _('vb.download_short') }}</span></a></div>
-  </div>{% endif %}
   <div class="sub-card">
     {{ sub_h('archive', _('vehicle.archive')) }}
     <p class="hint">{{ icon('info', 14) }} {{ _('vehicle.archive_hint') }}</p>

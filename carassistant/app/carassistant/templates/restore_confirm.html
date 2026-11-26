@@ -1,16 +1,26 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head with context %}
+{% from "_macros.html" import icon, page_head, switch_row with context %}
 {% block content %}
-{{ page_head('download', _('vb.confirm_title')) }}
+{{ page_head('download', _('vb.confirm_title') if existing else _('vb.new_title')) }}
 <section class="card">
-  <p>{{ _('vb.confirm_text', name=existing.name) }}</p>
+  <p>{% if existing %}{{ _('vb.confirm_text', name=existing.name) }}{% else %}{{ _('vb.new_text', name=backup.name) }}{% endif %}</p>
   <p class="muted"><small>{{ _('vb.confirm_backup', name=backup.name, date=backup.created) }}{% if backup.counts %} · {% for k, n in backup.counts.items() %}{{ n }} {{ k }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}</small></p>
-  <form method="post" action="{{ base }}/vehicles/restore/confirm" class="vb-choice">
+  <form method="post" action="{{ base }}/vehicles/restore/confirm" class="vb-choice" autocomplete="off">
     <input type="hidden" name="token" value="{{ token }}">
+    {% if passphrase %}<input type="hidden" name="passphrase" value="{{ passphrase }}">{% endif %}
+    {% if locked %}
+    <p class="hint">{{ icon('info', 14) }} {{ _('vb.locked_text') }}</p>
+    <label>{{ _('vb.passphrase_open') }}<input type="password" name="passphrase" autocomplete="off"></label>
+    {{ switch_row('no_secrets', _('vb.no_secrets'), false, hint=_('vb.no_secrets_hint')) }}
+    {% endif %}
+    {% if existing %}
     <button name="mode" value="replace" class="danger">{{ icon('refresh', 18) }}<span>{{ _('vb.replace') }}</span></button>
     <p class="hint">{{ icon('info', 14) }} {{ _('vb.replace_hint') }}</p>
     <button name="mode" value="copy" class="primary">{{ icon('plus', 18) }}<span>{{ _('vb.copy') }}</span></button>
     <p class="hint">{{ icon('info', 14) }} {{ _('vb.copy_hint') }}</p>
+    {% else %}
+    <button name="mode" value="new" class="primary">{{ icon('refresh', 18) }}<span>{{ _('vb.restore_btn') }}</span></button>
+    {% endif %}
     <button name="mode" value="cancel">{{ _('vb.cancel') }}</button>
   </form>
 </section>

@@ -15,7 +15,7 @@ Eine **Fahrzeugdatei** ist die Zip-Datei, die *Einstellungen → Auto → Sicher
   "vehicle": {"name": "Beispiel", "fuel_type": "diesel", ...},
   "tables": {"fuel": [{...}, ...], "service": [...], "trips": [...], "trip_points": [...]}}
 ```
-- `app` muss `carassistant` sein, `kind` `vehicle`, `format` `1` (eine App lehnt nur eine *höhere* Zahl ab).
+- `app` muss `carassistant` sein, `kind` `vehicle`, `format` `1` oder `2` (eine App lehnt nur eine *höhere* Zahl ab, als sie kennt; Format 2 ist das, was Car Assistant jetzt macht, und bringt freiwillige Tabellen, woher jedes Paket kam und den Block `secrets.enc` dazu – für eine Datei aus einem anderen Programm genügt `1`).
 - Weggelassene Felder bekommen ihren Standard; unbekannte Felder werden ignoriert. Schreibe nie `id`, `vehicle_id`, `slug`, `uid`, `media_id` oder `photo_id` des Autos - die macht die App (die `id` einer Fahrt braucht es nur, damit ihre `trip_points` darauf zeigen können).
 - **Immer Basis-Einheiten:** Kilometer, Liter (kWh bei Elektro), Geld als reine Zahl, Reifendruck in bar, Temperaturen in °C. Die App zeigt sie in den Einheiten von *Einstellungen → System → Region*.
 - **Datum** `JJJJ-MM-TT`, **Zeit** `HH:MM`, Ja/Nein als `0` / `1`.

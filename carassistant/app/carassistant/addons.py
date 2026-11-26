@@ -1315,10 +1315,13 @@ def add(conn: sqlite3.Connection, vehicle_id: int, manifest: dict, source_id: in
     ).lastrowid
 
 
-def restore_all(conn: sqlite3.Connection, vehicle_id: int, entries: list, token_ids: dict) -> None:
+def restore_all(conn: sqlite3.Connection, vehicle_id: int, entries: list, token_ids: dict, passwords: dict | None = None) -> dict[int, int]:
     """Integrations and plugins from a vehicle backup: settings and token come back, the package itself is not part of a backup.
     Everything starts OFF. When the same package is already installed on this system it is used at once (still off, to be switched on on purpose);
-    otherwise the entry waits as 'missing' until the package is installed from a source."""
+    otherwise the entry waits as 'missing' until the package is installed from a source (restoresetup.py does that when the person asked for it).
+    ``passwords`` ({package id: {setting: password}}) is what the secrets block of the backup held; they are stored sealed (vault.py).
+    Returns {the number an entry had in the backup: its number here}."""
+    numbers: dict[int, int] = {}
     for entry in entries[:50]:
         if not isinstance(entry, dict) or not isinstance(entry.get("addon_id"), str) or not ID.match(entry["addon_id"]):
             continue
@@ -1342,7 +1345,15 @@ def restore_all(conn: sqlite3.Connection, vehicle_id: int, entries: list, token_
         if have:
             manifest, source_id = json.loads(have["manifest"]), have["source_id"]
             status = "configured" if values else "uploaded"
-        url = entry.get("source_url") if isinstance(entry.get("source_url"), str) else None
+        returned = (passwords or {}).get(entry["addon_id"])
+        if isinstance(returned, dict):  # the passwords of the backup, for the fields the package declares as passwords
+            secret_keys = {f["key"] for f in manifest.get("settings", []) if f.get("type") == "password"}
+            values.update({k: str(v)[:1000] for k, v in returned.items() if k in secret_keys and isinstance(v, str) and v})
+            if status != "missing":
+                status = "configured" if values else status
+        source = entry.get("source") if isinstance(entry.get("source"), dict) else {}
+        url = source.get("url") if isinstance(source.get("url"), str) else entry.get("source_url")
+        url = url if isinstance(url, str) else None
         conn.execute(
             "INSERT OR IGNORE INTO vehicle_addons(vehicle_id, kind, addon_id, manifest, status, settings, token_id, created_at, source_id, active, source_url) "
             "VALUES(?,?,?,?,?,?,?,?,?,0,?)",
@@ -1352,13 +1363,19 @@ def restore_all(conn: sqlite3.Connection, vehicle_id: int, entries: list, token_
                 entry["addon_id"],
                 json.dumps(manifest),
                 status,
-                json.dumps(values),
+                json.dumps(_sealed(manifest, values)),
                 token_ids.get(entry.get("token_id")),
                 datetime.now(UTC).isoformat(timespec="seconds"),
                 source_id,
                 url,
             ),
         )
+        row = conn.execute(
+            "SELECT id FROM vehicle_addons WHERE vehicle_id = ? AND addon_id = ?", (vehicle_id, entry["addon_id"])
+        ).fetchone()
+        if row and isinstance(entry.get("id"), int):
+            numbers[entry["id"]] = row["id"]
+    return numbers
 
 
 def _newer_versions(conn: sqlite3.Connection, rows: list[sqlite3.Row]) -> dict[int, str]:

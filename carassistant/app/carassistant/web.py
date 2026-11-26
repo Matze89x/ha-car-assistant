@@ -3040,9 +3040,27 @@ def settings_refresh_live(request: Request):
 
 @app.get("/settings/backup.zip")
 def settings_backup():
+    """The plain backup: the secrets stay sealed with this system's key (useless anywhere else)."""
     data = backup.create()
     name = f"car-assistant-backup-{date.today().isoformat()}.zip"
-    return Response(data, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="{name}"'})
+    return Response(
+        data, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store"}
+    )
+
+
+@app.post("/settings/backup.zip")
+async def settings_backup_secure(request: Request):
+    """The backup; with a passphrase typed in the form the secrets (tokens, passwords, keys, access codes) travel in an encrypted block, so a restore on
+    another system brings them back. A passphrase never belongs into an address, so this is a form."""
+    passphrase = (await form_dict(request)).get("passphrase", "")
+    try:
+        data = backup.create(passphrase or None)
+    except backup.BackupError as exc:
+        return go(request, "/settings/system#backup", exc.args[0])
+    name = f"car-assistant-backup-{date.today().isoformat()}{'-with-secrets' if passphrase else ''}.zip"
+    return Response(
+        data, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store"}
+    )
 
 
 @app.post("/settings/restore")
@@ -3051,10 +3069,14 @@ async def settings_restore(request: Request):
     upload = form.get("backup")
     if upload is None or not getattr(upload, "filename", "") or form.get("confirm") != "1":
         return go(request, "/settings/system", "err.required")
+    raw = await upload.read(backup.MAX_RESTORE_BYTES + 1)
+    passphrase = "" if form.get("no_secrets") == "1" else str(form.get("passphrase") or "")
+    if backup.secrets_state(raw) == "passphrase" and not passphrase and form.get("no_secrets") != "1":
+        return go(request, "/settings/system#backup", "err.bk_need_passphrase")  # nothing is replaced before the person chose
     try:
-        backup.restore(await upload.read(backup.MAX_RESTORE_BYTES + 1))
+        backup.restore(raw, passphrase)
     except backup.BackupError as exc:
-        return go(request, "/settings/system", exc.args[0])
+        return go(request, "/settings/system#backup", exc.args[0])
     events.changed()
     return go(request, "/", "restored")
 
