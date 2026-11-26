@@ -1,0 +1,260 @@
+{
+  "id": "coding",
+  "kind": "integration",
+  "name": "Coding",
+  "version": "6",
+  "description": "Keep the coding of the control units of the car: the factory value (written once) next to the current one, changed bytes marked, with notes. With an access code per control unit and a history of changes.",
+  "author": "Matze89x",
+  "icon": "memory",
+  "nav": true,
+  "l10n": {
+    "de": {
+      "name": "Coding",
+      "description": "Die Codierung der Steuergeräte des Autos festhalten: der Werkswert (einmal geschrieben) neben dem aktuellen, geänderte Bytes markiert, mit Notizen. Mit Zugangscode je Steuergerät und einem Verlauf der Änderungen."
+    }
+  },
+  "pages": [
+    {
+      "id": "units",
+      "title": "Control units",
+      "item": "Control unit",
+      "empty": "No control units yet. Add one with the plus.",
+      "l10n": {
+        "de": {
+          "title": "Steuergeräte",
+          "item": "Steuergerät",
+          "empty": "Noch keine Steuergeräte. Füge mit dem Plus eins hinzu."
+        }
+      },
+      "fields": [
+        {
+          "key": "addr",
+          "label": "Address",
+          "type": "text",
+          "required": true,
+          "role": "title",
+          "help": "For example 09 or 09-01",
+          "l10n": {
+            "de": {
+              "label": "Adresse",
+              "help": "Zum Beispiel 09 oder 09-01"
+            }
+          }
+        },
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "text",
+          "required": true,
+          "role": "title",
+          "l10n": {
+            "de": {
+              "label": "Name"
+            }
+          }
+        },
+        {
+          "key": "component",
+          "label": "Component",
+          "type": "text",
+          "role": "subtitle",
+          "l10n": {
+            "de": {
+              "label": "Bauteil"
+            }
+          }
+        },
+        {
+          "key": "sw",
+          "label": "Part number (software)",
+          "type": "text",
+          "l10n": {
+            "de": {
+              "label": "Teilenummer Software"
+            }
+          }
+        },
+        {
+          "key": "hw",
+          "label": "Part number (hardware)",
+          "type": "text",
+          "l10n": {
+            "de": {
+              "label": "Teilenummer Hardware"
+            }
+          }
+        },
+        {
+          "key": "revision",
+          "label": "Revision",
+          "type": "text",
+          "l10n": {
+            "de": {
+              "label": "Revision"
+            }
+          }
+        },
+        {
+          "key": "coding_old",
+          "label": "Factory coding (hex)",
+          "type": "hex",
+          "once": true,
+          "help": "Written once, then fixed.",
+          "l10n": {
+            "de": {
+              "label": "Werks-Codierung (Hex)",
+              "help": "Wird einmal geschrieben, danach fest."
+            }
+          }
+        },
+        {
+          "key": "coding_new",
+          "label": "Current coding (hex)",
+          "type": "hex",
+          "compare": "coding_old",
+          "l10n": {
+            "de": {
+              "label": "Aktuelle Codierung (Hex)"
+            }
+          }
+        },
+        {
+          "key": "info",
+          "label": "Info",
+          "type": "textarea",
+          "l10n": {
+            "de": {
+              "label": "Infos"
+            }
+          }
+        },
+        {
+          "key": "notes",
+          "label": "Adaptations and notes",
+          "type": "textarea",
+          "l10n": {
+            "de": {
+              "label": "Anpassungen und Notizen"
+            }
+          }
+        },
+        {
+          "key": "access_code",
+          "label": "Access code",
+          "type": "secret",
+          "help": "Log-in or unlock code of the control unit. Hidden until you press Show.",
+          "l10n": {
+            "de": {
+              "label": "Zugangscode",
+              "help": "Anmelde- oder Entsperrcode des Steuergeräts. Verborgen, bis du Anzeigen drückst."
+            }
+          }
+        }
+      ],
+      "search": true
+    },
+    {
+      "id": "history",
+      "title": "History",
+      "item": "Change",
+      "empty": "No changes yet. Add one with the plus.",
+      "order": {
+        "by": "date",
+        "dir": "desc"
+      },
+      "search": true,
+      "l10n": {
+        "de": {
+          "title": "Verlauf",
+          "item": "Änderung",
+          "empty": "Noch keine Änderungen. Füge mit dem Plus eine hinzu."
+        }
+      },
+      "fields": [
+        {
+          "key": "date",
+          "label": "Date",
+          "type": "date",
+          "required": true,
+          "role": "subtitle",
+          "l10n": {
+            "de": {
+              "label": "Datum"
+            }
+          }
+        },
+        {
+          "key": "unit",
+          "label": "Control unit",
+          "type": "text",
+          "required": true,
+          "role": "subtitle",
+          "help": "For example 09 Central electrics",
+          "l10n": {
+            "de": {
+              "label": "Steuergerät",
+              "help": "Zum Beispiel 09 Zentralelektrik"
+            }
+          }
+        },
+        {
+          "key": "what",
+          "label": "What was changed",
+          "type": "text",
+          "required": true,
+          "role": "title",
+          "l10n": {
+            "de": {
+              "label": "Was geändert wurde"
+            }
+          }
+        },
+        {
+          "key": "old",
+          "label": "Old value",
+          "type": "text",
+          "l10n": {
+            "de": {
+              "label": "Alter Wert"
+            }
+          }
+        },
+        {
+          "key": "new",
+          "label": "New value",
+          "type": "text",
+          "l10n": {
+            "de": {
+              "label": "Neuer Wert"
+            }
+          }
+        },
+        {
+          "key": "note",
+          "label": "Note",
+          "type": "textarea",
+          "l10n": {
+            "de": {
+              "label": "Notiz"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "docs": "Keeps the coding of the car's control units: for each unit the factory value (fixed once written) next to the current one, changed bytes marked, bits viewable, notes. Entries are written by hand or delivered by a plugin that reads the car. Every control unit is a collapsible row (address badge, name, changed bytes); the byte grid, the new value and the notes are edited right there, 'New = factory' puts the factory value into the current coding (saved with Save).",
+  "interfaces": [
+    {
+      "direction": "offers",
+      "name": "Control units (read)",
+      "path": "/api/v1/vehicles/<id>/modules/coding/units",
+      "note": "GET: the entries in their order, as plain values"
+    },
+    {
+      "direction": "offers",
+      "name": "Control units (write)",
+      "path": "/api/v1/vehicles/<id>/modules/coding/units",
+      "note": "POST: a plugin may add, change and delete entries; fields marked once keep their first value"
+    }
+  ]
+}

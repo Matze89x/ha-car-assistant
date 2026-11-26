@@ -10,6 +10,7 @@
   </div>
   <p class="src-state">
     {% if r.error %}<span class="badge overdue">{{ _(r.error) }}</span>
+    {% elif r.bundled %}<span class="badge ok">{{ (_('src.packages_plugin', n=r.n_packages) if kind == 'plugin' else _('src.packages_integration', n=r.n_packages)) }}</span> <small class="muted">{{ _('src.bundled') }}</small>
     {% elif r.checked_at %}<span class="badge ok">{{ (_('src.packages_plugin', n=r.n_packages) if kind == 'plugin' else _('src.packages_integration', n=r.n_packages)) }}</span> <small class="muted">{{ _('src.checked', when=fdate(r.checked_at) ~ ' ' ~ r.checked_at[11:16]) }}</small>
     {% else %}<span class="badge">{{ _('src.never') }}</span>{% endif %}
     {% if r.has_token %}<span class="badge">{{ icon('lock', 12) }} {{ _('src.key_set') }}</span>{% endif %}

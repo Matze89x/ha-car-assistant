@@ -53,7 +53,7 @@ The description of one package, see [plugins.md](plugins.md) (id, name, version,
 
 A package that was installed **without a source** (from a file) shows *no source* on its tile and is marked *Installed · no source* under *Add* - it is not offered a second time. When a source offers a **newer** version of it, it gets an *Update* like any other and is linked to that source from then on (settings, token and state stay). When a source offers **exactly the same** version, the card shows a light button *Link to source*: it only links the package to that source (its next updates come from there) - nothing else changes, no download. A source with an older version changes nothing.
 
-If GitHub answers "403" because its hourly limit for anonymous requests (60 per address) is used up, the app says so - the access key is not the problem; try again later.
+**GitHub and its limit.** A public GitHub source is read from `raw.githubusercontent.com`, which has no such quota. The GitHub **API** allows only 60 anonymous requests an hour per internet address - for everyone behind that address - and is used for a source with an access key (the key lifts the limit to 5000) and by other add-ons and tools on your network. Car Assistant keeps every file it read together with the ETag the server named: asking again costs nothing (the server answers "not modified"), a file read in the last ten minutes is not asked for again, and when the limit is hit or the connection is gone the list shows what was known before and says so (*the source did not answer ... the list is as it was known before*) - the access key is not the problem; try again later.
 
 A source can only be deleted when **no package installed from it** remains.
 
@@ -68,3 +68,7 @@ Your own plugins and integrations belong in a **source** of their own - one repo
 ## Factory setting
 
 After a fresh start the first source is the project's package repository, [ha-car-assistant-sources](https://github.com/Matze89x/ha-car-assistant-sources) - it also holds the instructions for writing your own packages. It can be deleted (when nothing from it is installed) and restored with *Restore the standard source*.
+
+### The standard source comes with the app
+
+A copy of the standard source - its packages and the two demo cars - comes **with every version of the app** (`carassistant/app/carassistant/stdsource/`, made by `tools/sync_stdsource.py`, in the Developer add-on and in the release alike). Until you press *Update list* on it, the list and the packages are read from there: a fresh start and *Just have a look* need no connection and no quota. *Update list* asks GitHub (an unchanged file costs nothing); what it finds is used from then on. A newer version of the app brings a newer copy, and its list shows that copy again until you update it. If the update fails (limit, no network) the list stays as it was and the source says so.

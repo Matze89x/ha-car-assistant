@@ -80,6 +80,9 @@ MIGRATIONS: list[str] = [
     (SCHEMA_DIR / "migrations_61.sql").read_text(
         encoding="utf-8"
     ),  # low tank / battery message: own threshold per person and car, and what was told
+    (SCHEMA_DIR / "migrations_62.sql").read_text(
+        encoding="utf-8"
+    ),  # sources: the files read are kept with their ETag; when a source was last read online
 ]
 
 

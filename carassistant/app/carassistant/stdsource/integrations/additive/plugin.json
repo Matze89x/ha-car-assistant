@@ -1,0 +1,176 @@
+{
+  "id": "additive",
+  "kind": "integration",
+  "name": "Additive",
+  "version": "4",
+  "description": "An additive plan for the fuel: a rotation that moves on with every refuel (for example clean - additive 1 - clean - additive 2), a reminder when the range gets low, and a history. Optional, off until you set it up.",
+  "author": "Matze89x",
+  "icon": "oil",
+  "l10n": {
+    "de": {
+      "name": "Additivzusatz",
+      "description": "Ein Additiv-Plan für den Kraftstoff: ein Wechsel, der mit jeder Tankung weiterrückt (zum Beispiel sauber – Additiv 1 – sauber – Additiv 2), eine Erinnerung, wenn die Reichweite knapp wird, und ein Verlauf. Freiwillig, aus, bis du ihn einrichtest."
+    }
+  },
+  "settings": [
+    {
+      "key": "active",
+      "label": "Reminder active",
+      "type": "bool",
+      "default": "1",
+      "help": "Switched off: no reminder on the home page.",
+      "l10n": {
+        "de": {
+          "label": "Erinnerung aktiv",
+          "help": "Ausgeschaltet: nie eine Erinnerung auf der Startseite."
+        }
+      }
+    },
+    {
+      "key": "range",
+      "label": "Remind below (km of range)",
+      "type": "select",
+      "default": "150",
+      "options": [
+        {
+          "value": "100",
+          "label": "100 km"
+        },
+        {
+          "value": "150",
+          "label": "150 km"
+        },
+        {
+          "value": "200",
+          "label": "200 km"
+        },
+        {
+          "value": "300",
+          "label": "300 km"
+        }
+      ],
+      "help": "The reminder shows when the range falls below this.",
+      "l10n": {
+        "de": {
+          "label": "Erinnern unter (km Reichweite)",
+          "help": "Die Erinnerung erscheint, wenn die Reichweite darunter fällt."
+        }
+      }
+    },
+    {
+      "key": "additive_1",
+      "label": "Additive 1 (name)",
+      "type": "text",
+      "default": "",
+      "l10n": {
+        "de": {
+          "label": "Additiv 1 (Name)"
+        }
+      }
+    },
+    {
+      "key": "amount_1",
+      "label": "Amount",
+      "type": "text",
+      "default": "",
+      "placeholder": "250 ml",
+      "l10n": {
+        "de": {
+          "label": "Menge"
+        }
+      }
+    },
+    {
+      "key": "additive_2",
+      "label": "Additive 2 (name)",
+      "type": "text",
+      "default": "",
+      "l10n": {
+        "de": {
+          "label": "Additiv 2 (Name)"
+        }
+      }
+    },
+    {
+      "key": "amount_2",
+      "label": "Amount",
+      "type": "text",
+      "default": "",
+      "placeholder": "150 ml",
+      "l10n": {
+        "de": {
+          "label": "Menge"
+        }
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "id": "additive",
+      "title": "Additive",
+      "text_due": "Add the additive at the next refuel.",
+      "icon": "oil",
+      "active_setting": "active",
+      "range_setting": "range",
+      "plan": [
+        {
+          "label": "Clean",
+          "l10n": {
+            "de": {
+              "label": "Sauber"
+            }
+          }
+        },
+        {
+          "setting": "additive_1",
+          "amount_setting": "amount_1",
+          "label": "Additive 1",
+          "l10n": {
+            "de": {
+              "label": "Additiv 1"
+            }
+          }
+        },
+        {
+          "label": "Clean",
+          "l10n": {
+            "de": {
+              "label": "Sauber"
+            }
+          }
+        },
+        {
+          "setting": "additive_2",
+          "amount_setting": "amount_2",
+          "label": "Additive 2",
+          "l10n": {
+            "de": {
+              "label": "Additiv 2"
+            }
+          }
+        }
+      ],
+      "l10n": {
+        "de": {
+          "title": "Additivzusatz",
+          "text_due": "Beim nächsten Tanken Additiv zugeben."
+        }
+      }
+    }
+  ],
+  "docs": "Keeps an additive plan for the fuel: the plan moves on with every refuel (default: clean, additive 1, clean, additive 2), reminds you on the home page when the range gets low, and keeps a history you can mark as added / not added. Names and amounts are yours; nothing is sold or recommended.",
+  "nav": true,
+  "pages": [
+    {
+      "id": "plan",
+      "kind": "plan",
+      "reminder": "additive",
+      "title": "Additive plan",
+      "l10n": {
+        "de": {
+          "title": "Additiv-Plan"
+        }
+      }
+    }
+  ]
+}

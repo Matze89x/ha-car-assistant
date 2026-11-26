@@ -81,7 +81,10 @@ def test_update_reads_both_indexes_and_lists_the_packages(client, fake_source):
         n = conn.execute("SELECT kind, pkg_id, version FROM source_packages").fetchall()
     assert row["error"] is None and row["checked_at"]
     assert [tuple(r) for r in n] == [("plugin", "demo-one", "1.9")]
-    assert any("api.github.com/repos/Matze89x/ha-car-assistant-sources/contents/plugins/index.json" in u for u, _ in fake_source["seen"])
+    assert any(
+        "raw.githubusercontent.com/Matze89x/ha-car-assistant-sources/HEAD/plugins/index.json" in u for u, _ in fake_source["seen"]
+    )  # no API quota
+    assert not any("api.github.com" in u for u, _ in fake_source["seen"])
     _, slug = _car(client)
     add_page = client.get(f"/v/{slug}/plugins/add").text
     assert "Demo One" in add_page and "/packages/" in add_page

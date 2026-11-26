@@ -1,0 +1,18 @@
+{
+  "packages": [
+    {
+      "id": "coding",
+      "name": "Coding",
+      "description": "Coding of the control units: factory value next to current, changed bytes marked, notes, an access code per unit and a history.",
+      "version": "6",
+      "icon": "memory"
+    },
+    {
+      "id": "additive",
+      "name": "Additive",
+      "description": "An additive plan for the fuel: a rotation that moves on with every refuel (for example clean - additive 1 - clean - additive 2), a reminder when the range gets low, and a history. Optional, off until you set it up.",
+      "version": "4",
+      "icon": "oil"
+    }
+  ]
+}

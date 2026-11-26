@@ -85,7 +85,7 @@ SKIPPED_TABLES = {
 SYSTEM_TABLES = frozenset(  # people, devices and the packages' sources: part of the backup of the whole system only
     {
         "auth_challenges", "mcp_keys", "mcp_log", "notify_energy", "notify_log", "notify_state", "passkeys", "place_names",
-        "push_device_cars", "push_devices", "recovery_codes", "sessions", "source_packages", "sources", "user_notify",
+        "push_device_cars", "push_devices", "recovery_codes", "sessions", "source_cache", "source_packages", "sources", "user_notify",
         "user_notify_vehicle", "user_prefs", "users",
     }
 )  # fmt: skip

@@ -17,6 +17,10 @@ Wie Meldungen und Beiträge zur nächsten Version werden. Beitragende ändern ni
 
 `RELEASE.FEATURES.FEHLER` plus die Stufe (Alpha / Beta): Die erste Zahl zählt Releases, die zweite Features, die dritte Fehlerkorrekturen. Nur `release.json` hält den Wert; `tools/release.py` schreibt ihn überall hin. Siehe [CONTRIBUTING](community/contributing.de.md).
 
+## Die Standardquelle kommt mit der App
+
+Das Paket-Repository `ha-car-assistant-sources` wird nach `carassistant/app/carassistant/stdsource/` kopiert, damit ein frischer Start und die Demo-Autos weder eine Verbindung noch GitHub-Kontingent brauchen (docs/sources.de.md). Nach einer Änderung jenes Repositorys und **vor jedem Release**: `python tools/sync_stdsource.py <Ordner von ha-car-assistant-sources>` (es lässt zuerst `tools/check_source.py` laufen) und den Ordner committen; `python tools/sync_stdsource.py --check <Ordner>` vergleicht nur und endet mit Exit-Code 1, wenn die Kopie zurückliegt.
+
 ## Die Developer-App
 
 `carassistant-dev/` ist eine zweite App im selben Repository (*Car Assistant Developer*, Slug `carassistant_dev`, eigene Daten). Ihr Dockerfile lädt beim Bauen den Zweig `dev` herunter. Ihre Version ist die nächste Version plus ein Zähler (`0.5.1.3`) in `release.json` (`dev`): `python tools/release.py dev` für jeden Schritt, der als Update ankommen soll (`dev 0.5.2` beginnt eine neue Basis bei `.1`). Der Store liest die App-Liste aus `main`: nach `git push origin dev` also `tools/publish_dev.sh` ausführen, das legt nur den Ordner `carassistant-dev/` auf `main` (die veröffentlichte App dort bleibt unberührt). Geht ein Release nach `main` (`dev` mergen, `python tools/release.py set 0.5.1`), sofort die nächste Basis setzen: `python tools/release.py dev 0.5.2`.

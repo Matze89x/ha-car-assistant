@@ -1,0 +1,11 @@
+{
+  "packages": [
+    {
+      "id": "demo-connector",
+      "name": "Demo connector",
+      "description": "Plays a made-up drive for a demo car, once every 5 seconds, through the normal interface.",
+      "version": "2",
+      "icon": "car-side"
+    }
+  ]
+}

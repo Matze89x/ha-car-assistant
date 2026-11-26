@@ -9,6 +9,10 @@ A source is a GitHub repository (``https://github.com/<owner>/<repo>``) or any h
     plugins/<id>/plugin.json
 
 Nothing is requested from a source on its own: only when the user presses *Update* (or adds the source, opens a package, installs or updates it).
+
+How a file is read (``_read``): a public GitHub repository comes from raw.githubusercontent.com - that is no API request and counts against no quota (the
+API allows 60 an hour for EVERYONE behind one internet address); a file is kept with the ETag the server named, so asking again costs nothing; and the
+standard source needs no connection at all until the person updates it: the copy that came with this version of the app (``stdsource/``) answers.
 """
 
 from __future__ import annotations
@@ -19,12 +23,14 @@ import json
 import re
 import socket
 import sqlite3
+import threading
 import urllib.error
 import urllib.request
 from datetime import UTC, datetime
+from pathlib import Path
 from urllib.parse import quote, urlsplit
 
-from . import addons, icons, vault
+from . import addons, db, icons, vault
 
 MAX_SOURCES = 50
 MAX_FILE = 200_000  # bytes per downloaded file
@@ -35,6 +41,10 @@ KINDS = ("integration", "plugin")
 FOLDER = {"integration": "integrations", "plugin": "plugins"}
 DEFAULT_URL = "https://github.com/Matze89x/ha-car-assistant-sources"  # temporary factory source (docs/sources.md)
 DEFAULT_NAME = "Car Assistant"
+BUNDLE = Path(__file__).parent / "stdsource"  # the standard source as it was when this version was made (tools/sync_stdsource.py)
+CACHE_SECONDS = (
+    600  # a file read a moment ago is not asked for again; *Update list* always asks (an unchanged file is answered "not modified")
+)
 DEMO_IDS = ("demo-diesel", "demo-electric")  # the demo cars of the standard source: offered by "Just have a look", not in the list of cars
 GITHUB = re.compile(r"^https://github\.com/([A-Za-z0-9][A-Za-z0-9-]{0,38})/([A-Za-z0-9._-]{1,100})$")
 
@@ -72,7 +82,7 @@ def _flag(kind: str) -> str:
 def listing(conn: sqlite3.Connection, kind: str) -> list[dict]:
     """The sources of one list (Integrations or Plugins) with what each offers and has installed - of that kind only."""
     rows = conn.execute(
-        "SELECT s.id, s.name, s.url, s.is_default, s.checked_at, s.error, s.note, (s.token IS NOT NULL AND s.token != '') AS has_token, "
+        "SELECT s.id, s.name, s.url, s.is_default, s.checked_at, s.online_at, s.error, s.note, (s.token IS NOT NULL AND s.token != '') AS has_token, "
         "(SELECT COUNT(*) FROM source_packages p WHERE p.source_id = s.id AND p.kind = ?1) AS n_packages, "
         "(SELECT COUNT(*) FROM vehicle_addons a WHERE a.source_id = s.id AND a.kind = ?1) AS n_installed, "
         "s.for_integration, s.for_plugin "
@@ -82,6 +92,9 @@ def listing(conn: sqlite3.Connection, kind: str) -> list[dict]:
     out = []
     for r in rows:
         item = dict(r)
+        item["bundled"] = (
+            r["url"] == DEFAULT_URL and r["online_at"] is None and r["n_packages"] > 0 and BUNDLE.is_dir()
+        )  # only the copy of this version is known
         try:
             item["notes"] = json.loads(r["note"] or "[]")
         except ValueError:
@@ -147,6 +160,23 @@ def seed_defaults(conn: sqlite3.Connection) -> None:
     restore_default(conn)
 
 
+def seed_bundled(conn: sqlite3.Connection) -> None:
+    """The standard source as it came with this version of the app (``stdsource/``) fills its list without any connection - on the first start, and again when
+    a newer version of the app brought a newer copy (then what was read online before is dropped: the copy of the app is the newer one). Nothing goes online."""
+    source = conn.execute("SELECT id FROM sources WHERE url = ?", (DEFAULT_URL,)).fetchone()
+    if source is None or not BUNDLE.is_dir():
+        return
+    version_file = BUNDLE / "VERSION"
+    version = version_file.read_text(encoding="utf-8").strip() if version_file.is_file() else ""
+    listed = conn.execute("SELECT 1 FROM source_packages WHERE source_id = ? LIMIT 1", (source["id"],)).fetchone()
+    if db.get_setting(conn, "stdsource.seen", "") == version and listed:
+        return
+    conn.execute("DELETE FROM source_cache WHERE source_id = ?", (source["id"],))
+    conn.execute("UPDATE sources SET online_at = NULL WHERE id = ?", (source["id"],))
+    refresh(conn, source["id"], offline=True)
+    db.set_setting(conn, "stdsource.seen", version)
+
+
 def installed_count(conn: sqlite3.Connection, source_id: int, kind: str) -> int:
     return conn.execute("SELECT COUNT(*) FROM vehicle_addons WHERE source_id = ? AND kind = ?", (source_id, kind)).fetchone()[0]
 
@@ -155,6 +185,7 @@ def remove(conn: sqlite3.Connection, source_id: int, kind: str = "plugin") -> No
     """Delete a source - not while an integration or plugin installed from it remains (it would lose its origin and its updates)."""
     if any(installed_count(conn, source_id, k) for k in KINDS):
         raise SourceError("err.src_in_use")
+    conn.execute("DELETE FROM source_cache WHERE source_id = ?", (source_id,))
     conn.execute("DELETE FROM sources WHERE id = ?", (source_id,))
 
 
@@ -177,20 +208,33 @@ def _public_host(host: str) -> bool:
     )
 
 
+class Body(bytes):
+    """A file as the server sent it: its bytes, the ``etag`` it named, and ``not_modified`` when the server answered "still the same" (no bytes then)."""
+
+    etag: str | None = None
+    not_modified: bool = False
+
+
 def _http(url: str, headers: dict[str, str], check_host: bool, limit: int = MAX_FILE) -> bytes:
-    """GET one small file. Raises SourceError(i18n key); a missing file is signalled with ``err.src_missing``."""
+    """GET one file. With ``If-None-Match`` among the headers a file that did not change is answered "not modified" (it costs no quota). Raises
+    SourceError(i18n key); a missing file is signalled with ``err.src_missing``."""
     host = urlsplit(url).hostname or ""
     if check_host and not _public_host(host):
         raise SourceError("err.src_host")
     request = urllib.request.Request(url, headers={"User-Agent": "car-assistant", **headers})  # noqa: S310 - https only, see clean_url
     try:
         with urllib.request.build_opener(_NoRedirect).open(request, timeout=TIMEOUT) as response:
-            data = response.read(limit + 1)
+            data = Body(response.read(limit + 1))
+            data.etag = response.headers.get("ETag")
     except urllib.error.HTTPError as exc:
+        if exc.code == 304:
+            same = Body()
+            same.not_modified = True
+            return same
         if exc.code == 404:
             raise SourceError("err.src_missing") from exc
-        if exc.code in (403, 429) and exc.headers is not None and exc.headers.get("X-RateLimit-Remaining") == "0":
-            raise SourceError("err.src_rate") from exc  # not a wrong key: GitHub allows only 60 anonymous requests an hour per address
+        if exc.code == 429 or (exc.code == 403 and exc.headers is not None and exc.headers.get("X-RateLimit-Remaining") == "0"):
+            raise SourceError("err.src_rate") from exc  # not a wrong key: GitHub allows only 60 anonymous API requests an hour per address
         raise SourceError("err.src_auth" if exc.code in (401, 403) else "err.src_net") from exc
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise SourceError("err.src_net") from exc
@@ -199,20 +243,105 @@ def _http(url: str, headers: dict[str, str], check_host: bool, limit: int = MAX_
     return data
 
 
-def _read(source: sqlite3.Row, path: str, limit: int = MAX_FILE) -> bytes:
+def _where(source: sqlite3.Row, path: str) -> tuple[str, dict[str, str], bool]:
+    """Where a file of a source is read, with which headers, and whether the host must be a public one. A public GitHub repository is read from
+    raw.githubusercontent.com: no API request, no quota (the API allows 60 an hour for everyone behind one internet address - this app, other add-ons,
+    the tools of the person). One with an access key goes through the API (the key lifts its limit to 5000 an hour)."""
     token = vault.decrypt(source["token"])
     gh = _github(source["url"])
+    if gh and not token:
+        return f"https://raw.githubusercontent.com/{gh[0]}/{gh[1]}/HEAD/{quote(path)}", {}, False
     if gh:
-        url = f"https://api.github.com/repos/{gh[0]}/{gh[1]}/contents/{quote(path)}"
-        headers = {"Accept": "application/vnd.github.raw+json", "X-GitHub-Api-Version": "2022-11-28"}
-        check = False
-    else:
-        url = f"{source['url']}/{quote(path)}"
-        headers = {}
-        check = True
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    return _http(url, headers, check, **({"limit": limit} if limit != MAX_FILE else {}))
+        headers = {"Accept": "application/vnd.github.raw+json", "X-GitHub-Api-Version": "2022-11-28", "Authorization": f"Bearer {token}"}
+        return f"https://api.github.com/repos/{gh[0]}/{gh[1]}/contents/{quote(path)}", headers, False
+    return f"{source['url']}/{quote(path)}", ({"Authorization": f"Bearer {token}"} if token else {}), True
+
+
+def _bundled(source: sqlite3.Row, path: str) -> bytes | None:
+    """A file of the standard source as it came with this version of the app (``stdsource/``), or None."""
+    if source["url"] != DEFAULT_URL or ".." in path.split("/"):
+        return None
+    file = BUNDLE / path
+    return file.read_bytes() if file.is_file() else None
+
+
+def _now() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
+
+
+def _age(stamp: str) -> float:
+    try:
+        return (datetime.now(UTC) - datetime.fromisoformat(stamp)).total_seconds()
+    except ValueError:
+        return float("inf")
+
+
+_used = (
+    threading.local()
+)  # did this thread take a file from what was known (the limit was hit, or there is no connection) while it was reading?
+
+
+def _read(
+    conn: sqlite3.Connection, source: sqlite3.Row, path: str, limit: int = MAX_FILE, fresh: bool = False, offline: bool = False
+) -> bytes:
+    """One file of a source.
+
+    A small file is kept with the ETag the server named: asked again, the server answers "not modified" for a file that did not change - no quota, no bytes.
+    ``fresh`` (the person pressed *Update list*) always asks; otherwise a file read in the last ten minutes is not asked for again - a file the source does
+    not have (an optional index) is kept as "not there" the same way. The standard source needs no connection until it was read online once: what came
+    with this version of the app answers. When the limit is hit or there is no connection, what was known before answers (``_used.fallback`` says so);
+    ``offline`` never asks (the copy of the app only)."""
+    cacheable = limit == MAX_FILE
+    row = (
+        conn.execute("SELECT etag, body, checked_at FROM source_cache WHERE source_id = ? AND path = ?", (source["id"], path)).fetchone()
+        if cacheable
+        else None
+    )
+    own = _bundled(source, path) if source["online_at"] is None or offline else None
+    if offline:
+        if own is not None:
+            return own
+        raise SourceError("err.src_missing")
+    if not fresh:
+        if row is not None and _age(row["checked_at"]) < CACHE_SECONDS:
+            if not row["body"]:
+                raise SourceError("err.src_missing")  # the source did not have this file a moment ago
+            return bytes(row["body"])
+        if own is not None:
+            return own
+    url, headers, check = _where(source, path)
+    if row is not None and row["etag"]:
+        headers = {**headers, "If-None-Match": row["etag"]}
+    try:
+        data = _http(url, headers, check, **({"limit": limit} if limit != MAX_FILE else {}))
+    except SourceError as exc:
+        if str(exc) in ("err.src_rate", "err.src_net"):
+            if row is not None and not row["body"]:
+                raise SourceError("err.src_missing") from exc  # it was not there before: a limit does not make it appear
+            # a limit or no connection: what was known is better than nothing
+            kept = bytes(row["body"]) if row is not None else _bundled(source, path)
+            if kept is not None:
+                _used.fallback = True
+                return kept
+        elif str(exc) == "err.src_missing" and cacheable:
+            _keep(conn, source, path, None, b"")  # an optional file the source does not have: not asked for again within ten minutes
+        raise
+    if getattr(data, "not_modified", False) and row is not None and row["body"]:
+        conn.execute("UPDATE source_cache SET checked_at = ? WHERE source_id = ? AND path = ?", (_now(), source["id"], path))
+        return bytes(row["body"])
+    etag = getattr(data, "etag", None)
+    if cacheable and etag:
+        _keep(conn, source, path, etag, bytes(data))
+    return bytes(data)
+
+
+def _keep(conn: sqlite3.Connection, source: sqlite3.Row, path: str, etag: str | None, body: bytes) -> None:
+    """Remember a file of a source with the ETag the server named (an empty body: the source does not have the file)."""
+    conn.execute(
+        "INSERT INTO source_cache(source_id, path, etag, body, checked_at) VALUES(?,?,?,?,?) "
+        "ON CONFLICT(source_id, path) DO UPDATE SET etag = excluded.etag, body = excluded.body, checked_at = excluded.checked_at",
+        (source["id"], path, etag, body, _now()),
+    )
 
 
 def _json(raw: bytes) -> dict:
@@ -260,10 +389,10 @@ def _clean_entries(entries: list, kind: str) -> tuple[list[dict], list[dict]]:
     return good, skipped
 
 
-def _load_index(source: sqlite3.Row, path: str):
+def _load_index(conn: sqlite3.Connection, source: sqlite3.Row, path: str, fresh: bool = False, offline: bool = False):
     """The parsed index file at ``path`` or None when the source has none; SourceError when it is not usable."""
     try:
-        raw = _read(source, path)
+        raw = _read(conn, source, path, fresh=fresh, offline=offline)
     except SourceError as exc:
         if str(exc) == "err.src_missing":
             return None
@@ -277,32 +406,38 @@ def _load_index(source: sqlite3.Row, path: str):
     return data
 
 
-def _index(source: sqlite3.Row, kind: str) -> tuple[list[dict], list[dict]] | None:
+def _index(
+    conn: sqlite3.Connection, source: sqlite3.Row, kind: str, fresh: bool = False, offline: bool = False
+) -> tuple[list[dict], list[dict]] | None:
     """The cleaned index of one kind (and what was left out), or None when the source has none for it."""
-    data = _load_index(source, f"{FOLDER[kind]}/index.json")
+    data = _load_index(conn, source, f"{FOLDER[kind]}/index.json", fresh, offline)
     return None if data is None else _clean_entries(_entries(data, FOLDER[kind]), kind)
 
 
-def _vehicle_index(source: sqlite3.Row) -> list[dict] | None:
+def _vehicle_index(conn: sqlite3.Connection, source: sqlite3.Row, fresh: bool = False, offline: bool = False) -> list[dict] | None:
     """Optional: vehicles/index.json lists car backups (vehicles/<id>.zip) that can be restored from this source."""
-    data = _load_index(source, "vehicles/index.json")
+    data = _load_index(conn, source, "vehicles/index.json", fresh, offline)
     return None if data is None else _clean_entries(_entries(data, "vehicles"), "vehicle")[0]
 
 
-def _root_name(source: sqlite3.Row) -> str:
+def _root_name(conn: sqlite3.Connection, source: sqlite3.Row, fresh: bool = False, offline: bool = False) -> str:
     """Optional: a root index.json may carry {"name": "..."} - the name the source gives itself."""
     try:
-        data = _load_index(source, "index.json")
+        data = _load_index(conn, source, "index.json", fresh, offline)
     except SourceError:
         return ""
     return _text(data.get("name"), 60) if isinstance(data, dict) else ""
 
 
-def refresh(conn: sqlite3.Connection, source_id: int) -> str | None:
-    """Read both indexes of one source and replace what was known. Returns None or an i18n error key (also stored on the source)."""
+def refresh(conn: sqlite3.Connection, source_id: int, offline: bool = False) -> str | None:
+    """Read both indexes of one source and replace what was known. Returns None or an i18n error key (also stored on the source). The person's *Update list*
+    always asks the server (an unchanged file is answered "not modified" and costs no quota); when the limit is hit or there is no connection the list is
+    made from what was known and the source says ``err.src_stale``. ``offline`` reads only the copy that came with this version (seed_bundled)."""
     source = get(conn, source_id)
     if source is None:
         return "err.src_missing"
+    fresh = not offline
+    _used.fallback = False
     found: dict[str, list[dict]] = {}
     notes: list[dict] = []
     error = None
@@ -312,11 +447,11 @@ def refresh(conn: sqlite3.Connection, source_id: int) -> str | None:
         for kind in KINDS:
             if not source[_flag(kind)]:
                 continue
-            index = _index(source, kind)
+            index = _index(conn, source, kind, fresh, offline)
             if index is not None:
                 found[kind] = index[0]
                 notes += index[1]
-        vehicles = _vehicle_index(source) or []
+        vehicles = _vehicle_index(conn, source, fresh, offline) or []
         if not found and not vehicles:
             error = "err.src_empty"
         else:  # a list the source is in but has no index for: nothing offered there
@@ -324,7 +459,7 @@ def refresh(conn: sqlite3.Connection, source_id: int) -> str | None:
                 if source[_flag(kind)] and kind not in found:
                     found[kind] = []
         if source["name_auto"]:
-            new_name = _root_name(source)
+            new_name = _root_name(conn, source, fresh, offline)
     except SourceError as exc:
         error = str(exc)
     now = datetime.now(UTC).isoformat(timespec="seconds")
@@ -342,8 +477,11 @@ def refresh(conn: sqlite3.Connection, source_id: int) -> str | None:
             )
         if new_name:
             conn.execute("UPDATE sources SET name = ? WHERE id = ?", (new_name, source_id))
+    stale = error is None and bool(getattr(_used, "fallback", False))
+    error = "err.src_stale" if stale else error
     conn.execute(
-        "UPDATE sources SET checked_at = ?, error = ?, note = ? WHERE id = ?", (now, error, json.dumps(notes) if notes else None, source_id)
+        "UPDATE sources SET checked_at = COALESCE(?, checked_at), online_at = COALESCE(?, online_at), error = ?, note = ? WHERE id = ?",
+        (None if offline else now, now if error is None and not offline else None, error, json.dumps(notes) if notes else None, source_id),
     )
     return error
 
@@ -364,23 +502,26 @@ MAX_PACKAGE_ZIP = 40_000_000  # a package with a service: its code (and perhaps 
 
 def fetch_package(conn: sqlite3.Connection, source_id: int, kind: str, pkg_id: str, files: list[dict] | None = None) -> tuple[bytes, str]:
     """The ``package.zip`` of a package with a service and its sha256. The index of the source must name that sha256 and the file must match it,
-    otherwise nothing is returned (``err.src_hash``)."""
+    otherwise nothing is returned (``err.src_hash``). An index that is a few minutes old and does not fit is read once more, asked afresh."""
     source = get(conn, source_id)
     if source is None or kind not in KINDS or not addons.ID.match(pkg_id):
         raise SourceError("err.src_missing")
-    data = _load_index(source, f"{FOLDER[kind]}/index.json")
-    entry = next((e for e in _entries(data or {}, FOLDER[kind]) if isinstance(e, dict) and e.get("id") == pkg_id), None)
-    wanted = entry.get("sha256") if entry else None
-    if not isinstance(wanted, str) or not re.fullmatch(r"[0-9a-f]{64}", wanted.lower()):
-        raise SourceError("err.src_hash")
-    listed = {(f.get("name"), str(f.get("sha256", "")).lower(), f.get("size")) for f in (entry.get("files") or []) if isinstance(f, dict)}
-    if any((f["name"], f["sha256"], f["size"]) not in listed for f in files or []):
-        raise SourceError("err.src_hash")  # the index must name every file with the same checksum and size
-    raw = _read(source, f"{FOLDER[kind]}/{pkg_id}/package.zip", MAX_PACKAGE_ZIP)
-    digest = hashlib.sha256(raw).hexdigest()
-    if digest != wanted.lower():
-        raise SourceError("err.src_hash")
-    return raw, digest
+    for fresh in (False, True):
+        data = _load_index(conn, source, f"{FOLDER[kind]}/index.json", fresh=fresh)
+        entry = next((e for e in _entries(data or {}, FOLDER[kind]) if isinstance(e, dict) and e.get("id") == pkg_id), None)
+        wanted = entry.get("sha256") if entry else None
+        if not isinstance(wanted, str) or not re.fullmatch(r"[0-9a-f]{64}", wanted.lower()):
+            raise SourceError("err.src_hash")
+        listed = {
+            (f.get("name"), str(f.get("sha256", "")).lower(), f.get("size")) for f in (entry.get("files") or []) if isinstance(f, dict)
+        }
+        if any((f["name"], f["sha256"], f["size"]) not in listed for f in files or []):
+            raise SourceError("err.src_hash")  # the index must name every file with the same checksum and size
+        raw = _read(conn, source, f"{FOLDER[kind]}/{pkg_id}/package.zip", MAX_PACKAGE_ZIP)
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest == wanted.lower():
+            return raw, digest
+    raise SourceError("err.src_hash")
 
 
 def fetch_manifest(conn: sqlite3.Connection, source_id: int, kind: str, pkg_id: str) -> dict:
@@ -389,7 +530,7 @@ def fetch_manifest(conn: sqlite3.Connection, source_id: int, kind: str, pkg_id: 
     if source is None or kind not in KINDS or not addons.ID.match(pkg_id):
         raise SourceError("err.src_missing")
     try:
-        manifest = addons.parse_package(_read(source, f"{FOLDER[kind]}/{pkg_id}/plugin.json"))
+        manifest = addons.parse_package(_read(conn, source, f"{FOLDER[kind]}/{pkg_id}/plugin.json"))
     except addons.AddonError as exc:
         raise SourceError("err.src_format") from exc
     if manifest["id"] != pkg_id:
@@ -468,4 +609,4 @@ def fetch_vehicle(conn: sqlite3.Connection, source_id: int, pkg_id: str) -> byte
     source = get(conn, source_id)
     if source is None or not addons.ID.match(pkg_id):
         raise SourceError("err.src_missing")
-    return _read(source, f"vehicles/{pkg_id}.zip", MAX_VEHICLE)
+    return _read(conn, source, f"vehicles/{pkg_id}.zip", MAX_VEHICLE)

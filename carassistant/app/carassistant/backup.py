@@ -56,6 +56,7 @@ def create(passphrase: str | None = None) -> bytes:
             dst = sqlite3.connect(snapshot)
             try:
                 src.backup(dst)
+                dst.execute("DELETE FROM source_cache")  # (what was read from the sources is read again when needed)
                 if passphrase:
                     dst.row_factory = sqlite3.Row
                     block = backupsecrets.seal(_take_secrets(dst), passphrase)

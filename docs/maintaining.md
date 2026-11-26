@@ -17,6 +17,10 @@ How reports and contributions become the next version. Contributors never touch 
 
 `RELEASE.FEATURES.FIXES` plus the stage (Alpha / Beta): the first number counts releases, the second features, the third fixes and corrections. Only `release.json` holds the value; `tools/release.py` writes it everywhere. See [CONTRIBUTING](../CONTRIBUTING.md).
 
+## The standard source comes with the app
+
+The package repository `ha-car-assistant-sources` is copied into `carassistant/app/carassistant/stdsource/`, so a fresh start and the demo cars need no connection and no GitHub quota (docs/sources.md). After a change of that repository and **before every release**: `python tools/sync_stdsource.py <folder of ha-car-assistant-sources>` (it runs `tools/check_source.py` first) and commit the folder; `python tools/sync_stdsource.py --check <folder>` only compares and ends with exit code 1 when the copy is behind.
+
 ## The Developer add-on
 
 `carassistant-dev/` is a second add-on in the same repository (*Car Assistant Developer*, slug `carassistant_dev`, own data). Its Dockerfile downloads the `dev` branch when it is built. Its version is the next release plus a counter (`0.5.1.3`), kept in `release.json` (`dev`): run `python tools/release.py dev` for every step users should get as an update (`dev 0.5.2` starts a new base at `.1`). The store reads the add-on list from `main`, so after `git push origin dev` run `tools/publish_dev.sh`: it puts only the folder `carassistant-dev/` onto `main` (the released app there stays untouched). When a release goes to `main` (merge `dev`, `python tools/release.py set 0.5.1`), start the next base right away: `python tools/release.py dev 0.5.2`.

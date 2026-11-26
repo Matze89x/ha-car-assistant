@@ -4,7 +4,7 @@ import logging
 
 import uvicorn
 
-from . import __version__, config, db, events, pluginsvc, worker
+from . import __version__, config, db, events, pluginsvc, sources, worker
 from .mqtt_ha import publisher
 
 
@@ -13,6 +13,11 @@ def main() -> None:
     log = logging.getLogger("carassistant")
     log.info("Car Assistant %s starting (data: %s)", __version__, config.data_dir())
     db.migrate()
+    try:
+        with db.tx() as conn:
+            sources.seed_bundled(conn)  # the standard source as it came with this version: its list needs no connection
+    except Exception:
+        log.exception("The packages that came with this version could not be listed")
     try:
         publisher.start()
     except Exception:

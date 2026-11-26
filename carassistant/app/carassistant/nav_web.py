@@ -305,6 +305,7 @@ async def factory_reset(request: Request):
         for (name,) in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").fetchall():
             conn.execute(f'DELETE FROM "{name}"')
         sources.seed_defaults(conn)  # like a fresh install: the standard source is always there first
+        sources.seed_bundled(conn)  # ... with the packages that came with this version
     folder = config.files_dir()
     for child in folder.iterdir() if folder.is_dir() else []:
         shutil.rmtree(child, ignore_errors=True) if child.is_dir() else child.unlink(missing_ok=True)

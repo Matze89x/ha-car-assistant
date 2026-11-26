@@ -53,7 +53,7 @@ Die Beschreibung eines Pakets, siehe [plugins.de.md](plugins.de.md) (id, name, v
 
 Ein Paket, das **ohne Quelle** installiert wurde (aus einer Datei), zeigt auf seiner Karte *ohne Quelle* und steht unter *Hinzufügen* als *Installiert · ohne Quelle* – es wird nicht ein zweites Mal angeboten. Bietet eine Quelle eine **neuere** Version davon an, bekommt es ein *Update* wie jedes andere und gehört danach zu dieser Quelle (Einstellungen, Token und Zustand bleiben). Bietet eine Quelle **genau dieselbe** Version an, zeigt die Karte einen hellen Knopf *Mit Quelle verknüpfen*: er verknüpft das Paket nur mit dieser Quelle (seine nächsten Updates kommen von dort) - sonst ändert sich nichts, es wird nichts geladen. Eine Quelle mit älterer Version ändert nichts.
 
-Antwortet GitHub mit „403“, weil sein Stundenlimit für anonyme Anfragen (60 pro Adresse) verbraucht ist, sagt die App das – am Zugangsschlüssel liegt es nicht; später noch einmal versuchen.
+**GitHub und sein Limit.** Eine öffentliche GitHub-Quelle wird von `raw.githubusercontent.com` gelesen, das kein solches Kontingent hat. Die **API** von GitHub erlaubt nur 60 anonyme Anfragen pro Stunde und Internetadresse – für alle hinter dieser Adresse – und wird für eine Quelle mit Zugangsschlüssel benutzt (der Schlüssel hebt das Limit auf 5000) sowie von anderen Add-ons und Werkzeugen in deinem Netz. Car Assistant behält jede gelesene Datei samt dem ETag, den der Server nannte: noch einmal fragen kostet nichts (der Server antwortet „nicht verändert“), eine Datei, die vor weniger als zehn Minuten gelesen wurde, wird nicht erneut erfragt, und ist das Limit erreicht oder die Verbindung weg, zeigt die Liste, was vorher bekannt war, und sagt das (*die Quelle hat nicht geantwortet ... die Liste ist so, wie sie vorher bekannt war*) – am Zugangsschlüssel liegt es nicht; später noch einmal versuchen.
 
 Eine Quelle lässt sich nur löschen, wenn **kein daraus installiertes Paket** mehr vorhanden ist.
 
@@ -68,3 +68,7 @@ Deine eigenen Plugins und Integrationen gehören in eine **Quelle** für sich - 
 ## Werkseinstellung
 
 Nach einem frischen Start ist die erste Quelle das Paket-Repository des Projekts, [ha-car-assistant-sources](https://github.com/Matze89x/ha-car-assistant-sources) – dort stehen auch die Anleitungen für eigene Pakete. Sie lässt sich löschen (wenn nichts daraus installiert ist) und mit *Standardquelle wiederherstellen* zurückholen.
+
+### Die Standardquelle kommt mit der App
+
+Eine Kopie der Standardquelle – ihre Pakete und die beiden Demo-Autos – kommt **mit jeder Version der App** (`carassistant/app/carassistant/stdsource/`, gemacht von `tools/sync_stdsource.py`, in der Developer-App und im Release gleichermaßen). Bis du bei ihr *Liste aktualisieren* drückst, werden Liste und Pakete von dort gelesen: ein frischer Start und *Nur mal ansehen* brauchen keine Verbindung und kein Kontingent. *Liste aktualisieren* fragt GitHub (eine unveränderte Datei kostet nichts); was es findet, gilt von da an. Eine neuere Version der App bringt eine neuere Kopie, und ihre Liste zeigt wieder diese Kopie, bis du sie aktualisierst. Scheitert die Aktualisierung (Limit, kein Netz), bleibt die Liste, wie sie war, und die Quelle sagt es.

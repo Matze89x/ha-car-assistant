@@ -19,8 +19,11 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setenv("CARASSISTANT_DEV", "1")
     for var in ("CARASSISTANT_TANKERKOENIG_KEY", "MQTT_HOST", "SUPERVISOR_TOKEN"):
         monkeypatch.delenv(var, raising=False)
-    from carassistant import addons_web, db
+    from carassistant import addons_web, db, sources
 
+    monkeypatch.setattr(
+        sources, "BUNDLE", tmp_path / "no-stdsource"
+    )  # the tests read the sources they fake, not the copy that came with the app
     addons_web._token_tries.clear()  # the memory of wrong token guesses belongs to one test
     from carassistant import notify
 

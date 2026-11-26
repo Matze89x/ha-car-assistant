@@ -4,8 +4,9 @@
 #
 #   tools/ci_wait.sh [SHA] [REPO]        default: HEAD of this checkout, the repository of the `origin` remote
 #
-# The anonymous API of GitHub allows 60 requests an hour for ALL programs behind one internet address (the app's own checks of its sources count too).
-# So this script asks rarely (every 45 s, and a bit more often at the start), and it uses a token when there is one: an environment variable
+# The anonymous API of GitHub allows 60 requests an hour for ALL programs behind one internet address (the app reads its sources from raw.githubusercontent.com
+# and no longer counts, but other add-ons and tools do). So this script asks rarely (first after 30 s, then every 60-90 s) and always with the ETag of the
+# last answer: while nothing changed GitHub answers "not modified", and that costs no quota. It uses a token when there is one: an environment variable
 # GITHUB_TOKEN or the file ~/.config/car-assistant/github-token. A token for PUBLIC data needs no rights at all (GitHub -> Settings -> Developer settings ->
 # Fine-grained tokens -> "Public repositories (read-only)"); with it the limit is 5000 an hour. Never put the token into the repository or a chat.
 #
@@ -17,9 +18,21 @@ SHA=${1:-$(git rev-parse HEAD)}
 REPO=${2:-$(git remote get-url origin | sed -E 's#.*[:/]([^/]+/[^/.]+)(\.git)?$#\1#')}
 TOKEN=${GITHUB_TOKEN:-}
 [ -z "$TOKEN" ] && [ -r "$HOME/.config/car-assistant/github-token" ] && TOKEN=$(tr -d '[:space:]' < "$HOME/.config/car-assistant/github-token")
-api() { if [ -n "$TOKEN" ]; then curl -s -H "Authorization: Bearer $TOKEN" "$1"; else curl -s "$1"; fi; }
+cache=$(mktemp -d); trap 'rm -rf "$cache"' EXIT
+api() {  # GET with the ETag of the last answer for this address: "304 not modified" is free
+  local url=$1 key; key=$(printf '%s' "$url" | shasum | cut -c1-12)
+  local args=(-s -D "$cache/$key.h" -o "$cache/$key.new")
+  [ -n "$TOKEN" ] && args+=(-H "Authorization: Bearer $TOKEN")
+  [ -s "$cache/$key.etag" ] && args+=(-H "If-None-Match: $(cat "$cache/$key.etag")")
+  curl "${args[@]}" "$url"
+  if head -1 "$cache/$key.h" | grep -q " 304"; then cat "$cache/$key.body"; return; fi
+  mv "$cache/$key.new" "$cache/$key.body"
+  grep -i '^etag:' "$cache/$key.h" | tr -d '\r' | sed -E 's/^[Ee][Tt][Aa][Gg]: //' > "$cache/$key.etag"
+  cat "$cache/$key.body"
+}
 
-wait_s=20
+sleep 30  # a CI run needs a moment to start: no need to ask at once
+wait_s=60
 for _ in $(seq 1 60); do
   json=$(api "https://api.github.com/repos/$REPO/commits/$SHA/check-runs")
   verdict=$(printf '%s' "$json" | python3 -c '
@@ -74,6 +87,6 @@ else:
         RED) echo "CI RED for $SHA (read from the web page) - open https://github.com/$REPO/actions for the failed tests, or try again when the API limit is back"; exit 1 ;;
       esac ;;
   esac
-  sleep "$wait_s"; [ "$wait_s" -lt 45 ] && wait_s=$((wait_s + 5))
+  sleep "$wait_s"; [ "$wait_s" -lt 90 ] && wait_s=$((wait_s + 10))
 done
 echo "gave up waiting for $SHA"; exit 2
