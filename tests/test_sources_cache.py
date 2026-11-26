@@ -256,8 +256,10 @@ def test_a_newer_copy_with_a_new_version_of_the_app_replaces_what_was_read_onlin
         ids = {
             r["pkg_id"] for r in conn.execute("SELECT pkg_id FROM source_packages WHERE source_id = ? AND kind = 'plugin'", (_default(),))
         }
+        shipped = {p["id"] for p in json.loads((REAL_BUNDLE / "plugins" / "index.json").read_text(encoding="utf-8"))["packages"]}
         assert (
-            ids == {"demo-connector"}
+            ids == shipped
+            and "online-only" not in ids  # what the app brings, and nothing of what was read online before
             and conn.execute("SELECT COUNT(*) FROM source_cache WHERE source_id = ?", (_default(),)).fetchone()[0] == 0
         )
     assert _row(_default())["online_at"] is None
