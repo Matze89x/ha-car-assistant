@@ -236,7 +236,13 @@ def test_a_dissolved_group_gives_the_first_bit_its_own_note_again(coding):
         b.run(
             """JSON.stringify((function () {
       var u = document.querySelector('.pm-unit'), drop = u.querySelector('li[data-bit="1"] .pm-gdrop'), q = function (x) { return u.querySelector(x); };
-      var before = q('li[data-bit="1"] .pm-bnote').getAttribute('aria-label');
+      var note = function () { return q('li[data-bit="1"] .pm-bnote').getAttribute('aria-label'); };
+      if (/1$/.test(note())) {  // no group yet - this test may run on its own (a worker of its own): make one of bits 1 and 2 first
+        var s = u.querySelector('.pm-sel');
+        [1, 2].forEach(function (n) { s.querySelector('.pm-gchip[data-bit="' + n + '"]').click(); });
+        s.querySelector('.pm-gbtn').click();
+      }
+      var before = note();
       drop.click();
       return { before: before, after: q('li[data-bit="1"] .pm-bnote').getAttribute('aria-label'), label: q('li[data-bit="1"] .pm-bl').textContent,
                second: q('li[data-bit="2"] .pm-bl').hidden, placeholder: q('li[data-bit="1"] .pm-bnote').placeholder };
