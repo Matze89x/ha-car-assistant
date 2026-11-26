@@ -2,6 +2,8 @@
 
 [🇬🇧 English](plugin-guide.md) · 🇩🇪 Deutsch
 
+> **Zum ersten Mal?** [start-here.de.md](start-here.de.md) macht dasselbe in Schritten zum Ausführen: `tools/new_plugin.py` legt den Ordner an, `tools/plugin_dev.py` startet ihn in einem echten Car Assistant auf deinem Computer. Diese Seite ist zum Nachschlagen.
+
 Ein Plugin ist eine **Verbindung nach außen**: zu einem Auto, einem Webdienst, bei dem du dich anmeldest, einem Cloud-Konto, einem Gerät. Diese Seite führt dich von Null zu einem funktionierenden Plugin in einer Quelle. Einzelheiten: [plugins.de.md](plugins.de.md) (das Paket), [api.de.md](api.de.md) (die Plugin-API), [icons.de.md](icons.de.md), [sources.de.md](sources.de.md).
 
 ## 1. Der Ordner
@@ -13,7 +15,7 @@ plugins/mein-plugin/
   package.zip          aus dem Ordner gebaut (nur bei einem Plugin mit Dienst)
 plugins/index.json     die Liste: {"packages": [{"id": "mein-plugin", "name": "...", "version": "1", "icon": "wrench", "sha256": "..."}]}
 ```
-Der Ordnername ist die `id` des Plugins. Beginne mit `docs/examples/echo-service/`.
+Der Ordnername ist die `id` des Plugins. Beginne mit `python tools/new_plugin.py mein-plugin --out <deine Quelle>` (es legt den Ordner, den Dienst und die Zeile der Liste an) oder kopiere `docs/examples/echo-service/`.
 
 ## 2. plugin.json
 ```
@@ -62,6 +64,7 @@ Ergänze `docs` und `interfaces`, damit die Seite *Info* deines Plugins jede Sch
 Ein Plugin mit Anbindungsdatei kann eine **Einrichtungsanleitung** (`setup`) mitbringen: drei feste Schritte - Prüfen (Adresse und FIN), Token und Einstellungen, Dateien und Anleitung - auf einer Seite auf seiner Einstellungsseite. Die Anbindungsdatei kennt `{vin}` und `{url}`; ein Dienst findet `external_url` und `vehicle_vin` in seiner `settings.json`. Alles steht in [plugins.de.md](plugins.de.md#einrichtungsanleitung-setup).
 
 ## 8. Prüfen, veröffentlichen, aktualisieren
+0. Beim Bauen: `python tools/plugin_dev.py plugins/mein-plugin` startet das Paket in einem echten Car Assistant auf deinem Computer, installiert und freigegeben, und zeigt die Protokollzeilen des Dienstes und jeden Aufruf an die Plugin-API ([start-here.de.md](start-here.de.md)).
 1. `python tools/check_plugin.py plugins/mein-plugin` - nennt Tippfehler, falsche Icons, fehlende Dateien, eine falsche Prüfsumme.
 2. Ordner, `package.zip` und `plugins/index.json` zusammen committen.
 3. In der App: *Plugins → Hinzufügen → Liste aktualisieren*, dein Plugin antippen, installieren. Mit Dienst: *Verwaltung → Prüfen und freigeben*.

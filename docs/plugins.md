@@ -2,7 +2,7 @@
 
 🇬🇧 English · [🇩🇪 Deutsch](plugins.de.md)
 
-> **New here?** Start with the guide: [plugin-guide.md](plugin-guide.md).
+> **New here?** Start with [start-here.md](start-here.md) - a first integration or plugin running on your computer in ten minutes. The guide for reference: [plugin-guide.md](plugin-guide.md).
 
 Everything here belongs to **one car**: each car can be connected differently, and which integrations are possible can depend on the plugin. You manage it under *Car → More → Integrations*.
 

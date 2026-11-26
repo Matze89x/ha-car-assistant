@@ -33,7 +33,7 @@
 
 Alles ist modular: Module und Integrationen schaltest du unter **Integrationen** ein oder aus, wie in Home Assistant. Die Daten bleiben lokal, nichts geht online, solange du es nicht einschaltest.
 
-**Für eine Community gebaut.** Jeder kann ein Plugin schreiben und mit einer einzigen HTTP-Anfrage andocken – fang mit der [Plugin-Anleitung](docs/plugin-guide.de.md) an. Plugins kommen aus *Quellen* (ein Repository mit Index) und können Einstellungen, Dateien, Seiten und sogar einen kleinen eigenen Dienst mitbringen. Ein Dienst läuft in der App erst, nachdem ein Administrator ihn freigegeben hat – es ist fremder Code, nimm also nur Quellen, denen du vertraust. Neues soll ohne Änderung am Kern hinzukommen.
+**Für eine Community gebaut.** Jeder kann ein Plugin schreiben und mit einer einzigen HTTP-Anfrage andocken – fang mit [Hier anfangen](docs/start-here.de.md) an. Plugins kommen aus *Quellen* (ein Repository mit Index) und können Einstellungen, Dateien, Seiten und sogar einen kleinen eigenen Dienst mitbringen. Ein Dienst läuft in der App erst, nachdem ein Administrator ihn freigegeben hat – es ist fremder Code, nimm also nur Quellen, denen du vertraust. Neues soll ohne Änderung am Kern hinzukommen.
 
 ## Installation
 [![Repository zu meinem Home Assistant hinzufügen](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FMatze89x%2Fha-car-assistant)
@@ -62,7 +62,8 @@ Alles gibt es auf Englisch und auf Deutsch; oben in jeder Seite wechselst du die
 | Seite | Worum es geht |
 |---|---|
 | [Architektur](docs/architecture.de.md) | wie alles zusammenhängt, als Diagramme |
-| [Plugin-Anleitung](docs/plugin-guide.de.md) | der schnellste Einstieg |
+| [Hier anfangen](docs/start-here.de.md) | deine erste Integration oder dein erstes Plugin, in zehn Minuten am Laufen |
+| [Plugin-Anleitung](docs/plugin-guide.de.md) | der ganze Weg auf einer Seite, zum Nachschlagen |
 | [Plugins](docs/plugins.de.md) | Paketformat, Einstellungsseite, Dienste, Dateien, Kacheln |
 | [Spritpreis-Anbieter](docs/fuel-providers.de.md) | eine offene JSON-Datei pro Land für Spritpreise |
 | [Ladesäulen-Anbieter](docs/charge-providers.de.md) | Ladesäulensuche in der Nähe des Autos für E-Autos: OpenStreetMap, Open Charge Map, eine eigene JSON-Datei |

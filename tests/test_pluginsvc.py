@@ -94,6 +94,21 @@ def cleanup():
     pluginsvc._stop.clear()
 
 
+def test_services_start_only_when_the_door_of_the_app_is_open(monkeypatch):
+    """A service calls the Plugin API as soon as it starts - the supervisor starts before the web server opens its port, so it waits for the port."""
+    import socket
+
+    pluginsvc._stop.clear()
+    with socket.socket() as door:
+        door.bind(("127.0.0.1", 0))  # bound, not listening: a call is refused
+        monkeypatch.setenv("CARASSISTANT_PORT", str(door.getsockname()[1]))
+        started = time.monotonic()
+        assert pluginsvc.wait_for_door(0.6) is False and time.monotonic() - started >= 0.5
+        door.listen(1)
+        started = time.monotonic()
+        assert pluginsvc.wait_for_door(5) is True and time.monotonic() - started < 2
+
+
 def test_the_service_description_is_checked():
     bad = [
         {"entry": "../x.py"},
@@ -514,6 +529,8 @@ def test_the_check_tool_finds_what_is_wrong(tmp_path):
     assert "'service/missing.py' is not in the folder" in text and "would cover a page of the app" in text and "blob.bin" in text
     (good / "plugin.json").write_text(json.dumps({**manifest, "id": "other-id"}))
     assert any("folder is called" in e for e in check(good)[0])
+    (good / "plugin.json").write_text(json.dumps({**manifest, "kind": "integraton"}))  # a typo that would make an integration a plugin
+    assert any("kind is 'integraton'" in e for e in check(good)[0])
 
 
 def test_every_page_that_leads_somewhere_has_a_fixed_back_button(client, monkeypatch):

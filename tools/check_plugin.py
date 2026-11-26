@@ -96,6 +96,10 @@ def check(target: Path) -> tuple[list[str], list[str]]:
     except addons.AddonError as exc:
         errors.append(i18n.EN.get(f"{exc}", str(exc)))
         return errors, notes
+    if (
+        "kind" in data and data["kind"] not in addons.KINDS
+    ):  # a typo would make an integration (no token) a plugin (with one) without a word
+        errors.append(f"kind is {data['kind']!r}: it must be one of {', '.join(addons.KINDS)} - the app would read it as 'plugin'.")
     if folder is not None and folder.name != manifest["id"]:
         errors.append(f"The folder is called '{folder.name}' but the id is '{manifest['id']}': in a source they must be the same.")
     if not data.get("description"):

@@ -2,6 +2,8 @@
 
 🇬🇧 English · [🇩🇪 Deutsch](plugin-guide.de.md)
 
+> **Your first time?** [start-here.md](start-here.md) does the same in steps you can run: `tools/new_plugin.py` makes the folder, `tools/plugin_dev.py` runs it in a real Car Assistant on your computer. This page is the reference.
+
 A plugin is a **connection to the outside**: a car, a web service you log in to, a cloud account, a device. This page walks you from nothing to a working plugin in a source. Details: [plugins.md](plugins.md) (the package), [api.md](api.md) (the Plugin API), [icons.md](icons.md), [sources.md](sources.md).
 
 ## 1. The folder
@@ -13,7 +15,7 @@ plugins/my-plugin/
   package.zip          built from the folder (only for a plugin with a service)
 plugins/index.json     the list: {"packages": [{"id": "my-plugin", "name": "...", "version": "1", "icon": "wrench", "sha256": "..."}]}
 ```
-The folder name is the plugin's `id`. Start from `docs/examples/echo-service/`.
+The folder name is the plugin's `id`. Start with `python tools/new_plugin.py my-plugin --out <your source>` (it makes the folder, the service and the line of the list), or copy `docs/examples/echo-service/`.
 
 ## 2. plugin.json
 ```
@@ -62,6 +64,7 @@ Add `docs` and `interfaces` so the page *Info* of your plugin documents every in
 A plugin with a connection file can bring a **set-up guide** (`setup`): three fixed steps - check (address and VIN), token and settings, files and instructions - shown on one page from its settings page. The connection file takes `{vin}` and `{url}`; a service finds `external_url` and `vehicle_vin` in its `settings.json`. All of it is in [plugins.md](plugins.md#set-up-guide-setup).
 
 ## 8. Check, publish, update
+0. While you build: `python tools/plugin_dev.py plugins/my-plugin` runs the package in a real Car Assistant on your computer, installed and approved, and shows the log lines of the service and every call it makes to the Plugin API ([start-here.md](start-here.md)).
 1. `python tools/check_plugin.py plugins/my-plugin` - names typos, wrong icons, missing files, a wrong checksum.
 2. Commit the folder, `package.zip` and `plugins/index.json` together.
 3. In the app: *Plugins → Add → Update list*, tap your plugin, install. With a service: *Manage → Review and approve*.

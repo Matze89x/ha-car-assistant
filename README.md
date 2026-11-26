@@ -33,7 +33,7 @@
 
 Everything is modular: switch modules and integrations on or off under **Integrations**, like in Home Assistant. Data stays local, nothing goes online unless you switch it on.
 
-**Built for a community.** Anyone can write a plugin and dock it on with one HTTP request – start with the [plugin guide](docs/plugin-guide.md). Plugins come from *sources* (a repository with an index) and can offer settings, files, pages and even a small service of their own. A service runs inside the app only after an administrator approved it – it is foreign code, so use sources you trust. New things are meant to be added without touching the core.
+**Built for a community.** Anyone can write a plugin and dock it on with one HTTP request – start with [Start here](docs/start-here.md). Plugins come from *sources* (a repository with an index) and can offer settings, files, pages and even a small service of their own. A service runs inside the app only after an administrator approved it – it is foreign code, so use sources you trust. New things are meant to be added without touching the core.
 
 ## Installation
 [![Add the repository to my Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FMatze89x%2Fha-car-assistant)
@@ -62,7 +62,8 @@ Everything exists in English and in German; switch the language at the top of an
 | Page | What it is about |
 |---|---|
 | [Architecture](docs/architecture.md) | how everything fits together, as diagrams |
-| [Plugin guide](docs/plugin-guide.md) | the quickest start |
+| [Start here](docs/start-here.md) | your first integration or plugin, running in ten minutes |
+| [Plugin guide](docs/plugin-guide.md) | the whole path on one page, for reference |
 | [Plugins](docs/plugins.md) | package format, settings page, services, files, tiles |
 | [Fuel price providers](docs/fuel-providers.md) | an open JSON file per country for fuel prices |
 | [Charging point providers](docs/charge-providers.md) | charging points near the car for electric cars: OpenStreetMap, Open Charge Map, your own JSON file |

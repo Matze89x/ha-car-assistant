@@ -2,7 +2,7 @@
 
 [🇬🇧 English](plugins.md) · 🇩🇪 Deutsch
 
-> **Neu hier?** Beginne mit der Anleitung: [plugin-guide.de.md](plugin-guide.de.md).
+> **Neu hier?** Beginne mit [start-here.de.md](start-here.de.md) - eine erste Integration oder ein erstes Plugin läuft in zehn Minuten auf deinem Computer. Die Anleitung zum Nachschlagen: [plugin-guide.de.md](plugin-guide.de.md).
 
 Alles hier gehört zu **einem Auto**: Jedes Auto kann anders angebunden sein, und welche Integrationen möglich sind, kann vom Plugin abhängen. Du verwaltest es unter *Auto → Weiteres → Integrationen*.
 

@@ -887,8 +887,20 @@ def forget(addon: dict) -> None:
 # ------------------------------------------------------------------ the supervisor thread
 
 
+def wait_for_door(seconds: float = 30.0) -> bool:
+    """Wait until the app answers on its own port - the door of the Plugin API. A service calls it as soon as it starts, and the supervisor starts
+    before the web server opens its port: without this the first call of every service would meet a closed door. Returns whether the door is open."""
+    end = time.monotonic() + seconds
+    while time.monotonic() < end and not _stop.is_set():
+        with contextlib.suppress(OSError), socket.create_connection(("127.0.0.1", config.port()), timeout=1):
+            return True
+        _stop.wait(0.25)
+    return False
+
+
 def _loop() -> None:
     harden()
+    wait_for_door()
     while not _stop.is_set():
         try:
             tick()
