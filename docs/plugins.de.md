@@ -456,6 +456,22 @@ Die Kachel entscheidet nach ihrer eigenen Breite, nicht nach der des Fensters: S
 
 Wie alles in der Schnittstelle ist das eine Ergänzung: Ein Paket ohne `buttons` hat dieselbe Kachel mit *Deinstallieren*, *Logs* und *Einstellungen*.
 
+### Befehle an das Auto (`command` an einem Knopf)
+
+Ein Knopf mit einer `action` darf einen `command` aus dem Wortschatz tragen, den die App kennt: `lock`, `unlock`, `climate_on`, `climate_off`, `charge_start`, `charge_stop`, `flash_lights`, `honk`, `open_trunk`, `close_windows`, `wake`.
+```json
+{ "id": "unlock", "label": "Aufsperren", "action": "/priv/unlock", "command": "unlock", "timeout": 30 }
+```
+Die App weiß nicht, WIE dein Dienst das Auto erreicht - sie sorgt nur dafür, dass der Befehl **bewusst gesendet wird und nachvollziehbar bleibt**:
+
+- Die Route des Dienstes wird mit `{"vehicle": 3, "button": "unlock", "command": "unlock", "language": "de"}` (und den Identitäts-Headern) aufgerufen; sie antwortet binnen `timeout` Sekunden (5 bis 60, Standard 20 - ein Auto in der Cloud muss vielleicht erst aufwachen): **2xx** = gesendet, alles andere oder `{"ok": false, "message": "Das Auto schläft."}` = fehlgeschlagen, und die Person liest die Meldung;
+- die Befehle, die man nicht leichtfertig zurücknimmt - `unlock`, `climate_on`, `open_trunk` - werden **vom Server gefragt**: Die Kachel verweist auf eine Seite mit der Frage, und der Befehl läuft nur aus dem Formular dieser Seite; eine Anfrage, die die Seite überspringt, wird mit der Seite beantwortet, nicht mit dem Befehl. Dein eigener `confirm`-Text ersetzt die Frage der App;
+- **jeder Befehl hinterlässt eine Zeile im Protokoll des Plugins** - *command unlock by <Person>: sent* (oder *failed - <warum>*), eine Warnung bei den zuerst gefragten und bei jedem Fehlschlag - so kann jeder sehen, wer was wann geschickt hat;
+- höchstens **6 Befehle pro Minute und Auto**: Ein Knopf, der in einer Schleife gedrückt wird, wird kein Sturm Richtung Auto;
+- wie jeder Knopf nur für Leute, die verwalten dürfen, nur für ein laufendes Plugin mit freigegebenem Dienst und nur, solange sein `when` gilt - ein *Abschließen*-Knopf kann also nur erscheinen, solange das Auto offen ist.
+
+Ein Knopf ohne `command` ist ein gewöhnlicher Knopf und wird nicht gefragt, begrenzt oder vermerkt. Nichts hier lässt ein Plugin von sich aus einen Befehl senden: Es drückt immer eine Person einen Knopf.
+
 ## Wann etwas erscheint, und der Reiter *Allgemein*
 
 **`place`.** Knöpfe (`buttons`) und Downloads des Dienstes (`downloads`) stehen standardmäßig auf der Kachel, und die Kachel hat Platz für EINE Zeile. Was selten gebraucht wird, gehört stattdessen in den Reiter *Allgemein* der Einstellungsseite: `"place": "settings"` (bis zu **sechs** Knöpfe; bei Downloads gilt die bisherige Grenze). Abmelden, die Anmeldung ändern, Daten löschen, ein Gesamtexport - nichts davon braucht Platz auf der Kachel.

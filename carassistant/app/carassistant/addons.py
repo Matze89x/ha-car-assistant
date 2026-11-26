@@ -503,6 +503,19 @@ def _l10n(raw, limits: dict[str, int]) -> dict[str, dict[str, str]]:
     return out
 
 
+COMMANDS = {  # the commands towards the car the app knows by name: (needs a confirmation page, default icon). A package may add its own buttons as before.
+    "lock": (False, "lock"),
+    "unlock": (True, "lock-open-variant"),
+    "climate_on": (True, "snowflake"),  # may run the engine or the heating: asked first
+    "climate_off": (False, "snowflake"),
+    "charge_start": (False, "lightning-bolt"),
+    "charge_stop": (False, "stop"),
+    "flash_lights": (False, "car-light-dimmed"),
+    "honk": (False, "bell"),
+    "open_trunk": (True, "car-back"),
+    "close_windows": (False, "window-closed-variant"),
+    "wake": (False, "power"),
+}
 MAX_BUTTONS = 3  # what fits in the ONE line of the tile on the smallest phone (docs/plugins.md, Buttons)
 MAX_SETTINGS_BUTTONS = 6  # buttons that live in the tab *General* of the settings page instead (``place: "settings"``)
 BUTTON_ID = re.compile(r"[a-z][a-z0-9_-]{0,30}")
@@ -537,7 +550,11 @@ def clean_buttons(
         when = clean_when(item.get("when"), setting_types or {})
         if when is None:  # a condition that cannot be read: the button stays away rather than show when it should not
             continue
-        btn = {"id": item["id"], "label": label, "icon": item.get("icon") if item.get("icon") in icons.ICONS else "play-circle-outline"}
+        command = (
+            item.get("command") if item.get("command") in COMMANDS else None
+        )  # a command of the standard vocabulary: asked, audited, limited
+        default_icon = COMMANDS[command][1] if command else "play-circle-outline"
+        btn = {"id": item["id"], "label": label, "icon": item.get("icon") if item.get("icon") in icons.ICONS else default_icon}
         if item.get("page") in page_ids:
             btn["page"] = item["page"]
         elif item.get("step") in (flow_ids or []):  # opens a step of the set-up flow again (change the login, ...)
@@ -551,6 +568,10 @@ def clean_buttons(
             btn["action"] = path
             if _text(item, "confirm", 160):
                 btn["confirm"] = _text(item, "confirm", 160)
+            if command:
+                btn["command"] = command
+                timeout = item.get("timeout")  # a car in the cloud may need a while to wake up: up to a minute
+                btn["timeout"] = min(60, max(5, int(timeout))) if isinstance(timeout, int | float) and not isinstance(timeout, bool) else 20
         if place == "settings":
             btn["place"] = "settings"
         if when:
@@ -1618,6 +1639,7 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
             {
                 **b,
                 "shown": when_holds(b.get("when", []), **judge),
+                "dangerous": bool(b.get("command") and COMMANDS[b["command"]][0]),  # unlock, open the trunk ...: a page asks first
                 **({"step_n": flow_ids.index(b["step"]) + 1} if b.get("step") in flow_ids else {}),
             }
             for b in manifest.get("buttons", [])

@@ -312,9 +312,9 @@ def test_a_value_sent_again_unchanged_is_no_news_and_measured_at_is_kept(api):
     # a changed value without a time counts from its arrival
     api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 280})
     assert _stamps()["range_km"][1] > "2026-11-02"
-    # a time never goes backwards, and one in the future is cut to now
+    # a time never goes backwards, and one in the future is cut to now; a measurement older than the one we have does not replace it
     api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 270, "measured_at": old})
-    assert _stamps()["range_km"][1] > "2026-11-02"
+    assert _stamps()["range_km"][1] > "2026-11-02" and _stamps()["range_km"][0] == "280"
     api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 260, "measured_at": "2999-01-01T00:00:00Z"})
     assert _stamps()["range_km"][1] < "2100"
     assert api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": 250, "measured_at": "yesterday"}).status_code == 422
@@ -483,3 +483,19 @@ def test_trip_summary_goes_to_the_trip_that_ended_then(api):
     assert far.status_code == 200
     with db.tx() as conn:
         assert conn.execute("SELECT COUNT(*) FROM trip_summaries").fetchone()[0] == 1  # no trip ended then: it waits
+
+
+def test_with_two_sources_of_one_field_the_newer_measurement_wins_whoever_sent_it_last(api):
+    """A slow plugin that delivers a reading after a faster one must not push the car back to an older state."""
+    token = setup(api)
+
+    def post(value, at=None):
+        return api.post("/api/v1/vehicles/1/data", headers=hdr(token), json={"range_km": value, **({"measured_at": at} if at else {})})
+
+    post(300, "2026-11-01T10:00:00Z")
+    post(250, "2026-11-01T09:00:00Z")  # an hour older, arrives later
+    assert _stamps()["range_km"][0] == "300" and _stamps()["range_km"][1].startswith("2026-11-01T10:00:00")
+    post(280, "2026-11-01T11:00:00Z")  # newer
+    assert _stamps()["range_km"][0] == "280" and _stamps()["range_km"][1].startswith("2026-11-01T11:00:00")
+    post(281, "2026-11-01T11:00:00Z")  # the same moment: the one that arrived last
+    assert _stamps()["range_km"][0] == "281"

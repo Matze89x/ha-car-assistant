@@ -453,6 +453,22 @@ The tile decides by its own width, not the window's: while there is room the but
 
 Like everything in the interface this is an addition: a package without `buttons` has the same tile with *Uninstall*, *Logs* and *Settings*.
 
+### Commands to the car (`command` on a button)
+
+A button with an `action` may carry a `command` from the vocabulary the app knows: `lock`, `unlock`, `climate_on`, `climate_off`, `charge_start`, `charge_stop`, `flash_lights`, `honk`, `open_trunk`, `close_windows`, `wake`.
+```json
+{ "id": "unlock", "label": "Unlock", "action": "/priv/unlock", "command": "unlock", "timeout": 30 }
+```
+The app does not know HOW your service reaches the car - it only makes sure the command is **sent knowingly and can be traced**:
+
+- the service route is called with `{"vehicle": 3, "button": "unlock", "command": "unlock", "language": "en"}` (and the identity headers); it answers within `timeout` seconds (5 to 60, default 20 - a car in the cloud may need to wake up): **2xx** = sent, anything else or `{"ok": false, "message": "The car is asleep."}` = failed, and the person reads the message;
+- the commands that cannot be taken back lightly - `unlock`, `climate_on`, `open_trunk` - are **asked by the server**: the tile links to a page with the question, and the command runs only from the form of that page; a request that skips the page is answered with the page, not with the command. Your own `confirm` text replaces the app's question;
+- **every command leaves a line in the log of the plugin** - *command unlock by <person>: sent* (or *failed - <why>*), a warning for the ones that were asked first and for every failure - so anyone can see who sent what, and when;
+- at most **6 commands a minute for one car**: a button pressed in a loop does not become a storm towards the car;
+- like every button, only for people who may manage, only for a running plugin whose service was approved, and only while its `when` holds - so a *Lock* button can show only while the car is unlocked.
+
+A button without `command` is an ordinary button and is not asked, limited or noted. Nothing here lets a plugin send a command on its own: it is always a person pressing a button.
+
 ## When things show, and the tab *General*
 
 **`place`.** Buttons (`buttons`) and service downloads (`downloads`) stand on the tile by default, and the tile has room for ONE line. What is used rarely belongs into the tab *General* of the settings page instead: `"place": "settings"` (up to **six** buttons; for downloads the same limit as before). Log out, change the login, delete the data, a full export - none of them takes room on the tile.

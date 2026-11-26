@@ -189,6 +189,8 @@ def _store(conn: sqlite3.Connection, vehicle_id: int, key: str, value: str, at: 
     values again after a restart of the app does not make the car look as if it had just reported), and a time never goes backwards."""
     row = conn.execute("SELECT value, updated FROM live WHERE vehicle_id = ? AND key = ?", (vehicle_id, key)).fetchone()
     before = row["value"] if row else None
+    if at is not None and row and row["updated"] and at < row["updated"]:
+        return  # a measurement older than the one we have (a slow plugin, a second source of the same field): the newer value stays
     if row and row["value"] == value and at is None:
         stamp = row["updated"]
     else:

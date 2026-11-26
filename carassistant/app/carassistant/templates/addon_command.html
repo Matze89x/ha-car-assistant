@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{{ page_head(button.icon or 'play-circle-outline', button.label) }}
+<section class="card addon-result">
+  <h2>{{ icon(addon.m.icon or ('plug' if addon.kind == 'plugin' else 'puzzle'), 20) }} {{ addon.m.name }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ button.confirm or _('cmd.ask') }}</p>
+  <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/button/{{ button.id }}" class="addon-bar">
+    <input type="hidden" name="confirmed" value="1">
+    <a class="button" href="{{ base }}{{ back_to }}">{{ icon('close', 18) }}<span>{{ _('btn.cancel') }}</span></a>
+    <button class="primary">{{ icon(button.icon or 'play-circle-outline', 18) }}<span>{{ button.label }}</span></button>
+  </form>
+</section>
+{% endblock %}

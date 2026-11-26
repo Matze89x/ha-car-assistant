@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import time
 
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
@@ -1066,12 +1067,37 @@ async def addons_connection_file(request: Request, vid: int, aid: int):
     )
 
 
+COMMAND_LIMIT, COMMAND_WINDOW = 6, 60.0  # commands per car per minute: a button pressed in a loop does not become a storm towards the car
+_command_times: dict[int, list[float]] = {}
+
+
+def _command_page(request: Request, vid: int, aid: int, bid: str):
+    """The question before a command that cannot be taken back lightly (unlock, open the trunk, ...): enforced HERE, not by a dialog of the browser -
+    the command runs only from the form of this page (``confirmed``)."""
+    with db.tx() as conn:
+        vehicle = vehicle_or_404(conn, vid)
+        addon = addons.get(conn, vid, aid)
+        button = next((b for b in addon["m"].get("buttons", []) if b["id"] == bid and b.get("dangerous")), None) if addon else None
+        if button is None:
+            raise HTTPException(404)
+        ctx = vehicle_ctx(conn, vehicle, "integrations")
+    return render(request, "addon_command.html", **ctx, hide_hero=True, addon=addon, button=button, back_to=_manage(addon["kind"], vid))
+
+
+@app.get("/v/{vid}/integrations/{aid}/button/{bid}")
+def addon_command_ask(request: Request, vid: int, aid: int, bid: str):
+    if (denied := _guard(request, vid)) is not None:
+        return denied
+    return _command_page(request, vid, aid, bid)
+
+
 @app.post("/v/{vid}/integrations/{aid}/button/{bid}")
 async def addon_button(request: Request, vid: int, aid: int, bid: str):
     """A free button of a plugin (``buttons`` in its plugin.json) that triggers an action: the app calls the route of the plugin's own service - it is
     never public - and shows what the service answers (done, or the reason it did not work). Only for a running plugin and only for people who may manage."""
     if (denied := _guard(request, vid)) is not None:
         return denied
+    form = await form_dict(request)
     with db.tx() as conn:
         vehicle = vehicle_or_404(conn, vid)
         addon = addons.get(conn, vid, aid)
@@ -1083,15 +1109,47 @@ async def addon_button(request: Request, vid: int, aid: int, bid: str):
         hidden = not button.get("shown", True)  # its ``when`` does not hold right now: it is not on the page, so it is not run either
         ctx = vehicle_ctx(conn, vehicle, "integrations")
         who = auth_web._acting_user(request, conn)
+    command = button.get("command")
+    if command and button.get("dangerous") and form.get("confirmed") != "1" and not hidden:
+        return _command_page(request, vid, aid, bid)  # nothing is sent before the person has said yes on that page
+    limited = False
+    if command:
+        now = time.monotonic()
+        recent = [t for t in _command_times.get(vid, []) if now - t < COMMAND_WINDOW]
+        limited = len(recent) >= COMMAND_LIMIT
+        _command_times[vid] = recent if limited else [*recent, now]
     if hidden:
         ok, message = False, "addon.button_when"
+    elif limited:
+        ok, message = False, "addon.button_rate"
     elif not addon["active"] or not pluginsvc.approved(addon):
         ok, message = False, "addon.button_off"
     else:
         payload = {"vehicle": vid, "button": bid, "language": config.language()}
-        ok, message = pluginsvc.call(addon["id"], button["action"], payload, vid, str(who["id"]) if who else "ha")
+        if command:
+            payload["command"] = command
+        ok, message = pluginsvc.call(
+            addon["id"], button["action"], payload, vid, str(who["id"]) if who else "ha", timeout=float(button.get("timeout", 10.0))
+        )
         if not ok and message in ("not running", "no answer"):
             message = "addon.button_down"
+    if command and not hidden:  # the trail: who sent which command to the car, and what came of it (in the log of the plugin)
+        by = (who["username"] if who else None) or "Home Assistant"
+        outcome = "sent" if ok else f"failed - {(message or '')[:120]}"
+        with db.tx() as conn:
+            connectors.write_logs(
+                conn,
+                vid,
+                addon["addon_id"],
+                [
+                    (
+                        connectors._now(),
+                        "warn" if button.get("dangerous") or not ok else "info",
+                        "app",
+                        f"command {command} by {by}: {outcome}",
+                    )
+                ],
+            )
     return render(
         request,
         "addon_button.html",

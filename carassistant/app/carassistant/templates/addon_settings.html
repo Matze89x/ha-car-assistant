@@ -27,6 +27,7 @@
   <div class="actions fit">
   {% for b in acts %}{% if b.page %}<a class="button" href="{{ base }}/v/{{ v.slug }}/m/{{ addon.addon_id }}/{{ b.page }}" title="{{ b.label }}">{{ icon(b.icon, 18) }}<span>{{ b.label }}</span></a>
   {% elif b.step %}<a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/guide?step={{ b.step_n }}" title="{{ b.label }}">{{ icon(b.icon, 18) }}<span>{{ b.label }}</span></a>
+  {% elif b.dangerous %}<a class="button" href="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/button/{{ b.id }}" title="{{ b.label }}">{{ icon(b.icon, 18) }}<span>{{ b.label }}</span></a>
   {% else %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/button/{{ b.id }}" class="inline"{% if b.confirm %} data-confirm="{{ b.confirm }}"{% endif %}><button title="{{ b.label }}">{{ icon(b.icon, 18) }}<span>{{ b.label }}</span></button></form>{% endif %}{% endfor %}
   </div>
 </section>
