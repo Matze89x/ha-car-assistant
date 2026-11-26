@@ -356,7 +356,39 @@ PARTS = Entity(
     empty_hint="parts.empty",
 )
 
-ENTITIES: dict[str, Entity] = {e.key: e for e in (SERVICE, APPOINTMENTS, MODS, FUEL, TIRES, TASKS, TRIPS, COUNTERS, PARTS)}
+
+def _fixed_prepare(values: dict) -> dict:
+    if values.get("cost") is None or values["cost"] <= 0:
+        raise FormError("err.positive", "f.fixed_cost")
+    if values.get("every") == "once":
+        values["end_date"] = None  # a single payment has no end
+    elif values.get("end_date") and values.get("start_date") and values["end_date"] < values["start_date"]:
+        raise FormError("err.date_order", "f.last_due")
+    return values
+
+
+FIXED_KINDS = ("tax", "insurance", "parking", "toll", "club", "other")
+FIXED_EVERY = ("year", "halfyear", "quarter", "month", "once")  # how often it is paid; "once" = a single payment on the first due date
+
+FIXED = Entity(
+    key="fixed",
+    table="fixed_costs",
+    title="fixed.title",
+    fields=(
+        Field("title", "text", "f.name", required=True),
+        Field("cost_kind", "choice", "f.cost_kind", choices=FIXED_KINDS, default="tax"),
+        Field("cost", "float", "f.fixed_cost", required=True, step="0.01"),
+        Field("every", "choice", "f.every", choices=FIXED_EVERY, default="year"),
+        Field("start_date", "date", "f.first_due", required=True),
+        Field("end_date", "date", "f.last_due", show=False),
+        Field("notes", "textarea", "f.notes", show=False),
+    ),
+    order="start_date DESC, id DESC",
+    prepare=_fixed_prepare,
+    empty_hint="fixed.empty",
+)
+
+ENTITIES: dict[str, Entity] = {e.key: e for e in (SERVICE, APPOINTMENTS, MODS, FUEL, TIRES, TASKS, TRIPS, COUNTERS, PARTS, FIXED)}
 
 
 def insert(conn: sqlite3.Connection, entity: Entity, vehicle_id: int, values: dict) -> int:

@@ -15,7 +15,20 @@ PROJECT_URL = "https://github.com/Matze89x/ha-car-assistant"
 SUPPORT_URL = "https://ko-fi.com/matze89x"  # a coffee; shown only on this page
 
 # every table holding entries of a car (counted for the "entries" figure)
-ENTRY_TABLES = ("fuel", "service", "tasks", "tires", "mods", "parts", "documents", "counters", "trips", "appointments", "odometer")
+ENTRY_TABLES = (
+    "fuel",
+    "service",
+    "tasks",
+    "tires",
+    "mods",
+    "parts",
+    "documents",
+    "counters",
+    "fixed_costs",
+    "trips",
+    "appointments",
+    "odometer",
+)
 LIBRARIES = (
     "fastapi",
     "jinja2",

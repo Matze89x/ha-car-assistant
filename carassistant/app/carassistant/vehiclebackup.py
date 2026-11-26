@@ -42,6 +42,7 @@ LISTS = (
     "fuel",
     "trips",
     "counters",
+    "fixed_costs",
     "parts",
     "documents",
     "vehicle_media",

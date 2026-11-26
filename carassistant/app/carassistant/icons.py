@@ -202,6 +202,7 @@ MODULE_ICON = {
     "parts": "parts",
     "fuel": "fuel",
     "counters": "counters",
+    "fixed": "calendar-clock",
     "trips": "route",
     "report": "chart",
     "docs": "docs",

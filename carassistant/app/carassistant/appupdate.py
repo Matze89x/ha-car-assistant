@@ -62,7 +62,8 @@ def forget() -> None:
 def package_updates(conn: sqlite3.Connection) -> list[dict]:
     """Installed plugins and integrations (of every car) for which their source offers a newer version."""
     rows = conn.execute(
-        "SELECT a.*, v.name AS car, v.slug AS car_slug FROM vehicle_addons a JOIN vehicles v ON v.id = a.vehicle_id ORDER BY v.name COLLATE NOCASE, a.id"
+        "SELECT a.*, v.name AS car, v.slug AS car_slug FROM vehicle_addons a JOIN vehicles v ON v.id = a.vehicle_id "
+        "WHERE a.status != 'missing' ORDER BY v.name COLLATE NOCASE, a.id"
     ).fetchall()
     offered = addons._newer_versions(conn, rows)
     out = []
@@ -99,11 +100,31 @@ def status(conn: sqlite3.Connection) -> dict:
     }
 
 
+def _installed(conn: sqlite3.Connection) -> tuple:
+    """What is installed (which package, in which version - its checksum -, from which source): when it changes, the remembered answer is stale."""
+    return tuple(tuple(r) for r in conn.execute("SELECT id, pkg_sha, status, source_id FROM vehicle_addons ORDER BY id"))
+
+
 def pending() -> dict:
-    """What the side bar shows: ``{"app": newer version or "", "plugins": number}`` - remembered for a minute (every page asks)."""
+    """What the side bar shows: ``{"app": newer version or "", "plugins": number, "plugin_list": one line per package, "plugins_car": slug}``.
+
+    Remembered for a minute (every page asks) - and not a second longer than what is installed stays the same: installing, updating or
+    removing a package shows at once. ``plugins_car`` is the car whose plugin page lists them all (empty when they are on several cars).
+    """
     now = time.monotonic()
-    if _cache["value"] is None or now - _cache["at"] > 60:
-        with db.tx() as conn:
+    with db.tx() as conn:
+        installed = _installed(conn)
+        if _cache["value"] is None or now - _cache["at"] > 60 or _cache.get("installed") != installed:
             s = status(conn)
-        _cache.update(at=now, value={"app": s["latest"] if s["newer"] else "", "plugins": s["plugins"]})
+            cars = {p["car_slug"] for p in s["packages"]}
+            _cache.update(
+                at=now,
+                installed=installed,
+                value={
+                    "app": s["latest"] if s["newer"] else "",
+                    "plugins": s["plugins"],
+                    "plugin_list": "\n".join(f"{p['name']} · {p['car']}: {p['installed']} → {p['latest']}" for p in s["packages"]),
+                    "plugins_car": next(iter(cars)) if len(cars) == 1 else "",
+                },
+            )
     return _cache["value"]

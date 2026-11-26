@@ -6,6 +6,7 @@ partial fills) are added up and divided by the distance. Intervals with a missin
 
 from __future__ import annotations
 
+import calendar
 import sqlite3
 from bisect import bisect_right
 from dataclasses import dataclass, field
@@ -235,10 +236,75 @@ COST_PARTS = (
 )
 
 
+EVERY_MONTHS = {
+    "month": 1,
+    "quarter": 3,
+    "halfyear": 6,
+    "year": 12,
+}  # months between two payments; anything else ("once") is a single payment
+
+
+def add_months(day: date, months: int) -> date:
+    """The same day ``months`` later; a day that the month does not have (the 31st) becomes its last day."""
+    year, month = divmod(day.year * 12 + day.month - 1 + months, 12)
+    return date(year, month + 1, min(day.day, calendar.monthrange(year, month + 1)[1]))
+
+
+def fixed_payments(conn: sqlite3.Connection, vehicle_id: int, first: date, last: date) -> list[dict]:
+    """Every payment of the fixed costs (tax, insurance, ...) that falls due from ``first`` to ``last`` (both included), oldest first.
+
+    A cost is paid on its first due date and then every month / quarter / half year / year (on the same day of the month, as far as the month has it)
+    until its end date; ``once`` is one payment. A payment counts on the day it is due, never before.
+    """
+    out: list[dict] = []
+    if last < first:
+        return out
+    for r in conn.execute("SELECT * FROM fixed_costs WHERE vehicle_id = ?", (vehicle_id,)):
+        try:
+            start = date.fromisoformat((r["start_date"] or "")[:10])
+        except ValueError:
+            continue
+        try:
+            end = date.fromisoformat(r["end_date"][:10]) if r["end_date"] else None
+        except ValueError:
+            end = None
+        step = EVERY_MONTHS.get(r["every"])
+        days: list[date] = []
+        if step is None:
+            if first <= start <= last:  # a single payment has no end date
+                days.append(start)
+        else:
+            behind = (
+                (first.year - start.year) * 12 + first.month - start.month
+            )  # months from the start to the window: skip what is long past
+            i = max(0, behind // step - 1)
+            while i < 100_000:
+                due = add_months(start, i * step)
+                if due > last or (end is not None and due > end):
+                    break
+                if due >= first:
+                    days.append(due)
+                i += 1
+        for due in days:
+            out.append(
+                {
+                    "id": r["id"],
+                    "date": due.isoformat(),
+                    "title": r["title"],
+                    "cost_kind": r["cost_kind"],
+                    "every": r["every"],
+                    "cost": float(r["cost"]),
+                }
+            )
+    out.sort(key=lambda p: (p["date"], p["id"]))
+    return out
+
+
 def costs(conn: sqlite3.Connection, vehicle_id: int, group: str, count: int, today: date | None = None) -> list[dict]:
-    """Money per period split into fuel, service, modifications and parts (oldest first)."""
+    """Money per period split into fuel, service, modifications, parts and fixed costs (oldest first)."""
+    today = today or date.today()
     wins = windows(group, count, today)
-    rows = {key: {"key": key, "fuel": 0.0, "service": 0.0, "mods": 0.0, "parts": 0.0} for key, _a, _b in wins}
+    rows = {key: {"key": key, "fuel": 0.0, "service": 0.0, "mods": 0.0, "parts": 0.0, "fixed": 0.0} for key, _a, _b in wins}
     for name, sql in COST_PARTS:
         for r in conn.execute(sql, (vehicle_id,)):
             try:
@@ -247,6 +313,10 @@ def costs(conn: sqlite3.Connection, vehicle_id: int, group: str, count: int, tod
                 continue
             if key in rows:
                 rows[key][name] += r["c"]
+    for p in fixed_payments(conn, vehicle_id, wins[0][1], min(wins[-1][2], today)):
+        key = period_key(date.fromisoformat(p["date"]), group)
+        if key in rows:
+            rows[key]["fixed"] += p["cost"]
     return [rows[key] for key, _a, _b in wins]
 
 
@@ -267,16 +337,20 @@ EXPENSE_SQL = (
 )
 
 
+KINDS = (*(n for n, _ in EXPENSE_SQL), "fixed")  # the categories of the cost page, in the order shown
+
+
 def expenses(conn: sqlite3.Connection, vehicle_id: int, group: str, count: int, kind: str = "", today: date | None = None) -> list[dict]:
     """Every entry with a price inside the shown window, newest first: ``kind`` (fuel / service / mods / parts), date, title, money, km.
 
-    ``kind`` limits the list to one category; an unknown or empty value lists all of them.
+    ``kind`` (fuel / service / mods / parts / fixed) limits the list to one category; an unknown or empty value lists all of them.
+    A fixed cost appears once for every payment that fell due in the window (``every`` tells how often it is paid).
     """
     wins = windows(group, count, today)
     first, last = wins[0][1].isoformat(), wins[-1][2].isoformat()
     out: list[dict] = []
     for name, sql in EXPENSE_SQL:
-        if kind in {n for n, _ in EXPENSE_SQL} and kind != name:
+        if kind in KINDS and kind != name:
             continue
         for r in conn.execute(sql, (vehicle_id,)):
             row = dict(r)
@@ -293,6 +367,21 @@ def expenses(conn: sqlite3.Connection, vehicle_id: int, group: str, count: int, 
                     "qty": row.get("qty"),
                     "cost": float(row["c"]),
                     "km": row.get("km"),
+                }
+            )
+    if kind in ("", "fixed") or kind not in KINDS:
+        for p in fixed_payments(conn, vehicle_id, wins[0][1], min(wins[-1][2], today or date.today())):
+            out.append(
+                {
+                    "kind": "fixed",
+                    "id": p["id"],
+                    "date": p["date"],
+                    "title": p["title"],
+                    "sub": "",
+                    "every": p["every"],
+                    "qty": None,
+                    "cost": p["cost"],
+                    "km": None,
                 }
             )
     out.sort(key=lambda e: (e["date"], e["id"]), reverse=True)

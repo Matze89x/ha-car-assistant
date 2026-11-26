@@ -1887,18 +1887,18 @@ def fuel_report(request: Request, vid: int):
         group = group if group in fuelstats.PERIODS else "month"
         count = request.query_params.get("n", "")
         count = int(count) if count.isdigit() and int(count) in fuelstats.PERIODS[group] else fuelstats.PERIODS[group][0]
-        names = [t_("report.c_fuel"), t_("report.c_service"), t_("report.c_mods"), t_("report.c_parts")]
+        names = [t_("report.c_fuel"), t_("report.c_service"), t_("report.c_mods"), t_("report.c_parts"), t_("report.c_fixed")]
         cost_rows = fuelstats.costs(conn, vid, group, count)
-        cost_totals = [sum(r[k] for r in cost_rows) for k in ("fuel", "service", "mods", "parts")]
+        cost_totals = [sum(r[k] for r in cost_rows) for k in ("fuel", "service", "mods", "parts", "fixed")]
         cost_chart = charts.bars_svg(
-            [(_period_label(r["key"], group), [r["fuel"], r["service"], r["mods"], r["parts"]]) for r in cost_rows],
+            [(_period_label(r["key"], group), [r["fuel"], r["service"], r["mods"], r["parts"], r["fixed"]]) for r in cost_rows],
             unit=f" {units.of().cur}",
             names=names,
         )
         km_rows = fuelstats.kilometres(conn, vid, group, count)
         km_chart = charts.bars_svg([(_period_label(k, group), [shown.d(v) if v else 0]) for k, v in km_rows], unit=f" {shown.dist_unit}")
         km_total = sum(v for _k, v in km_rows if v)
-        kinds = ("fuel", "service", "mods", "parts")
+        kinds = fuelstats.KINDS
         kind = request.query_params.get("c", "")
         kind = kind if kind in kinds else ""
         spent_all = sum(cost_totals)
@@ -1908,6 +1908,16 @@ def fuel_report(request: Request, vid: int):
             if cost_totals[i] > 0 and spent_all > 0
         ]
         listing = fuelstats.expenses(conn, vid, group, count, kind)
+        every_names = {
+            "year": t_("every.year"),
+            "halfyear": t_("every.halfyear"),
+            "quarter": t_("every.quarter"),
+            "month": t_("every.month"),
+            "once": t_("every.once"),
+        }
+        for e in listing:
+            if e["kind"] == "fixed":
+                e["sub"] = every_names.get(e["every"], "")  # how often it is paid, shown under the name
         exp_months: list[dict] = []
         for e in listing:
             if not exp_months or exp_months[-1]["key"] != e["date"][:7]:

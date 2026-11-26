@@ -18,6 +18,7 @@ CHIP = {
     "manual": "c6",
     "tires": "c2",
     "counters": "c3",
+    "fixed": "c4",
     "appointments": "c6",
     "service": "c4",
     "tasks": "c3",
@@ -43,6 +44,7 @@ TABLE = {
     "parts": "parts",
     "docs": "documents",
     "counters": "counters",
+    "fixed": "fixed_costs",
     "trips": "trips",
     "fuel": "fuel",
 }

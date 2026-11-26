@@ -314,7 +314,7 @@ def _computed_values(conn: sqlite3.Connection, vehicle: sqlite3.Row, s: dict, st
             out["fuel_spent_total_second"] = num(gas["total_spent"], 2) if gas["total_spent"] else None
     if "report" not in off:
         months = fuelstats.costs(conn, vid, "month", ref.month, ref)
-        total = sum(m["fuel"] + m["service"] + m["mods"] + m["parts"] for m in months)
+        total = sum(m["fuel"] + m["service"] + m["mods"] + m["parts"] + m["fixed"] for m in months)
         out["costs_year"] = num(total, 2) if total else None
     if "trips" not in off:
         month = fuelstats.kilometres(conn, vid, "month", 1, ref)

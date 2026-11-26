@@ -33,6 +33,7 @@ MODULES: tuple[Module, ...] = (
     Module("parts", "vehicle", "/e/parts"),
     Module("fuel", "vehicle", "/e/fuel"),
     Module("counters", "vehicle", "/e/counters"),
+    Module("fixed", "vehicle", "/e/fixed"),
     Module("trips", "vehicle", "/e/trips"),
     Module("security", "vehicle", "/security"),
     Module("report", "vehicle", "/report"),
@@ -46,7 +47,7 @@ BY_KEY = {m.key: m for m in MODULES}
 
 # What most people need from day one (switched on for a new car, in this order) and what is added when needed (switched off at first).
 RECOMMENDED = ("service", "appointments", "fuel", "docs", "security", "report")
-ON_REQUEST = ("tasks", "tires", "mods", "parts", "counters", "trips", "manual", "stations", "map")
+ON_REQUEST = ("tasks", "tires", "mods", "parts", "counters", "fixed", "trips", "manual", "stations", "map")
 
 
 def apply_recommended(conn: sqlite3.Connection, vehicle_id: int) -> None:
@@ -81,7 +82,7 @@ class Section:
 
 SECTIONS: tuple[Section, ...] = (
     Section("service", "hub.service", "wrench", "c4", ("appointments", "tasks", "service", "parts", "mods")),
-    Section("drive", "hub.drive", "route", "c7", ("trips", "fuel", "counters", "report")),
+    Section("drive", "hub.drive", "route", "c7", ("trips", "fuel", "counters", "fixed", "report")),
 )
 SECTION_OF = {m: sec for sec in SECTIONS for m in sec.modules}
 

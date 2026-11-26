@@ -2,6 +2,7 @@
 :root { /* FIXED SPACING – every page uses these, nothing is hard-coded per page */
   --chip-1: #4f86ff; --chip-2: #2fbf6a; --chip-3: #ff9a2e; --chip-4: #a36bff; --chip-5: #8d95a3; --chip-6: #ff4d5e; --chip-7: #27b8c8; /* the seven colours of the module icon chips (CHIP in nav_web.py) */
   --map-start: #2fbf6a; --map-end: #ef4452; /* start and end of a route on the trip map and in its legend */
+  --chart-5: #0284c7; /* the fifth colour of the cost charts (fixed costs): a blue that reads on the dark and the light design */
   --chart-4: #b583ff; /* the fourth colour of the cost charts (the fallback); themes.accent_css() works out the real one from the colour of the design */
   --sp-edge: 14px; /* distance to the screen / sidebar edge (left and right) */
   --sp-col: 14px; /* gap between two columns (list | page) */
@@ -2528,6 +2529,7 @@ svg.bars .b1, .rp-legend i.b1 { fill: var(--accent); background: var(--accent); 
 svg.bars .b2, .rp-legend i.b2 { fill: var(--ok); background: var(--ok); }
 svg.bars .b3, .rp-legend i.b3 { fill: var(--soon); background: var(--soon); }
 svg.bars .b4, .rp-legend i.b4 { fill: var(--chart-4); background: var(--chart-4); }
+svg.bars .b5, .rp-legend i.b5 { fill: var(--chart-5); background: var(--chart-5); }
 svg.bars rect { rx: 2; }
 svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5 4; }
 .rp-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12px; color: var(--muted); }
@@ -2653,6 +2655,7 @@ svg .trend { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5
 .rp-share i.b2, .xr-ic.b2 { background: var(--ok); }
 .rp-share i.b3, .xr-ic.b3 { background: var(--soon); }
 .rp-share i.b4, .xr-ic.b4 { background: var(--chart-4); }
+.rp-share i.b5, .xr-ic.b5 { background: var(--chart-5); }
 .rp-cats, .xr-list { display: grid; gap: 6px; }
 .rp-cat, .xrow { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 10px 12px; border-radius: var(--r-m); background: var(--glass2); border: 1px solid var(--glass-b); color: inherit; text-decoration: none; }
 .rp-cat:hover, .xrow:hover { background: rgba(var(--fg-rgb), .07); text-decoration: none; }
@@ -3036,6 +3039,7 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 .rp-share i.b2, .rp-legend i.b2 { --t: var(--ok); }
 .rp-share i.b3, .rp-legend i.b3 { --t: var(--soon); }
 .rp-share i.b4, .rp-legend i.b4 { --t: var(--chart-4); }
+.rp-share i.b5, .rp-legend i.b5 { --t: var(--chart-5); }
 .rp-share i[class], .rp-legend i[class] { background: color-mix(in srgb, var(--t, var(--accent)) 38%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t, var(--accent)) 60%, transparent); }
 .ta-bar .ta-t i { background: color-mix(in srgb, var(--accent) 38%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent); }
 .ta-c.l1 { background: rgba(var(--accent-rgb), .1); }
