@@ -63,7 +63,7 @@
         <label>{{ _('oauth.paste_label') }}<input type="text" name="pasted" value="" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="4000"></label>
         <p class="hint">{{ icon('info', 14) }} {{ _('oauth.paste_help') }}</p>
         <div class="addon-bar"><button name="do" value="paste">{{ icon('check', 18) }}<span>{{ _('oauth.paste_btn') }}</span></button></div>
-        {% else %}<p class="hint" data-autoreload="4">{{ icon('refresh', 14) }} {{ _('oauth.waiting') }}</p>{% endif %}
+        {% else %}<p class="addon-status" data-autoreload="4" role="status">{{ icon('refresh', 16) }}<span>{{ _('oauth.waiting') }}</span></p>{% endif %}
       {% else %}
         <div class="addon-bar">
           <button name="do" value="start"{% if login.need_external or not login.client_ok %} disabled{% endif %}>{{ icon('key-variant', 18) }}<span>{{ _('oauth.relogin') if login.connected or login.state == 'login_required' else (now.label or _('oauth.login', host=login.host)) }}</span></button>

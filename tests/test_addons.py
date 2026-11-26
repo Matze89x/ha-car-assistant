@@ -499,6 +499,7 @@ def test_a_service_may_read_and_change_only_the_settings_the_package_marks_writa
         "trip-summary",
         "position-names",
         "refuel-notify",
+        "connection",
     ]
     got = client.get(f"/api/v1/vehicles/{vid}/plugin-settings", headers=h).json()
     assert got["writable"] == ["debug", "interval", "mode", "secret", "status"] and got["settings"]["owner_only"] == ""

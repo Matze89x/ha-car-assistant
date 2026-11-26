@@ -29,7 +29,7 @@ def test_colours_only_as_tokens_no_inline_styles():
         assert not re.search(
             r"#[0-9a-fA-F]{6}\b",
             re.sub(r"<(script|style)[\s\S]*?</\1>", "", text)
-            if path.name not in ("base.html", "login.html", "unlock.html")
+            if path.name not in ("base.html", "login.html", "unlock.html", "oauth_done.html")
             else ""  # the browser chrome (theme-color) and the standalone lock pages need real values), (
             f"{path.name}: a fixed colour in the markup",
         )
