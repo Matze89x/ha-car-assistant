@@ -1,7 +1,7 @@
 # Car Assistant
 
 <!-- release:start -->
-**0.5.35 Beta** - The public test version. Please try it and report what you find.
+**0.5.36 Beta** - The public test version. Please try it and report what you find.
 <!-- release:end -->
 
 **Drive · Log · Go** – the logbook and dashboard of your cars, fully local.
