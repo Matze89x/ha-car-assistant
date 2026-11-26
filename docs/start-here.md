@@ -9,7 +9,8 @@ You do not have to know how Car Assistant works inside. This page takes you from
 | I want ... | Build a ... | Code? | Go to |
 |---|---|---|---|
 | my own lists, notes, reminders or a plan inside Car Assistant (stations, parts, a to-do list for the car) | **integration** | none - only a description (`plugin.json`) | [section 3](#3-your-first-integration-no-code) |
-| information from a web service or cloud account I log in to, an app, a device | **plugin with a service** | a small Python program | [section 4](#4-your-first-plugin-with-a-service) |
+| values from a web service that answers **JSON** (a token, or a login at the provider) | **plugin with a connector** | none - a description of addresses and paths | [connectors](plugins.md#connectors-without-code-connector) |
+| information from a web service or cloud account I log in to, an app, a device - when that needs more | **plugin with a service** | a small Python program | [section 4](#4-your-first-plugin-with-a-service) |
 | to push values from my own script or a box in the car, now and then | **plugin without a service** | your script: one HTTP request | [section 5](#5-a-plugin-without-a-service-your-own-script) |
 | a whole tool with pages of its own inside the app | integration with a service | a small program | [plugin guide, section 5](plugin-guide.md#5-a-service-of-its-own) |
 

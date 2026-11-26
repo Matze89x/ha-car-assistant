@@ -418,6 +418,41 @@ A package with a service can show a page of its own service as a **page of its o
 
 **Rule:** an integration may carry a service only for a page of its own inside the app (a tool in the add-on); to connect a device or a car it stays a plugin.
 
+## Connectors without code (`connector`)
+
+For a web service that answers JSON a plugin needs **no program**: it describes where the values come from, and **Car Assistant itself** fetches them and stores what the map picks out - through the same intake as the Plugin API (`POST /data`). It is the one case where the app talks to the outside on its own, and only as a *description* it executes under strict limits: nothing of the package is run.
+
+```json
+{ "id": "example-cloud", "kind": "plugin", "name": "Example cloud", "version": "1",
+  "settings": [ { "key": "token", "type": "password", "label": "Access token" },
+                { "key": "car",   "type": "text",     "label": "Car id" } ],
+  "connector": {
+    "every": 300,
+    "requests": [ { "id": "car", "url": "https://api.example.com/v1/cars/{setting.car}/status", "auth": "bearer:token" } ],
+    "map": [
+      { "field": "odometer_km",    "from": "car", "path": "data.odometer.km" },
+      { "field": "fuel_level_pct", "from": "car", "path": "data.fuel.ratio", "scale": 100 },
+      { "field": "charging",       "from": "car", "path": "data.charge.state", "values": { "CHARGING": true, "IDLE": false } },
+      { "field": "position",       "from": "car", "lat": "data.pos.lat", "lon": "data.pos.lon" } ] } }
+```
+
+| Key | Meaning |
+|---|---|
+| `every` | seconds between two runs: 60 to 86400, default 300 |
+| `requests` | up to 5: `id`, `url`, optional `headers` (up to 5), `auth` |
+| `url` | **https**, the host **written out** (no IP number); `{setting.key}` and `{vin}` may fill the path and the query - quoted, so they cannot add a slash; never the host, never a password setting |
+| `headers` | name and value (values may hold `{setting.key}`); the headers the app sets itself (`Authorization`, `Host`, `Cookie` ...) are refused |
+| `auth` | `none` (default), `bearer:<setting>` (a token), `basic:<user setting>:<password setting>`, `header:<Name>:<setting>` (an API key), or `oauth` - the access token of the login of a set-up step of type `oauth` (see above): the app renews it |
+| `map` | up to 40 entries: `field` (any value field of the [Plugin API](api.md): numbers, yes / no fields, `odometer_km`, `locked`, `ignition`, `vin`, `measured_at`, `position`), `from` (a request id), `path`, and optionally `scale` and `offset` (`value * scale + offset`) or `values` (a text of the answer becomes `true` / `false`) |
+| `path` | `data.fuel.ratio`, `items[0].value`: names and `[n]` indexes, nothing else (no calculation, no search) |
+| `position` | takes `lat` and `lon` paths instead of `path` |
+
+**What the app does.** Every `every` seconds, for each car where the plugin is on and set up, it fetches the requests (GET only), picks the values and stores them like a delivery of the Plugin API - the same checks and limits apply (a value out of range is refused, the odometer only ever grows). A place that is missing in an answer, or a value that does not fit, leaves out **that field only**; the log of the plugin says which. **A connector that fails slows down** (every, 2 x every, 4 x ... up to an hour) and writes why into the log of the plugin - *the service answered 401*, *the setting token is empty*, *the login has expired - log in again* - and *works again* when it recovers; five failures in a row are an error. It shows on the connection map like any plugin that sends, and the package page names the hosts **before** anything is installed.
+
+**Limits that keep it safe.** Only GET; https only; the host is in the package (a setting cannot send the app somewhere else); a public address only - checked every time it is used, so a name that later points into your network is refused; no redirect is followed; at most 256 kB and 15 seconds an answer; the credentials go only into the headers of the request they are named for; nothing is run. A connector is for **reading**; a command towards the car needs a plugin with a service and a [button](#commands-to-the-car-command-on-a-button).
+
+**Not for everything.** A service that needs a login with a page of its own, a session, a signature or several steps in a row is a job for a plugin with a service ([start-here.md](start-here.md)); the OAuth login works for both.
+
 ## The tile of a plugin and its buttons (`buttons`)
 Every plugin has a **tile** under *Plugins → Manage* with ONE line of buttons at the bottom, always in this order:
 

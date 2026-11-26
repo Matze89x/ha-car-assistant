@@ -944,6 +944,134 @@ def clean_oauth(raw, types: dict[str, str]) -> tuple[dict | None, str]:
     return out, ""
 
 
+CONNECTOR_EVERY = (60, 86400, 300)  # seconds between two runs: least, most, default
+MAX_CONNECTOR_REQUESTS, MAX_CONNECTOR_MAPS = 5, 40
+CONNECTOR_PLACEHOLDER = re.compile(r"\{(vin|setting\.[a-z][a-z0-9_]{0,30})\}")
+CONNECTOR_PATH = re.compile(r"(?:[A-Za-z0-9_-]{1,40}|\[\d{1,3}\])(?:\.[A-Za-z0-9_-]{1,40}|\[\d{1,3}\]){0,11}")
+CONNECTOR_HEADER = re.compile(r"[A-Za-z][A-Za-z0-9-]{0,40}")
+CONNECTOR_BLOCKED = {  # headers the app sets itself or that could smuggle something
+    "host", "content-length", "content-type", "transfer-encoding", "connection", "cookie", "authorization", "proxy-authorization", "upgrade", "te",
+    "trailer", "origin", "referer", "x-forwarded-for", "x-forwarded-host", "x-real-ip", "user-agent",
+}  # fmt: skip
+CONNECTOR_FIELDS = (
+    "odometer_km",
+    "vin",
+    "locked",
+    "ignition",
+    "position",
+    "measured_at",
+)  # besides the numbers and the yes / no fields of the Plugin API
+
+
+def _connector_template(text, types: dict[str, str], where: str) -> str | None:
+    """A text with ``{vin}`` / ``{setting.key}`` places: every place must name something that exists. ``where`` = ``url`` (the host stays literal, no password
+    goes into an address) or ``header``."""
+    if not isinstance(text, str) or len(text) > 300 or any(c in text for c in "\r\n\t"):
+        return None
+    for name in re.findall(r"\{([^{}]*)\}", text):
+        found = CONNECTOR_PLACEHOLDER.fullmatch("{" + name + "}")
+        if not found:
+            return None
+        if name.startswith("setting."):
+            kind = types.get(name[8:])
+            if kind is None or (where == "url" and kind == "password"):
+                return None
+    if re.sub(r"\{[^{}]*\}", "", text).count("{") or re.sub(r"\{[^{}]*\}", "", text).count("}"):
+        return None
+    return text
+
+
+def clean_connector(raw, types: dict[str, str]) -> tuple[dict | None, str]:
+    """The ``connector`` of a plugin without a service (docs/plugins.md, "Connectors without code"): ``(cleaned, "")`` or ``(None, why)``. The APP runs it -
+    every ``every`` seconds it fetches the ``requests`` (GET, https, a public host named in the address, JSON back) and hands the ``map`` of what it found to the
+    same intake as the Plugin API. Nothing is executed from the package: it is a description of addresses and paths."""
+    if not isinstance(raw, dict):
+        return None, "'connector' must be an object"
+    every = raw.get("every")
+    out: dict = {
+        "every": min(CONNECTOR_EVERY[1], max(CONNECTOR_EVERY[0], int(every)))
+        if isinstance(every, int | float) and not isinstance(every, bool)
+        else CONNECTOR_EVERY[2]
+    }
+    requests: list[dict] = []
+    for item in (raw.get("requests") if isinstance(raw.get("requests"), list) else [])[:MAX_CONNECTOR_REQUESTS]:
+        if not (isinstance(item, dict) and isinstance(item.get("id"), str) and re.fullmatch(r"[a-z][a-z0-9_]{0,30}", item["id"])):
+            return None, "every request needs an 'id' (a-z, 0-9, _)"
+        if any(r["id"] == item["id"] for r in requests):
+            return None, f"the request id '{item['id']}' is used twice"
+        url = _connector_template(item.get("url"), types, "url")
+        probe = CONNECTOR_PLACEHOLDER.sub("x", url) if url else ""
+        if (
+            not url
+            or not _oauth_url(probe)
+            or urlsplit(url).hostname is None
+            or "{" in (urlsplit(probe).netloc or "")
+            or "{" in url.split("/")[2]
+        ):
+            return (
+                None,
+                f"request '{item['id']}': 'url' must be an https address with a host name written out (places like {{setting.key}} only after the host)",
+            )
+        headers: dict[str, str] = {}
+        raw_headers = item.get("headers") if isinstance(item.get("headers"), dict) else {}
+        for name, value in list(raw_headers.items())[:5]:
+            text = _connector_template(value, types, "header")
+            if not (
+                isinstance(name, str) and CONNECTOR_HEADER.fullmatch(name) and name.lower() not in CONNECTOR_BLOCKED and text is not None
+            ):
+                return None, f"request '{item['id']}': the header {str(name)[:30]!r} is not allowed (or its value is not usable)"
+            headers[name] = text
+        auth = item.get("auth", "none")
+        if not isinstance(auth, str):
+            return None, f"request '{item['id']}': 'auth' must be text"
+        kind, *args = auth.split(":")
+        keys_ok = {
+            "none": len(args) == 0,
+            "oauth": len(args) == 0,
+            "bearer": len(args) == 1 and types.get(args[0]) in ("password", "text"),
+            "basic": len(args) == 2 and types.get(args[0]) in ("password", "text") and types.get(args[1]) == "password",
+            "header": len(args) == 2
+            and bool(CONNECTOR_HEADER.fullmatch(args[0]))
+            and args[0].lower() not in CONNECTOR_BLOCKED
+            and types.get(args[1]) in ("password", "text"),
+        }
+        if not keys_ok.get(kind):
+            return (
+                None,
+                f"request '{item['id']}': 'auth' is none, oauth, bearer:<setting>, basic:<user setting>:<password setting> or header:<Name>:<setting> (the settings must exist; a password for basic)",
+            )
+        requests.append({"id": item["id"], "url": url, "headers": headers, "auth": auth})
+    if not requests:
+        return None, "'requests' needs at least one request"
+    out["requests"] = requests
+    ids = {r["id"] for r in requests}
+    numbers = set(connectors.NUMBERS)
+    maps: list[dict] = []
+    for item in (raw.get("map") if isinstance(raw.get("map"), list) else [])[:MAX_CONNECTOR_MAPS]:
+        field = item.get("field") if isinstance(item, dict) else None
+        if field not in (*CONNECTOR_FIELDS, *connectors.BOOLS, *numbers) or item.get("from") not in ids:
+            return None, f"a map entry needs a 'field' of the Plugin API (docs/api.md) and a 'from' that names a request: {str(item)[:60]}"
+        entry: dict = {"field": field, "from": item["from"]}
+        paths = ("lat", "lon") if field == "position" else ("path",)
+        for key in paths:
+            if not (isinstance(item.get(key), str) and CONNECTOR_PATH.fullmatch(item[key])):
+                return None, f"map '{field}': '{key}' must be a path like data.fuel.percent or items[0].value"
+            entry[key] = item[key]
+        for key in ("scale", "offset"):
+            if isinstance(item.get(key), int | float) and not isinstance(item.get(key), bool) and abs(item[key]) < 1e9:
+                entry[key] = item[key]
+        values = item.get("values")
+        if isinstance(values, dict) and values:
+            mapped = {str(k)[:40]: v for k, v in list(values.items())[:20] if isinstance(v, bool | int | float | str) and len(str(v)) <= 40}
+            if mapped:
+                entry["values"] = mapped
+        maps.append(entry)
+    if not maps:
+        return None, "'map' needs at least one entry"
+    out["map"] = maps
+    return out, ""
+
+
 def clean_inputs(raw, taken: set[str] | frozenset[str] = frozenset()) -> list[dict]:
     """The one-time inputs of a ``check`` step (``inputs``, docs/plugins.md): fields the person fills in for THIS check only - a code from an SMS, an
     e-mail or an app. They travel to the service with the check and are never stored: not as a setting, not in ``settings.json``, not in a backup.
@@ -1362,6 +1490,9 @@ def parse_package(raw: bytes) -> dict:
         types,
     )
     buttons = clean_buttons(data.get("buttons"), pages, service, types, [st["id"] for st in (setup or {}).get("flow", [])])
+    connector = None
+    if not service and data.get("kind") != "integration":  # a connector is run by the app itself: no program of the package is involved
+        connector, _why = clean_connector(data.get("connector"), types) if data.get("connector") is not None else (None, "")
     if service and service.get("token") is False:
         _check_tokenless(service, conn_file, bundles, tiles, fields, setup)
     docs = _docs_text(data.get("docs"))  # a longer description for the Interfaces page (paragraphs and line breaks stay)
@@ -1377,6 +1508,7 @@ def parse_package(raw: bytes) -> dict:
         **({"files": files} if files else {}),
         **({"bundles": bundles} if bundles else {}),
         **({"setup": setup} if setup else {}),
+        **({"connector": connector} if connector else {}),
         **({"docs": docs} if docs else {}),
         **({"reminders": reminders} if reminders else {}),
         **({"pages": pages, "nav": data.get("nav") is not False} if pages else {}),
@@ -2148,6 +2280,8 @@ def needs_token(manifest: dict) -> bool:
     """Does the plugin use a token at all? A plugin with a service does (the service reports with it) unless it says ``service.token: false``. Without a service it does not when its
     connection file has no ``{token}`` (a file with only settings, nothing secret) or when it says so (``setup.token: false``): then the guide leaves the
     token part out, no token is made and the page shows no token card."""
+    if manifest.get("connector"):
+        return False  # the app itself delivers what a connector reads: nobody calls the Plugin API
     if manifest.get("service"):
         return manifest["service"].get("token") is not False  # ``service.token: false``: a service without a token (docs/plugins.md)
     if (manifest.get("setup") or {}).get("token") is False:

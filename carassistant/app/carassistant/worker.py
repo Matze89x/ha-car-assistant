@@ -6,7 +6,7 @@ import logging
 import threading
 import time
 
-from . import appupdate, config, db, events, live, notify, regional, simulator
+from . import appupdate, config, connector, db, events, live, notify, regional, simulator
 from .mqtt_ha import publisher
 
 log = logging.getLogger(__name__)
@@ -106,4 +106,5 @@ def start() -> threading.Thread:
     thread = threading.Thread(target=loop, name="worker", daemon=True)
     thread.start()
     simulator.start()  # plays the scenario of plugins from a source that are switched on; idle otherwise
+    connector.start()  # the connectors without code of the plugins that are switched on (connector.py); idle otherwise
     return thread

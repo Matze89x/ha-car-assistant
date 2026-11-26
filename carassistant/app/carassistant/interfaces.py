@@ -62,6 +62,17 @@ def preview(m: dict, t) -> dict:
                 urlsplit(step["oauth"]["token_url"]).hostname or "",
             )
             add("brings", t("pkg.row_login", host=hosts[0]), "", None, t("pkg.note_login", token_host=hosts[1]))
+    connector = m.get("connector")
+    if connector:  # the APP reads these addresses itself (connector.py): named before anything is installed
+        hosts = sorted({urlsplit(r["url"]).hostname or "" for r in connector["requests"]})
+        fields = sorted({e["field"] for e in connector["map"] if e["field"] != "measured_at"})
+        add(
+            "sends",
+            t("pkg.row_connector", hosts=", ".join(hosts), minutes=max(1, connector["every"] // 60)),
+            "",
+            fields,
+            t("pkg.note_connector"),
+        )
     for d in m.get("downloads", []):
         add("brings", t("pkg.row_download", label=d["label"]), d["path"], None, d.get("note", ""))
     for f in m.get("files", []):

@@ -421,6 +421,41 @@ Ein Paket mit Dienst kann eine Seite seines eigenen Dienstes als **eigene Seite*
 
 **Regel:** Eine Integration darf einen Dienst nur für eine eigene Seite in der App tragen (ein Werkzeug im Add-on); um ein Gerät oder Auto anzubinden, bleibt es ein Plugin.
 
+## Verbindungen ohne Code (`connector`)
+
+Für einen Webdienst, der JSON antwortet, braucht ein Plugin **kein Programm**: Es beschreibt, woher die Werte kommen, und **Car Assistant selbst** ruft sie ab und speichert, was die Zuordnung herausgreift - über dieselbe Annahme wie die Plugin-API (`POST /data`). Es ist der eine Fall, in dem die App von sich aus nach außen spricht, und nur als *Beschreibung*, die sie unter strengen Grenzen ausführt: Nichts vom Paket wird ausgeführt.
+
+```json
+{ "id": "example-cloud", "kind": "plugin", "name": "Example Cloud", "version": "1",
+  "settings": [ { "key": "token", "type": "password", "label": "Zugriffstoken" },
+                { "key": "car",   "type": "text",     "label": "Auto-Kennung" } ],
+  "connector": {
+    "every": 300,
+    "requests": [ { "id": "car", "url": "https://api.example.com/v1/cars/{setting.car}/status", "auth": "bearer:token" } ],
+    "map": [
+      { "field": "odometer_km",    "from": "car", "path": "data.odometer.km" },
+      { "field": "fuel_level_pct", "from": "car", "path": "data.fuel.ratio", "scale": 100 },
+      { "field": "charging",       "from": "car", "path": "data.charge.state", "values": { "CHARGING": true, "IDLE": false } },
+      { "field": "position",       "from": "car", "lat": "data.pos.lat", "lon": "data.pos.lon" } ] } }
+```
+
+| Schlüssel | Bedeutung |
+|---|---|
+| `every` | Sekunden zwischen zwei Läufen: 60 bis 86400, Standard 300 |
+| `requests` | bis zu 5: `id`, `url`, freiwillig `headers` (bis zu 5), `auth` |
+| `url` | **https**, der Host **ausgeschrieben** (keine IP-Nummer); `{setting.key}` und `{vin}` dürfen Pfad und Query füllen - gequotet, sie können also keinen Schrägstrich einschmuggeln; nie den Host, nie eine Passwort-Einstellung |
+| `headers` | Name und Wert (Werte dürfen `{setting.key}` enthalten); die Header, die die App selbst setzt (`Authorization`, `Host`, `Cookie` ...), werden abgelehnt |
+| `auth` | `none` (Standard), `bearer:<Einstellung>` (ein Token), `basic:<Benutzer-Einstellung>:<Passwort-Einstellung>`, `header:<Name>:<Einstellung>` (ein API-Schlüssel) oder `oauth` - das Zugriffstoken der Anmeldung eines Einrichtungsschritts vom Typ `oauth` (siehe oben): Die App erneuert es |
+| `map` | bis zu 40 Einträge: `field` (jedes Wertefeld der [Plugin-API](api.de.md): Zahlen, Ja/Nein-Felder, `odometer_km`, `locked`, `ignition`, `vin`, `measured_at`, `position`), `from` (eine Request-ID), `path` und freiwillig `scale` und `offset` (`Wert * scale + offset`) oder `values` (ein Text der Antwort wird zu `true` / `false`) |
+| `path` | `data.fuel.ratio`, `items[0].value`: Namen und `[n]`-Indizes, sonst nichts (keine Rechnung, keine Suche) |
+| `position` | nimmt die Pfade `lat` und `lon` statt `path` |
+
+**Was die App tut.** Alle `every` Sekunden ruft sie für jedes Auto, bei dem das Plugin an und eingerichtet ist, die Requests ab (nur GET), greift die Werte heraus und speichert sie wie eine Lieferung der Plugin-API - dieselben Prüfungen und Grenzen gelten (ein Wert außerhalb des Bereichs wird abgelehnt, der Kilometerstand wächst nur). Fehlt eine Stelle in einer Antwort oder passt ein Wert nicht, fällt **nur dieses Feld** weg; das Protokoll des Plugins sagt, welches. **Ein Connector, der scheitert, wird langsamer** (every, 2 x every, 4 x ... bis zu einer Stunde) und schreibt den Grund ins Protokoll des Plugins - *the service answered 401*, *the setting token is empty*, *the login has expired - log in again* - und *works again*, wenn er sich erholt; fünf Fehler in Folge sind ein Fehler-Eintrag. Er erscheint auf der Anbindungskarte wie jedes Plugin, das sendet, und die Seite des Pakets nennt die Hosts, **bevor** etwas installiert wird.
+
+**Grenzen, die ihn sicher halten.** Nur GET; nur https; der Host steht im Paket (eine Einstellung kann die App nicht woandershin schicken); nur eine öffentliche Adresse - bei jeder Benutzung geprüft, ein Name, der später in dein Netz zeigt, wird also abgelehnt; keine Weiterleitung wird verfolgt; höchstens 256 kB und 15 Sekunden je Antwort; die Zugangsdaten gehen nur in die Header des Requests, für den sie genannt sind; nichts wird ausgeführt. Ein Connector ist zum **Lesen**; ein Befehl an das Auto braucht ein Plugin mit Dienst und einen [Knopf](#befehle-an-das-auto-command-an-einem-knopf).
+
+**Nicht für alles.** Ein Dienst, der eine Anmeldung auf einer eigenen Seite, eine Sitzung, eine Signatur oder mehrere Schritte nacheinander braucht, ist ein Fall für ein Plugin mit Dienst ([start-here.de.md](start-here.de.md)); die OAuth-Anmeldung geht für beide.
+
 ## Die Kachel eines Plugins und seine Knöpfe (`buttons`)
 Jedes Plugin hat unter *Plugins → Verwaltung* eine **Kachel** mit EINER Knopfzeile unten, immer in dieser Reihenfolge:
 

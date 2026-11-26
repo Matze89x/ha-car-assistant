@@ -9,7 +9,8 @@ Du musst nicht wissen, wie Car Assistant innen funktioniert. Diese Seite führt 
 | Ich will ... | Dann baue ich eine/ein ... | Code? | Weiter bei |
 |---|---|---|---|
 | eigene Listen, Notizen, Erinnerungen oder einen Plan in Car Assistant (Tankstellen, Teile, eine Aufgabenliste fürs Auto) | **Integration** | keinen - nur eine Beschreibung (`plugin.json`) | [Abschnitt 3](#3-deine-erste-integration-ohne-code) |
-| Informationen von einem Webdienst oder Cloud-Konto, bei dem ich mich anmelde, einer App, einem Gerät | **Plugin mit Dienst** | ein kleines Python-Programm | [Abschnitt 4](#4-dein-erstes-plugin-mit-dienst) |
+| Werte von einem Webdienst, der **JSON** antwortet (ein Token oder eine Anmeldung beim Anbieter) | **Plugin mit Connector** | keinen - eine Beschreibung von Adressen und Pfaden | [Connectors](plugins.de.md#verbindungen-ohne-code-connector) |
+| Informationen von einem Webdienst oder Cloud-Konto, bei dem ich mich anmelde, einer App, einem Gerät - wenn das mehr braucht | **Plugin mit Dienst** | ein kleines Python-Programm | [Abschnitt 4](#4-dein-erstes-plugin-mit-dienst) |
 | Werte von meinem eigenen Skript oder einer Box im Auto ab und zu schicken | **Plugin ohne Dienst** | dein Skript: eine HTTP-Anfrage | [Abschnitt 5](#5-ein-plugin-ohne-dienst-dein-eigenes-skript) |
 | ein ganzes Werkzeug mit eigenen Seiten in der App | Integration mit Dienst | ein kleines Programm | [Plugin-Anleitung, Abschnitt 5](plugin-guide.de.md#5-ein-eigener-dienst) |
 

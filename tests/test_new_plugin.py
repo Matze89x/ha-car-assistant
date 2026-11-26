@@ -23,6 +23,7 @@ SDK = ROOT / "docs" / "examples" / "sdk" / "carassistant_sdk.py"
         (["demo-two", "--login", "none"], "plugins/demo-two", True),
         (["demo-oauth", "--login", "oauth"], "plugins/demo-oauth", True),
         (["demo-three", "--no-service"], "plugins/demo-three", False),
+        (["demo-conn", "--connector"], "plugins/demo-conn", False),
         (["demo-four", "--kind", "integration"], "integrations/demo-four", False),
     ],
 )
@@ -36,6 +37,8 @@ def test_every_kind_it_makes_is_a_package_the_app_and_the_checker_accept(tmp_pat
         e for e in errors if "package.zip" not in e
     ] == []  # (the zip of a service is built later; the list of the source already names it)
     assert (folder / "README.md").is_file()
+    if args[-1] == "--connector":  # the description came through the check of the app: one request, a map, no program
+        assert manifest["connector"]["requests"][0]["auth"] == "bearer:token" and addons.needs_token(manifest) is False
     if args[-1] == "oauth":  # the step of the login came through the check of the app
         assert [st["id"] for st in manifest["setup"]["flow"]] == ["app", "connect", "done"] and manifest["setup"]["flow"][1][
             "type"

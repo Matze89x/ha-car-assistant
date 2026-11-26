@@ -19,7 +19,7 @@ from carassistant import addons, i18n, icons
 
 KNOWN = {
     "id", "kind", "name", "version", "description", "author", "homepage", "icon", "nav", "settings", "pages", "reminders", "tiles", "interfaces", "docs", "downloads",
-    "l10n", "connection_file", "simulation", "service", "setup", "bundles", "files", "capabilities", "settings_page", "buttons",
+    "l10n", "connection_file", "simulation", "service", "setup", "bundles", "files", "capabilities", "settings_page", "buttons", "connector",
 }  # fmt: skip
 READABLE = {
     ".py",
@@ -237,7 +237,11 @@ def check(target: Path) -> tuple[list[str], list[str]]:
     for st in asked_flow:
         if not (isinstance(st, dict) and isinstance(st.get("inputs"), list) and st.get("id") in kept_flow):
             continue
-        gone = [str(i.get("key") if isinstance(i, dict) else i)[:30] for i in st["inputs"] if not isinstance(i, dict) or i.get("key") not in kept_inputs[st["id"]]]
+        gone = [
+            str(i.get("key") if isinstance(i, dict) else i)[:30]
+            for i in st["inputs"]
+            if not isinstance(i, dict) or i.get("key") not in kept_inputs[st["id"]]
+        ]
         if st.get("type") != "check":
             notes.append(f"Step '{st['id']}': 'inputs' belong to a step of type check - they are ignored here.")
         elif gone:
@@ -246,6 +250,11 @@ def check(target: Path) -> tuple[list[str], list[str]]:
                 f"a type of {', '.join(addons.INPUT_TYPES)}, and a step has at most {addons.MAX_INPUTS}."
             )
     types = {f["key"]: f["type"] for f in manifest.get("settings", [])}
+    if data.get("connector") is not None and not manifest.get("connector"):
+        if manifest.get("service") or data.get("kind") == "integration":
+            notes.append("'connector' was dropped: it belongs to a plugin WITHOUT a service (the app itself runs it).")
+        else:
+            notes.append(f"'connector' was dropped: {addons.clean_connector(data.get('connector'), types)[1]}.")
     for st in asked_flow:
         if isinstance(st, dict) and st.get("type") == "oauth" and st.get("id") not in kept_flow:
             spec, why = addons.clean_oauth(st.get("oauth"), types)

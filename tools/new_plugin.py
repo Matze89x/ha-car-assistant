@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Starts a package: a folder with everything a beginner needs, ready to run.
 
-    python tools/new_plugin.py <id> [--kind plugin|integration] [--no-service] [--login none|password|oauth] [--name "My plugin"] [--out <folder of your source>]
+    python tools/new_plugin.py <id> [--kind plugin|integration] [--no-service] [--connector] [--login none|password|oauth] [--name "My plugin"] [--out <folder of your source>]
 
 * ``--kind integration`` (no code): a page with entries and a reminder - only a ``plugin.json``.
 * ``--kind plugin`` (the default): a plugin WITH a service - a small program that logs in somewhere (``--login password``, the default; ``--login oauth`` for a provider that logs people in with OAuth 2.0), fetches what the car
   knows and sends it to Car Assistant, with the helper library ``carassistant_sdk.py`` next to it. ``--no-service`` makes a plugin without a program (settings
-  and a device that calls the Plugin API itself).
+  and a device that calls the Plugin API itself); ``--connector`` makes a plugin without a program that Car Assistant itself lets read a JSON address (docs/plugins.md, "Connectors without code").
 
 The folder lands in ``<out>/plugins/<id>/`` (or ``integrations/<id>/``); ``--out`` is the folder of your source (default: the current folder).
 The list of the source (``<kind>/index.json``) gets its line, too - a line that is there is never changed. Then:
@@ -139,6 +139,11 @@ def plugin_json(args, name: str) -> dict:
             {"key": "password", "type": "password", "label": "Password", "required": True},
             {"key": "status", "type": "value", "label": "Status", "state": {"ok": ["connected"], "bad": ["error"]}},
         ]
+    elif args.connector:
+        settings = [
+            {"key": "token", "type": "password", "label": "Access token", "required": True, "help": "The token of the web service."},
+            {"key": "car", "type": "text", "label": "Car id", "required": True, "help": "How the web service names the car."},
+        ]
     elif args.service and args.login == "oauth":
         settings = [
             {"key": "client_id", "type": "text", "label": "Client ID", "required": True, "help": "The id of your app at the provider."},
@@ -157,6 +162,15 @@ def plugin_json(args, name: str) -> dict:
         }
     ]
     base["docs"] = "Describe here what this plugin reads, where it sends it and what the person has to do."
+    if args.connector:  # Car Assistant itself fetches the address and stores what the map finds: no program, no token for the Plugin API
+        base["connector"] = {
+            "every": 300,
+            "requests": [{"id": "car", "url": "https://api.example.com/v1/cars/{setting.car}/status", "auth": "bearer:token"}],
+            "map": [
+                {"field": "odometer_km", "from": "car", "path": "data.odometer.km"},
+                {"field": "fuel_level_pct", "from": "car", "path": "data.fuel.ratio", "scale": 100},
+            ],
+        }
     if args.service:
         route = args.id
         base["service"] = {
@@ -245,6 +259,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("id")
     parser.add_argument("--kind", choices=("plugin", "integration"), default="plugin")
     parser.add_argument("--no-service", dest="service", action="store_false")
+    parser.add_argument("--connector", action="store_true")
     parser.add_argument("--login", choices=("none", "password", "oauth"), default="password")
     parser.add_argument("--name", default="")
     parser.add_argument("--out", default=".")
@@ -252,6 +267,8 @@ def main(argv: list[str]) -> int:
     if not ID.match(args.id):
         print("the id: lower-case letters, digits, - and _ (2 to 41 characters)")
         return 2
+    if args.connector:
+        args.service = False  # a connector is read by the app: there is no program
     name = args.name or args.id.replace("-", " ").replace("_", " ").capitalize()
     folder = Path(args.out) / ("plugins" if args.kind == "plugin" else "integrations") / args.id
     if folder.exists():

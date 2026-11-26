@@ -501,37 +501,11 @@ def test_the_checker_says_why_a_login_step_was_dropped(tmp_path):
 def test_the_request_really_leaves_as_a_form_post_over_https_and_a_redirect_is_not_followed(tmp_path, monkeypatch):
     """The one place that talks to a provider, against a real local https server (a certificate made for the test)."""
     import base64
-    import datetime
     import http.server
-    import ipaddress
-    import ssl
-    import threading
     import urllib.request
 
-    from cryptography import x509
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import rsa
-    from cryptography.x509.oid import NameOID
+    from tests.tls_helper import https_server
 
-    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
-    now = datetime.datetime.now(datetime.UTC)
-    cert = (
-        x509.CertificateBuilder()
-        .subject_name(name)
-        .issuer_name(name)
-        .public_key(key.public_key())
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(now - datetime.timedelta(days=1))
-        .not_valid_after(now + datetime.timedelta(days=1))
-        .add_extension(
-            x509.SubjectAlternativeName([x509.DNSName("localhost"), x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), critical=False
-        )
-        .sign(key, hashes.SHA256())
-    )
-    cert_file, key_file = tmp_path / "cert.pem", tmp_path / "key.pem"
-    cert_file.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
-    key_file.write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
     seen: list[tuple] = []
 
     class Handler(http.server.BaseHTTPRequestHandler):
@@ -553,18 +527,11 @@ def test_the_request_really_leaves_as_a_form_post_over_https_and_a_redirect_is_n
         def log_message(self, *a):
             pass
 
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain(cert_file, key_file)
-    server.socket = context.wrap_socket(server.socket, server_side=True)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    trust = ssl.create_default_context(cafile=str(cert_file))
-    monkeypatch.setattr(
-        oauth, "_opener", lambda: urllib.request.build_opener(oauth._NoRedirect, urllib.request.HTTPSHandler(context=trust))
-    )
     monkeypatch.setattr(oauth, "_public_host", lambda host: True)
-    base = f"https://127.0.0.1:{server.server_address[1]}"
-    try:
+    with https_server(tmp_path, Handler) as (base, trust):
+        monkeypatch.setattr(
+            oauth, "_opener", lambda: urllib.request.build_opener(oauth._NoRedirect, urllib.request.HTTPSHandler(context=trust))
+        )
         assert oauth._post(f"{base}/token", {"grant_type": "authorization_code", "code": "a b&c"}, ("id", "se cret")) == {
             "access_token": "T",
             "expires_in": 60,
@@ -583,9 +550,6 @@ def test_the_request_really_leaves_as_a_form_post_over_https_and_a_redirect_is_n
         with pytest.raises(oauth.OAuthError):
             oauth._post(f"{base}/elsewhere", {})  # a redirect is no answer ...
         assert [p for p, _h, _b in seen] == ["/token", "/refused", "/elsewhere"]  # ... and was not followed
-    finally:
-        server.shutdown()
-        server.server_close()  # (the port is closed: a request is refused at once)
     with pytest.raises(oauth.OAuthError) as down:
         oauth._post(f"{base}/token", {})  # nobody is listening any more
     assert down.value.key == "err.oauth_net"
