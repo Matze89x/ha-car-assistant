@@ -1,10 +1,11 @@
 """The free set-up flow (``setup.flow``): steps of different types in the order the plugin wants, a check by the plugin's own service, a file the service makes."""
 
 import json
+import re
 
 from tests.test_web import create_vehicle, slug
 
-from carassistant import addons, db, pluginsvc
+from carassistant import addons, db, pluginsvc, setupflow_web
 
 SERVICE = {
     "entry": "service/main.py",
@@ -301,3 +302,150 @@ def test_a_real_service_checks_the_login_and_makes_the_zip_after_its_own_restart
     finally:
         pluginsvc.stop_all()
         pluginsvc._stop.clear()
+
+
+def test_one_time_inputs_of_a_check_are_cleaned():
+    flow = addons.clean_flow(
+        [
+            {
+                "id": "login",
+                "type": "check",
+                "action": "/priv/login",
+                "settings": ["user"],
+                "inputs": [
+                    {
+                        "key": "code",
+                        "label": "Code",
+                        "type": "text",
+                        "ask": True,
+                        "default": "123",
+                        "show_if": {"key": "user", "equals": "x"},
+                        "service_writable": True,
+                    },
+                    {"key": "pin", "label": "PIN", "type": "password", "ask": "yes"},  # ``ask`` is a yes / no, not a word
+                    {"key": "user", "label": "Taken", "type": "text"},  # the key of a setting
+                    {"key": "notes", "label": "Notes", "type": "textarea"},  # a type a one-time input cannot have
+                    {"key": "code", "label": "Twice", "type": "text"},
+                    "nonsense",
+                ],
+            },
+            {"id": "t", "type": "text", "inputs": [{"key": "x", "label": "X", "type": "text"}]},
+        ],
+        [],
+        False,
+        {"user", "password"},
+        set(),
+        SERVICE,
+    )
+    assert [f["key"] for f in flow[0]["inputs"]] == ["code", "pin"]
+    code, pin = flow[0]["inputs"]
+    assert code["ask"] is True and not {"default", "show_if", "service_writable"} & set(code)  # empty every time, always on its own step
+    assert "ask" not in pin
+    assert "inputs" not in flow[1]  # only a check step has them
+    assert [f["key"] for f in addons.input_fields(flow[0])] == ["pin"] and [f["key"] for f in addons.input_fields(flow[0], {"code"})] == [
+        "code",
+        "pin",
+    ]
+
+
+ASK_FLOW = [
+    {
+        "id": "login",
+        "type": "check",
+        "action": "/priv/login",
+        "settings": ["user", "password"],
+        "label": "Log in",
+        "inputs": [
+            {"key": "code", "label": "Code from the SMS", "type": "text", "ask": True, "required": True},
+            {"key": "pin", "label": "PIN", "type": "password"},
+        ],
+    },
+    {"id": "done", "type": "text", "title": "Done", "text": "You are logged in."},
+]
+
+
+def test_a_service_can_ask_for_a_code_and_what_is_typed_for_it_is_never_stored(client, monkeypatch):
+    vid, pk = _install(client, flow=ASK_FLOW)
+    monkeypatch.setattr(pluginsvc, "approved", lambda addon: True)
+    monkeypatch.setattr(pluginsvc, "ready", lambda pk_: True)
+    monkeypatch.setattr(pluginsvc, "restart", lambda pk_: None)
+    base = f"/v/{slug(vid)}/integrations/{pk}/guide"
+    page = client.get(base).text
+    assert 'name="pin"' in page and 'name="code"' not in page  # a field marked ``ask`` is not there before the service asks
+    sent = []
+    answers = iter(
+        [
+            (False, "A code was sent by SMS.", {"ok": False, "ask": ["code", "user", "nothing"], "message": "A code was sent by SMS."}),
+            (False, "Wrong code.", {"ok": False, "message": "Wrong code."}),
+            (True, "Logged in as Max.", {"ok": True}),
+        ]
+    )
+
+    def ask(pk_, path, payload, vehicle_id, user="ha", timeout=10.0):
+        sent.append(payload)
+        return next(answers, (False, "Wrong code.", {"ok": False}))
+
+    monkeypatch.setattr(pluginsvc, "ask", ask)
+
+    first = client.post(base + "/flow", data={"step": "1", "do": "check", "user": "max", "password": "s3cret", "pin": "4711"})
+    assert first.status_code == 200 and "A code was sent by SMS." in first.text  # a question, not an error
+    assert 'class="addon-status err"' not in first.text
+    assert 'name="code"' in first.text and 'name="asked" value="code"' in first.text  # only what the step declared with ``ask``
+    assert sent[0]["values"] == {"user": "max", "password": "s3cret", "pin": "4711"}  # the first call knew nothing of a code
+    assert _stored(pk) == ("uploaded", {})  # nothing is stored before the check passes
+    carry = re.search(r'name="carry" value="([^"]+)"', first.text).group(1)
+
+    wrong = client.post(
+        base + "/flow",
+        data={"step": "1", "do": "check", "user": "max", "password": "", "pin": "4711", "code": "000000", "asked": "code", "carry": carry},
+    )
+    assert wrong.status_code == 422 and "Wrong code." in wrong.text and 'name="code"' in wrong.text  # the field stays for another try
+    assert (
+        sent[1]["values"]["password"] == "s3cret" and sent[1]["values"]["code"] == "000000"
+    )  # the password came from memory, not from the person
+    carry = re.search(r'name="carry" value="([^"]+)"', wrong.text).group(1)
+
+    right = client.post(
+        base + "/flow",
+        data={"step": "1", "do": "check", "user": "max", "password": "", "pin": "4711", "code": "123456", "asked": "code", "carry": carry},
+    )
+    assert right.status_code == 200 and "You are logged in." in right.text and "Logged in as Max." in right.text
+    assert sent[2]["values"] == {"user": "max", "password": "s3cret", "pin": "4711", "code": "123456"}
+    assert "code" not in sent[2]["settings"] and "pin" not in sent[2]["settings"]  # the settings the service reads are the settings
+    _status, values = _stored(pk)
+    assert values["user"] == "max" and not {"code", "pin"} & set(values)
+    with db.tx() as conn:
+        dump = " ".join(
+            str(tuple(r)) for table in ("vehicle_addons", "vehicle_logs", "vehicle_traffic") for r in conn.execute(f"SELECT * FROM {table}")
+        )
+    assert not {"123456", "000000", "4711", "s3cret"} & set(dump.replace("'", " ").replace(",", " ").split())  # never written anywhere
+    assert carry not in setupflow_web._carry  # the memory of the password is gone after the pass
+    # a code typed after the memory ran out cannot bring the password back
+    late = client.post(
+        base + "/flow", data={"step": "1", "do": "check", "user": "max", "password": "", "code": "1", "asked": "code", "carry": carry}
+    )
+    assert late.status_code in (200, 422) and "s3cret" not in late.text
+
+
+def test_the_check_tool_names_a_one_time_input_that_was_dropped(tmp_path):
+    import check_plugin
+
+    folder = tmp_path / "plugins" / "flow-demo"
+    (folder / "service").mkdir(parents=True)
+    (folder / "service" / "main.py").write_text("print(1)", encoding="utf-8")
+    flow = [
+        {
+            "id": "login",
+            "type": "check",
+            "action": "/priv/login",
+            "settings": ["user"],
+            "inputs": [{"key": "code", "label": "Code", "type": "text", "ask": True}, {"key": "user", "label": "Taken", "type": "text"}],
+        },
+        {"id": "info", "type": "text", "inputs": [{"key": "x", "label": "X", "type": "text"}]},
+    ]
+    (folder / "plugin.json").write_text(json.dumps(manifest(flow=flow, description="d", icon="wrench")), encoding="utf-8")
+    errors, notes = check_plugin.check(folder)
+    text = " ".join(notes)
+    assert "the one-time input(s) user were dropped" in text and "Step 'info': 'inputs' belong to a step of type check" in text
+    assert "code" not in text.split("were dropped")[0]  # the good input is not named
+    assert not [e for e in errors if "inputs" in e]

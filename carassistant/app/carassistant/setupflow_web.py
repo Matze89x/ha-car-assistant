@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import secrets
 import time
 
 from fastapi import Request
@@ -35,6 +36,35 @@ NEEDS = {
     "external_https": ("guide.need_external_https", "guide.missing_external_https"),
     "vehicle_vin": ("guide.need_vehicle_vin", "guide.missing_vehicle_vin"),
 }
+
+
+CARRY_SECONDS = 600
+_carry: dict[str, tuple[float, int, str, dict[str, str]]] = {}  # token -> (until, add-on, step, {password setting: what was typed})
+
+
+def _keep(aid: int, step_id: str, passwords: dict[str, str]) -> str:
+    """The passwords typed in a step, kept IN MEMORY for a few minutes while the service asks for one more thing (a code): the person types the code and
+    not the password again. Nothing of it is ever written down; the page carries only the random token of this memory."""
+    now = time.monotonic()
+    for token in [t for t, held in _carry.items() if held[0] < now]:
+        _carry.pop(token, None)
+    if len(_carry) > 100:  # a flood guard: the oldest go first
+        for token in sorted(_carry, key=lambda t: _carry[t][0])[:50]:
+            _carry.pop(token, None)
+    token = secrets.token_urlsafe(18)
+    _carry[token] = (now + CARRY_SECONDS, aid, step_id, {k: v for k, v in passwords.items() if v})
+    return token
+
+
+def _carried(token: str, aid: int, step_id: str) -> dict[str, str]:
+    held = _carry.get((token or "")[:40])
+    return dict(held[3]) if held and held[0] >= time.monotonic() and held[1] == aid and held[2] == step_id else {}
+
+
+def _asked_for(answer: dict, ask_keys: set[str]) -> set[str]:
+    """The one-time inputs the service asks for in its answer (``{"ask": ["code"]}``): only those the step declared with ``ask: true``."""
+    wanted = answer.get("ask")
+    return {k for k in wanted if isinstance(k, str) and k in ask_keys} if isinstance(wanted, list) else set()
 
 
 async def _service_ready(addon: dict, seconds: float = 15.0) -> bool:
@@ -109,6 +139,8 @@ def page(
     result: dict | None = None,
     kind: str = "",
     done: str = "",
+    asked: set[str] | frozenset[str] = frozenset(),
+    carry: str = "",
 ):
     """One step of the flow as a page. ``kind`` jumps to the first step of that type (the older routes of the token and the files ask for it)."""
     with db.tx() as conn:
@@ -132,6 +164,11 @@ def page(
     needs = needs_of(addon, vehicle, cur, tr) if cur["type"] == "requirements" else []
     keys = set(cur.get("settings", []))
     fields = [f for f in addon["m"].get("settings", []) if f["key"] in keys] if cur["type"] in ("form", "check", "download") else []
+    if cur["type"] == "check":
+        fields = [
+            *fields,
+            *addons.input_fields(cur, asked),
+        ]  # the one-time inputs: always the ones without ``ask``, the others once asked for
     offered = pluginsvc.approved(addon)
     rows = {r["name"]: r for r in assets.listing(addon, offered)} if cur["type"] == "files" else {}
     return render(
@@ -147,6 +184,8 @@ def page(
         needs=needs,
         ready=all(c["ok"] for c in needs),
         fields=fields,
+        asked=",".join(sorted(asked)),
+        carry=carry,
         shown=shown if shown is not None else addon["vals"],
         errors={k: tr(v) for k, v in (errors or {}).items()},
         result=result,
@@ -170,6 +209,14 @@ def _typed(addon: dict, form: dict, keys: set[str]) -> dict:
     """What was typed in a step, typed like settings.json (numbers as numbers, passwords as they are): what a check or a download sends to the service."""
     sub = addons.guide_manifest(addon, keys)
     return addons.typed_settings(sub, addons._guide_values(addon, form, keys))
+
+
+def _typed_inputs(inputs: list[dict], form: dict) -> dict:
+    """What was typed in the one-time inputs of a check, typed like settings: sent to the service with the check, never stored."""
+    if not inputs:
+        return {}
+    sub = {"settings": inputs}
+    return addons.typed_settings(sub, addons.clean_settings(sub, form, {}))
 
 
 def _file_name(headers: dict, addon_id: str, step_id: str, ctype: str) -> str:
@@ -221,11 +268,38 @@ async def flow_post(request: Request, vid: int, aid: int):
 
     if cur["type"] in ("form", "check", "download") and do in ("next", "check", "make"):
         keys = set(cur.get("settings", []))
-        if keys:
-            errors = addons.check_settings(addons.guide_manifest(addon, keys), addons.guide_form(addon, form, keys), addon["vals"])
+        ask_keys = {f["key"] for f in cur.get("inputs", []) if f.get("ask")}
+        asked = {k for k in (form.get("asked") or "").split(",") if k in ask_keys}
+        inputs = addons.input_fields(cur, asked) if cur["type"] == "check" else []
+        passwords = {f["key"] for f in addon["m"].get("settings", []) if f["key"] in keys and f["type"] == "password"}
+        for key, value in _carried(form.get("carry", ""), aid, cur["id"]).items():  # typed before the service asked for a code
+            if key in passwords and not form.get(key):
+                form[key] = value
+
+        def again(**more):  # the same step once more, with the one-time inputs the service has asked for (and the passwords kept in memory)
+            token = _keep(aid, cur["id"], {k: form.get(k, "") for k in passwords}) if (asked or more.get("asked")) else ""
+            return page(request, vid, aid, step, carried, shown=form, carry=token, **{"asked": asked, **more})
+
+        if keys or inputs:
+            errors = (
+                addons.check_settings(addons.guide_manifest(addon, keys), addons.guide_form(addon, form, keys), addon["vals"])
+                if keys
+                else {}
+            )
+            if inputs:
+                errors |= addons.check_settings({"settings": inputs}, form, {})
             if errors:
                 return page(
-                    request, vid, aid, step, carried, errors=errors, shown=addons._guide_values(addon, form, keys) | form, status=400
+                    request,
+                    vid,
+                    aid,
+                    step,
+                    carried,
+                    errors=errors,
+                    shown=addons._guide_values(addon, form, keys) | form,
+                    asked=asked,
+                    carry=form.get("carry", ""),
+                    status=400,
                 )
         answer: dict = {}
         message, headers, body = "", {}, b""
@@ -242,28 +316,22 @@ async def flow_post(request: Request, vid: int, aid: int):
                 "vehicle": vid,
                 "step": cur["id"],
                 "language": config.language(),
-                "values": _typed(addon, form, keys),  # what this step asked for
+                "values": {**_typed(addon, form, keys), **_typed_inputs(inputs, form)},  # what this step asked for
                 "settings": addons.typed_settings(
                     addon["m"], addons._guide_values(addon, form, keys)
                 ),  # all settings, with what was just typed
             }
             if cur["type"] == "check":
                 ok, message, answer = pluginsvc.ask(addon["id"], cur["action"], payload, vid, user)
+                if wanted := _asked_for(answer, ask_keys):  # not a failure: the service needs one more thing to finish the login
+                    return again(asked=asked | wanted, result={"ok": None, "ask": True, "message": message or tr("flow.ask_more")})
             else:
                 ok, message, headers, body = pluginsvc.fetch(addon["id"], cur["action"], payload, vid, user)
             if not ok:
                 if message in ("not running", "no answer"):
                     message = tr("addon.button_down")
-                return page(
-                    request,
-                    vid,
-                    aid,
-                    step,
-                    carried,
-                    shown=form,
-                    result={"ok": False, "message": message or tr("addon.button_failed")},
-                    status=422,
-                )
+                return again(result={"ok": False, "message": message or tr("addon.button_failed")}, status=422)
+        _carry.pop((form.get("carry") or "")[:40], None)  # the check passed: the passwords kept for a follow-up question are forgotten
         refused = ""
         with db.tx() as conn:
             if keys:

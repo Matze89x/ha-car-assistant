@@ -857,6 +857,34 @@ def _long(value, limit: int) -> str:
 
 FLOW_TYPES = ("text", "requirements", "form", "check", "token", "files", "page", "download")
 MAX_FLOW = 12
+INPUT_TYPES = ("text", "password", "number", "email", "url")  # what a ``check`` step may ask for once (``inputs``)
+MAX_INPUTS = 6
+
+
+def clean_inputs(raw, taken: set[str] | frozenset[str] = frozenset()) -> list[dict]:
+    """The one-time inputs of a ``check`` step (``inputs``, docs/plugins.md): fields the person fills in for THIS check only - a code from an SMS, an
+    e-mail or an app. They travel to the service with the check and are never stored: not as a setting, not in ``settings.json``, not in a backup.
+    ``ask: true`` keeps a field off the page until the service asks for it (``{"ok": false, "ask": ["code"], "message": "..."}``). Types: text,
+    password, number, email, url; the key of an input is never the key of a setting; at most 6."""
+    items = [r for r in (raw if isinstance(raw, list) else [])[:MAX_INPUTS] if isinstance(r, dict)]
+    asked: dict = {}
+    for r in items:
+        asked.setdefault(r.get("key"), r.get("ask") is True)  # the first of two with the same key is the one that stays
+    out: list[dict] = []
+    for field in clean_setting_fields(items):
+        if field["type"] not in INPUT_TYPES or field["key"] in taken or any(x["key"] == field["key"] for x in out):
+            continue
+        for key in ("service_writable", "advanced", "show_if", "default"):
+            field.pop(key, None)  # an input is empty every time and always belongs to its step
+        if asked.get(field["key"]):
+            field["ask"] = True
+        out.append(field)
+    return out
+
+
+def input_fields(step: dict, asked: set[str] | frozenset[str] = frozenset()) -> list[dict]:
+    """The one-time inputs of a ``check`` step that are on the page now: those that always show and those the service has asked for."""
+    return [f for f in step.get("inputs", []) if not f.get("ask") or f["key"] in asked]
 
 
 def clean_flow(
@@ -869,7 +897,7 @@ def clean_flow(
 ) -> list[dict]:
     """The free set-up flow (``setup.flow``): up to 12 steps, each of ONE type (docs/plugins.md, "The set-up flow"): ``text``, ``requirements``
     (``requires`` the app can check, ``filled`` settings that must have a value), ``form`` (``settings`` to fill in), ``check`` (the service checks what
-    was typed: ``action``), ``token``, ``files`` (``bundles``, the connection file), ``page`` (a frame page of the plugin) and ``download`` (the service
+    was typed: ``action``, and may ask for one-time ``inputs``), ``token``, ``files`` (``bundles``, the connection file), ``page`` (a frame page of the plugin) and ``download`` (the service
     makes a file: ``action``). A step that does not fit its type is dropped."""
     out: list[dict] = []
     names = {b["name"] for b in bundles}
@@ -896,6 +924,8 @@ def clean_flow(
             step["action"] = path
             if _text(st, "label", 40):
                 step["label"] = _text(st, "label", 40)
+            if kind == "check" and (inputs := clean_inputs(st.get("inputs"), setting_keys)):
+                step["inputs"] = inputs
         if kind == "form" and not step.get("settings"):
             continue
         if kind == "requirements":

@@ -233,6 +233,18 @@ def check(target: Path) -> tuple[list[str], list[str]]:
             "and what its type needs: form = 'settings'; check / download = an 'action' under a NON-public route prefix; page = the id of a frame page; "
             "requirements = 'requires' or 'filled'."
         )
+    kept_inputs = {st["id"]: {f["key"] for f in st.get("inputs", [])} for st in (manifest.get("setup") or {}).get("flow", [])}
+    for st in asked_flow:
+        if not (isinstance(st, dict) and isinstance(st.get("inputs"), list) and st.get("id") in kept_flow):
+            continue
+        gone = [str(i.get("key") if isinstance(i, dict) else i)[:30] for i in st["inputs"] if not isinstance(i, dict) or i.get("key") not in kept_inputs[st["id"]]]
+        if st.get("type") != "check":
+            notes.append(f"Step '{st['id']}': 'inputs' belong to a step of type check - they are ignored here.")
+        elif gone:
+            notes.append(
+                f"Step '{st['id']}': the one-time input(s) {', '.join(gone)} were dropped - an input needs its own key (not the key of a setting), "
+                f"a type of {', '.join(addons.INPUT_TYPES)}, and a step has at most {addons.MAX_INPUTS}."
+            )
     if setup.get("done_when") and not (manifest.get("setup") or {}).get("done_when"):
         notes.append(
             '\'setup.done_when\' could not be read and was ignored: use tests like {"token": true} or {"key": "<your setting>", "set": true}.'

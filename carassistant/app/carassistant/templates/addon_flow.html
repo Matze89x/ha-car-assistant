@@ -19,7 +19,8 @@
 <section class="card guide-step">
   <h2>{{ icon(now.icon, 20) }} {{ now.title }}</h2>
   {% if now.html %}<div class="guide-text">{{ now.html|safe }}</div>{% endif %}
-  {% if result %}<p class="addon-status {{ 'ok' if result.ok else 'err' }}" role="{{ 'status' if result.ok else 'alert' }}">{{ icon('check' if result.ok else 'alert', 16) }}<span>{{ result.message }}</span></p>{% endif %}
+  {% if result %}{% if result.ask %}<p class="addon-status" role="status">{{ icon('info', 16) }}<span>{{ result.message }}</span></p>
+  {% else %}<p class="addon-status {{ 'ok' if result.ok else 'err' }}" role="{{ 'status' if result.ok else 'alert' }}">{{ icon('check' if result.ok else 'alert', 16) }}<span>{{ result.message }}</span></p>{% endif %}{% endif %}
 
   {% if now.type == 'requirements' %}
   <ul class="guide-checks">
@@ -39,7 +40,7 @@
   {% if now.type == 'files' %}{% include "_guide_files.html" %}{% endif %}
 
   <form method="post" action="{{ base_url }}/guide/flow" class="guide-stack" id="flowform">
-    <input type="hidden" name="step" value="{{ step }}"><input type="hidden" name="token" value="{{ token }}">
+    <input type="hidden" name="step" value="{{ step }}"><input type="hidden" name="token" value="{{ token }}">{% if asked or carry %}<input type="hidden" name="asked" value="{{ asked }}"><input type="hidden" name="carry" value="{{ carry }}">{% endif %}
 
     {% if fields %}
     <section class="addon-fields set-form guide-set">

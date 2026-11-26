@@ -77,6 +77,7 @@ Das legt `my-source/plugins/my-plugin/` an, mit einer `plugin.json`, einem Progr
 | `api.send(odometer_km=1234, ...)` | gibt Car Assistant Werte über die Plugin-API - die Namen stehen in [api.de.md](api.de.md) |
 | `ca.log("...")` | eine Zeile für die Protokollseite deines Plugins (nie ein Passwort oder Token) |
 | `@ca.route("POST", "/my-plugin/check")` | eine Route deines Dienstes - diese hier ist der Schritt *Anmeldung prüfen* des Einrichtungsablaufs |
+| `return ca.passed("Angemeldet.")`, `ca.failed("Kennwort falsch.")`, `ca.ask("code", message="Ein Code wurde per SMS geschickt.")` | die Antworten einer `check`-Route; `ask` bringt den Schritt mit einer einmaligen Eingabe für einen Code zurück ([plugins.de.md](plugins.de.md#der-einrichten-ablauf-setupflow)) |
 | `ca.run(poll, every=60)` | ruft `poll()` alle 60 Sekunden auf; ein fehlgeschlagener Aufruf wird protokolliert und später wiederholt, er beendet den Dienst nie |
 
 Die Einstellungen, die die Person sieht (ein Benutzername, ein Passwort, ein Schalter ...), beschreibst du in `plugin.json` unter `settings`; die Schritte der Einrichtung unter `setup.flow` (beides steht in [plugins.de.md](plugins.de.md)). `service.connects` nennt die Webadressen, mit denen dein Programm spricht: Sie stehen auf der Freigabeseite, damit die Leute wissen, was sie freigeben.

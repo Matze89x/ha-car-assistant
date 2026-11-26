@@ -256,3 +256,14 @@ def test_run_keeps_polling_after_a_failure_and_stops_when_asked(ca, monkeypatch)
     ca.run(poll, every=5)
     assert len(calls) == 3 and waits[0] >= 4  # a failure did not end the service; the pause is the normal one (less the time the poll took)
     ca.stop.clear()
+
+
+def test_the_answers_of_a_check_route_have_the_shape_the_set_up_flow_reads(ca):
+    assert ca.passed() == {"ok": True}
+    assert ca.passed("Logged in as Max.", status="connected") == {
+        "ok": True,
+        "message": "Logged in as Max.",
+        "settings": {"status": "connected"},
+    }
+    assert ca.failed("Wrong password.") == {"ok": False, "message": "Wrong password."}
+    assert ca.ask("code", message="A code was sent by SMS.") == {"ok": False, "ask": ["code"], "message": "A code was sent by SMS."}

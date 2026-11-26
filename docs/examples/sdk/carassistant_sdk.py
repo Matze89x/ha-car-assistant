@@ -18,6 +18,9 @@ variables (docs/plugins.md, "What the service gets"): ``CA_PORT``, ``CA_API_URL`
 
     ca.run(poll, every=60)
 
+The answers of a check route: ``ca.passed("Logged in.")``, ``ca.failed("Wrong password.")`` and ``ca.ask("code", message="A code was sent by SMS.")`` (the step comes
+back with a one-time input for the code).
+
 Only what is described in docs/plugins.md and docs/api.md is used here - nothing in this file is magic, and the Plugin API stays the one door to the app.
 """
 
@@ -355,6 +358,31 @@ class Reply:
     ):
         self.status, self.content_type, self.headers = status, content_type, headers or {}
         self.body = body.encode() if isinstance(body, str) else body
+
+
+# ------------------------------------------------------------------ the answers of a check route (the set-up flow)
+
+
+def passed(message: str = "", **settings) -> dict:
+    """The answer of a ``check`` route when the login worked: ``return ca.passed("Logged in as Max.", status="connected")``. ``message`` is shown on the next
+    step; the keyword arguments are settings the service may write itself (``value`` fields and ``service_writable``, docs/plugins.md)."""
+    answer: dict = {"ok": True}
+    if message:
+        answer["message"] = message
+    if settings:
+        answer["settings"] = settings
+    return answer
+
+
+def failed(message: str) -> dict:
+    """The answer when it did not work: the person stays on the step and reads ``message``. Never put a password or a token into it."""
+    return {"ok": False, "message": message}
+
+
+def ask(*keys: str, message: str = "") -> dict:
+    """The answer when one more thing is needed to log in: the step comes back with these one-time ``inputs`` (the ones marked ``"ask": true``), and
+    ``message`` says why: ``return ca.ask("code", message="A code was sent by SMS.")``. The next call of the route carries the code in ``request.values``."""
+    return {"ok": False, "ask": list(keys), "message": message}
 
 
 _routes: list[tuple[str, str, object]] = []
