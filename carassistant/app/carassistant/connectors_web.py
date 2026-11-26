@@ -129,6 +129,7 @@ def api_root(request: Request):
             "trip-summary",
             "position-names",
             "refuel-notify",
+            "connection",
         ],  # what a plugin can check before it uses it
     }
 
@@ -184,6 +185,38 @@ def api_plugin_settings(request: Request, vehicle_id: int):
         if addon is None:
             return _err("no_plugin", "This token does not belong to a plugin of this vehicle.", 404)
         return {"ok": True, "settings": addons.service_settings(addon), "writable": sorted(addons.writable_keys(addon))}
+
+
+@app.get("/api/v1/vehicles/{vehicle_id}/connection")
+def api_connection(request: Request, vehicle_id: int, step: str = "", renew: int = 0):
+    """The access token of the account this plugin logged in with (a step of its set-up flow with ``type: "oauth"``): renewed first when it ends within a
+    minute. ``step`` names the step when the plugin has more than one; ``renew=1`` says the provider refused the token (it is renewed at most every 30 seconds).
+    404 ``not_connected``: nobody has logged in yet; 409 ``login_required``: the person has to log in again (the tile says so); 502: the provider is not
+    reachable - try again later. The refresh token never leaves the app."""
+    from . import addons, oauth
+
+    if not _allowed(request, vehicle_id):
+        return _err("forbidden", "This token is not allowed for this vehicle.", 403)
+    with db.tx() as conn:
+        addon = next((a for a in addons.list_for(conn, vehicle_id) if a["token_id"] == request.state.api_token["id"]), None)
+        if addon is None:
+            return _err("no_plugin", "This token does not belong to a plugin of this vehicle.", 404)
+        steps = oauth.steps_of(addon)
+        chosen = next((x for x in steps if x["id"] == step), None) if step else (steps[0] if len(steps) == 1 else None)
+        if chosen is None:
+            return _err(
+                "no_step", "This plugin has no set-up step of type oauth" + (" with that id." if steps else "."), 404 if not steps else 422
+            )
+        connection = oauth.status(conn, addon["id"], chosen["id"])["id"]
+    if connection is None:
+        return _err("not_connected", "Nobody has logged in yet.", 404)
+    try:
+        got = oauth.fresh(connection, renew=bool(renew))
+    except oauth.LoginRequired:
+        return _err("login_required", "The person has to log in again.", 409)
+    except oauth.OAuthError:
+        return _err("provider_unreachable", "The provider could not be reached; try again later.", 502)
+    return JSONResponse({"ok": True, **got}, headers={"Cache-Control": "no-store"})
 
 
 @app.put("/api/v1/vehicles/{vehicle_id}/plugin-settings")

@@ -78,9 +78,20 @@ Das legt `my-source/plugins/my-plugin/` an, mit einer `plugin.json`, einem Progr
 | `ca.log("...")` | eine Zeile für die Protokollseite deines Plugins (nie ein Passwort oder Token) |
 | `@ca.route("POST", "/my-plugin/check")` | eine Route deines Dienstes - diese hier ist der Schritt *Anmeldung prüfen* des Einrichtungsablaufs |
 | `return ca.passed("Angemeldet.")`, `ca.failed("Kennwort falsch.")`, `ca.ask("code", message="Ein Code wurde per SMS geschickt.")` | die Antworten einer `check`-Route; `ask` bringt den Schritt mit einer einmaligen Eingabe für einen Code zurück ([plugins.de.md](plugins.de.md#der-einrichten-ablauf-setupflow)) |
+| `api.bearer()` | das Zugriffstoken der Anmeldung der Person bei einem Anbieter (OAuth 2.0), immer frisch - siehe unten |
 | `ca.run(poll, every=60)` | ruft `poll()` alle 60 Sekunden auf; ein fehlgeschlagener Aufruf wird protokolliert und später wiederholt, er beendet den Dienst nie |
 
 Die Einstellungen, die die Person sieht (ein Benutzername, ein Passwort, ein Schalter ...), beschreibst du in `plugin.json` unter `settings`; die Schritte der Einrichtung unter `setup.flow` (beides steht in [plugins.de.md](plugins.de.md)). `service.connects` nennt die Webadressen, mit denen dein Programm spricht: Sie stehen auf der Freigabeseite, damit die Leute wissen, was sie freigeben.
+
+### Anmelden bei einem Anbieter (OAuth 2.0)
+
+Für einen Webdienst, der die Leute auf einer eigenen Seite anmeldet (die meisten Auto-Clouds tun das), leg das Plugin mit `--login oauth` an:
+
+```
+python tools/new_plugin.py my-plugin --login oauth --out my-source
+```
+
+Die Einrichtung hat dann einen Schritt vom Typ `oauth`: Die Person registriert beim Anbieter eine App, trägt deren Client-ID ein und meldet sich an; **Car Assistant verwahrt die Tokens und erneuert sie**, dein Dienst ruft nur `api.bearer()` für das aktuelle auf. Solange sich niemand angemeldet hat, wartet das Plugin (`waiting for the login` im Protokoll); eine abgelaufene Anmeldung zeigt *Neu anmelden* auf der Kachel. Die Einzelheiten - die zwei Wege, wie der Browser zurückkommt, was wie sicher verwahrt wird - stehen in [plugins.de.md](plugins.de.md#der-einrichten-ablauf-setupflow). Eine Anmeldung mit einem Code aus einer SMS oder einer Authenticator-App braucht kein OAuth: Ein `check`-Schritt mit einer einmaligen `ask`-Eingabe macht das.
 
 Speichere eine Datei, und das Werkzeug packt und startet das Plugin neu. Die Protokollseite des Plugins in der App (*Logs* auf seiner Kachel) zeigt dieselben Zeilen bei eingeschaltetem Debug-Schalter - das Werkzeug schaltet ihn für dich ein.
 

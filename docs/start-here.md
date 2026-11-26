@@ -78,9 +78,20 @@ Open `service/main.py`. Two places say `TODO`: `login()` (log in at the web serv
 | `ca.log("...")` | a line for the log page of your plugin (never a password or a token) |
 | `@ca.route("POST", "/my-plugin/check")` | a route of your service - this one is the step *Check the login* of the set-up flow |
 | `return ca.passed("Logged in.")`, `ca.failed("Wrong password.")`, `ca.ask("code", message="A code was sent by SMS.")` | the answers of a `check` route; `ask` brings the step back with a one-time input for a code ([plugins.md](plugins.md#the-set-up-flow-setupflow)) |
+| `api.bearer()` | the access token of the person's login at a provider (OAuth 2.0), always fresh - see below |
 | `ca.run(poll, every=60)` | calls `poll()` every 60 seconds; a failed call is logged and tried again later, it never ends the service |
 
 The settings the person sees (a user name, a password, a switch ...) are described in `plugin.json` under `settings`; the steps of the set-up under `setup.flow` (both are explained in [plugins.md](plugins.md)). `service.connects` names the web addresses your program talks to: it is shown on the approval page, so people know what they approve.
+
+### Logging in at a provider (OAuth 2.0)
+
+For a web service that logs people in on its own page (most car clouds do), make the plugin with `--login oauth`:
+
+```
+python tools/new_plugin.py my-plugin --login oauth --out my-source
+```
+
+The set-up then has a step of type `oauth`: the person registers an app at the provider, types its client id, and logs in; **Car Assistant keeps the tokens and renews them**, and your service only calls `api.bearer()` for the current one. Until somebody has logged in the plugin waits (`waiting for the login` in the log); an expired login shows *Log in again* on the tile. The details - the two ways the browser comes back, what is kept safe how - are in [plugins.md](plugins.md#the-set-up-flow-setupflow). A login with a code from an SMS or an authenticator app needs no OAuth: a `check` step with a one-time `ask` input does it.
 
 Save a file and the tool packs and starts the plugin again. The log page of the plugin in the app (*Logs* on its tile) shows the same lines with the debug switch on - the tool switches it on for you.
 

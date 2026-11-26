@@ -100,7 +100,7 @@ def _take_secrets(dst: sqlite3.Connection) -> dict:
     of the pages of integrations (they are plain in the database)."""
     from . import pagemods, vault
 
-    out: dict = {"v": 1, "api_tokens": {}, "sources": {}, "addon_settings": {}, "settings": {}, "module_rows": {}}
+    out: dict = {"v": 1, "api_tokens": {}, "sources": {}, "addon_settings": {}, "settings": {}, "module_rows": {}, "connections": {}}
     for row in dst.execute("SELECT id, token_enc FROM api_tokens WHERE token_enc IS NOT NULL").fetchall():
         if text := vault.decrypt(row["token_enc"]):
             out["api_tokens"][str(row["id"])] = text
@@ -118,6 +118,10 @@ def _take_secrets(dst: sqlite3.Connection) -> dict:
                 "UPDATE vehicle_addons SET settings = ? WHERE id = ?",
                 (json.dumps({k: v for k, v in values.items() if k not in sealed}), row["id"]),
             )
+    for row in dst.execute("SELECT id, secret FROM connections WHERE secret != ''").fetchall():  # the tokens of the logins with an account
+        if text := vault.decrypt(row["secret"]):
+            out["connections"][str(row["id"])] = text
+    dst.execute("UPDATE connections SET secret = '', state = 'login_required' WHERE secret != ''")
     for row in dst.execute("SELECT key, value FROM settings WHERE value LIKE ?", (vault.PREFIX + "%",)).fetchall():
         if text := vault.decrypt(row["value"]):
             out["settings"][row["key"]] = text
@@ -150,6 +154,9 @@ def _give_back(conn: sqlite3.Connection, held: dict) -> None:
             values = json.loads(row["settings"] or "{}")
             values.update({k: vault.encrypt(v) for k, v in items.items() if isinstance(v, str) and v})
             conn.execute("UPDATE vehicle_addons SET settings = ? WHERE id = ?", (json.dumps(values), int(key)))
+    for key, text in (held.get("connections") or {}).items():
+        if str(key).isdigit() and isinstance(text, str) and text:
+            conn.execute("UPDATE connections SET secret = ?, state = 'ok' WHERE id = ?", (vault.encrypt(text), int(key)))
     for key, text in (held.get("settings") or {}).items():
         if isinstance(key, str) and isinstance(text, str) and text:
             db.set_setting(conn, key, vault.encrypt(text))

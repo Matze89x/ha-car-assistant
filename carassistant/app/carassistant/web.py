@@ -3110,6 +3110,7 @@ from . import (  # noqa: E402,F401
     mcp_web,
     media_web,
     nav_web,
+    oauth_web,
     pagemods_web,
     push_web,
     receipt_web,

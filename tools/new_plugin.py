@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Starts a package: a folder with everything a beginner needs, ready to run.
 
-    python tools/new_plugin.py <id> [--kind plugin|integration] [--no-service] [--login none|password] [--name "My plugin"] [--out <folder of your source>]
+    python tools/new_plugin.py <id> [--kind plugin|integration] [--no-service] [--login none|password|oauth] [--name "My plugin"] [--out <folder of your source>]
 
 * ``--kind integration`` (no code): a page with entries and a reminder - only a ``plugin.json``.
-* ``--kind plugin`` (the default): a plugin WITH a service - a small program that logs in somewhere (``--login password``, the default), fetches what the car
+* ``--kind plugin`` (the default): a plugin WITH a service - a small program that logs in somewhere (``--login password``, the default; ``--login oauth`` for a provider that logs people in with OAuth 2.0), fetches what the car
   knows and sends it to Car Assistant, with the helper library ``carassistant_sdk.py`` next to it. ``--no-service`` makes a plugin without a program (settings
   and a device that calls the Plugin API itself).
 
@@ -33,7 +33,7 @@ ID = re.compile(r"^[a-z0-9][a-z0-9_-]{1,40}$")
 
 SERVICE = '''"""{name} - the service of the plugin: a small program that runs inside Car Assistant.
 
-It asks a web service for what the car knows and hands it to Car Assistant with the Plugin API (docs/api.md). Replace the two places that say TODO.
+It asks a web service for what the car knows and hands it to Car Assistant with the Plugin API (docs/api.md). Replace the places that say TODO.
 Try it on your computer with:  python tools/plugin_dev.py {folder}
 """
 
@@ -44,7 +44,12 @@ web = ca.Http()  # a client for web services: JSON, cookies for a session, retri
 state = ca.State()  # what the service has to remember (a session, a token it was given)
 {login_block}
 
-def fetch(cfg):
+{fetch_block}
+
+ca.run(poll, every=60)
+'''
+
+FETCH = '''def fetch(cfg):
     """TODO: ask the web service for the car and return what you know, under the names of docs/api.md (the table "Send data")."""
     # car = web.get("https://api.example.com/car", headers={{"Authorization": "Bearer " + state.get("token", "")}}).json()
     # return {{"odometer_km": car["km"], "fuel_level_pct": car["fuel"]}}
@@ -57,9 +62,28 @@ def poll():
     if data:
         api.send(data)
         ca.log("sent " + ", ".join(data))
+'''
+
+FETCH_OAUTH = '''def fetch(cfg):
+    """TODO: ask the web service for the car with the login of the person and return what you know, under the names of docs/api.md."""
+    headers = api.bearer()  # the access token of the login (docs/plugins.md, "Logging in with an account"): the app keeps it fresh
+    # car = web.get("https://api.example.com/car", headers=headers).json()
+    # return {{"odometer_km": car["km"], "fuel_level_pct": car["fuel"]}}
+    return {{"odometer_km": 12345}}  # a made-up value, so that you see something arrive
 
 
-ca.run(poll, every=60)
+def poll():
+    """Called again and again (every minute here). A poll that raises is noted in the log and tried again after a pause."""
+    try:
+        data = fetch(ca.settings())
+    except ca.ApiError as exc:
+        if exc.error not in ("not_connected", "login_required"):
+            raise
+        ca.log("waiting for the login of the person", "warn")  # nobody has logged in yet, or the login has expired: the tile of the plugin says so
+        return
+    if data:
+        api.send(data)
+        ca.log("sent " + ", ".join(data))
 '''
 
 LOGIN_BLOCK = '''
@@ -115,6 +139,11 @@ def plugin_json(args, name: str) -> dict:
             {"key": "password", "type": "password", "label": "Password", "required": True},
             {"key": "status", "type": "value", "label": "Status", "state": {"ok": ["connected"], "bad": ["error"]}},
         ]
+    elif args.service and args.login == "oauth":
+        settings = [
+            {"key": "client_id", "type": "text", "label": "Client ID", "required": True, "help": "The id of your app at the provider."},
+            {"key": "client_secret", "type": "password", "label": "Client secret", "help": "Only when the provider gave you one."},
+        ]
     else:
         settings = [{"key": "interval", "type": "number", "label": "How often (minutes)", "min": 1, "max": 60, "default": 5}]
     base["settings"] = settings
@@ -137,6 +166,39 @@ def plugin_json(args, name: str) -> dict:
             "connects": ["api.example.com"],
             "routes": [{"prefix": f"/{route}/", "public": False}],
         }
+        if args.login == "oauth":
+            base["setup"] = {
+                "flow": [
+                    {
+                        "id": "app",
+                        "type": "form",
+                        "title": "Your app at the provider",
+                        "text": "Register an app at the provider and enter its client id (and its secret, if it has one).",
+                        "settings": ["client_id", "client_secret"],
+                    },
+                    {
+                        "id": "connect",
+                        "type": "oauth",
+                        "title": "Log in with your account",
+                        "label": "Log in at login.example.com",
+                        "oauth": {
+                            "authorize_url": "https://login.example.com/oauth/authorize",
+                            "token_url": "https://login.example.com/oauth/token",
+                            "scopes": ["offline_access"],
+                            "client_id_setting": "client_id",
+                            "client_secret_setting": "client_secret",
+                            "redirect": "paste",
+                            "redirect_uri": "https://localhost/callback",
+                        },
+                    },
+                    {
+                        "id": "done",
+                        "type": "text",
+                        "title": "Done",
+                        "text": "Car Assistant keeps the login fresh; the plugin asks the account for the car and shows what it gets.",
+                    },
+                ]
+            }
         if args.login == "password":
             base["setup"] = {
                 "flow": [
@@ -183,7 +245,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("id")
     parser.add_argument("--kind", choices=("plugin", "integration"), default="plugin")
     parser.add_argument("--no-service", dest="service", action="store_false")
-    parser.add_argument("--login", choices=("none", "password"), default="password")
+    parser.add_argument("--login", choices=("none", "password", "oauth"), default="password")
     parser.add_argument("--name", default="")
     parser.add_argument("--out", default=".")
     args = parser.parse_args(argv)
@@ -200,7 +262,12 @@ def main(argv: list[str]) -> int:
     if args.kind == "plugin" and args.service:
         (folder / "service").mkdir()
         login_block = LOGIN_BLOCK.format(route=args.id) if args.login == "password" else ""
-        (folder / "service" / "main.py").write_text(SERVICE.format(name=name, folder=folder, login_block=login_block), encoding="utf-8")
+        (folder / "service" / "main.py").write_text(
+            SERVICE.format(
+                name=name, folder=folder, login_block=login_block, fetch_block=(FETCH_OAUTH if args.login == "oauth" else FETCH).format()
+            ),
+            encoding="utf-8",
+        )
         shutil.copyfile(SDK, folder / "service" / "carassistant_sdk.py")
     (folder / "README.md").write_text(
         f"# {name}\n\nA package for Car Assistant. How to try it, check it and publish it: docs/start-here.md of the app.\n",

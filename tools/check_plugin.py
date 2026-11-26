@@ -245,6 +245,12 @@ def check(target: Path) -> tuple[list[str], list[str]]:
                 f"Step '{st['id']}': the one-time input(s) {', '.join(gone)} were dropped - an input needs its own key (not the key of a setting), "
                 f"a type of {', '.join(addons.INPUT_TYPES)}, and a step has at most {addons.MAX_INPUTS}."
             )
+    types = {f["key"]: f["type"] for f in manifest.get("settings", [])}
+    for st in asked_flow:
+        if isinstance(st, dict) and st.get("type") == "oauth" and st.get("id") not in kept_flow:
+            spec, why = addons.clean_oauth(st.get("oauth"), types)
+            if spec is None:
+                notes.append(f"Step '{st.get('id')}' (type oauth) was dropped: {why}.")
     if setup.get("done_when") and not (manifest.get("setup") or {}).get("done_when"):
         notes.append(
             '\'setup.done_when\' could not be read and was ignored: use tests like {"token": true} or {"key": "<your setting>", "set": true}.'

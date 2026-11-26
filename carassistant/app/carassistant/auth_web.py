@@ -30,6 +30,7 @@ PUBLIC_PATHS = {
     "/login/passkey/options",
     "/login/passkey/verify",
     "/manifest.webmanifest",
+    "/oauth/callback",  # the way back of a login with an account: safe by its one-time state (oauth_web.py)
     "/sw.js",  # the service worker of web push: the browser fetches it without a session
 }
 PUBLIC_PREFIXES = ("/static/", "/icon/", "/.well-known/")  # the last one answers a plain 404 (MCP clients look for an OAuth server there)

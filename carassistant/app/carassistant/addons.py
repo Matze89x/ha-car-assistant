@@ -13,6 +13,7 @@ import re
 import sqlite3
 import zipfile
 from datetime import UTC, datetime
+from urllib.parse import urlsplit
 
 from . import connectors, vault
 
@@ -855,10 +856,67 @@ def _long(value, limit: int) -> str:
     return re.sub(r"\n{3,}", "\n\n", value.replace("\r", "")).strip()[:limit]
 
 
-FLOW_TYPES = ("text", "requirements", "form", "check", "token", "files", "page", "download")
+FLOW_TYPES = ("text", "requirements", "form", "check", "token", "files", "page", "download", "oauth")
 MAX_FLOW = 12
 INPUT_TYPES = ("text", "password", "number", "email", "url")  # what a ``check`` step may ask for once (``inputs``)
 MAX_INPUTS = 6
+
+
+OAUTH_SCOPE = re.compile(r"[\x21\x23-\x5b\x5d-\x7e]{1,100}")  # what RFC 6749 allows in one scope word
+OAUTH_RESERVED = {"response_type", "client_id", "redirect_uri", "state", "scope", "code_challenge", "code_challenge_method"}
+OAUTH_REDIRECTS = ("paste", "app")
+OAUTH_LOCAL = re.compile(r"https?://(localhost|127\.0\.0\.1)(:\d{1,5})?(/[^\s\"'<>\\]*)?")
+
+
+def _oauth_url(value) -> str | None:
+    """An address of a provider: https, a host NAME (not an IP number, not ``localhost``), no log-in inside it, at most 300 characters."""
+    if not isinstance(value, str) or len(value) > 300 or not value.startswith("https://") or any(c in value for c in " \"'<>\\\n\r\t"):
+        return None
+    parts = urlsplit(value)
+    host = parts.hostname or ""
+    if parts.username or parts.password or parts.fragment or not re.fullmatch(r"[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+", host):
+        return None
+    return None if re.fullmatch(r"[0-9.]+", host) else value
+
+
+def clean_oauth(raw, types: dict[str, str]) -> tuple[dict | None, str]:
+    """The ``oauth`` of a step of type ``oauth`` (docs/plugins.md, "Logging in with an account"): ``(cleaned, "")`` or ``(None, why)`` - the reason is for the
+    checker of the package. ``types`` = the settings of the package and their types: the client id / secret may come from a setting the person fills in."""
+    if not isinstance(raw, dict):
+        return None, "'oauth' must be an object"
+    out: dict = {}
+    for key in ("authorize_url", "token_url"):
+        if not (url := _oauth_url(raw.get(key))):
+            return None, f"'{key}' must be an https address with a host name (no IP number, no log-in inside, at most 300 characters)"
+        out[key] = url
+    client, setting = raw.get("client_id"), raw.get("client_id_setting")
+    if isinstance(client, str) and re.fullmatch(r"[\x21-\x7e]{1,200}", client):
+        out["client_id"] = client
+    elif isinstance(setting, str) and types.get(setting) in ("text", "password"):
+        out["client_id_setting"] = setting
+    else:
+        return None, "give 'client_id' or the key of a text setting in 'client_id_setting'"
+    if (secret := raw.get("client_secret_setting")) is not None:
+        if not (isinstance(secret, str) and types.get(secret) == "password"):
+            return None, "'client_secret_setting' must be the key of a password setting"
+        out["client_secret_setting"] = secret
+    scopes = raw.get("scopes")
+    out["scopes"] = [w for w in scopes[:20] if isinstance(w, str) and OAUTH_SCOPE.fullmatch(w)] if isinstance(scopes, list) else []
+    out["pkce"] = raw.get("pkce") is not False  # on unless the package says no
+    out["client_auth"] = "basic" if raw.get("client_auth") == "basic" else "post"
+    out["redirect"] = raw.get("redirect") if raw.get("redirect") in OAUTH_REDIRECTS else "paste"
+    if out["redirect"] == "paste":
+        uri = raw.get("redirect_uri")
+        if not (isinstance(uri, str) and (_oauth_url(uri) or OAUTH_LOCAL.fullmatch(uri))) or len(uri) > 300:
+            return None, "'redirect_uri' (the address the provider sends the person to) must be an https address or one on localhost"
+        out["redirect_uri"] = uri
+    extra = raw.get("extra") if isinstance(raw.get("extra"), dict) else {}
+    out["extra"] = {
+        k: v
+        for k, v in list(extra.items())[:5]
+        if isinstance(k, str) and re.fullmatch(r"[a-z_]{1,30}", k) and k not in OAUTH_RESERVED and isinstance(v, str) and 0 < len(v) <= 200
+    }
+    return out, ""
 
 
 def clean_inputs(raw, taken: set[str] | frozenset[str] = frozenset()) -> list[dict]:
@@ -894,6 +952,7 @@ def clean_flow(
     setting_keys: frozenset[str] | set[str],
     frame_ids: frozenset[str] | set[str],
     service: dict | None,
+    setting_types: dict[str, str] | None = None,
 ) -> list[dict]:
     """The free set-up flow (``setup.flow``): up to 12 steps, each of ONE type (docs/plugins.md, "The set-up flow"): ``text``, ``requirements``
     (``requires`` the app can check, ``filled`` settings that must have a value), ``form`` (``settings`` to fill in), ``check`` (the service checks what
@@ -928,6 +987,13 @@ def clean_flow(
                 step["inputs"] = inputs
         if kind == "form" and not step.get("settings"):
             continue
+        if kind == "oauth":  # logging in with an account: the app does the dance and keeps the tokens (oauth.py)
+            spec, _why = clean_oauth(st.get("oauth"), setting_types or {k: "text" for k in setting_keys})
+            if spec is None:
+                continue
+            step["oauth"] = spec
+            if _text(st, "label", 40):
+                step["label"] = _text(st, "label", 40)
         if kind == "requirements":
             wanted = st.get("requires") if isinstance(st.get("requires"), list) else []
             step["requires"] = [r for r in SETUP_REQUIRES if r in wanted]
@@ -969,7 +1035,7 @@ def clean_setup(
     worked; ``settings_after`` hides the *Settings* button of the tile until the set-up is done (only with a ``flow``)."""
     if not isinstance(raw, dict):
         return None
-    flow = clean_flow(raw.get("flow"), bundles, has_file, setting_keys, frame_ids, service)
+    flow = clean_flow(raw.get("flow"), bundles, has_file, setting_keys, frame_ids, service, setting_types)
     if not flow and not isinstance(raw.get("steps"), list):
         return None
     wanted = raw.get("requires") if isinstance(raw.get("requires"), list) else []
@@ -1492,6 +1558,14 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
         "SELECT addon_pk, name FROM addon_deliveries WHERE addon_pk IN (SELECT id FROM vehicle_addons WHERE vehicle_id = ?)", (vehicle_id,)
     ):
         handed[d["addon_pk"]] = handed.get(d["addon_pk"], frozenset()) | {d["name"]}
+    login_needed = {  # the installs whose login with an account has expired: the tile says "log in again"
+        x["addon_pk"]
+        for x in conn.execute(
+            "SELECT l.addon_pk FROM connection_links l JOIN connections c ON c.id = l.connection_id WHERE c.state = 'login_required' "
+            "AND l.addon_pk IN (SELECT id FROM vehicle_addons WHERE vehicle_id = ?)",
+            (vehicle_id,),
+        )
+    }
     for r in rows:
         manifest = json.loads(r["manifest"])
         texts = (manifest.get("l10n") or {}).get(lang) or {}
@@ -1571,6 +1645,10 @@ def list_for(conn: sqlite3.Connection, vehicle_id: int) -> list[dict]:
                 and not is_newer(
                     manifest.get("version", ""), offered
                 ),  # the same version stands in a source: it can be linked without an update
+                "login_needed": r["id"] in login_needed,
+                "login_step": next(
+                    (n for n, st in enumerate((manifest.get("setup") or {}).get("flow", []), 1) if st["type"] == "oauth"), 0
+                ),
                 "debug": connectors.plugin_debug(conn, vehicle_id, r["addon_id"]),
                 "debug_state": connectors.plugin_debug_state(conn, vehicle_id, r["addon_id"]),
                 "missing": r["status"] == "missing",
@@ -2210,6 +2288,9 @@ def remove(conn: sqlite3.Connection, addon: dict) -> None:
         connectors.delete_token(conn, addon["token_id"])
     conn.execute("DELETE FROM addon_deliveries WHERE addon_pk = ?", (addon["id"],))
     conn.execute("DELETE FROM vehicle_addons WHERE id = ?", (addon["id"],))
+    from . import oauth
+
+    oauth.prune(conn)  # the tokens of a login nobody uses any more go with the install
     if addon["kind"] == "integration":
         from . import navigation
 

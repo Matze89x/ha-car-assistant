@@ -1177,3 +1177,11 @@ document.addEventListener("click", function (e) {
   window.addEventListener("resize", later);
   window.addEventListener("orientationchange", later);
 })();
+
+// A page that waits for something to happen elsewhere (a login in another tab) loads itself again: <p data-autoreload="4"> = every 4 seconds.
+(function () {
+  var el = document.querySelector("[data-autoreload]");
+  if (!el) { return; }
+  var seconds = parseInt(el.getAttribute("data-autoreload"), 10) || 5;
+  window.setTimeout(function () { window.location.reload(); }, Math.max(2, seconds) * 1000);
+})();

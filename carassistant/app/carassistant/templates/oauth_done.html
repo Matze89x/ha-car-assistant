@@ -1,0 +1,21 @@
+{% from "_macros.html" import icon with context %}
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0d1016">
+  <meta name="referrer" content="no-referrer">
+  <title>{{ _('oauth.callback_title') }} – Car Assistant</title>
+  <link rel="icon" href="{{ base }}/favicon.ico" sizes="any">
+  <style>:root{color-scheme:dark}html,body{background:#0d1016;color:#e8eaf0}</style>
+  <link rel="stylesheet" href="{{ base }}/static/app.css?v={{ asset_v }}">
+</head>
+<body class="login-body">
+  <div class="login-card card">
+    <div class="brand-lock"><h1>Car <em>Assistant</em></h1></div>
+    <p class="addon-status {{ 'ok' if ok else 'err' }}" role="{{ 'status' if ok else 'alert' }}">{{ icon('check' if ok else 'alert', 18) }}<span>{{ text }}</span></p>
+  </div>
+</body>
+</html>

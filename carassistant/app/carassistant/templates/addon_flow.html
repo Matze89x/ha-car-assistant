@@ -48,6 +48,31 @@
     </section>
     {% endif %}
 
+    {% if now.type == 'oauth' and login %}
+    <section class="guide-oauth">
+      {% if login.connected %}<p class="addon-status ok" role="status">{{ icon('check', 16) }}<span>{{ _('oauth.connected') }}</span></p>
+      {% elif login.state == 'login_required' %}<p class="addon-status err" role="alert">{{ icon('alert', 16) }}<span>{{ _('oauth.login_required') }}{% if login.error %} ({{ login.error }}){% endif %}</span></p>
+      {% else %}<p class="addon-status">{{ icon('info', 16) }}<span>{{ _('oauth.not_connected') }}</span></p>{% endif %}
+      <p class="hint">{{ icon('info', 14) }} {{ _('oauth.hosts', host=login.host, token_host=login.token_host) }}</p>
+      {% if login.need_external %}<p class="addon-status err" role="alert">{{ icon('alert', 16) }}<span>{{ _('oauth.need_external') }}</span></p>
+      {% elif not login.client_ok %}<p class="addon-status err" role="alert">{{ icon('alert', 16) }}<span>{{ _('err.oauth_client') }}</span></p>
+      {% elif login.redirect_uri and not login.connected %}<p class="hint">{{ icon('info', 14) }} {{ _('oauth.register') }} <code>{{ login.redirect_uri }}</code></p>{% endif %}
+      {% if login.begun %}
+        <p><a class="button primary" href="{{ login.url }}" target="_blank" rel="noopener noreferrer">{{ icon('open-in-new', 18) }}<span>{{ _('oauth.open_login', host=login.host) }}</span></a></p>
+        {% if login.mode == 'paste' %}
+        <label>{{ _('oauth.paste_label') }}<input type="text" name="pasted" value="" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="4000"></label>
+        <p class="hint">{{ icon('info', 14) }} {{ _('oauth.paste_help') }}</p>
+        <div class="addon-bar"><button name="do" value="paste">{{ icon('check', 18) }}<span>{{ _('oauth.paste_btn') }}</span></button></div>
+        {% else %}<p class="hint" data-autoreload="4">{{ icon('refresh', 14) }} {{ _('oauth.waiting') }}</p>{% endif %}
+      {% else %}
+        <div class="addon-bar">
+          <button name="do" value="start"{% if login.need_external or not login.client_ok %} disabled{% endif %}>{{ icon('key-variant', 18) }}<span>{{ _('oauth.relogin') if login.connected or login.state == 'login_required' else (now.label or _('oauth.login', host=login.host)) }}</span></button>
+          {% if login.connected %}<button name="do" value="forget" class="danger">{{ icon('delete', 18) }}<span>{{ _('oauth.disconnect') }}</span></button>{% endif %}
+        </div>
+      {% endif %}
+    </section>
+    {% endif %}
+
     {% if now.type == 'token' %}
       {% if token and fresh %}
         <p class="hint">{{ icon('info', 14) }} {{ _('guide.token_fresh_once') }}</p>

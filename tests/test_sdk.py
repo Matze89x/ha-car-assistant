@@ -267,3 +267,20 @@ def test_the_answers_of_a_check_route_have_the_shape_the_set_up_flow_reads(ca):
     }
     assert ca.failed("Wrong password.") == {"ok": False, "message": "Wrong password."}
     assert ca.ask("code", message="A code was sent by SMS.") == {"ok": False, "ask": ["code"], "message": "A code was sent by SMS."}
+
+
+def test_the_login_of_the_person_comes_as_a_header_and_a_refusal_as_an_error(ca, server):
+    def script(n, handler):
+        if "step=other" in handler.path:
+            return _json({"error": "login_required", "message": "The person has to log in again."}, 409)
+        return _json({"ok": True, "access_token": "AT9", "token_type": "Bearer", "scope": "read", "expires_at": None, "expires_in": 3000})
+
+    app = server(script)
+    api = ca.Api(url=app.url, token="t", vehicle="4")
+    assert api.connection()["access_token"] == "AT9" and app.requests[-1]["path"] == "/api/v1/vehicles/4/connection"
+    assert api.bearer(renew=True) == {"Authorization": "Bearer AT9"} and app.requests[-1]["path"].endswith("/connection?renew=1")
+    with pytest.raises(ca.ApiError) as error:
+        api.connection("other")
+    assert (
+        error.value.status == 409 and error.value.error == "login_required" and app.requests[-1]["path"].endswith("/connection?step=other")
+    )

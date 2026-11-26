@@ -21,6 +21,7 @@ SDK = ROOT / "docs" / "examples" / "sdk" / "carassistant_sdk.py"
     [
         (["demo-one"], "plugins/demo-one", True),
         (["demo-two", "--login", "none"], "plugins/demo-two", True),
+        (["demo-oauth", "--login", "oauth"], "plugins/demo-oauth", True),
         (["demo-three", "--no-service"], "plugins/demo-three", False),
         (["demo-four", "--kind", "integration"], "integrations/demo-four", False),
     ],
@@ -35,6 +36,10 @@ def test_every_kind_it_makes_is_a_package_the_app_and_the_checker_accept(tmp_pat
         e for e in errors if "package.zip" not in e
     ] == []  # (the zip of a service is built later; the list of the source already names it)
     assert (folder / "README.md").is_file()
+    if args[-1] == "oauth":  # the step of the login came through the check of the app
+        assert [st["id"] for st in manifest["setup"]["flow"]] == ["app", "connect", "done"] and manifest["setup"]["flow"][1][
+            "type"
+        ] == "oauth"
     if service:
         py_compile.compile(str(folder / "service" / "main.py"), doraise=True)
         assert (folder / "service" / "carassistant_sdk.py").read_bytes() == SDK.read_bytes()  # the helper library goes along, unchanged
@@ -148,3 +153,45 @@ def test_a_list_that_is_there_is_extended_never_replaced_and_a_broken_one_is_lef
     assert new_plugin.main(["demo-two", "--kind", "integration", "--out", str(tmp_path)]) == 0
     assert (tmp_path / "integrations" / "index.json").read_text(encoding="utf-8") == "{ broken"  # not touched
     assert "not valid JSON" in capsys.readouterr().out
+
+
+def test_the_plugin_it_makes_for_a_login_with_an_account_waits_for_the_login_and_then_sends(tmp_path, monkeypatch):
+    assert new_plugin.main(["demo-account", "--login", "oauth", "--out", str(tmp_path)]) == 0
+    service = tmp_path / "plugins" / "demo-account" / "service"
+    for key, value in {
+        "CA_DATA_DIR": str(tmp_path / "data"),
+        "CA_API_URL": "http://127.0.0.1:1",
+        "CA_API_TOKEN": "t",
+        "CA_VEHICLE_ID": "3",
+        "CA_PORT": "0",
+    }.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.syspath_prepend(str(service))
+    sys.modules.pop("carassistant_sdk", None)
+    try:
+        import carassistant_sdk as ca
+
+        monkeypatch.setattr(ca, "run", lambda poll=None, every=None: None)
+        loaded = runpy.run_path(str(service / "main.py"), run_name="plugin_main")
+        sent, logged = [], []
+        monkeypatch.setattr(ca.Api, "send", lambda self, data=None, **fields: sent.append(data))
+        monkeypatch.setattr(ca, "log", lambda message, level="info": logged.append((level, message)))
+        for error in (
+            "not_connected",
+            "login_required",
+        ):  # nobody has logged in yet / the login has expired: wait, do not crash, do not send
+            monkeypatch.setattr(
+                ca.Api, "connection", lambda self, step=None, renew=False, error=error: (_ for _ in ()).throw(ca.ApiError(404, error, ""))
+            )
+            loaded["poll"]()
+        assert sent == [] and [m for _l, m in logged] == ["waiting for the login of the person"] * 2
+        monkeypatch.setattr(ca.Api, "connection", lambda self, step=None, renew=False: {"access_token": "AT", "token_type": "Bearer"})
+        loaded["poll"]()  # logged in: it asks with the token of the person (made-up value here) and sends
+        assert sent == [{"odometer_km": 12345}]
+        monkeypatch.setattr(
+            ca.Api, "connection", lambda self, step=None, renew=False: (_ for _ in ()).throw(ca.ApiError(502, "provider_unreachable", ""))
+        )
+        with pytest.raises(ca.ApiError):  # any other trouble is the main loop's business: it notes it and tries again later
+            loaded["poll"]()
+    finally:
+        sys.modules.pop("carassistant_sdk", None)

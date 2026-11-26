@@ -281,9 +281,43 @@ Jeder Schritt hat `id` (`a-z0-9_`), `type`, `title` (80 Zeichen; ohne ihn nennt 
 | `token` | *Neues Token erstellen* (einmal gezeigt; das alte wird ungültig) - das Token ist **eine Möglichkeit, kein Muss** | - |
 | `files` | die `bundles` des Plugins und seine Verbindungsdatei, wie Schritt 3 der festen Anleitung | `bundles`, `connection_file` |
 | `page` | ein Knopf, der eine `kind: "frame"`-Seite des Plugins öffnet (frei gestaltet: Dokumentation, ein eigener Assistent ...) | `page` |
+| `oauth` | **mit einem Konto anmelden** bei einem Anbieter (OAuth 2.0): die App macht den ganzen Ablauf und verwahrt die Tokens | `oauth`, `label` |
 | `download` | der Hauptknopf: **der Dienst erstellt eine Datei** (eine ZIP, genau für die Eingaben dieser Person) und die Person lädt sie herunter | `action`, `settings`, `label` |
 
 **`check`** - `POST <action>` (eine Route des eigenen Dienstes des Plugins, die **nicht** öffentlich ist, dieselbe Regel wie bei `capabilities`) mit `{"vehicle": 3, "step": "login", "language": "de", "values": {"user": "max", "password": "..."}, "settings": {...alle Einstellungen, mit dem gerade Getippten...}}` und den Identitäts-Headern. Der Dienst antwortet innerhalb von 10 Sekunden: **2xx** (oder `{"ok": true}`) = in Ordnung, alles andere oder `{"ok": false, "message": "Kennwort falsch."}` = die Person bleibt auf dem Schritt und liest `message` (höchstens 200 Zeichen). **Wenn die Prüfung scheitert, wird nichts von dem gespeichert, was die Person getippt hat.** Bei Erfolg werden die getippten Einstellungen gespeichert (Kennwörter versiegelt), und die Antwort darf `"settings": {"status": "Verbunden", "token": "..."}` tragen: Die Schlüssel, die der Dienst selbst schreiben darf (`service_writable` / `value`, siehe oben), werden gespeichert - ein abgelehnter Schlüssel zählt als gescheiterte Prüfung. Die `message` eines Erfolgs steht auf dem nächsten Schritt ("Angemeldet als Max.").
+
+**`oauth` - mit einem Konto anmelden.** Für Anbieter, die mit OAuth 2.0 anmelden (Authorization Code, mit PKCE): Die Person meldet sich auf der Seite des Anbieters an, **Car Assistant macht alles andere** - es verwahrt die Tokens (versiegelt auf dem Server), tauscht den Code, erneuert das Zugriffstoken, bevor es endet, und gibt deinem Dienst das aktuelle. Dein Dienst sieht nie ein Passwort, einen Code oder ein Refresh-Token.
+```json
+{ "id": "connect", "type": "oauth", "title": "Mit deinem Konto anmelden", "label": "Bei Example anmelden",
+  "oauth": {
+    "authorize_url": "https://login.example.com/oauth/authorize",
+    "token_url": "https://login.example.com/oauth/token",
+    "scopes": ["offline_access", "vehicle:read"],
+    "client_id_setting": "client_id", "client_secret_setting": "client_secret",
+    "redirect": "paste", "redirect_uri": "https://localhost/callback" } }
+```
+| Schlüssel in `oauth` | Bedeutung |
+|---|---|
+| `authorize_url`, `token_url` | die Adressen des Anbieters: **https**, ein Hostname (keine IP-Nummer, kein `localhost`, keine Anmeldung in der Adresse), höchstens 300 Zeichen. Die App spricht selbst mit `token_url` - und mit nichts sonst |
+| `client_id` **oder** `client_id_setting` | die Kennung der App beim Anbieter: fest, oder der Schlüssel einer `text`-Einstellung, die die Person ausfüllt (die Leute registrieren ihre eigene App beim Anbieter) |
+| `client_secret_setting` | freiwillig: der Schlüssel einer `password`-Einstellung mit dem Client-Geheimnis |
+| `client_auth` | `post` (Standard: im Body) oder `basic` (HTTP Basic) |
+| `scopes` | bis zu 20 Scope-Wörter |
+| `pkce` | `true` (Standard): die Anfrage trägt eine PKCE-Prüfsumme (S256) |
+| `redirect` | `paste` (Standard) oder `app` - wie der Browser zurückkommt, siehe unten |
+| `redirect_uri` | bei `paste`: die Adresse, auf die der Anbieter die Person schickt (beim Anbieter eingetragen); https oder auf `localhost` |
+| `extra` | bis zu 5 weitere Parameter für die Anmelde-Adresse (`{"audience": "car"}`); was die App selbst setzt, lässt sich nicht überschreiben |
+
+Was die Person tut: *Bei Example anmelden* beginnt die Anmeldung; die Seite zeigt dann einen Link, der die Anmeldung des Anbieters **in einem neuen Tab** öffnet (eine Anmeldeseite kann nicht im Rahmen von Home Assistant leben). Mit `redirect: "paste"` landet der Browser auf `redirect_uri` (meist eine Fehlerseite): Die Person kopiert die **ganze Adresse** aus der Adresszeile und fügt sie ins Feld ein - *Anmeldung abschließen* erledigt den Rest. Mit `redirect: "app"` schickt der Anbieter den Browser auf `<https-Adresse der App>/oauth/callback` (genau das beim Anbieter eintragen; der Schritt zeigt es): Der neue Tab sagt *Angemeldet*, und die erste Seite geht von selbst weiter. Dafür braucht es die https-Adresse unter *Einstellungen → System*; setz einen `requirements`-Schritt mit `external_https` davor. Der Schritt ist **nicht passiert**, solange es keine Anmeldung gibt; eine abgelaufene Anmeldung zeigt *Neu anmelden* auf dem Schritt und auf der Kachel des Plugins.
+
+Was dein Dienst tut:
+```python
+api = ca.Api()                                   # die Hilfsbibliothek: docs/examples/sdk
+cars = ca.Http().get("https://api.example.com/cars", headers=api.bearer()).json()
+```
+`GET /api/v1/vehicles/<id>/connection` (``api.connection()`` in der Bibliothek) antwortet `{"ok": true, "access_token": "...", "token_type": "Bearer", "scope": "...", "expires_at": "...", "expires_in": 3412}` - die App erneuert das Token zuerst, wenn es innerhalb einer Minute endet; frag also, wann immer du es brauchst. `?renew=1` sagt, dass der Anbieter das Token abgelehnt hat (höchstens alle 30 Sekunden). Fehler: `404 not_connected` (niemand hat sich angemeldet), `409 login_required` (die Person muss sich neu anmelden - warten, nicht drängeln), `502 provider_unreachable` (später noch einmal), `404 no_step` / `422 no_step` (das Plugin hat keinen solchen Schritt; `?step=<id>` nennt einen, wenn es mehrere gibt).
+
+So bleibt es sicher: Die Anmeldeanfrage trägt einen zufälligen `state`, der zehn Minuten und nur einmal gilt und zu einer Installation und einem Schritt gehört - die Seite unter `/oauth/callback` und die eingefügte Adresse brauchen ihn; der PKCE-Verifier liegt versiegelt dabei; die Token-Anfrage geht nur an `token_url`, nur über https, nur an eine öffentliche Adresse, folgt nie einer Weiterleitung, nimmt höchstens 64 kB und 15 Sekunden; Tokens liegen versiegelt auf dem Server, stehen in keinem Protokoll und in keiner Sicherung ohne Passphrase (mit einer reisen sie im versiegelten Block, siehe [backup.de.md](backup.de.md)), und das Refresh-Token verlässt die App nie. **Ein Paket zu installieren, das sich anmeldet, heißt, ihm diese Anmeldung anzuvertrauen:** der Schritt und die Seite des Pakets nennen die beiden Hosts - den, bei dem sich die Person anmeldet, und den, mit dem die Tokens getauscht werden.
 
 **Einmalige Eingaben und Rückfragen (`inputs`, `ask`).** Manche Anmeldungen brauchen etwas, das keine Einstellung ist: einen Code aus einer SMS, einer E-Mail oder einer Authenticator-App. Ein `check`-Schritt darf `inputs` nennen - Felder nur für DIESE Prüfung:
 ```json

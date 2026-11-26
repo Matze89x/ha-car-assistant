@@ -328,6 +328,19 @@ class Api:
         """Change the settings the service may write itself (``service_writable`` and ``value`` fields): a status, a name, a token it was given."""
         return self._call("PUT", "/plugin-settings", {"values": values})
 
+    def connection(self, step: str | None = None, renew: bool = False) -> dict:
+        """The access token of the account the person logged in with (a set-up step of type ``oauth``): ``access_token``, ``token_type``, ``scope``,
+        ``expires_at``, ``expires_in``. The app renews it before it ends - ask again whenever you need it. ``renew=True`` says the provider refused the
+        token you had (at most every 30 seconds). Raises ``ApiError`` with ``error`` ``not_connected`` (nobody has logged in yet) or ``login_required``
+        (the person has to log in again: the tile says so - wait, do not insist)."""
+        query = urllib.parse.urlencode({**({"step": step} if step else {}), **({"renew": 1} if renew else {})})
+        return self._call("GET", "/connection" + (f"?{query}" if query else ""))
+
+    def bearer(self, step: str | None = None, renew: bool = False) -> dict:
+        """``{"Authorization": "Bearer <token>"}`` for ``Http.get(url, headers=api.bearer())`` - the current access token of the login."""
+        got = self.connection(step, renew)
+        return {"Authorization": f"{got.get('token_type') or 'Bearer'} {got['access_token']}"}
+
 
 # ------------------------------------------------------------------ the routes of the service
 

@@ -278,9 +278,43 @@ Every step has `id` (`a-z0-9_`), `type`, `title` (80 characters; without it the 
 | `token` | *Make a new token* (shown once; the old one becomes invalid) - the token is **one option, not a must** | - |
 | `files` | the plugin's `bundles` and its connection file, as step 3 of the fixed guide | `bundles`, `connection_file` |
 | `page` | a button that opens a `kind: "frame"` page of the plugin (freely designed: documentation, a wizard of its own ...) | `page` |
+| `oauth` | **log in with an account** at a provider (OAuth 2.0): the app does the whole dance and keeps the tokens | `oauth`, `label` |
 | `download` | the main button: **the service makes a file** (a ZIP made for exactly this person's input) and the person downloads it | `action`, `settings`, `label` |
 
 **`check`** - `POST <action>` (a route of the plugin's own service that is **not** public, the same rule as for `capabilities`) with `{"vehicle": 3, "step": "login", "language": "en", "values": {"user": "max", "password": "..."}, "settings": {...all settings, with what was just typed...}}` and the identity headers. The service answers within 10 seconds: **2xx** (or `{"ok": true}`) = fine, anything else or `{"ok": false, "message": "Wrong password."}` = the person stays on the step and reads `message` (200 characters at most). **Nothing the person typed is stored when the check fails.** On success the typed settings are stored (passwords sealed), and the answer may carry `"settings": {"status": "Connected", "token": "..."}`: the keys the service may write itself (`service_writable` / `value`, see above) are stored - a refused key counts as a failed check. `message` of a success is shown on the next step ("Logged in as Max.").
+
+**`oauth` - logging in with an account.** For a provider that logs people in with OAuth 2.0 (authorization code, with PKCE): the person logs in at the provider's own page, **Car Assistant does everything else** - it keeps the tokens (sealed on the server), exchanges the code, renews the access token before it ends and hands your service the current one. Your service never sees a password, a code or a refresh token.
+```json
+{ "id": "connect", "type": "oauth", "title": "Log in with your account", "label": "Log in at Example",
+  "oauth": {
+    "authorize_url": "https://login.example.com/oauth/authorize",
+    "token_url": "https://login.example.com/oauth/token",
+    "scopes": ["offline_access", "vehicle:read"],
+    "client_id_setting": "client_id", "client_secret_setting": "client_secret",
+    "redirect": "paste", "redirect_uri": "https://localhost/callback" } }
+```
+| `oauth` key | Meaning |
+|---|---|
+| `authorize_url`, `token_url` | the provider's addresses: **https**, a host name (no IP number, no `localhost`, no log-in inside), at most 300 characters. The app talks to `token_url` itself - to nothing else |
+| `client_id` **or** `client_id_setting` | the id of the app at the provider: fixed, or the key of a `text` setting the person fills in (people register their own app at the provider) |
+| `client_secret_setting` | optional: the key of a `password` setting that holds the client secret |
+| `client_auth` | `post` (default: in the body) or `basic` (HTTP Basic) |
+| `scopes` | up to 20 scope words |
+| `pkce` | `true` (default): the request carries a PKCE challenge (S256) |
+| `redirect` | `paste` (default) or `app` - how the browser comes back, see below |
+| `redirect_uri` | with `paste`: the address the provider sends the person to (it must be registered at the provider); https, or on `localhost` |
+| `extra` | up to 5 more parameters for the login address (`{"audience": "car"}`); the ones the app sets itself cannot be overridden |
+
+What the person does: *Log in at Example* begins the login; the page then shows a link that opens the provider's login **in a new tab** (a login page cannot live inside the frame of Home Assistant). With `redirect: "paste"` the browser ends on `redirect_uri` (usually an error page): the person copies the **whole address** from the address bar and pastes it into the field - *Finish the login* does the rest. With `redirect: "app"` the provider sends the browser to `<https address of the app>/oauth/callback` (register exactly that at the provider; the step shows it): the new tab says *Logged in*, and the first page goes on by itself. That needs the https address under *Settings → System*; add a `requirements` step with `external_https` before it. The step is **not passed** until there is a login; a login that has expired shows *Log in again* on the step and on the tile of the plugin.
+
+What your service does:
+```python
+api = ca.Api()                                   # the helper library: docs/examples/sdk
+cars = ca.Http().get("https://api.example.com/cars", headers=api.bearer()).json()
+```
+`GET /api/v1/vehicles/<id>/connection` (``api.connection()`` in the library) answers `{"ok": true, "access_token": "...", "token_type": "Bearer", "scope": "...", "expires_at": "...", "expires_in": 3412}` - the app renews the token first when it ends within a minute, so ask whenever you need it. `?renew=1` says the provider refused the token you had (at most every 30 seconds). Errors: `404 not_connected` (nobody has logged in), `409 login_required` (the person has to log in again - wait, do not insist), `502 provider_unreachable` (try again later), `404 no_step` / `422 no_step` (the plugin has no such step; `?step=<id>` names one when there are several).
+
+How it is kept safe: the login request carries a random `state` that is good for ten minutes and once, and belongs to one install and one step - the page at `/oauth/callback` and the pasted address both need it; the PKCE verifier is sealed with it; the token request goes only to `token_url`, only over https, only to a public address, never follows a redirect, takes at most 64 kB and 15 seconds; tokens are sealed on the server, appear in no log and no backup without a passphrase (with one they travel in the sealed block, see [backup.md](backup.md)), and the refresh token never leaves the app. **Installing a package that logs in means trusting it with that login:** the step and the package page name the two hosts - the one the person logs in at and the one the tokens are exchanged with.
 
 **One-time inputs and questions (`inputs`, `ask`).** Some logins need something that is not a setting: a code from an SMS, an e-mail or an authenticator app. A `check` step may list `inputs` - fields for THIS check only:
 ```json

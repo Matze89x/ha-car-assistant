@@ -13,11 +13,12 @@ import asyncio
 import re
 import secrets
 import time
+from urllib.parse import urlsplit
 
 from fastapi import Request
 from fastapi.responses import Response
 
-from . import addons, assets, auth_web, config, connectors, db, events, i18n, pluginsvc
+from . import addons, assets, auth_web, config, connectors, db, events, i18n, oauth, pluginsvc
 from .connectors_web import _may_manage
 from .web import app, form_dict, go, render, vehicle_ctx, vehicle_or_404
 
@@ -30,6 +31,7 @@ ICONS = {
     "files": "download",
     "page": "puzzle",
     "download": "download",
+    "oauth": "key-variant",
 }
 FILE_TYPES = {"application/zip", "application/octet-stream", "text/plain", "text/csv", "application/json"}
 NEEDS = {
@@ -75,6 +77,38 @@ async def _service_ready(addon: dict, seconds: float = 15.0) -> bool:
             return False
         await asyncio.sleep(0.25)
     return True
+
+
+def _say(exc: oauth.OAuthError, tr) -> str:
+    """What went wrong with a login, for the person: our words, then what the provider said (short, cleaned)."""
+    return tr(exc.key) + (f" ({exc.detail})" if exc.detail else "")
+
+
+def _login_context(addon: dict, step: dict) -> dict:
+    """What the page of a step of type ``oauth`` shows: connected or not, the login that was begun (its address opens in a new tab), where the provider
+    sends the person back to, and the two hosts the app talks to - the one the person logs in at and the one the tokens are exchanged with."""
+    spec = step["oauth"]
+    uri = oauth.redirect_uri_of(spec, config.external_url() or "")
+    with db.tx() as conn:
+        link = oauth.status(conn, addon["id"], step["id"])
+        begun = oauth.pending(conn, addon["id"], step["id"]) is not None
+        try:
+            oauth.provider(addon, step)
+            client_ok = True
+            url = oauth.pending_url(conn, addon, step) if begun else ""
+        except oauth.OAuthError:
+            client_ok, url = False, ""
+    return {
+        **link,
+        "begun": begun and bool(url),
+        "url": url,
+        "mode": spec["redirect"],
+        "redirect_uri": uri,
+        "need_external": spec["redirect"] == "app" and not uri,
+        "client_ok": client_ok,
+        "host": urlsplit(spec["authorize_url"]).hostname or "",
+        "token_host": urlsplit(spec["token_url"]).hostname or "",
+    }
 
 
 def _guard(request: Request, vid: int):
@@ -170,6 +204,7 @@ def page(
             *addons.input_fields(cur, asked),
         ]  # the one-time inputs: always the ones without ``ask``, the others once asked for
     offered = pluginsvc.approved(addon)
+    login = _login_context(addon, cur) if cur["type"] == "oauth" else None
     rows = {r["name"]: r for r in assets.listing(addon, offered)} if cur["type"] == "files" else {}
     return render(
         request,
@@ -184,6 +219,7 @@ def page(
         needs=needs,
         ready=all(c["ok"] for c in needs),
         fields=fields,
+        login=login,
         asked=",".join(sorted(asked)),
         carry=carry,
         shown=shown if shown is not None else addon["vals"],
@@ -255,6 +291,9 @@ async def flow_post(request: Request, vid: int, aid: int):
 
     if cur["type"] == "requirements" and not all(c["ok"] for c in needs_of(addon, vehicle, cur, tr)):
         return page(request, vid, aid, step, carried, status=409)
+
+    if cur["type"] == "oauth" and do in ("start", "paste", "forget", "next", "finish"):
+        return await _oauth_post(request, vid, aid, step, cur, addon, do, form, carried, steps, tr)
 
     if cur["type"] == "token" and do == "new":
         if addon["kind"] != "plugin":
@@ -367,6 +406,62 @@ async def flow_post(request: Request, vid: int, aid: int):
             return page(request, vid, aid, step + 1, carried, result={"ok": True, "message": message} if message else None)
 
     if do == "finish" or (do == "next" and step >= len(steps)):
+        return _finish(request, vid, aid, carried)
+    return page(request, vid, aid, step + 1, carried)
+
+
+async def _oauth_post(request, vid: int, aid: int, step: int, cur: dict, addon: dict, do: str, form: dict, carried: str, steps: list, tr):
+    """The buttons of a step of type ``oauth``: *Log in* (the login begins, the page shows its address), *Finish* with the address the person pasted,
+    *Disconnect*, and *Next* - which waits until there is a connection."""
+    back = f"/v/{vid}/integrations/{aid}/guide?step={step}"
+    if do == "start":
+        uri = oauth.redirect_uri_of(cur["oauth"], config.external_url() or "")
+        if not uri:
+            return page(request, vid, aid, step, carried, result={"ok": False, "message": tr("oauth.need_external")}, status=409)
+        try:
+            with db.tx() as conn:
+                oauth.begin(conn, addon, cur, uri)
+        except oauth.OAuthError as exc:
+            return page(request, vid, aid, step, carried, result={"ok": False, "message": _say(exc, tr)}, status=422)
+        return go(
+            request, back
+        )  # the page shows the address of the login; it opens in a new tab (a login page cannot live inside this frame)
+    if do == "forget":
+        with db.tx() as conn:
+            oauth.forget(conn, aid, cur["id"])
+        events.changed()
+        return go(request, back)
+    if do == "paste":
+        code, state, error = oauth.parse_pasted(form.get("pasted", ""))
+        if error:
+            with db.tx() as conn:
+                conn.execute("DELETE FROM oauth_pending WHERE addon_pk = ? AND step = ?", (aid, cur["id"]))
+            return page(
+                request,
+                vid,
+                aid,
+                step,
+                carried,
+                result={"ok": False, "message": f"{tr('err.oauth_refused')} ({oauth._plain(error)})"},
+                status=422,
+            )
+        if not code:
+            return page(request, vid, aid, step, carried, result={"ok": False, "message": tr("oauth.paste_none")}, status=422)
+        if not state:  # a bare code: it belongs to the login that was begun on this step
+            with db.tx() as conn:
+                begun = oauth.pending(conn, aid, cur["id"])
+            state = begun["state"] if begun else ""
+        try:
+            await asyncio.to_thread(oauth.finish, state, code, (aid, cur["id"]))
+        except oauth.OAuthError as exc:
+            return page(request, vid, aid, step, carried, result={"ok": False, "message": _say(exc, tr)}, status=422)
+        events.changed()
+        return page(request, vid, aid, step, carried, result={"ok": True, "message": tr("oauth.connected")})
+    with db.tx() as conn:  # next / finish: only with a connection
+        connected = oauth.status(conn, aid, cur["id"])["connected"]
+    if not connected:
+        return page(request, vid, aid, step, carried, result={"ok": False, "message": tr("oauth.need_login")}, status=409)
+    if do == "finish" or step >= len(steps):
         return _finish(request, vid, aid, carried)
     return page(request, vid, aid, step + 1, carried)
 

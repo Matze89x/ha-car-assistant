@@ -76,11 +76,22 @@ SETTINGS_SKIPPED = {
 
 # Every table of the database is named in exactly one of these places (a test checks it, so a new table cannot be forgotten):
 HANDLED = frozenset(
-    {"vehicles", "api_tokens", "vehicle_addons", "module_rows", "settings", "trip_points", "addon_deliveries"}
-)  # taken care of by name in export / _fill / _wipe
+    {
+        "vehicles",
+        "api_tokens",
+        "vehicle_addons",
+        "module_rows",
+        "settings",
+        "trip_points",
+        "addon_deliveries",
+        "connections",
+        "connection_links",
+    }
+)  # taken care of by name in export / _fill / _wipe (a connection: only its tokens in the secrets block)
 SKIPPED_TABLES = {
     "vehicle_logs": "log lines of the plugins (kept for 7 days)",
     "vehicle_traffic": "the traffic view of a plugin while debug is on (kept for 7 days)",
+    "oauth_pending": "a login with an account that has begun and is good for ten minutes",
 }
 SYSTEM_TABLES = frozenset(  # people, devices and the packages' sources: part of the backup of the whole system only
     {
@@ -146,7 +157,9 @@ def export(conn: sqlite3.Connection, vid: int, with_codes: bool = False, passphr
     from . import connectors
 
     secret: dict | None = (
-        {"v": 1, "tokens": {}, "addons": {}, "source_keys": {}, "approvals": {}, "modules": None} if (passphrase or local) else None
+        {"v": 1, "tokens": {}, "addons": {}, "source_keys": {}, "approvals": {}, "connections": {}, "modules": None}
+        if (passphrase or local)
+        else None
     )
     for tok in data["tokens"]:  # the hash is no secret (it opens nothing); the kept token itself goes into the secrets block only
         kept = connectors.remembered(conn, tok["id"])
@@ -170,6 +183,12 @@ def export(conn: sqlite3.Connection, vid: int, with_codes: bool = False, passphr
                 fingerprint and a["svc_ok"] == fingerprint and a["pkg_sha"]
             ):  # what an administrator approved: the same package may be approved again (restoresetup.py)
                 secret["approvals"][a["addon_id"]] = {"svc_ok": fingerprint, "pkg_sha": a["pkg_sha"]}
+            from . import oauth
+
+            if logins := oauth.export(
+                conn, a["id"]
+            ):  # the tokens of a login with an account: the person need not log in again after a restore
+                secret["connections"][a["addon_id"]] = logins
             if a["origin"] and a["source_id"]:
                 key = vault.decrypt(
                     (conn.execute("SELECT token FROM sources WHERE id = ?", (a["source_id"],)).fetchone() or {"token": None})["token"]
@@ -364,6 +383,9 @@ def _wipe(conn: sqlite3.Connection, vid: int) -> None:
     conn.execute("DELETE FROM api_tokens WHERE vehicle_id = ?", (vid,))
     conn.execute("DELETE FROM addon_deliveries WHERE addon_pk IN (SELECT id FROM vehicle_addons WHERE vehicle_id = ?)", (vid,))
     conn.execute("DELETE FROM vehicle_addons WHERE vehicle_id = ?", (vid,))
+    from . import oauth
+
+    oauth.prune(conn)  # (the links went with the installs; the tokens nobody uses any more go now)
     conn.execute("DELETE FROM module_rows WHERE vehicle_id = ?", (vid,))
     for prefix in SETTINGS:
         conn.execute("DELETE FROM settings WHERE key = ?", (f"{prefix}.{vid}",))
@@ -484,6 +506,12 @@ def _fill(conn: sqlite3.Connection, zf: zipfile.ZipFile, data: dict, new_id: int
 
             connectors.remember(conn, new_token, kept)  # only kept when it really is the token of that fingerprint
     addon_ids = addons.restore_all(conn, new_id, data.get("addons") or [], token_ids, secret.get("addons"))
+    from . import oauth
+
+    for package_id, logins in (
+        secret.get("connections") or {}
+    ).items():  # the logins with an account of the car come back with their tokens
+        oauth.restore(conn, new_id, str(package_id), logins)
     delivered = _columns(conn, "addon_deliveries")
     for row in (tables.get("addon_deliveries") or [])[:MAX_ROWS]:  # which files of a package were handed out, and when
         if isinstance(row, dict) and row.get("addon_pk") in addon_ids:

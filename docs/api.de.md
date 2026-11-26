@@ -96,6 +96,7 @@ Dieselbe Form wie der POST-Body plus Ankunftszeit jedes Werts – zum Testen ein
 
 ## Weitere Endpunkte
 - `GET /api/v1` – prüft das Token; liefert `version`, `connector` und die erlaubten `fields`.
+- `GET /api/v1/vehicles/<id>/connection` – das Zugriffstoken des Kontos, mit dem sich die Person in einem Einrichtungsschritt vom Typ `oauth` angemeldet hat; die App erneuert es zuerst, wenn es innerhalb einer Minute endet (`?step=<id>`, `?renew=1`). Antwortet `404 not_connected`, `409 login_required`, `502 provider_unreachable`. Siehe [plugins.de.md](plugins.de.md#der-einrichten-ablauf-setupflow).
 - `GET /api/v1/vehicles` – das Fahrzeug, das dieses Token nutzen darf.
 
 ## Antworten und Fehler
@@ -114,7 +115,7 @@ Erfolg: `{"ok": true, "result": {"odometer_km": "stored", …}}`. Fehler haben d
 Menschen schreiben eigene Plugins und Integrationen, deshalb gilt: **was heute funktioniert, funktioniert weiter**. Die Regeln:
 
 - **`/api/v1` ist eingefroren.** Innerhalb von `v1` ändern sich bestehende Felder, ihre Bedeutung und die Antworten bestehender Endpunkte nicht so, dass ein Plugin kaputtgeht. Es kommen nur **Ergänzungen** dazu: neue optionale Felder in Anfragen, neue Schlüssel in Antworten, neue Endpunkte, neue erlaubte Werte. Ein Plugin muss **Schlüssel in Antworten, die es nicht kennt, ignorieren**.
-- **Fähigkeiten.** `GET /api/v1` liefert auch `features`, Namen neuerer Fähigkeiten: `measured_at`, `plugin-settings`, `oil-change` (`oil_change_due_*`), `trip-summary`, `position-names` (`position.street` / `position.place`), `refuel-notify` (ein Tanken ohne Menge wird gemeldet). Namen vor der Nutzung prüfen.
+- **Fähigkeiten.** `GET /api/v1` liefert auch `features`, Namen neuerer Fähigkeiten: `measured_at`, `plugin-settings`, `oil-change` (`oil_change_due_*`), `trip-summary`, `position-names` (`position.street` / `position.place`), `refuel-notify` (ein Tanken ohne Menge wird gemeldet), `connection` (das Zugriffstoken einer Anmeldung mit einem Konto). Namen vor der Nutzung prüfen.
 - **Erst nachsehen, dann senden.** `GET /api/v1` liefert `version`, `api` und `fields` (was dieses Car Assistant annimmt). Ein älteres Car Assistant beantwortet ein unbekanntes Feld mit `422 unknown_field`; ein Plugin, das ein neueres Feld nutzen will, prüft also zuerst, ob es in `fields` steht (Beispiel: `measured_at`).
 - **Nichts wird still geändert oder entfernt.** Eine Funktion, die sich ändern, ersetzt werden oder wegfallen soll, wird zuerst als **veraltet angekündigt**: im Changelog, in diesen Dokumenten (ein Hinweis *Veraltet* mit dem Datum der Entfernung und dem, was man stattdessen nutzt) und – wo es um eine Anfrage geht – mit den Antwort-Headern `Deprecation: true` und `Sunset: <Datum>`. Der Ersatz gibt es **zum Zeitpunkt** der Ankündigung.
 - **Frist.** Eine veraltete Funktion funktioniert nach der Ankündigung **für eine genannte Zeit** unverändert weiter und wird erst danach entfernt. **Feste Fristen legen wir mit dem offiziellen Release 1.0 fest** (solange Car Assistant in Beta ist, 0.x, kündigen wir jede solche Änderung im Changelog an und lassen den alten Weg so lange wie vernünftig möglich weiterlaufen, versprechen aber noch keine feste Zeit). Einzige Ausnahme sind Sicherheitskorrekturen (kürzer, mit Nennung des Grundes).

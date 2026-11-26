@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from urllib.parse import urlsplit
 
 from . import addons, assets, pluginsvc, regional
 
@@ -53,6 +54,11 @@ def preview(m: dict, t) -> dict:
             add("offers", t("pkg.row_check", title=step.get("title") or step["id"]), step.get("action", ""), None, t("pkg.note_check"))
         elif step["type"] == "download":
             add("offers", t("pkg.row_make", title=step.get("title") or step["id"]), step.get("action", ""), None, t("pkg.note_make"))
+        elif (
+            step["type"] == "oauth"
+        ):  # who the person logs in at, and who the tokens are exchanged with (the app does that, not the plugin)
+            hosts = (urlsplit(step["oauth"]["authorize_url"]).hostname or "", urlsplit(step["oauth"]["token_url"]).hostname or "")
+            add("brings", t("pkg.row_login", host=hosts[0]), "", None, t("pkg.note_login", token_host=hosts[1]))
     for d in m.get("downloads", []):
         add("brings", t("pkg.row_download", label=d["label"]), d["path"], None, d.get("note", ""))
     for f in m.get("files", []):

@@ -83,6 +83,9 @@ MIGRATIONS: list[str] = [
     (SCHEMA_DIR / "migrations_62.sql").read_text(
         encoding="utf-8"
     ),  # sources: the files read are kept with their ETag; when a source was last read online
+    (SCHEMA_DIR / "migrations_63.sql").read_text(
+        encoding="utf-8"
+    ),  # logging in with an account: connections (sealed tokens), their links, logins begun
 ]
 
 
