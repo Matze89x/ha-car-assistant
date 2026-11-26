@@ -7,7 +7,7 @@
 {% set extra_cols = {'appointments': 1, 'tasks': 3, 'tires': 1}.get(entity.key, 0) %}
 {% set ncols = shown|length + entity.list_extra|length + extra_cols + 1 %}
 
-{% call page_head(module_icon.get(entity.key, 'car'), _(entity.title)) %}
+{% call page_head('chart' if entity.key == 'fixed' else module_icon.get(entity.key, 'car'), _('tab.report') if entity.key == 'fixed' else _(entity.title)) %}
     {% if entity.key == 'appointments' %}<a class="icon-btn" href="{{ base }}/v/{{ v.slug }}/calendar.ics" aria-label="{{ _('appt.export') }}">{{ icon('download', 18) }}</a>{% endif %}
     {% if entity.key == 'tires' %}
       {% if tp_edit %}<button class="button primary" form="tf">{{ icon('check', 18) }}<span class="lbl">{{ _('btn.save') }}</span></button>

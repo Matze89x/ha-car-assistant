@@ -76,6 +76,10 @@ def sweep(
                     + [
                         f"/v/{ms.EV}/e/fuel"
                     ]  # the charging page of an electric car (a main tab, not a page of the More list): charging points, filters, the cog
+                    + [
+                        f"/v/{ms.DIESEL}/e/trips",
+                        f"/v/{ms.DIESEL}/e/fuel",
+                    ]  # the main tabs of a car: trips (a card per trip) and the fill-ups
                     + ([f"/v/{ms.DIESEL}", f"/v/{ms.COMPACT}"] if home else [])
                 )
                 if os.environ.get("CA_CHECK_BLOCK_FONTS"):  # to see what a machine without the web fonts would see

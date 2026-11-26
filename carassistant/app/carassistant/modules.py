@@ -33,7 +33,6 @@ MODULES: tuple[Module, ...] = (
     Module("parts", "vehicle", "/e/parts"),
     Module("fuel", "vehicle", "/e/fuel"),
     Module("counters", "vehicle", "/e/counters"),
-    Module("fixed", "vehicle", "/e/fixed"),
     Module("trips", "vehicle", "/e/trips"),
     Module("security", "vehicle", "/security"),
     Module("report", "vehicle", "/report"),
@@ -47,7 +46,7 @@ BY_KEY = {m.key: m for m in MODULES}
 
 # What most people need from day one (switched on for a new car, in this order) and what is added when needed (switched off at first).
 RECOMMENDED = ("service", "appointments", "fuel", "docs", "security", "report")
-ON_REQUEST = ("tasks", "tires", "mods", "parts", "counters", "fixed", "trips", "manual", "stations", "map")
+ON_REQUEST = ("tasks", "tires", "mods", "parts", "counters", "trips", "manual", "stations", "map")
 
 
 def apply_recommended(conn: sqlite3.Connection, vehicle_id: int) -> None:
@@ -57,6 +56,7 @@ def apply_recommended(conn: sqlite3.Connection, vehicle_id: int) -> None:
 
 # URL -> module key, enforced centrally in the web middleware.
 _ROUTES: tuple[tuple[re.Pattern[str], str | None], ...] = (
+    (re.compile(r"^/v/\d+/e/fixed"), "report"),  # the fixed costs are a tab of the cost page: they follow its switch
     (re.compile(r"^/v/\d+/e/([a-z_]+)"), None),  # entity key == module key
     (re.compile(r"^/v/\d+/(report)"), None),
     (re.compile(r"^/v/\d+/trips"), "trips"),
@@ -67,24 +67,6 @@ _ROUTES: tuple[tuple[re.Pattern[str], str | None], ...] = (
     (re.compile(r"^/v/\d+/(map)(?:/|$)"), None),
     (re.compile(r"^(?:/v/\d+)?/calendar\.ics"), "appointments"),
 )
-
-
-@dataclass(frozen=True)
-class Section:
-    """An umbrella page: its modules are pages of the same family, switched with one segmented bar (docs/design.md)."""
-
-    key: str
-    title: str  # translation key
-    icon: str
-    chip: str
-    modules: tuple[str, ...]
-
-
-SECTIONS: tuple[Section, ...] = (
-    Section("service", "hub.service", "wrench", "c4", ("appointments", "tasks", "service", "parts", "mods")),
-    Section("drive", "hub.drive", "route", "c7", ("trips", "fuel", "counters", "fixed", "report")),
-)
-SECTION_OF = {m: sec for sec in SECTIONS for m in sec.modules}
 
 
 def module_for_path(path: str) -> str | None:

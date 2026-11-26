@@ -119,8 +119,3 @@ def groups(keys=None) -> list[dict]:
             continue
         out.append({"id": group_id, "icon": icon, "slots": [s for s in SLOTS if s.group == group_id]})
     return [g for g in out if g["slots"]]
-
-
-def fields_of(slots) -> set[str]:
-    """The interfaces (fields of the Plugin API) the given slot keys fill."""
-    return {BY_KEY[k].field for k in slots if k in BY_KEY}

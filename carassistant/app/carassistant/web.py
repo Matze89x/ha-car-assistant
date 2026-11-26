@@ -560,6 +560,15 @@ def vehicle_ctx(conn: sqlite3.Connection, vehicle: sqlite3.Row, tab: str) -> dic
     return {"v": vehicle, "tab": tab, "odometer": summary.current_odometer(conn, vehicle["id"])}
 
 
+def cost_tabs(vehicle: sqlite3.Row, current: str, t) -> list[dict]:
+    """The two tabs of the cost page - the overview and the fixed costs (tax, insurance, ...) - with their symbols."""
+    base = f"/v/{vehicle['slug']}"
+    return [
+        {"href": f"{base}/report", "title": t("report.tab_overview"), "icon": "chart", "on": current == "report"},
+        {"href": f"{base}/e/fixed", "title": t("tab.fixed"), "icon": "calendar-clock", "on": current == "fixed"},
+    ]
+
+
 def unit_for(fuel_type: str) -> str:
     return {"electric": "kWh", "cng": "kg"}.get(fuel_type, "L")
 
@@ -1465,7 +1474,9 @@ def entity_page(request: Request, vid: int, key: str, form: dict | None = None, 
         vehicle = vehicle_or_404(conn, vid)
         page = request.query_params.get("page", "1")
         ctx = entity_context(conn, vehicle, entity, int(page) if page.isdigit() else 1, edit_id)
-        ctx.update(vehicle_ctx(conn, vehicle, key))
+        ctx.update(vehicle_ctx(conn, vehicle, "report" if key == "fixed" else key))
+        if key == "fixed":  # a tab of the cost page
+            ctx["section_tabs"] = cost_tabs(vehicle, "fixed", i18n.translator(config.language()))
         extra: dict = {}
         if key == "tires":
             tp_edit = bool(request.query_params.get("edit")) or bool(form) or edit_id is not None
@@ -1947,6 +1958,7 @@ def fuel_report(request: Request, vid: int):
             stats=stats,
             chart=charts.line_svg(series[-40:], unit=f" {shown.consumption_unit(unit)}", trend=5),
             price_chart=charts.line_svg(fuelstats.price_series(conn, vid, window)[-60:], unit=f" {units.of().cur}", trend=5),
+            section_tabs=cost_tabs(vehicle, "report", t_),
             cost_chart=cost_chart,
             cost_names=names,
             cost_totals=cost_totals,

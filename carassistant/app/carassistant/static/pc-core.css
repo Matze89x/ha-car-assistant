@@ -978,6 +978,7 @@ form[action$="/delete"] .round-del:hover { background: rgba(var(--overdue-rgb), 
 .rec-edit { margin-top: auto; border-top: 1px solid var(--glass-b); padding-top: 8px; }
 
 /* every card's Edit sits on the bottom line, however tall its facts are */
+.rec > .rec-actions, .rec > .rec-edit { margin-inline: -18px; padding-inline: 18px; }  /* the hairline above the buttons of a card runs from one edge of the card to the other */
 .rec-edit > summary { cursor: pointer; list-style: none; display: flex; width: fit-content; margin-left: auto; }
 
 /* the Edit button sits on the right edge of its card */
@@ -2180,6 +2181,8 @@ ul.pkg-body { padding: 0; list-style: none; }
 
 /* trips: a card per trip that shows only the essentials (time, route, distance); opened, the whole trip (facts, map, speeds, driving style, edit) */
 .trip-card { padding: 0; }
+.trip-card > details.trip { background: none; border: 0; border-radius: var(--r-l); }  /* the card is the box: a second glass layer with square corners showed behind the round ones */
+.trip-card > details.trip > summary { border-radius: var(--r-l); }
 .trip-card:has(details.trip[open]) { grid-column: 1 / -1; }
 details.trip > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 2px 10px; align-items: center; padding: 14px 18px; }
 details.trip > summary::-webkit-details-marker { display: none; }
@@ -2190,7 +2193,9 @@ details.trip > summary::-webkit-details-marker { display: none; }
 .trip-km small { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 3px; }
 .trip-chev { grid-column: 3; grid-row: 1 / span 2; color: var(--dim); display: grid; place-items: center; transition: transform .2s ease; }
 details.trip[open] .trip-chev { transform: rotate(180deg); }
-.trip-body { display: grid; gap: 10px; padding: 12px 18px 14px; border-top: 1px solid var(--glass-b); }
+.trip-body { display: grid; gap: 10px; padding: 12px 18px 0; border-top: 1px solid var(--glass-b); }
+.trip-card:has(details.trip[open]) { padding-bottom: 14px; }  /* the space below the last thing of an opened trip is the card's own padding */
+.trip-body .rec-edit { margin: 4px -18px 0; padding: 10px 18px 0; }  /* its line runs through the whole card */
 .trip-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-col); margin: 0 0 var(--sp-col); }
 .trip-kpis .tg { padding: 12px 14px; border-radius: var(--r-m); background: var(--glass); border: 1px solid var(--glass-b); display: grid; gap: 2px; }
 .trip-kpis i { font-style: normal; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }

@@ -18,7 +18,6 @@ CHIP = {
     "manual": "c6",
     "tires": "c2",
     "counters": "c3",
-    "fixed": "c4",
     "appointments": "c6",
     "service": "c4",
     "tasks": "c3",
@@ -44,7 +43,6 @@ TABLE = {
     "parts": "parts",
     "docs": "documents",
     "counters": "counters",
-    "fixed": "fixed_costs",
     "trips": "trips",
     "fuel": "fuel",
 }
@@ -60,12 +58,6 @@ def _hint(conn: sqlite3.Connection, vid: int, key: str, t) -> str:
         n = conn.execute(f"SELECT COUNT(*) AS n FROM {TABLE[key]} WHERE vehicle_id = ?", (vid,)).fetchone()["n"]
         return t("more.entries", n=n) if n else ""
     return ""
-
-
-def section_pages(conn: sqlite3.Connection, vid: int | None, section: modules.Section) -> list[str]:
-    """The pages of an umbrella page that are available for this vehicle, in their order."""
-    off = modules.disabled(conn, vid)
-    return [k for k in section.modules if k not in off]
 
 
 def section_tabs(conn: sqlite3.Connection, vid: int | None, current: str | None, t) -> list[dict] | None:

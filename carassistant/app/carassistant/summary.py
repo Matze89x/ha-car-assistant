@@ -102,12 +102,6 @@ def odometer_readings(conn: sqlite3.Connection, vehicle_id: int, limit: int = 80
     return list(reversed(rows))
 
 
-def trim_readings(rows: list[dict], keep: int = 120) -> list[dict]:
-    """The newest ``keep`` readings of a list (newest first) plus every older one that does not fit: a page of thousands of rows is slow to send
-    and to scroll, but a reading that needs a look must never be hidden."""
-    return [r for i, r in enumerate(rows) if i < keep or r["odd"]]
-
-
 def odometer_from_car(conn: sqlite3.Connection, vehicle_id: int) -> bool:
     """True while the latest odometer reading came from the car (a plugin, a Home Assistant entity) and not from a person - **and that source still
     exists**: then the figure is shown, not edited, and the dashboard has no odometer of its own (the widget shows it). A plugin that is removed (its

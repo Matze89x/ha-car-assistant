@@ -11,6 +11,7 @@
 * **cards one under the other stand `--sp-col` apart** (no margin on top of the gap),
 * **sub-windows one under the other stand `--sp-sub` apart and are padded by the tokens** (docs/design.md, 4c: spacing is measured),
 * **a switch is the last thing at the right end of its row** (like the settings of an iPhone; never on the left),
+* **a thing you tap in a corner of a rounded box has rounded corners too** (no square flash behind a round card),
 * **the buttons at the bottom of a plugin tile lie inside the tile** (nothing cut off, however many downloads and buttons the plugin has).
 
 Folded forms (the add form, the edit form of a card) are opened first so that the buttons inside are measured, too. German has the longest words, a
@@ -260,7 +261,7 @@ MEASURE = r"""
     if (!vis(h) || h.closest('dialog, [hidden], .lm-detail, .lmz-detail') || !(h.textContent || '').trim()) { return; }
     var win = h.closest('.sub-card, .card'), title = ((win.querySelector('h2, .sub-h') || win).textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24), svg = h.querySelector('svg path');
     if (!svg || svg.getAttribute('d') !== INFO) { out.push('an explanation has no info symbol in front ("' + title + '"): "' + name(h) + '"'); }
-    var before = Array.prototype.slice.call(win.querySelectorAll('input:not([type=hidden]), select, textarea, .fld, button, .nm-row, .mk-field, .form-bar, .switch')).filter(function (x) { return vis(x) && !x.closest('dialog') && x.closest('.sub-card, .card') === win && (x.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING); });
+    var before = Array.prototype.slice.call(win.querySelectorAll('input:not([type=hidden]), select, textarea, .fld, button, .nm-row, .mk-field, .form-bar, .switch')).filter(function (x) { return vis(x) && !x.closest('dialog') && !x.closest('summary') && x.closest('.sub-card, .card') === win && (x.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING); });
     if (before.length) { out.push('an explanation stands below the content of its window, not at the top ("' + title + '"): "' + name(h) + '"'); }
   });
 
@@ -372,6 +373,23 @@ MEASURE = r"""
       if (r.left < tr.left - 0.5 || r.right > tr.right + 0.5) { out.push('a button of a tile bar lies outside its tile: "' + (name(b) || b.getAttribute('aria-label') || b.className) + '" (' + Math.round(Math.min(r.left - tr.left, 0) + Math.max(r.right - tr.right, 0)) + ' px)'); }
     });
     if (bar.scrollWidth > bar.clientWidth + 1) { out.push('the bar of a tile is wider than the tile (' + (bar.scrollWidth - bar.clientWidth) + ' px)'); }
+  });
+  /* a thing with a background - or a thing you tap (the tap highlight of a phone is the rectangle of what you tap) - that fills a corner of a rounded
+     box has the same corners, or square corners poke out of the round ones */
+  function rad(s) { return Math.max(parseFloat(s.borderTopLeftRadius) || 0, parseFloat(s.borderTopRightRadius) || 0, parseFloat(s.borderBottomLeftRadius) || 0, parseFloat(s.borderBottomRightRadius) || 0); }
+  function transparent(c) { return !c || c === 'transparent' || /rgba\(.*,\s*0\)$/.test(c); }
+  document.querySelectorAll('body *').forEach(function (e) {
+    if (!(e instanceof HTMLElement) || !vis(e) || e.closest('.switch, .tabbar') || parseFloat(getComputedStyle(e).opacity) === 0) { return; }  /* an invisible file field inside a button is nothing to see */
+    var tappable = e.matches('a, summary, label, button, [role=button]');
+    var s = getComputedStyle(e), r = e.getBoundingClientRect(), p = e.parentElement;
+    while (p && p !== document.body && rad(getComputedStyle(p)) <= 0) { p = p.parentElement; }
+    if (!p || p === document.body) { return; }
+    var ps = getComputedStyle(p), pr = p.getBoundingClientRect();
+    if (ps.overflow !== 'visible' || rad(s) >= rad(ps) - 2) { return; }
+    var near = function (a, b) { return Math.abs(a - b) <= 3; };
+    var corner = (near(r.left, pr.left) && near(r.top, pr.top)) || (near(r.right, pr.right) && near(r.top, pr.top)) || (near(r.left, pr.left) && near(r.bottom, pr.bottom)) || (near(r.right, pr.right) && near(r.bottom, pr.bottom));
+    var visible = !transparent(s.backgroundColor) || (tappable && !transparent(s.webkitTapHighlightColor));
+    if (corner && visible) { out.push('square corners inside a rounded box (a tap or hover shows a rectangle): ' + e.tagName.toLowerCase() + '.' + String(e.className).split(' ').slice(0, 2).join('.') + ' in ' + p.tagName.toLowerCase() + '.' + String(p.className).split(' ').slice(0, 2).join('.')); }
   });
   return JSON.stringify(out);
 })()
