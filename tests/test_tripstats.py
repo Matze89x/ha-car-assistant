@@ -76,3 +76,49 @@ def test_the_trips_page_shows_the_analysis_and_the_period_choice(client):
     assert 'aria-current="page"' in client.get(f"/v/{slug(vid)}/e/trips?ap=365").text
     assert "ap=365" in client.get(f"/v/{slug(vid)}/e/trips?ap=365").text.split('class="seg-tabs ta-tabs"')[1].split("</nav>")[0]
     assert client.get(f"/v/{slug(vid)}/e/trips?ap=nonsense").status_code == 200
+
+
+def test_the_analysis_and_the_km_counters_are_folded_windows_that_open_when_asked_for(client):
+    """The trips page opens on the trips: the analysis and the counters are closed windows with a line of what is inside; a chosen period opens the analysis."""
+    import re
+
+    from tests.test_web import create_vehicle, slug
+
+    from carassistant import db, summary
+
+    vid = create_vehicle(client, "Fold Car")
+    with db.tx() as conn:
+        _trip(conn, vid, date.today().isoformat(), "07:30", "08:00", 20, "commute")
+        summary.add_odometer(conn, vid, 51234)
+    url = f"/v/{slug(vid)}/e/trips"
+    page = client.get(url).text
+    analysis = re.search(r'<details class="card fgroup ta" id="analysis"([^>]*)>', page)
+    assert analysis and "open" not in analysis.group(1)  # closed until it is asked for
+    assert (
+        "90 days" in page.split('id="analysis"')[1].split("</summary>")[0]
+        and "1 trips" in page.split('id="analysis"')[1].split("</summary>")[0]
+    )  # what is inside, in one line
+    assert "open" in re.search(r'<details class="card fgroup ta" id="analysis"([^>]*)>', client.get(url + "?ap=30").text).group(
+        1
+    )  # a chosen period: open
+    counters = re.search(r'<details class="card fgroup tp-ctr" id="counters"([^>]*)>', page)
+    assert counters and "open" not in counters.group(1)
+    summary_html = page.split('id="counters"')[1].split("</summary>")[0]
+    assert "Count the kilometres from a date on" in summary_html  # no counter yet: it says what a counter is for
+    assert 'data-toggle-panel="#counter-add"' in summary_html  # the plus lies in the header of the window, at the right
+    window = page.split('id="counters"')[1].split("</details>")[0]
+    assert (
+        "No counters yet" in window and "leasing or insurance year" in window
+    )  # the explanation and the empty state are inside the window
+    assert (
+        f'name="start_date" required value="{date.today().isoformat()}"' in window and 'name="start_km" required value="51234"' in window
+    )  # a new counter starts today, from the odometer of today
+    # a failed save opens the window and keeps what was typed
+    bad = client.post(
+        f"/v/{slug(vid)}/e/counters", data={"name": "Leasing", "kind": "private", "start_date": "2026-01-01", "start_km": "-5"}
+    )
+    assert bad.status_code == 400
+    assert (
+        "open" in re.search(r'<details class="card fgroup tp-ctr" id="counters"([^>]*)>', bad.text).group(1)
+        and 'value="Leasing"' in bad.text.split('id="counter-add"')[1]
+    )

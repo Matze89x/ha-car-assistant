@@ -1910,6 +1910,10 @@ details.eq > summary, details.eq[open] > summary { margin: 0; }
 /* trips + km counters on one page */
 .tp-sec { margin: 0; }
 .tp-hint { margin: 0 6px 8px; }
+.fgroup.ta > summary + *, .fgroup.tp-ctr > summary + * { margin-top: 14px; }  /* the folded windows of the trips page: what is inside starts a little below the header */
+.tp-ctr .tp-hint { margin: 0 2px 12px; }
+.tp-ctr .tp-add { margin-bottom: 12px; }
+.tp-none { margin: 4px 2px 0; color: var(--muted); font-size: 13px; }
 
 .tp-form label { display: grid; gap: 4px; }
 .tp-add { margin: 0 0 10px; padding: 10px 12px; border-radius: var(--r-l); border: 1px solid var(--glass-b); background: var(--glass); }

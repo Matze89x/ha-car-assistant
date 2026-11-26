@@ -1496,6 +1496,9 @@ def entity_page(request: Request, vid: int, key: str, form: dict | None = None, 
             extra.update(
                 ta=tripstats.analyse(conn, vid, period, units.of(vehicle).d),
                 ta_period=period,
+                ta_open=bool(
+                    request.query_params.get("ap")
+                ),  # closed until it is asked for; a chosen period (a link of the tabs) keeps it open
                 ta_periods=tuple(tripstats.PERIODS),
                 ta_labels=tripstats.length_labels(),
             )
@@ -1505,6 +1508,8 @@ def entity_page(request: Request, vid: int, key: str, form: dict | None = None, 
                 total_rows=got["total"],
                 q=got["q"],
                 counters=counters,
+                counter_today=date.today().isoformat(),
+                counter_odo=odo,
                 counter_entity=ENTITIES["counters"],
                 counter_kinds=entities.COUNTER_KINDS,
                 trip_categories=entities.TRIP_CATEGORIES,

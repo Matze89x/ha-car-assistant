@@ -26,12 +26,12 @@
   <form class="eq-edit tp-form" method="post" action="{{ url }}" {{ 'hidden' if c and not inline else '' }}>
     {% if not c %}<h3 class="tp-add-h">{{ icon('plus', 16) }} {{ _('tp.add_counter') }}</h3>{% endif %}
     {% if c %}<input type="hidden" name="notes" value="{{ c['notes'] or '' }}">{% endif %}
-    <div class="eq-two"><label>{{ _('f.name') }}<input type="text" name="name" maxlength="200" required value="{{ c['name'] if c else '' }}"></label>
-      <label>{{ _('f.kind') }}<select name="kind">{% for k in counter_kinds if k != 'tax' or (c and c['kind'] == 'tax') %}<option value="{{ k }}" {{ 'selected' if (c['kind'] if c else 'private') == k }}>{{ _('kind.' ~ k) }}</option>{% endfor %}</select></label></div>
-    <div class="eq-two"><label>{{ _('f.start_date') }}<input type="date" name="start_date" required value="{{ c['start_date'] if c else '' }}"></label>
-      <label>{{ _('f.start_km') }}<input type="number" inputmode="numeric" min="0" step="1" name="start_km" required value="{{ units.d(c['start_km'])|round|int if c else '' }}"></label></div>
-    <div class="eq-two"><label>{{ _('f.end_date') }}<input type="date" name="end_date" value="{{ (c['end_date'] if c else '') or '' }}"></label>
-      <label>{{ _('f.end_km') }}<input type="number" inputmode="numeric" min="0" step="1" name="end_km" value="{{ units.d(c['end_km'])|round|int if c and c['end_km'] is not none else '' }}"></label></div>
+    <div class="eq-two"><label>{{ _('f.name') }}<input type="text" name="name" maxlength="200" required value="{{ c['name'] if c else (form.get('name') or '') }}"></label>
+      <label>{{ _('f.kind') }}<select name="kind">{% for k in counter_kinds if k != 'tax' or (c and c['kind'] == 'tax') %}<option value="{{ k }}" {{ 'selected' if (c['kind'] if c else (form.get('kind') or 'private')) == k }}>{{ _('kind.' ~ k) }}</option>{% endfor %}</select></label></div>
+    <div class="eq-two"><label>{{ _('f.start_date') }}<input type="date" name="start_date" required value="{{ c['start_date'] if c else (form.get('start_date') or counter_today) }}"></label>
+      <label>{{ _('f.start_km') }}<input type="number" inputmode="numeric" min="0" step="1" name="start_km" required value="{{ units.d(c['start_km'])|round|int if c else (form.get('start_km') or (units.d(counter_odo)|round|int if counter_odo is not none else '')) }}"></label></div>
+    <div class="eq-two"><label>{{ _('f.end_date') }}<input type="date" name="end_date" value="{{ (c['end_date'] if c else form.get('end_date')) or '' }}"></label>
+      <label>{{ _('f.end_km') }}<input type="number" inputmode="numeric" min="0" step="1" name="end_km" value="{{ units.d(c['end_km'])|round|int if c and c['end_km'] is not none else ('' if c else (form.get('end_km') or '')) }}"></label></div>
     <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
       {% if c %}<button class="ghost-btn small warn ib" formaction="{{ cu }}/{{ c['id'] }}/delete" formnovalidate data-confirm="{{ _('confirm.delete') }}">{{ icon('delete-outline', 16) }} <span class="sr">{{ _('btn.delete') }}</span></button>
       {% if not inline %}<button type="button" class="ghost-btn small ib" data-eqe-cancel>{{ icon('close', 16) }}<span class="sr">{{ _('btn.cancel') }}</span></button>{% endif %}{% endif %}</div>
@@ -65,8 +65,9 @@
 {% set wd = [_('ta.mo'), _('ta.tu'), _('ta.we'), _('ta.th'), _('ta.fr'), _('ta.sa'), _('ta.su')] %}
 {% set blocks = [_('ta.night'), _('ta.morning'), _('ta.afternoon'), _('ta.evening')] %}
 {% set catn = {'commute': _('category.commute'), 'private': _('category.private'), 'business': _('category.business')} %}
-<section class="card ta" id="analysis">
-  <h2>{{ icon('chart') }} {{ _('ta.title') }}</h2>
+{% set ta_sub = pnames[ta_period] ~ ' · ' ~ (_('ta.sub_n', n=ta.n, km=fnum(units.d(ta.km), 0), u=units.dist_unit) if ta.n else _('ta.sub_none')) %}
+<details class="card fgroup ta" id="analysis" {{ 'open' if ta_open }}>
+  <summary><span class="mi-ic c4">{{ icon('chart', 17) }}</span><span class="fg-t">{{ _('ta.title') }}<small>{{ ta_sub }}</small></span>{{ icon('chevron-down', 20) }}</summary>
   <nav class="seg-tabs ta-tabs" aria-label="{{ _('ta.title') }}">{% for p in ta_periods %}<a href="{{ tu }}?ap={{ p }}#analysis" class="{{ 'on' if p == ta_period }}"{% if p == ta_period %} aria-current="page"{% endif %}>{{ icon({'30': 'timer-outline', '90': 'clock', 'year': 'calendar', 'all': 'chart'}.get(p|string, 'calendar'), 18) }}<span>{{ pnames[p] }}</span></a>{% endfor %}</nav>
   {% if not ta.n %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('ta.none') }}</p></div>{% else %}
   <div class="trip-kpis ta-kpis">
@@ -108,13 +109,16 @@
   <p class="hint">{{ icon('info', 14) }} {{ _('ta.based', n=ta.style.trips, km=fnum(units.d(ta.style.km), 0), u=units.dist_unit) }}</p>
   {% else %}<div class="empty-state">{{ icon('chart', 32) }}<p>{{ _('ta.no_style') }}</p></div>{% endif %}
   {% endif %}
-</section>
+</details>
 
-<section class="tp-sec" id="counters">
-  <div class="vd-group-h eq-head">{{ _('tp.counters') }} <span class="eq-total">{{ counters|length }}</span>
-    <button type="button" class="icon-btn eq-head-add" data-toggle-panel="#counter-add" aria-label="{{ _('tp.add_counter') }}" title="{{ _('tp.add_counter') }}">{{ icon('plus', 16) }}</button></div>
-  <div class="eq-panel tp-add" id="counter-add" hidden>{{ counterform(none, cu) }}</div>
+{% set counter_err = error and form and form.get('start_date') is not none %}
+{% set ctr_sub = _('tp.counters_sub_none') if not counters else (_('tp.counters_sub_one') if counters|length == 1 else _('tp.counters_sub', n=counters|length)) %}
+<details class="card fgroup tp-ctr" id="counters" {{ 'open' if counter_err }}>
+  <summary><span class="mi-ic c3">{{ icon('counters', 17) }}</span><span class="fg-t">{{ _('tp.counters') }}<small>{{ ctr_sub }}</small></span>
+    <button type="button" class="icon-btn eq-head-add" data-toggle-panel="#counter-add" aria-label="{{ _('tp.add_counter') }}" title="{{ _('tp.add_counter') }}">{{ icon('plus', 16) }}</button>{{ icon('chevron-down', 20) }}</summary>
   <p class="hint tp-hint">{{ icon('info', 14) }} {{ _('counters.hint') }}</p>
+  <div class="eq-panel tp-add" id="counter-add" {{ 'hidden' if not counter_err }}>{{ counterform(none, cu) }}</div>
+  {% if counters %}
   <div class="rec-grid">
     {% for c in counters %}
     <article class="rec">
@@ -130,7 +134,8 @@
     </article>
     {% endfor %}
   </div>
-</section>
+  {% else %}<p class="tp-none">{{ _('tp.counters_none') }}</p>{% endif %}
+</details>
 
 <section class="tp-sec" id="trips">
   {% if kpis.n %}<div class="trip-kpis"><div class="tg"><i>{{ _('tp.last30') }}</i><b>{{ kpis.n }}</b></div><div class="tg"><i>{{ _('tp.km') }}</i><b>{{ fnum(units.d(kpis.km), 0) }} <small>{{ units.dist_unit }}</small></b></div><div class="tg"><i>{{ _('tp.drivetime') }}</i><b>{{ kpis.minutes // 60 }}:{{ '%02d'|format(kpis.minutes % 60) }} <small>h</small></b></div></div>{% endif %}

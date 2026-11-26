@@ -1062,8 +1062,26 @@ document.addEventListener("click", function (e) {
   var b = e.target && e.target.closest && e.target.closest("[data-toggle-panel]");
   if (!b) { return; }
   var p = document.querySelector(b.getAttribute("data-toggle-panel"));
-  if (p) { p.hidden = !p.hidden; if (!p.hidden) { p.scrollIntoView({ behavior: "smooth", block: "center" }); } }
+  if (p) {
+    p.hidden = !p.hidden;
+    if (!p.hidden) {
+      var fold = p.closest && p.closest("details");  // a panel inside a folded window: the window opens with it
+      if (fold) { fold.open = true; }
+      p.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
 });
+
+// an address that ends in #id opens the folded window with that id (the link of a period, or the page after a counter was saved)
+(function () {
+  function openTarget() {
+    var id = window.location.hash.replace(/^#/, "");
+    var el = id ? document.getElementById(id) : null;
+    if (el && el.tagName === "DETAILS") { el.open = true; }
+  }
+  openTarget();
+  window.addEventListener("hashchange", openTarget);
+})();
 
 // extra work: the dots button of a job opens its edit area
 document.addEventListener("click", function (e) {
