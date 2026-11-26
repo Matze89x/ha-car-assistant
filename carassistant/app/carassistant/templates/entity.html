@@ -17,6 +17,7 @@
 
 {% if entity.key == 'tasks' %}<p class="hint">{{ icon('info', 14) }} {{ _('tasks.hint') }}</p>{% endif %}
 {% if entity.key == 'counters' %}<p class="hint">{{ icon('info', 14) }} {{ _('counters.hint') }}</p>{% endif %}
+{% if entity.key == 'fixed' %}<p class="hint">{{ icon('info', 14) }} {{ _('fixed.hint') }}</p>{% endif %}
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
 
 {% if stn %}{% include "_stations_card.html" %}{% endif %}
