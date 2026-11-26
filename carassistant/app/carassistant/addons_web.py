@@ -21,8 +21,10 @@ from . import (
     linkmap_zoom,
     modules,
     navigation,
+    pkginstall,
     pluginsvc,
     regional,
+    restoresetup,
     sources,
 )
 from . import icons as icon_set
@@ -337,19 +339,8 @@ def package_page(request: Request, vid: int, source_id: int, kind: str, pkg_id: 
 
 
 def _fetch_service_package(manifest: dict, source_id: int, kind: str, pkg_id: str) -> str | None:
-    """A package with a service, files or bundles: fetch its zip from the source (the index names the sha256, and every file with its checksum),
-    check it and unpack it (nothing runs). Returns the sha256."""
-    if not addons.needs_package(manifest):
-        return None
-    with db.tx() as conn:
-        raw, sha = sources.fetch_package(conn, source_id, kind, pkg_id, manifest.get("files"))
-    try:
-        pluginsvc.store_package(
-            pkg_id, raw, sha, (manifest.get("service") or {}).get("entry"), manifest.get("files"), manifest.get("bundles")
-        )
-    except ValueError as exc:
-        raise sources.SourceError("err.src_package") from exc
-    return sha
+    """A package with a service, files or bundles: fetch its zip from the source, check it and unpack it (nothing runs). Returns the sha256 (pkginstall.py)."""
+    return pkginstall.fetch_files(manifest, source_id, kind, pkg_id)
 
 
 @app.post("/v/{vid}/packages/{source_id}/{kind}/{pkg_id}/install")
@@ -1154,6 +1145,7 @@ def service_page(request: Request, vid: int, aid: int):
             pkg_files=assets.listing(addon, False, with_hidden=True),
             approved=pluginsvc.approved(addon),
             problems=pluginsvc.check_routes(conn, addon) if service else [],
+            files_gone=restoresetup.files_missing(addon),
             may=_may_manage(request),
         )
 
@@ -1191,6 +1183,26 @@ def service_approve(request: Request, vid: int, aid: int):
         pluginsvc.install_async(aid)
     events.changed()
     return go(request, _where(addon["kind"], vid), "svc.approved" if pluginsvc.service_of(addon) else "fil.approved")
+
+
+@app.post("/v/{vid}/integrations/{aid}/refetch")
+def service_refetch(request: Request, vid: int, aid: int):
+    """The files of an installed package are gone (a restore on another system): fetch them again from its source - exactly the package that was installed."""
+    if (denied := _guard(request, vid)) is not None:
+        return denied
+    with db.tx() as conn:
+        addon = addons.get(conn, vid, aid)
+    if addon is None:
+        return go(request, f"/v/{vid}/plugins", "addon.err_id")
+    key = restoresetup.refetch(vid, aid)
+    if key is None:
+        with db.tx() as conn:
+            conn.execute("UPDATE vehicle_addons SET svc_error = NULL WHERE id = ?", (aid,))
+        if addon["active"] and pluginsvc.service_of(addon) and pluginsvc.approved(addon):
+            pluginsvc.install_async(aid)
+        events.changed()
+        return go(request, _where(addon["kind"], vid), "svc.refetched")
+    return go(request, f"/v/{vid}/integrations/{aid}/service", key)
 
 
 @app.post("/v/{vid}/integrations/{aid}/service/revoke")

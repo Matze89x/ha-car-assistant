@@ -194,7 +194,16 @@ def test_a_car_offered_by_another_source_can_be_restored_from_the_add_page(clien
     assert own and "/vehicles/from-source/" in page  # a car of another source is listed (the standard source's demo cars are not)
     with db.tx() as conn:
         sid = conn.execute("SELECT id FROM sources WHERE url = 'https://github.com/example/own'").fetchone()["id"]
-    res = client.post(f"/vehicles/from-source/{sid}/demo-electric", follow_redirects=False)
+    import re
+
+    asked = client.post(f"/vehicles/from-source/{sid}/demo-electric", follow_redirects=False)
+    assert (
+        asked.status_code == 200 and "Fetch and set up the packages" in asked.text
+    )  # the car had a plugin that is not installed here: asked
+    token = re.search(r'name="token" value="([^"]+)"', asked.text).group(1)
+    res = client.post(
+        "/vehicles/restore/confirm", data={"token": token, "mode": "new"}, follow_redirects=False
+    )  # (without the switch: data only)
     assert res.status_code == 303  # (the very first car of a fresh system goes on with the first-start guide)
     # the plugin is asked for (not installed by this way): off until the user installs and starts it
     with db.tx() as conn:

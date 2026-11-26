@@ -3077,6 +3077,13 @@ async def settings_restore(request: Request):
         backup.restore(raw, passphrase)
     except backup.BackupError as exc:
         return go(request, "/settings/system#backup", exc.args[0])
+    import threading
+
+    from . import restoresetup
+
+    threading.Thread(
+        target=restoresetup.repair_all, daemon=True, name="restore-packages"
+    ).start()  # the files of the installed packages are not in a backup
     events.changed()
     return go(request, "/", "restored")
 

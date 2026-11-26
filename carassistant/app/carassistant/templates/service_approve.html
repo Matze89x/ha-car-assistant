@@ -13,6 +13,11 @@
 </section>
 {% if pkg_files %}<section class="card"><h2>{{ icon('download', 20) }} {{ _('fil.title') }}</h2><p class="hint">{{ icon('info', 14) }} {{ _('fil.approve_hint') }}</p>{{ file_rows(pkg_files) }}</section>{% endif %}
 {% if files %}<section class="card"><h2>{{ icon('list', 20) }} {{ _('svc.files') }}</h2><p class="hint">{{ icon('info', 14) }} {{ _('svc.files_hint') }}</p><div class="dbg-log">{% for f in files %}<div class="dbg-line"><span class="dbg-msg">{{ f }}</span></div>{% endfor %}</div></section>{% endif %}
+{% if files_gone and may %}<section class="card">
+  <h2>{{ icon('download', 20) }} {{ _('svc.gone_title') }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ _('svc.gone_hint') }}</p>
+  <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/refetch" class="form-bar"><button class="primary">{{ icon('download', 18) }}<span>{{ _('svc.refetch') }}</span></button></form>
+</section>{% endif %}
 <section class="card">
   {% if not may %}<p class="hint">{{ icon('info', 14) }} {{ _('acct.need_admin') }}</p>
   {% elif approved %}

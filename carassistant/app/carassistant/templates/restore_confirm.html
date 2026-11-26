@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, switch_row with context %}
+{% from "_macros.html" import icon, page_head, sub_h, switch_row with context %}
 {% block content %}
 {{ page_head('download', _('vb.confirm_title') if existing else _('vb.new_title')) }}
 <section class="card">
@@ -12,6 +12,14 @@
     <p class="hint">{{ icon('info', 14) }} {{ _('vb.locked_text') }}</p>
     <label>{{ _('vb.passphrase_open') }}<input type="password" name="passphrase" autocomplete="off"></label>
     {{ switch_row('no_secrets', _('vb.no_secrets'), false, hint=_('vb.no_secrets_hint')) }}
+    {% endif %}
+    {% if plan %}
+    {{ sub_h('puzzle', _('vb.plan_title')) }}
+    <p class="hint">{{ icon('info', 14) }} {{ _('vb.plan_hint') }}</p>
+    <ul class="pkg-rows">
+      {% for p in plan %}<li class="pkg-row"><b>{{ p.name }}{% if p.version %} <small>v{{ p.version }}</small>{% endif %}</b><small>{{ p.url }}{% if p.new_source %} · {{ _('vb.plan_new_source') }}{% endif %}{% if p.runs_code %} · {{ _('vb.plan_runs_code') }}{% elif p.hands_out %} · {{ _('vb.plan_hands_out') }}{% endif %}{% if p.approved_before and not locked %} · {{ _('vb.plan_approved_before') }}{% endif %}</small></li>{% endfor %}
+    </ul>
+    {{ switch_row('setup', _('vb.plan_switch'), true) }}
     {% endif %}
     {% if existing %}
     <button name="mode" value="replace" class="danger">{{ icon('refresh', 18) }}<span>{{ _('vb.replace') }}</span></button>

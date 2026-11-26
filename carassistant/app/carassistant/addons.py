@@ -1337,13 +1337,13 @@ def restore_all(conn: sqlite3.Connection, vehicle_id: int, entries: list, token_
             if isinstance(k, str) and KEY.match(k) and isinstance(v, str | int | float)
         }
         have = conn.execute(
-            "SELECT manifest, source_id FROM vehicle_addons WHERE addon_id = ? AND kind = ? AND status != 'missing' AND vehicle_id != ? ORDER BY id LIMIT 1",
+            "SELECT manifest, source_id, pkg_sha FROM vehicle_addons WHERE addon_id = ? AND kind = ? AND status != 'missing' AND vehicle_id != ? ORDER BY id LIMIT 1",
             (entry["addon_id"], kind, vehicle_id),
         ).fetchone()
         status = "missing"
-        source_id = None
+        source_id = pkg_sha = None
         if have:
-            manifest, source_id = json.loads(have["manifest"]), have["source_id"]
+            manifest, source_id, pkg_sha = json.loads(have["manifest"]), have["source_id"], have["pkg_sha"]
             status = "configured" if values else "uploaded"
         returned = (passwords or {}).get(entry["addon_id"])
         if isinstance(returned, dict):  # the passwords of the backup, for the fields the package declares as passwords
@@ -1355,8 +1355,8 @@ def restore_all(conn: sqlite3.Connection, vehicle_id: int, entries: list, token_
         url = source.get("url") if isinstance(source.get("url"), str) else entry.get("source_url")
         url = url if isinstance(url, str) else None
         conn.execute(
-            "INSERT OR IGNORE INTO vehicle_addons(vehicle_id, kind, addon_id, manifest, status, settings, token_id, created_at, source_id, active, source_url) "
-            "VALUES(?,?,?,?,?,?,?,?,?,0,?)",
+            "INSERT OR IGNORE INTO vehicle_addons(vehicle_id, kind, addon_id, manifest, status, settings, token_id, created_at, source_id, active, source_url, pkg_sha) "
+            "VALUES(?,?,?,?,?,?,?,?,?,0,?,?)",
             (
                 vehicle_id,
                 kind,
@@ -1368,6 +1368,7 @@ def restore_all(conn: sqlite3.Connection, vehicle_id: int, entries: list, token_
                 datetime.now(UTC).isoformat(timespec="seconds"),
                 source_id,
                 url,
+                pkg_sha,
             ),
         )
         row = conn.execute(

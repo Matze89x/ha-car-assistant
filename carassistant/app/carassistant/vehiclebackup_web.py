@@ -16,7 +16,7 @@ from urllib.parse import quote
 from fastapi import Request
 from fastapi.responses import Response
 
-from . import backupsecrets, config, db, sources, vehiclebackup
+from . import backupsecrets, config, db, restoresetup, sources, vehiclebackup
 from .connectors_web import _may_manage
 from .web import after_vehicle_created, app, form_dict, go, render, vehicle_or_404
 
@@ -70,7 +70,7 @@ async def vehicle_backup_download_secure(request: Request, vid: int):
     return _file(data, name)
 
 
-def _opened(request: Request, new_id: int, created: bool = True):
+def _opened(request: Request, new_id: int, created: bool = True, message: str = "vb_restored", to_plugins: bool = False):
     with db.tx() as conn:
         row = conn.execute(
             "SELECT slug, (SELECT COUNT(*) FROM vehicle_addons WHERE vehicle_id = vehicles.id AND status = 'missing') AS need FROM vehicles WHERE id = ?",
@@ -80,11 +80,12 @@ def _opened(request: Request, new_id: int, created: bool = True):
     if created and first_car:  # the very first car of a fresh system: the first-start guide goes on like after creating one
         return after_vehicle_created(request, new_id)
     # a restored car that needs packages opens where they are asked for
-    return go(request, f"/v/{row['slug']}/plugins" if row["need"] else f"/v/{row['slug']}", "vb_restored")
+    return go(request, f"/v/{row['slug']}/plugins" if row["need"] or to_plugins else f"/v/{row['slug']}", message)
 
 
-def _question(request: Request, token: str, existing, data: dict, passphrase: str = "", locked: bool = False, status: int = 200):
-    """The page that asks before a restore: replace or copy (the car is already here), and the passphrase (the backup holds secrets)."""
+def _question(request: Request, token: str, existing, data: dict, passphrase: str = "", locked: bool = False, plan=(), status: int = 200):
+    """The page that asks before a restore: replace or copy (the car is already here), the passphrase (the backup holds secrets), and whether to fetch and set up
+    the packages the car had (``plan``: what would be fetched, from where)."""
     return render(
         request,
         "restore_confirm.html",
@@ -94,6 +95,7 @@ def _question(request: Request, token: str, existing, data: dict, passphrase: st
         backup=vehiclebackup.summary(data),
         passphrase=passphrase,
         locked=locked,
+        plan=plan,
         nav="vehicles",
     )
 
@@ -103,13 +105,13 @@ def handle_backup(request: Request, raw: bytes, back: str, passphrase: str = "")
     try:
         data, zf = vehiclebackup.read(raw)
         locked = vehiclebackup.secrets_state(zf) == "passphrase" and not passphrase
-        if passphrase and vehiclebackup.secrets_state(zf) == "passphrase":
-            vehiclebackup.open_secrets(zf, passphrase)  # a wrong passphrase is told now, not after a question
+        secret = vehiclebackup.open_secrets(zf, passphrase)  # a wrong passphrase is told now, not after a question
         zf.close()
         new_id = None
         with db.tx() as conn:
             existing = vehiclebackup.find_existing(conn, data)
-            if existing is None and not locked:  # a car this system does not know: simply restore it
+            plan = restoresetup.plan(conn, data, secret)
+            if existing is None and not locked and not plan:  # a car this system does not know, nothing to fetch: simply restore it
                 new_id = vehiclebackup.restore(conn, raw, passphrase)
             else:
                 existing = dict(existing) if existing else None
@@ -120,7 +122,7 @@ def handle_backup(request: Request, raw: bytes, back: str, passphrase: str = "")
     # the car is already here, or the secrets are locked: keep the file for a moment and ask what to do
     token = secrets.token_urlsafe(16)
     (_pending_dir() / f"restore-{token}.zip").write_bytes(raw)
-    return _question(request, token, existing, data, passphrase, locked)
+    return _question(request, token, existing, data, passphrase, locked, plan)
 
 
 @app.post("/vehicles/restore")
@@ -172,9 +174,10 @@ def vehicle_restore_ask(request: Request):
         with db.tx() as conn:
             existing = vehiclebackup.find_existing(conn, data)
             existing = dict(existing) if existing else None
+            plan = restoresetup.plan(conn, data)
     except vehiclebackup.VehicleBackupError as exc:
         return go(request, "/vehicles", str(exc))
-    return _question(request, token, existing, data, "", locked)
+    return _question(request, token, existing, data, "", locked, plan)
 
 
 @app.post("/vehicles/restore/confirm")
@@ -191,11 +194,13 @@ async def vehicle_restore_confirm(request: Request):
         path.unlink(missing_ok=True)
         return go(request, "/vehicles", "vb_cancelled")
     passphrase = "" if form.get("no_secrets") == "1" else form.get("passphrase", "")
+    setup = form.get("setup") == "1"
     try:
         raw = path.read_bytes()
         with db.tx() as conn:
             data, zf = vehiclebackup.read(raw)
             locked = vehiclebackup.secrets_state(zf) == "passphrase" and not passphrase and form.get("no_secrets") != "1"
+            secret = vehiclebackup.open_secrets(zf, passphrase)
             zf.close()
             if locked:
                 raise vehiclebackup.VehicleBackupError("err.bk_need_passphrase")
@@ -211,4 +216,8 @@ async def vehicle_restore_confirm(request: Request):
         path.unlink(missing_ok=True)
         return go(request, "/vehicles", str(exc))
     path.unlink(missing_ok=True)
-    return _opened(request, new_id, created=not (mode == "replace" and target))
+    results = (
+        restoresetup.run(new_id, data, secret) if setup else []
+    )  # the person's click on "Restore and set up" is the consent to fetch and set up
+    message = "vb_restored" if not results else ("vb_setup_done" if all(r["ok"] for r in results) else "vb_setup_partly")
+    return _opened(request, new_id, created=not (mode == "replace" and target), message=message, to_plugins=bool(results))

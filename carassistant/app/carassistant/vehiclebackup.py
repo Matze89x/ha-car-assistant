@@ -145,7 +145,9 @@ def export(conn: sqlite3.Connection, vid: int, with_codes: bool = False, passphr
     data["tokens"] = _rows(conn, "SELECT id, name, token_hash, created_at FROM api_tokens WHERE vehicle_id = ?", (vid,))
     from . import connectors
 
-    secret: dict | None = {"v": 1, "tokens": {}, "addons": {}, "source_keys": {}, "modules": None} if (passphrase or local) else None
+    secret: dict | None = (
+        {"v": 1, "tokens": {}, "addons": {}, "source_keys": {}, "approvals": {}, "modules": None} if (passphrase or local) else None
+    )
     for tok in data["tokens"]:  # the hash is no secret (it opens nothing); the kept token itself goes into the secrets block only
         kept = connectors.remembered(conn, tok["id"])
         if kept and secret is not None:
@@ -161,6 +163,13 @@ def export(conn: sqlite3.Connection, vid: int, with_codes: bool = False, passphr
             kept = {k: vault.decrypt(v) for k, v in json.loads(a["settings"] or "{}").items() if k in passwords and isinstance(v, str)}
             if any(kept.values()):
                 secret["addons"][a["addon_id"]] = {k: v for k, v in kept.items() if v}
+            from . import addons as _addons
+
+            fingerprint = _addons.approval_fingerprint(manifest)
+            if (
+                fingerprint and a["svc_ok"] == fingerprint and a["pkg_sha"]
+            ):  # what an administrator approved: the same package may be approved again (restoresetup.py)
+                secret["approvals"][a["addon_id"]] = {"svc_ok": fingerprint, "pkg_sha": a["pkg_sha"]}
             if a["origin"] and a["source_id"]:
                 key = vault.decrypt(
                     (conn.execute("SELECT token FROM sources WHERE id = ?", (a["source_id"],)).fetchone() or {"token": None})["token"]
@@ -288,6 +297,13 @@ def open_secrets(zf: zipfile.ZipFile, passphrase: str = "") -> dict | None:
         except backupsecrets.WrongPassphrase:
             raise VehicleBackupError("err.bk_passphrase") from None
     return None
+
+
+def load(raw: bytes, passphrase: str = "") -> tuple[dict, dict | None]:
+    """The data and the secrets (None when there are none or no passphrase) of a backup file, as ``restore`` sees them."""
+    data, zf = read(raw)
+    with zf:
+        return data, open_secrets(zf, passphrase)
 
 
 def find_existing(conn: sqlite3.Connection, data: dict) -> sqlite3.Row | None:
