@@ -312,7 +312,7 @@ Was die Person tut: *Bei Example anmelden* beginnt die Anmeldung; die Seite zeig
 
 Was dein Dienst tut:
 ```python
-api = ca.Api()                                   # die Hilfsbibliothek: docs/examples/sdk
+api = ca.Api()  # die Hilfsbibliothek: docs/examples/sdk
 cars = ca.Http().get("https://api.example.com/cars", headers=api.bearer()).json()
 ```
 `GET /api/v1/vehicles/<id>/connection` (``api.connection()`` in der Bibliothek) antwortet `{"ok": true, "access_token": "...", "token_type": "Bearer", "scope": "...", "expires_at": "...", "expires_in": 3412}` - die App erneuert das Token zuerst, wenn es innerhalb einer Minute endet; frag also, wann immer du es brauchst. `?renew=1` sagt, dass der Anbieter das Token abgelehnt hat (höchstens alle 30 Sekunden). Fehler: `404 not_connected` (niemand hat sich angemeldet), `409 login_required` (die Person muss sich neu anmelden - warten, nicht drängeln), `502 provider_unreachable` (später noch einmal), `404 no_step` / `422 no_step` (das Plugin hat keinen solchen Schritt; `?step=<id>` nennt einen, wenn es mehrere gibt).

@@ -309,7 +309,7 @@ What the person does: *Log in at Example* begins the login; the page then shows 
 
 What your service does:
 ```python
-api = ca.Api()                                   # the helper library: docs/examples/sdk
+api = ca.Api()  # the helper library: docs/examples/sdk
 cars = ca.Http().get("https://api.example.com/cars", headers=api.bearer()).json()
 ```
 `GET /api/v1/vehicles/<id>/connection` (``api.connection()`` in the library) answers `{"ok": true, "access_token": "...", "token_type": "Bearer", "scope": "...", "expires_at": "...", "expires_in": 3412}` - the app renews the token first when it ends within a minute, so ask whenever you need it. `?renew=1` says the provider refused the token you had (at most every 30 seconds). Errors: `404 not_connected` (nobody has logged in), `409 login_required` (the person has to log in again - wait, do not insist), `502 provider_unreachable` (try again later), `404 no_step` / `422 no_step` (the plugin has no such step; `?step=<id>` names one when there are several).
