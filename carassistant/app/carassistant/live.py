@@ -39,9 +39,14 @@ def _reported(state: dict | None) -> str | None:
 
 def refresh_vehicle(conn: sqlite3.Connection, vehicle: sqlite3.Row) -> bool:
     """Returns True when new data (e.g. a higher odometer) was stored."""
+    from . import claims
+
     changed = False
     vid = vehicle["id"]
-    if vehicle["bind_odometer"]:
+    held = claims.owners(
+        conn, vid
+    )  # an interface a plugin has taken for this car is not filled from the bindings of the vehicle form any more
+    if vehicle["bind_odometer"] and "odometer_km" not in held:
         km = _number(ha.get_state(vehicle["bind_odometer"]))
         if km is not None and km > 0:
             km_int = round(km)
@@ -49,13 +54,13 @@ def refresh_vehicle(conn: sqlite3.Connection, vehicle: sqlite3.Row) -> bool:
             if known is None or km_int > known:
                 summary.record_odometer(conn, vid, km_int, "ha")
                 changed = True
-    for bind, key in (("bind_fuel_level", "fuel_level"), ("bind_range", "range_km")):
-        if vehicle[bind]:
+    for bind, key, field in (("bind_fuel_level", "fuel_level", "fuel_level_pct"), ("bind_range", "range_km", "range_km")):
+        if vehicle[bind] and field not in held:
             state = ha.get_state(vehicle[bind])
             value = _number(state)
             if value is not None:
                 _store(conn, vid, key, f"{value:.0f}", _reported(state))
-    if vehicle["bind_tracker"]:
+    if vehicle["bind_tracker"] and "position" not in held:
         state = ha.get_state(vehicle["bind_tracker"])
         attrs = (state or {}).get("attributes") or {}
         if "latitude" in attrs and "longitude" in attrs:

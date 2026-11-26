@@ -3590,3 +3590,60 @@ html.odo-settled .odo-drum i, html.odo-settled .odo-strip { animation: none; }
 .card > h2 + .icon-row { border-top: 0; }  /* none directly under the heading of a window */
 /* In a sub-window the lines of a list of switches stand BETWEEN the rows (a row carries the line ABOVE itself, the first has none): the rules above that share one line in a plain card must not take them away here. tools/check_ui.py fails when two rows stand one under the other without a line. */
 .sub-card .sw-row + .sw-row, .sub-card form + form > .sw-row:first-child, .sub-card form:has(> .sw-row:last-child) + form > .sw-row:first-child { border-top: 1px solid var(--glass-b) !important; }
+
+/* ===== Home Assistant plugin (habridge.py): an entity of Home Assistant for every interface of the Plugin API ===== */
+.hb-form { display: grid; gap: var(--sp-col); }
+.hb-form > .card { margin: 0; }
+.hb-intro .hint { margin: 0 0 10px; }
+.hb-intro .hint:last-child { margin-bottom: 0; }
+.hb-warn { color: var(--soon); }
+.hb-every { display: grid; gap: 6px; max-width: 320px; margin-top: var(--sp-field); }
+.hb-group > summary + .hb-rows { margin-top: 14px; }
+.hb-rows { display: grid; }
+.hb-row { display: grid; grid-template-columns: minmax(130px, 210px) minmax(0, 1fr); gap: 4px 16px; padding: 14px 0; align-items: start; }
+.hb-row + .hb-row { border-top: 1px solid var(--line); }  /* a line BETWEEN two rows, never after the last */
+.hb-h { display: flex; flex-direction: column; gap: 2px; padding-top: 12px; min-width: 0; }  /* level with the text of the field beside it */
+.hb-h b { font-weight: 600; }
+.hb-h small { color: var(--muted); font-size: 12px; }
+.hb-in { display: grid; gap: 8px; min-width: 0; }
+.hb-h .hb-help { margin: 6px 0 0; font-size: 12px; }
+.hb-held { grid-column: 2; margin: 0; padding-top: 12px; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.hb-st { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 0 6px; min-height: 18px; font-size: 13px; }
+.hb-st[data-level="idle"] { display: none; }
+.hb-st b { font-weight: 600; }
+.hb-st small { color: var(--muted); }
+.hb-st[data-level="warn"] b { color: var(--soon); }
+.hb-st[data-level="bad"] b { color: var(--overdue); }
+.hb-st .av-dot { margin: 0 2px 0 0; }
+.hb-opts[hidden] { display: none; }
+.hb-opts > summary { display: inline-flex; align-items: center; gap: 6px; list-style: none; cursor: pointer; color: var(--muted); font-size: 12px; }
+.hb-opts > summary::-webkit-details-marker { display: none; }
+.hb-opts[open] > summary { color: var(--text); }
+.hb-og { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-field) 12px; margin: 12px 0 8px; align-items: start; }
+.hb-og > label { display: grid; gap: 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.hb-og > label input, .hb-og > label select { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.hb-og > .hb-wide, .hb-og > .sw-row { grid-column: 1 / -1; }
+.hb-opts .hint { margin: 0; }
+.hb-panel { border: 1px solid var(--glass-b); border-radius: var(--r-s); background: var(--card2); max-height: 300px; overflow: auto; }
+.hb-panel[hidden] { display: none; }
+.hb-opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 0; padding: 8px 12px; border: 0; border-radius: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
+.hb-opt + .hb-opt { border-top: 1px solid var(--line); }
+.hb-opt:hover, .hb-opt:focus-visible { background: rgba(var(--fg-rgb), .07); outline: none; }
+.hb-on { display: grid; min-width: 0; }
+.hb-on b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-on small { font-family: "Space Mono", ui-monospace, monospace; font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-on small.hb-ctx { font-family: inherit; font-size: 12px; }
+.hb-opt i { flex: 0 0 auto; max-width: 40%; font-style: normal; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-none { margin: 0; padding: 10px 12px; }
+.hb-all { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.hb-lrows { display: grid; gap: 10px; }
+.hb-lrow { display: grid; gap: 8px; padding: 10px 12px; border-radius: var(--r-m); background: rgba(var(--fg-rgb), .04); border: 1px solid var(--glass-b); }  /* the look of a row of the lists of the app */
+.hb-lhead { display: flex; align-items: center; gap: 8px; }
+.hb-n { flex: 1 1 auto; min-width: 0; }
+.hb-add { margin-top: 10px; }
+@media (max-width: 640px) {
+  .hb-row { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 0; }
+  .hb-h { flex-flow: row wrap; align-items: baseline; gap: 0 8px; padding-top: 0; }
+  .hb-h .hb-help { flex: 1 0 100%; }
+  .hb-held { grid-column: 1; padding-top: 0; }
+}

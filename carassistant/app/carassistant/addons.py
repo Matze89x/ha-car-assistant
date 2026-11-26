@@ -1072,6 +1072,37 @@ def clean_connector(raw, types: dict[str, str]) -> tuple[dict | None, str]:
     return out, ""
 
 
+def clean_bridge(raw) -> tuple[dict | None, str]:
+    """The ``bridge`` of a plugin without a service (docs/home-assistant.md): the plugin offers the interfaces of the Plugin API as places to bind entities of
+    Home Assistant, and the APP reads them (habridge.py). ``slots`` / ``groups`` (optional) narrow what is offered; ``every`` is the default interval in
+    seconds. The package never names an entity: the administrator chooses them."""
+    from . import habridge, habridge_slots
+
+    if not isinstance(raw, dict) or raw.get("type") != "home_assistant":
+        return None, '\'bridge\' must be an object with "type": "home_assistant"'
+    out: dict = {"type": "home_assistant"}
+    groups = [g for g in raw.get("groups", []) if isinstance(g, str)] if isinstance(raw.get("groups"), list) else []
+    groups = list(dict.fromkeys(g for g in groups if g in {gid for gid, _icon in habridge_slots.GROUPS}))
+    slots = [k for k in raw.get("slots", []) if isinstance(k, str)] if isinstance(raw.get("slots"), list) else []
+    slots = list(dict.fromkeys(k for k in slots if k in habridge_slots.BY_KEY))
+    if slots:
+        out["slots"] = slots
+    elif groups:
+        out["groups"] = groups
+    every = raw.get("every")
+    if isinstance(every, int | float) and not isinstance(every, bool):
+        out["every"] = min(habridge.EVERY[1], max(habridge.EVERY[0], int(every)))
+    return out, ""
+
+
+def clean_claims(raw) -> list[str]:
+    """The interfaces (fields of the Plugin API) a plugin takes for itself on every car where it is on (``claims``, docs/plugins.md): from then on no other
+    source of that car fills them. Unknown names are left out."""
+    if not isinstance(raw, list):
+        return []
+    return sorted({f for f in raw if isinstance(f, str) and f in connectors.KNOWN and f != "measured_at"})
+
+
 def clean_inputs(raw, taken: set[str] | frozenset[str] = frozenset()) -> list[dict]:
     """The one-time inputs of a ``check`` step (``inputs``, docs/plugins.md): fields the person fills in for THIS check only - a code from an SMS, an
     e-mail or an app. They travel to the service with the check and are never stored: not as a setting, not in ``settings.json``, not in a backup.
@@ -1493,6 +1524,12 @@ def parse_package(raw: bytes) -> dict:
     connector = None
     if not service and data.get("kind") != "integration":  # a connector is run by the app itself: no program of the package is involved
         connector, _why = clean_connector(data.get("connector"), types) if data.get("connector") is not None else (None, "")
+    bridge = None
+    if not service and not connector and data.get("kind") != "integration" and data.get("bridge") is not None:
+        bridge, _why = clean_bridge(
+            data.get("bridge")
+        )  # one thing or the other: the app reads either addresses or entities of Home Assistant
+    claims = [] if bridge else clean_claims(data.get("claims"))  # a bridge takes what the person binds, nothing else
     if service and service.get("token") is False:
         _check_tokenless(service, conn_file, bundles, tiles, fields, setup)
     docs = _docs_text(data.get("docs"))  # a longer description for the Interfaces page (paragraphs and line breaks stay)
@@ -1509,6 +1546,8 @@ def parse_package(raw: bytes) -> dict:
         **({"bundles": bundles} if bundles else {}),
         **({"setup": setup} if setup else {}),
         **({"connector": connector} if connector else {}),
+        **({"bridge": bridge} if bridge else {}),
+        **({"claims": claims} if claims else {}),
         **({"docs": docs} if docs else {}),
         **({"reminders": reminders} if reminders else {}),
         **({"pages": pages, "nav": data.get("nav") is not False} if pages else {}),
@@ -1539,11 +1578,13 @@ def add(conn: sqlite3.Connection, vehicle_id: int, manifest: dict, source_id: in
     ).fetchone()
     if existing and existing["status"] == "missing":
         # a restored entry waits for its package: the package arrives, the settings and the token of the backup stay; it stays OFF on purpose
-        state = "configured" if json.loads(existing["settings"] or "{}") else "uploaded"
+        bound = conn.execute("SELECT 1 FROM ha_bindings WHERE addon_pk = ? LIMIT 1", (existing["id"],)).fetchone()
+        state = "configured" if json.loads(existing["settings"] or "{}") or bound else "uploaded"
         conn.execute(
             "UPDATE vehicle_addons SET manifest = ?, status = ?, source_id = ?, active = 0, pkg_sha = ? WHERE id = ?",
             (json.dumps(manifest), state, source_id, pkg_sha, existing["id"]),
         )
+        _take_claims(conn, vehicle_id, existing["id"], manifest)
         return existing["id"]
     if existing and source_id is not None and existing["source_id"] is None:
         # the same package, installed from a file or an older built-in offer, now comes from a source: it is taken over (settings, state and entries stay)
@@ -1551,10 +1592,11 @@ def add(conn: sqlite3.Connection, vehicle_id: int, manifest: dict, source_id: in
             "UPDATE vehicle_addons SET manifest = ?, source_id = ?, kind = ?, pkg_sha = ? WHERE id = ?",
             (json.dumps(manifest), source_id, manifest["kind"], pkg_sha, existing["id"]),
         )
+        _take_claims(conn, vehicle_id, existing["id"], manifest)
         return existing["id"]
     if existing:
         raise AddonError("addon.err_exists")
-    return conn.execute(
+    pk = conn.execute(
         "INSERT INTO vehicle_addons(vehicle_id, kind, addon_id, manifest, created_at, source_id, pkg_sha) VALUES(?,?,?,?,?,?,?)",
         (
             vehicle_id,
@@ -1566,6 +1608,23 @@ def add(conn: sqlite3.Connection, vehicle_id: int, manifest: dict, source_id: in
             pkg_sha,
         ),
     ).lastrowid
+    if _take_claims(
+        conn, vehicle_id, pk, manifest
+    ):  # it takes what another plugin of this car holds: it is installed, but stays off until that is settled
+        conn.execute("UPDATE vehicle_addons SET active = 0 WHERE id = ?", (pk,))
+    return pk
+
+
+def _take_claims(conn: sqlite3.Connection, vehicle_id: int, pk: int, manifest: dict) -> dict[str, str]:
+    """The interfaces a package says it takes (``claims``) are registered for the install; returns those another plugin of the car holds already
+    ({field: its name}). A bridge takes what the person binds (habridge.save), nothing by itself."""
+    from . import claims
+
+    if manifest.get("bridge"):
+        return {}
+    wanted = manifest.get("claims") or []
+    claims.register(conn, vehicle_id, pk, wanted)
+    return claims.conflicts(conn, vehicle_id, pk, wanted)
 
 
 def restore_all(conn: sqlite3.Connection, vehicle_id: int, entries: list, token_ids: dict, passwords: dict | None = None) -> dict[int, int]:
@@ -2280,8 +2339,8 @@ def needs_token(manifest: dict) -> bool:
     """Does the plugin use a token at all? A plugin with a service does (the service reports with it) unless it says ``service.token: false``. Without a service it does not when its
     connection file has no ``{token}`` (a file with only settings, nothing secret) or when it says so (``setup.token: false``): then the guide leaves the
     token part out, no token is made and the page shows no token card."""
-    if manifest.get("connector"):
-        return False  # the app itself delivers what a connector reads: nobody calls the Plugin API
+    if manifest.get("connector") or manifest.get("bridge"):
+        return False  # the app itself delivers what a connector / a bridge reads: nobody calls the Plugin API
     if manifest.get("service"):
         return manifest["service"].get("token") is not False  # ``service.token: false``: a service without a token (docs/plugins.md)
     if (manifest.get("setup") or {}).get("token") is False:
@@ -2426,6 +2485,7 @@ def update_manifest(
         "UPDATE vehicle_addons SET manifest = ?, pkg_sha = COALESCE(?, pkg_sha), source_id = COALESCE(source_id, ?) WHERE id = ?",
         (json.dumps(manifest), pkg_sha, source_id, addon["id"]),
     )
+    _take_claims(conn, addon["vehicle_id"], addon["id"], manifest)
     if (
         addon["kind"] == "plugin" and addon.get("token_id") and not needs_token(manifest)
     ):  # the new version has no token: the old one is revoked
@@ -2434,6 +2494,12 @@ def update_manifest(
 
 
 def set_active(conn: sqlite3.Connection, addon: dict, on: bool) -> None:
+    if on and addon["kind"] == "plugin":
+        from . import claims
+
+        mine = claims.held_by(conn, addon["vehicle_id"], addon["id"])  # what the plugin takes (its claims, or what a bridge has bound)
+        if claims.conflicts(conn, addon["vehicle_id"], addon["id"], mine):
+            raise AddonError("addon.err_claims")
     conn.execute("UPDATE vehicle_addons SET active = ? WHERE id = ?", (1 if on else 0, addon["id"]))
     if not on and addon["kind"] == "integration":
         from . import navigation

@@ -456,6 +456,12 @@ Für einen Webdienst, der JSON antwortet, braucht ein Plugin **kein Programm**: 
 
 **Nicht für alles.** Ein Dienst, der eine Anmeldung auf einer eigenen Seite, eine Sitzung, eine Signatur oder mehrere Schritte nacheinander braucht, ist ein Fall für ein Plugin mit Dienst ([start-here.de.md](start-here.de.md)); die OAuth-Anmeldung geht für beide.
 
+## Entitäten aus Home Assistant (`bridge`) und Schnittstellen belegen (`claims`)
+
+Ein Plugin ohne Dienst und ohne Connector darf **`bridge`** tragen: `{ "type": "home_assistant" }`. Seine Einstellungsseite bietet dann jede Schnittstelle der [Plugin-API](api.de.md) als Platz an, eine **Entität aus Home Assistant** zu wählen - je Fahrzeug, von einem Administrator, mit umgerechneten Einheiten und live ankommenden Änderungen. Das Paket nennt keine Entität und führt nichts aus; die App liest Home Assistant. `slots` / `groups` grenzen ein, was angeboten wird, `every` ist das Standardintervall, und eine Einstellung mit dem Schlüssel `every` zeigt die Seite. Alles dazu mit Beispiel: [home-assistant.de.md](home-assistant.de.md).
+
+**`claims`** ist eine Liste von Feldern der Plugin-API (`"claims": ["fuel_level_pct", "range_km"]`), die ein Plugin bei jedem Fahrzeug, bei dem es an ist, für sich beansprucht: Keine andere Quelle dieses Fahrzeugs füllt sie dann (die Antwort sagt `ignored (taken by <Plugin>)`). Ein Plugin, dessen Felder ein anderes schon belegt, wird installiert, bleibt aber aus, bis das geklärt ist. Ein Paket mit `bridge` hat kein `claims`: Es belegt, was die Person verbindet.
+
 ## Die Kachel eines Plugins und seine Knöpfe (`buttons`)
 Jedes Plugin hat unter *Plugins → Verwaltung* eine **Kachel** mit EINER Knopfzeile unten, immer in dieser Reihenfolge:
 

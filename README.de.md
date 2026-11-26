@@ -65,6 +65,7 @@ Alles gibt es auf Englisch und auf Deutsch; oben in jeder Seite wechselst du die
 | [Hier anfangen](docs/start-here.de.md) | deine erste Integration oder dein erstes Plugin, in zehn Minuten am Laufen |
 | [Plugin-Anleitung](docs/plugin-guide.de.md) | der ganze Weg auf einer Seite, zum Nachschlagen |
 | [Plugins](docs/plugins.de.md) | Paketformat, Einstellungsseite, Dienste, Dateien, Kacheln |
+| [Home-Assistant-Plugin](docs/home-assistant.de.md) | Entitäten aus Home Assistant als Werte eines Fahrzeugs (Wallbox, Tracker, Sensoren), live, je Fahrzeug |
 | [Spritpreis-Anbieter](docs/fuel-providers.de.md) | eine offene JSON-Datei pro Land für Spritpreise |
 | [Ladesäulen-Anbieter](docs/charge-providers.de.md) | Ladesäulensuche in der Nähe des Autos für E-Autos: OpenStreetMap, Open Charge Map, eine eigene JSON-Datei |
 | [Integrationen](docs/integrations.de.md) | Seiten ohne Code, Erinnerungen, Pläne |

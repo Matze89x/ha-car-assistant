@@ -16,6 +16,8 @@ from . import (
     connectors,
     db,
     events,
+    ha,
+    habridge,
     i18n,
     interfaces,
     linkmap_ui,
@@ -439,9 +441,14 @@ async def addons_active(request: Request, vid: int, aid: int):
         addon = addons.get(conn, vid, aid)
         if addon is None:
             return go(request, f"/v/{vid}/integrations", "addon.err_id")
-        addons.set_active(
-            conn, addon, form.get("active", form.get("enabled")) == "1"
-        )  # Start / Stop buttons say "active", the switch in the list "enabled"
+        try:
+            addons.set_active(
+                conn, addon, form.get("active", form.get("enabled")) == "1"
+            )  # Start / Stop buttons say "active", the switch in the list "enabled"
+        except addons.AddonError as exc:  # it takes an interface another plugin of this car holds
+            if form.get("ajax"):
+                return Response(status_code=409)
+            return go(request, _manage(addon["kind"], vid), exc.key)
     pluginsvc.kick()
     events.changed()
     if form.get("ajax"):
@@ -464,7 +471,20 @@ def _token_page(request: Request, token: str, name: str, vid: int, addon: dict |
     )
 
 
-def _settings_page(request: Request, vid: int, addon: dict, shown: dict, errors: dict, status: int = 200):
+def _settings_page(
+    request: Request,
+    vid: int,
+    addon: dict,
+    shown: dict,
+    errors: dict,
+    status: int = 200,
+    hb_typed: dict | None = None,
+    hb_errors: dict | None = None,
+    hb_taken: dict | None = None,
+    hb_slots: frozenset = frozenset(),
+):
+    manage = _may_manage(request)
+    states = ha.all_states() if addon["m"].get("bridge") and manage else None  # (a call to Home Assistant: before the database is opened)
     if pluginsvc.service_of(addon) and not pluginsvc.approved(addon):
         _hold_service_buttons(addon)  # the actions on the tab General need the service, too
     with db.tx() as conn:
@@ -483,9 +503,17 @@ def _settings_page(request: Request, vid: int, addon: dict, shown: dict, errors:
         )
     t = i18n.translator(config.language())
     set_tabs = addons.settings_tabs(addon["m"]["settings"], frozenset(errors))
+    hb = None
+    if addon["m"].get("bridge") and manage:
+        with db.tx() as conn:
+            hb = habridge.page_model(conn, addon, states, t, hb_typed, hb_slots)
     return render(
         request,
         "addon_settings.html",
+        hb=hb,
+        hb_manage=manage,
+        hb_errors=hb_errors or {},
+        hb_taken=hb_taken or {},
         set_tabs=set_tabs,
         debug_days=connectors.DEBUG_DAYS,
         debug_default=connectors.DEBUG_DEFAULT_DAYS,

@@ -18,6 +18,7 @@ token, and the result says so. ``plan`` is the same list before anything happens
 
 from __future__ import annotations
 
+import contextlib
 import json
 
 from . import addons, db, pkginstall, pluginsvc, sources
@@ -118,7 +119,8 @@ def _finish(vehicle_id: int, pk: int, entry: dict, approvals: dict) -> None:
         if addon is None:
             return
         if entry.get("active"):
-            addons.set_active(conn, addon, True)
+            with contextlib.suppress(addons.AddonError):  # it takes an interface another plugin holds: it stays off, the person decides
+                addons.set_active(conn, addon, True)
         said = approvals.get(entry["addon_id"])
         if (
             isinstance(said, dict)

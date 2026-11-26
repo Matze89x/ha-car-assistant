@@ -1,0 +1,108 @@
+# Das Home-Assistant-Plugin
+
+[🇬🇧 English](home-assistant.md) · 🇩🇪 Deutsch
+
+Dein Home Assistant weiß wahrscheinlich schon viel über dein Auto: die Integration des Herstellers, einen Tracker, einen Reifensensor, **eine Wallbox**, die es lädt. Das Home-Assistant-Plugin bringt diese Entitäten in Car Assistant - **für jedes Fahrzeug einzeln**. Für jede Schnittstelle der [Plugin-API](api.de.md) (Kilometerstand, Tank, Batterie, Ladeleistung, Türen, Reifen, Position ...) wählst du die Entität aus Home Assistant, die sie liefert; die App liest sie, rechnet die Einheit um und behält sie wie jeden anderen Wert des Fahrzeugs.
+
+- **Je Fahrzeug.** Jedes Fahrzeug hat seine eigene Installation des Plugins und seine eigene Auswahl. Die Wallbox in der Garage gehört zu dem Auto, das dort lädt - du entscheidest für jedes Fahrzeug, welche Schnittstelle woher kommt.
+- **Live.** Änderungen kommen sofort an, ohne dass jemand immer wieder nachfragt (siehe [Live und Nachfragen](#live-und-nachfragen)).
+- **Sauber.** Einheiten werden umgerechnet, ein Ja / Nein wird nach der Art der Entität verstanden, jeder Wert trägt die Zeit, die Home Assistant nennt, und eine Schnittstelle kann bei einem Fahrzeug nur von **einem** Plugin kommen ([Eine Schnittstelle, ein Plugin](#eine-schnittstelle-ein-plugin)).
+- **Für alle.** Das Paket ist eine einfache `plugin.json` mit einem Schlüssel, `bridge`; sie führt keinen Code aus. Siehe [Für Paket-Autoren](#für-paket-autoren).
+
+Es arbeitet im **Home-Assistant-Add-on** (die App spricht über den Supervisor mit Home Assistant). Nur Administratoren wählen die Entitäten: Die Entitäten von Home Assistant gehören dem System, nicht dem Fahrzeug.
+
+## Einrichten
+
+1. *Fahrzeug → Weiteres → Plugins → Hinzufügen* und **Home Assistant** aus deiner Quelle nehmen (oder das Beispiel [`examples/home-assistant/plugin.json`](examples/home-assistant/plugin.json) hochladen).
+2. Die Einstellungen öffnen. Die Seite listet die Schnittstellen in Gruppen: *Fahrzeug*, *Kraftstoff und Reichweite*, *Batterie und Laden*, *Türen, Fenster und Schloss*, *Position*, *Reifen*, *Temperaturen und Klima*, *Service und Warnungen*.
+3. In das Feld einer Schnittstelle klicken: Es öffnet sich eine Liste **wahrscheinlicher Entitäten**. Zum Eingrenzen tippen, eine anklicken.
+4. Die Zeile unter dem Feld sagt, **was die Entität jetzt liefert** (`64 %`, `7,4 kW aus 7400 W`, `Verriegelt`). Speichern.
+
+Ab dann fließen die Werte; die Kachel des Plugins und seine Seite *Protokoll* sagen, was es tut.
+
+## Eine Entität wählen
+
+Die Liste ist auf die Schnittstelle zugeschnitten, in die du klickst: Entitäten der passenden Art stehen vorn (ein Schloss für *Verriegelt*, ein Sensor mit der Geräteklasse *Entfernung* oder einer Längeneinheit für *Reichweite*), danach der Rest. Was du tippst, wird in **Name, ID, Gerät und Bereich** gesucht - *Garage* findet also alles von der Wallbox in der Garage, wie in Home Assistant selbst. *Alle Entitäten zeigen* hebt den Filter nach Art auf. Jede Zeile zeigt Name, ID, Gerät und Bereich und den aktuellen Zustand.
+
+Die Zeile unter einem gewählten Feld wird live geprüft: *Diese Entität gibt es in Home Assistant nicht*, *Die Einheit „l“ passt nicht*, *Gerade nicht verfügbar* sagen sofort, was nicht stimmt.
+
+## Live und Nachfragen
+
+Car Assistant hält eine **Live-Verbindung** zu Home Assistant (dessen WebSocket-Schnittstelle, über den Supervisor, wie der REST-Zugang). Sie verfolgt **genau die Entitäten, die du gewählt hast** - sonst nichts aus deinem Home Assistant - und eine Änderung kommt sofort an; ein Schwall von Änderungen wird höchstens einmal pro Sekunde zu einer Lesung. Solange sie steht, sagt die Seite: *Live-Verbindung zu Home Assistant: Änderungen kommen sofort an.*
+
+Fällt die Verbindung aus (Home Assistant startet neu, das Netz hakt), baut die App sie mit wachsenden Pausen (1 bis 60 Sekunden) wieder auf, schaut danach noch einmal alles an (damit nichts verpasst wird, was inzwischen geschah) und **fragt Home Assistant in der Zwischenzeit**, alle *Mindestens nachsehen alle* Sekunden (die Einstellung des Plugins, Standard 30). Ohne die Bibliothek oder außerhalb des Add-ons gibt es einfach keine Live-Verbindung, und das Plugin fragt. Steht die Verbindung, setzt die Einstellung nur ein Sicherheitsnetz: Home Assistant wird alle fünf Minuten noch einmal angesehen (oder seltener, wenn du eine längere Zeit einstellst), damit nichts lange falsch bleibt.
+
+## Was unterwegs geschieht
+
+- **Einheiten.** Eine Zahl wird in die Einheit umgerechnet, die die Plugin-API führt: Meilen, Fuß, Meter - km/h, mph, m/s, Knoten - W, kW, MW - psi, kPa, hPa, mbar, mmHg, inHg - Gallonen, Milliliter, kWh - °F, K - mV - Stunden, Sekunden, Tage - km/l, mpg, Wh/km, mi/kWh. Eine Einheit, die nicht passt (Liter für einen Prozentwert), wird **nicht geraten**: Die Zeile sagt es, und du kannst in den Optionen die Einheit oder *Unverändert* wählen.
+- **Datum und Uhrzeit.** Für *Restzeit Laden* und *Tage bis zum Service* geht auch eine Entität, die eine Zeit oder ein Datum enthält: Genommen werden die Minuten oder Tage bis dahin.
+- **Die Zeit der Messung.** Jeder Wert trägt die Zeit, die Home Assistant nennt (`last_reported` / `last_updated`), als `measured_at`. Liefern zwei Quellen dasselbe Feld, gewinnt die **neuere Messung**; eine ältere ersetzt nie eine neuere.
+- **Nur, was sich geändert hat**, wird gesendet. Eine Entität, die *nicht verfügbar* oder *unbekannt* ist, wird übersprungen (der letzte Wert bleibt, mit seinem Alter) - ein schlafendes Auto ist kein Fehler. Einen Wert, den die Plugin-API ablehnen würde (ein Tankstand von 250 %), lehnt sie nur für diese Zeile ab; die anderen laufen weiter.
+- **Der Kilometerstand** wächst nur, wie überall in Car Assistant.
+
+### Ja und Nein
+
+Ein Ja / Nein wird danach gelesen, was die Entität ist: ein **Schloss** (`locked`), ein **Binärsensor** nach seiner Geräteklasse (*Tür*, *Fenster* oder *Öffnung* heißt offen; *Stecker* heißt eingesteckt; *Batterie lädt* heißt lädt; bei der Klasse *Schloss* meint Home Assistant `an` = entriegelt - das wird für dich umgedreht), eine **Abdeckung** (`open`, `opening`, `closing` = offen), eine **Klima**-Entität (alles außer `off` = an), ein **Schalter** oder **Licht** oder ein Status-**Text** (`locked`, `plugged_in`, `Charging` ...). Eine Entität, die von etwas anderem handelt als die Schnittstelle (ein Türsensor für *Verriegelt*), wird mit einem Hinweis abgelehnt.
+
+Wo die Entität es nicht in Worten sagt, die Car Assistant kennt, helfen die Optionen der Zeile: **Zustände, die Ja bedeuten** (bei einem Wallbox-Statussensor: `Preparing, Charging, SuspendedEV` für *Eingesteckt*, `Charging` für *Lädt* - jeder andere Zustand ist Nein), **Ja über** (eine Ladeleistung über 0 heißt lädt) und **Umkehren**.
+
+### Position, Reifen, Türen, Warnungen
+
+- **Position.** Wähle einen *Tracker* oder eine *Person* (oder irgendeine Entität mit `latitude` und `longitude`) oder - weiter unten in der Gruppe - zwei Sensoren, einen für jede Hälfte. Eine Position von 0, 0 (kein Fix) wird nicht genommen.
+- **Reifen.** Vier Schnittstellen, eine je Rad; der Druck wird in bar umgerechnet.
+- **Türen, Fenster, Lichter, Warnungen** sind Listen: eine Zeile je Tür (`front_left`, `trunk` ...), mit einem Namen, den du wählst, und der Entität. Eine Warnung zeigt ihren Text (den Namen der Entität oder den Text, den du eintippst), solange ihre Entität an ist, und verschwindet, wenn sie aus ist.
+
+### Optionen einer Zeile
+
+Selten nötig, eingeklappt, bis du eine Entität gewählt hast: **Attribut** (dieses Attribut der Entität statt ihres Zustands lesen - die Temperatur einer Klima-Entität, den Kurs eines Trackers), **Einheit**, **Faktor** und **Versatz** (`Wert × Faktor + Versatz`, zuletzt angewendet), **Zustände, die Ja bedeuten**, **Ja über**, **Umkehren** und bei einer Warnung der **Angezeigte Text**.
+
+## Eine Schnittstelle, ein Plugin
+
+Eine Schnittstelle, die du hier wählst, **gehört diesem Plugin** für dieses Fahrzeug: Solange es an ist, füllt keine andere Quelle des Fahrzeugs sie - weder ein anderes Plugin noch ein Connector noch die älteren Home-Assistant-Felder des Fahrzeugformulars. Was eine solche Quelle sendet, wird mit `ignored (taken by Home Assistant)` beantwortet und nicht gespeichert; ein Wert des Fahrzeugs hat also immer genau **einen Ursprung**.
+
+- Die Schnittstelle wird beim **Speichern** belegt. Belegt ein anderes Plugin des Fahrzeugs eine der gewählten Schnittstellen, wird nichts gespeichert und die Seite nennt es; in der Zeile steht *Belegt durch ...*.
+- Das Plugin **auszuschalten** gibt alles frei, was es belegt (mit dem Einschalten kommt es zurück); ein Plugin, dessen Schnittstellen ein anderes belegt, lässt sich nicht einschalten, bis das geklärt ist. Entfernen gibt sie endgültig zurück.
+- Auch andere Plugins können Schnittstellen für sich beanspruchen (`claims` in ihrer `plugin.json`); die Seite *Schnittstellen* eines Pakets listet sie.
+
+Die Regel berührt nie die anderen Fahrzeuge und zwingt kein Plugin, das nicht darum bittet: Ein Plugin, das ein Feld sendet, das niemand belegt hat, ist einfach eine der Quellen, und die neuere Messung gewinnt.
+
+## Mehrere Fahrzeuge, eine Wallbox
+
+Installiere das Plugin bei jedem Fahrzeug und wähle, was dieses Fahrzeug bekommt: die Wallbox, die das Familienauto lädt, als *Lädt*, *Eingesteckt* und *Ladeleistung* dieses Autos, die eigene Integration des Herstellers für Kilometerstand und Reifen. Ein anderes Fahrzeug behält seine eigenen Entitäten. Eine Wallbox, die schon in Home Assistant ist, braucht nichts weiter.
+
+## Sicherung
+
+Die Auswahl gehört zum Fahrzeug: Sie steckt in der [Sicherung des Fahrzeugs](backup.de.md) (und in der Sicherung des ganzen Systems). Nach dem Wiederherstellen ist das Plugin aus, wie jedes wiederhergestellte Plugin; Einschalten belegt seine Schnittstellen wieder. Eine Datei, die nicht von Car Assistant stammt, wird Zeile für Zeile geprüft - eine Entität oder Option, die nicht gültig ist, bleibt weg.
+
+## Für Paket-Autoren
+
+Ein Paket, das dies anbietet, ist eine `plugin.json` ohne Dienst und ohne Connector, mit dem Schlüssel `bridge`:
+
+```json
+{ "id": "home-assistant", "kind": "plugin", "name": "Home Assistant", "version": "1.0.0",
+  "bridge": { "type": "home_assistant" },
+  "settings": [ { "key": "every", "type": "select", "label": "Mindestens nachsehen alle", "default": "30",
+                  "options": [ { "value": "10", "label": "10 s" }, { "value": "30", "label": "30 s" }, { "value": "300", "label": "5 min" } ] } ] }
+```
+
+| Schlüssel | Bedeutung |
+|---|---|
+| `type` | `home_assistant` (bisher der einzige) |
+| `slots` | optional: nur diese Schnittstellen werden angeboten, nach Schlüssel - zum Beispiel `["charging", "plugged", "charge_power_kw"]` für ein *Wallbox*-Paket |
+| `groups` | optional: nur diese Gruppen (`vehicle`, `fuel`, `battery`, `access`, `position`, `tyres`, `climate`, `service`); `slots` gewinnt, wenn beides steht |
+| `every` | optional: der Standard von *Mindestens nachsehen alle*, 10 bis 3600 Sekunden (Standard 30) |
+| Einstellung `every` | optional: Deklariert das Paket eine Einstellung mit dem Schlüssel `every`, zeigt die Seite sie, und die Wahl der Person zählt |
+
+Das Paket **nennt nie eine Entität** und sieht nie das Home-Assistant-Token: Der Administrator wählt die Entitäten, die App liest sie. Ein Paket mit `bridge` hat kein Token (niemand ruft die Plugin-API auf; die App tut es). `bridge` und ein `service` oder `connector` schließen sich aus. Prüfen mit `python tools/check_plugin.py <Ordner>`.
+
+Jedes andere Plugin kann mit `"claims": ["fuel_level_pct", "range_km"]` Schnittstellen für sich beanspruchen (Felder der [Plugin-API](api.de.md); nicht `measured_at`; nicht für ein Paket mit `bridge`, das nimmt, was gewählt wird). Ein Plugin, dessen Schnittstellen ein anderes belegt, wird installiert, bleibt aber aus, bis das geklärt ist.
+
+## Grenzen
+
+- Es **liest**. Befehle an das Auto (verriegeln, laden, Klima) über Dienste von Home Assistant sind ein späterer Schritt.
+- Es braucht das Home-Assistant-Add-on; in einer Entwicklungsumgebung antwortet Car Assistant *Home Assistant ist nicht erreichbar*, und nichts wird gelesen.
+- Ein Wert des Fahrzeugs kann nur aus Entitäten eines einzigen Home Assistant kommen.
+
+## Zusehen
+
+Die Seite **Protokoll** des Plugins (das Protokoll für einen Tag einschalten) sagt, was es liest und was nicht stimmt - einmal für jede Störung, nicht bei jedem Versuch: *die Einheit „l“ passt nicht*, *die Entität gibt es nicht*, *Home Assistant ist nicht erreichbar; neuer Versuch*, *Home Assistant ist wieder erreichbar*. Die Seite seiner Einstellungen zeigt live, ob die Verbindung steht und was jede Entität liefert.

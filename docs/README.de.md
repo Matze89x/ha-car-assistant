@@ -23,6 +23,7 @@ Alle Seiten auf einen Blick. Zurück zum [Start](../README.de.md).
 | [Architektur](architecture.de.md) | wie alles zusammenhängt, als Diagramme |
 | [Plugin-Anleitung](plugin-guide.de.md) | der schnellste Einstieg |
 | [Plugins](plugins.de.md) | Paketformat, Einstellungsseite, Dienste, Dateien, Kacheln |
+| [Home-Assistant-Plugin](home-assistant.de.md) | Entitäten aus Home Assistant als Werte eines Fahrzeugs (Wallbox, Tracker, Sensoren), live, je Fahrzeug |
 | [Integrationen](integrations.de.md) | Seiten ohne Code, Erinnerungen, Pläne |
 | [Plugin-API](api.de.md) | alle Felder und Wege, Werte an die App zu schicken |
 | [Quellen und Pakete](sources.de.md) | ein Repository als Quelle anbieten |

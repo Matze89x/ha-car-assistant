@@ -24,8 +24,9 @@ INSTALL = (
 
 
 @contextmanager
-def running_app(package: dict | None = None):
-    """Yields ``(base, slug, pk)``: the address of the app, the slug of the first demo car and the id of the installed package (or None)."""
+def running_app(package: dict | None = None, extra_env: dict | None = None):
+    """Yields ``(base, slug, pk)``: the address of the app, the slug of the first demo car and the id of the installed package (or None).
+    ``extra_env``: more variables for the app (for example the address and token of a made-up Home Assistant)."""
     import make_screenshots as ms
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -36,6 +37,7 @@ def running_app(package: dict | None = None):
             "PYTHONPATH": os.pathsep.join([str(ROOT / "carassistant" / "app"), str(ROOT / "tools"), str(ROOT)]),
             "CARASSISTANT_DATA": str(data),
             "CARASSISTANT_DEV": "1",
+            **(extra_env or {}),
         }
         seed = "import sys; from pathlib import Path; import make_screenshots as ms; ms.seed(Path(sys.argv[1]), 'en')"
         subprocess.run([sys.executable, "-c", seed, str(data)], check=True, env=env, capture_output=True, timeout=120)

@@ -23,6 +23,7 @@ All pages at a glance. Back to the [start page](../README.md).
 | [Architecture](architecture.md) | how everything fits together, as diagrams |
 | [Plugin guide](plugin-guide.md) | the quickest start |
 | [Plugins](plugins.md) | package format, settings page, services, files, tiles |
+| [Home Assistant plugin](home-assistant.md) | entities of Home Assistant as values of a car (wallbox, tracker, sensors), live, per car |
 | [Integrations](integrations.md) | pages without code, reminders, plans |
 | [Plugin API](api.md) | all fields and ways to send values to the app |
 | [Sources and packages](sources.md) | offer a repository as a source |

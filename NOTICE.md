@@ -31,6 +31,7 @@ Car Assistant itself is licensed under the **GNU General Public License v3.0 onl
 | http-ece (installed with pywebpush) | MIT |
 | pypdf | BSD-3-Clause |
 | defusedxml | PSF-2.0 |
+| websocket-client | Apache-2.0 |
 
 Notes: *MPL-2.0* (pywebpush, py-vapid) and *LGPL-3.0* (fpdf2) apply to those libraries only and are used unmodified; their source is available from their projects (https://pypi.org). The Apache-2.0 and BSD libraries ask for their copyright notice and license text to stay with distributed copies: the packages carry them, and the installed packages are what the add-on image contains.
 

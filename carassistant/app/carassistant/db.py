@@ -86,6 +86,9 @@ MIGRATIONS: list[str] = [
     (SCHEMA_DIR / "migrations_63.sql").read_text(
         encoding="utf-8"
     ),  # logging in with an account: connections (sealed tokens), their links, logins begun
+    (SCHEMA_DIR / "migrations_64.sql").read_text(
+        encoding="utf-8"
+    ),  # the Home Assistant plugin: bindings of entities, the interfaces a plugin has taken
 ]
 
 

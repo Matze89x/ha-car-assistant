@@ -1,0 +1,100 @@
+{% from "_macros.html" import icon, form_bar, switch_row with context %}
+{# The bindings of a plugin with ``bridge`` (habridge.py, docs/home-assistant.md): one fold for each group, one row for each interface of the Plugin API,
+   a field for the entity of Home Assistant and a line saying what it delivers right now. The script habridge.js asks for the entities and the readings. #}
+{% macro status(row) -%}
+<p class="hb-st" data-hb-status data-level="{{ row.status.level }}"><i class="av-dot {{ row.status.level if row.status.level in ('ok', 'warn', 'bad') }}" aria-hidden="true"></i><b>{{ row.status.text }}</b>{% if row.status['from'] %} <small>{{ row.status['from'] }}</small>{% endif %}</p>
+{%- endmacro %}
+{% macro entity_field(name, row, slot, label) -%}
+<span class="fld hb-fld"><input type="text" name="{{ name }}" value="{{ row.entity }}" placeholder="{{ _('hab.placeholder') }}" maxlength="120" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="{{ label }}" data-hb-entity data-slot="{{ slot }}"><button type="button" class="fld-act" data-hb-pick aria-label="{{ _('hab.choose') }}" title="{{ _('hab.choose') }}">{{ icon('magnify', 18) }}</button></span>
+{%- endmacro %}
+{% macro options(s, row, prefix) -%}
+<details class="hb-opts"{{ ' hidden' if not row.entity }}>
+  <summary>{{ icon('cog', 14) }}<span>{{ _('hab.options') }}</span></summary>
+  <div class="hb-og">
+    <label>{{ _('hab.opt.attribute') }}<input type="text" name="{{ prefix }}attribute" value="{{ row.opts.attribute if row.opts.attribute is defined else '' }}" maxlength="64" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="{{ _('hab.opt.attribute_ph') }}"></label>
+    {% if s.number %}
+    <label>{{ _('hab.opt.unit') }}<select name="{{ prefix }}unit"><option value="auto">{{ _('hab.opt.unit_auto') }}</option><option value="raw" {{ 'selected' if row.opts.unit == 'raw' }}>{{ _('hab.opt.unit_raw') }}</option>{% for u in s.units %}<option value="{{ u }}" {{ 'selected' if row.opts.unit == u }}>{{ u }}</option>{% endfor %}</select></label>
+    <label>{{ _('hab.opt.scale') }}<input type="text" inputmode="decimal" name="{{ prefix }}scale" value="{{ row.opts.scale if row.opts.scale is defined else '' }}" maxlength="14" autocomplete="off" placeholder="1"></label>
+    <label>{{ _('hab.opt.offset') }}<input type="text" inputmode="decimal" name="{{ prefix }}offset" value="{{ row.opts.offset if row.opts.offset is defined else '' }}" maxlength="14" autocomplete="off" placeholder="0"></label>
+    {% elif s.flag %}
+    <label>{{ _('hab.opt.yes') }}<input type="text" name="{{ prefix }}yes" value="{{ row.yes }}" maxlength="200" autocomplete="off" spellcheck="false" placeholder="{{ _('hab.opt.yes_ph') }}"></label>
+    <label>{{ _('hab.opt.above') }}<input type="text" inputmode="decimal" name="{{ prefix }}above" value="{{ row.opts.above if row.opts.above is defined else '' }}" maxlength="14" autocomplete="off" placeholder="0"></label>
+    {% if s.kind == 'warning' %}<label class="hb-wide">{{ _('hab.opt.text') }}<input type="text" name="{{ prefix }}text" value="{{ row.opts.text if row.opts.text is defined else '' }}" maxlength="120" autocomplete="off" placeholder="{{ _('hab.opt.text_ph') }}"></label>{% endif %}
+    {{ switch_row(prefix ~ 'invert', _('hab.opt.invert'), row.opts.invert) }}
+    {% endif %}
+  </div>
+  <p class="hint">{{ icon('info', 14) }} {{ _('hab.opt.hint_number' if s.number else 'hab.opt.hint_flag') }}</p>
+</details>
+{%- endmacro %}
+{% macro value_row(s) %}
+{% set row = s.row %}{% set field = 'e.' ~ s.key %}
+<div class="hb-row{{ ' hb-taken' if s.taken }}" data-hb-slot="{{ s.key }}">
+  <div class="hb-h"><b>{{ s.label }}</b>{% if s.unit %}<small>{{ s.unit }}</small>{% endif %}{% if s.help %}<p class="hint hb-help">{{ icon('info', 14) }} {{ s.help }}</p>{% endif %}</div>
+  {% if s.taken %}<p class="hb-held">{{ icon('lock', 14) }} {{ _('hab.taken', name=s.taken) }}</p>
+  {% else %}<div class="hb-in">
+    {{ entity_field(field, row, s.key, s.label) }}
+    {{ status(row) }}
+    {% if hb_errors.get(field) %}<p class="field-err">{{ icon('alert', 14) }} {{ hb_errors[field] }}</p>{% endif %}
+    {{ options(s, row, 'o.' ~ s.key ~ '.') }}
+  </div>{% endif %}
+</div>
+{% endmacro %}
+{% macro list_row(s, i, row) %}
+{% set field = 'l.' ~ s.key ~ '.' ~ i ~ '.e' %}
+<div class="hb-lrow" data-hb-lrow>
+  <div class="hb-lhead">
+    <input type="text" class="hb-n" name="l.{{ s.key }}.{{ i }}.n" value="{{ row.name }}" list="hb-names-{{ s.key }}" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="{{ _('hab.row_name') }}" aria-label="{{ _('hab.row_name') }}">
+    <button type="button" class="lf-del" data-hb-del aria-label="{{ _('btn.delete') }}" title="{{ _('btn.delete') }}">{{ icon('close', 16) }}</button>
+  </div>
+  {{ entity_field(field, row, s.key, s.label) }}
+  {{ status(row) }}
+  {% if hb_errors.get(field) %}<p class="field-err">{{ icon('alert', 14) }} {{ hb_errors[field] }}</p>{% endif %}
+  {{ options(s, row, 'l.' ~ s.key ~ '.' ~ i ~ '.') }}
+</div>
+{% endmacro %}
+{% macro list_block(s) %}
+{% set empty = {'entity': '', 'name': '', 'opts': {}, 'yes': '', 'status': {'level': 'idle', 'text': '', 'from': ''}} %}
+<div class="hb-row hb-list{{ ' hb-taken' if s.taken }}" data-hb-slot="{{ s.key }}">
+  <div class="hb-h"><b>{{ s.label }}</b>{% if s.help %}<p class="hint hb-help">{{ icon('info', 14) }} {{ s.help }}</p>{% endif %}</div>
+  {% if s.taken %}<p class="hb-held">{{ icon('lock', 14) }} {{ _('hab.taken', name=s.taken) }}</p>
+  {% else %}<div class="hb-in">
+    <div class="hb-lrows" data-hb-list="{{ s.key }}" data-next="{{ s.rows|length + s.spare }}" data-max="16">
+      {% for row in s.rows %}{{ list_row(s, loop.index0, row) }}{% endfor %}
+      {% for k in range(s.spare) %}{{ list_row(s, s.rows|length + k, empty) }}{% endfor %}
+      <template data-hb-tpl>{{ list_row(s, '#', empty) }}</template>
+    </div>
+    <datalist id="hb-names-{{ s.key }}">{% for n in s.names %}<option value="{{ n }}">{{ _('hab.name.' ~ n) }}</option>{% endfor %}</datalist>
+    <div class="hb-add"><button type="button" class="small" data-hb-add>{{ icon('plus', 16) }}<span>{{ _('hab.add_row') }}</span></button></div>
+  </div>{% endif %}
+</div>
+{% endmacro %}
+{% if not hb_manage %}
+<section class="card addon-set">
+  <h2>{{ icon('sitemap', 20) }} {{ _('hab.title') }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ _('hab.admin_only') }}</p>
+</section>
+{% else %}
+<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/bridge" class="hb-form set-form" id="hbform" data-hb-form
+      data-preview="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/bridge/preview" data-entities="{{ base }}/v/{{ v.slug }}/integrations/{{ addon.id }}/bridge/entities"
+      data-all="{{ _('hab.show_all') }}" data-none="{{ _('hab.no_entities') }}" data-noha="{{ _('hab.no_ha') }}">
+  <section class="card hb-intro">
+    <h2>{{ icon('sitemap', 20) }} {{ _('hab.title') }}</h2>
+    {% if hb_errors %}<p class="flash err">{{ _('addon.fix_errors') }}</p>{% endif %}
+    {% if hb_taken %}<p class="flash err">{{ _('hab.err_taken') }} {% for f, who in hb_taken.items() %}{{ f }} ({{ who }}){{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
+    <p class="hint">{{ icon('info', 14) }} {{ _('hab.intro') }}</p>
+    <p class="hint hb-live" data-live="{{ 1 if hb.live else 0 }}">{{ icon('info', 14) }} {{ _('hab.live_on') if hb.live else _('hab.live_off', n=hb.seconds) }}</p>
+    <p class="hint hb-warn" data-hb-noha{{ '' if not hb.ha else ' hidden' }}>{{ icon('info', 14) }} {{ _('hab.no_ha') }}</p>
+    {% if hb.every %}<label class="hb-every">{{ hb.every.label }}<select name="every">{% for o in hb.every.options %}<option value="{{ o.value }}" {{ 'selected' if o.value == hb.every_now }}>{{ o.label }}</option>{% endfor %}</select></label>{% endif %}
+  </section>
+  {% for g in hb.groups %}
+  <details class="card fgroup hb-group" id="hb-{{ g.id }}" {{ 'open' if g.open }}>
+    <summary><span class="mi-ic c{{ (loop.index0 % 6) + 1 }}">{{ icon(g.icon, 17) }}</span><span class="fg-t">{{ g.name }}<small>{{ _('hab.n_bound', n=g.bound, total=g.total) }}</small></span>{{ icon('chevron-down', 20) }}</summary>
+    <div class="hb-rows">
+      {% for s in g.slots %}{% if s.list %}{{ list_block(s) }}{% else %}{{ value_row(s) }}{% endif %}{% endfor %}
+    </div>
+  </details>
+  {% endfor %}
+  <div class="hb-panel" data-hb-panel hidden role="listbox" aria-label="{{ _('hab.choose') }}"></div>
+  {{ form_bar(label=_('addon.save_short')) }}
+</form>
+{% endif %}

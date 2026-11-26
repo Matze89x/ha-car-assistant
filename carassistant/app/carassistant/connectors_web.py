@@ -268,8 +268,11 @@ async def api_data(request: Request, vehicle_id: int):
     with db.tx() as conn:
         if conn.execute("SELECT 1 FROM vehicles WHERE id = ? AND archived = 0", (vehicle_id,)).fetchone() is None:
             return _err("not_found", "Vehicle not found.", 404)
+        from . import claims
+
+        caller = claims.pk_of(conn, vehicle_id, connectors.addon_for_token(conn, request.state.api_token["id"]))
         try:
-            result = connectors.ingest(conn, vehicle_id, data, request.state.api_token["name"])
+            result = connectors.ingest(conn, vehicle_id, data, request.state.api_token["name"], caller=caller)
         except connectors.ApiError as exc:
             return _err(exc.code, exc.message, exc.status)
         control = connectors.control(conn, vehicle_id, connectors.addon_for_token(conn, request.state.api_token["id"]))

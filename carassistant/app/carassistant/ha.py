@@ -84,6 +84,21 @@ def get_state(entity_id: str) -> dict | None:
     return _get(f"/states/{entity_id}")
 
 
+def all_states(seconds: float = 4.0) -> dict[str, dict] | None:
+    """Every entity of Home Assistant by its id - ONE request, kept for a few seconds so that every plugin and every page shares it. None when Home Assistant
+    cannot be asked (not the add-on, or it does not answer)."""
+
+    def fetch():
+        states = _get("/states")
+        return (
+            {s["entity_id"]: s for s in states if isinstance(s, dict) and isinstance(s.get("entity_id"), str)}
+            if isinstance(states, list)
+            else None
+        )
+
+    return _cached("all_states", seconds, fetch)
+
+
 def get_config() -> dict:
     return _cached("config", 300, lambda: _get("/config") or {})  # country, currency, home location: change almost never
 

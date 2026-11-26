@@ -453,6 +453,12 @@ For a web service that answers JSON a plugin needs **no program**: it describes 
 
 **Not for everything.** A service that needs a login with a page of its own, a session, a signature or several steps in a row is a job for a plugin with a service ([start-here.md](start-here.md)); the OAuth login works for both.
 
+## Entities of Home Assistant (`bridge`) and taking interfaces (`claims`)
+
+A plugin without a service and without a connector may carry **`bridge`**: `{ "type": "home_assistant" }`. Its settings page then offers every interface of the [Plugin API](api.md) as a place to choose an **entity of Home Assistant** - per car, by an administrator, with units converted and changes arriving live. The package names no entity and runs nothing; the app reads Home Assistant. `slots` / `groups` narrow what is offered, `every` is the default interval, and a setting with the key `every` is shown on the page. Everything about it, with an example: [home-assistant.md](home-assistant.md).
+
+**`claims`** is a list of fields of the Plugin API (`"claims": ["fuel_level_pct", "range_km"]`) that a plugin takes for itself on every car where it is on: no other source of that car fills them then (the answer says `ignored (taken by <plugin>)`). A plugin whose fields another one already holds is installed but stays off until that is settled. A package with `bridge` has no `claims`: it takes what the person binds.
+
 ## The tile of a plugin and its buttons (`buttons`)
 Every plugin has a **tile** under *Plugins → Manage* with ONE line of buttons at the bottom, always in this order:
 

@@ -4,6 +4,7 @@
 {% from "_addon_files.html" import file_rows with context %}
 {# With tabs (settings_tabs) everything that is not a setting belongs to the first tab: the other tabs show their settings only. #}
 {% macro tabfor() %}{% if set_tabs %} data-tabfor="{{ set_tabs[0].id }}"{% if set_tab_on != set_tabs[0].id %} hidden{% endif %}{% endif %}{% endmacro %}
+{% block scripts %}{% if addon.m.bridge and hb %}<script src="{{ base }}/static/habridge.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 {{ page_head(addon.m.icon or ('plug' if addon.kind == 'plugin' else 'puzzle'), addon.m.name) }}
 {% if set_tabs %}<nav class="seg-tabs" aria-label="{{ _('addon.settings') }}" data-set-tabs>{% for g in set_tabs %}<a href="#tab-{{ g.id }}" data-tab="{{ g.id }}" class="{{ 'on' if g.id == set_tab_on }}{{ ' err' if g.err }}"{% if g.id == set_tab_on %} aria-current="page"{% endif %}>{% if g.icon %}{{ icon(g.icon, 18) }}{% endif %}<span>{{ g.label or _('addon.tab_general') }}</span>{% if g.err %}{{ icon('alert', 14) }}{% endif %}</a>{% endfor %}</nav>{% endif %}
@@ -32,6 +33,7 @@
   </div>
 </section>
 {% endif %}
+{% if addon.m.bridge %}{% include "_habridge.html" %}{% else %}
 <section class="card addon-set">
   <h2>{{ icon('settings', 20) }} {{ _('addon.settings') }}</h2>
   {% if errors %}<p class="flash err">{{ _('addon.fix_errors') }}</p>{% endif %}
@@ -42,6 +44,7 @@
     <div class="form-bar">{{ form_bar(label=(_('addon.save_short') if addon.status == 'configured' else _('addon.setup'))) }}</div>
   </form>
 </section>
+{% endif %}
 {% set dl_set = ((addon.m.downloads or [])|selectattr('place', 'equalto', 'settings')|selectattr('shown')|list) if addon.active else [] %}
 {% if car_files or dl_set %}
 <section class="card addon-token"{{ tabfor() }}>

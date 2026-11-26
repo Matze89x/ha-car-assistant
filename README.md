@@ -65,6 +65,7 @@ Everything exists in English and in German; switch the language at the top of an
 | [Start here](docs/start-here.md) | your first integration or plugin, running in ten minutes |
 | [Plugin guide](docs/plugin-guide.md) | the whole path on one page, for reference |
 | [Plugins](docs/plugins.md) | package format, settings page, services, files, tiles |
+| [Home Assistant plugin](docs/home-assistant.md) | entities of Home Assistant as values of a car (wallbox, tracker, sensors), live, per car |
 | [Fuel price providers](docs/fuel-providers.md) | an open JSON file per country for fuel prices |
 | [Charging point providers](docs/charge-providers.md) | charging points near the car for electric cars: OpenStreetMap, Open Charge Map, your own JSON file |
 | [Integrations](docs/integrations.md) | pages without code, reminders, plans |

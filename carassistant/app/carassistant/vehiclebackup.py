@@ -86,8 +86,10 @@ HANDLED = frozenset(
         "addon_deliveries",
         "connections",
         "connection_links",
+        "ha_bindings",
+        "field_claims",
     }
-)  # taken care of by name in export / _fill / _wipe (a connection: only its tokens in the secrets block)
+)  # taken care of by name in export / _fill / _wipe (a connection: only its tokens in the secrets block; the claims are made again from the bindings)
 SKIPPED_TABLES = {
     "vehicle_logs": "log lines of the plugins (kept for 7 days)",
     "vehicle_traffic": "the traffic view of a plugin while debug is on (kept for 7 days)",
@@ -217,6 +219,11 @@ def export(conn: sqlite3.Connection, vid: int, with_codes: bool = False, passphr
         )
     data["tables"]["addon_deliveries"] = _rows(
         conn, "SELECT d.* FROM addon_deliveries d JOIN vehicle_addons a ON a.id = d.addon_pk WHERE a.vehicle_id = ?", (vid,)
+    )
+    data["tables"]["ha_bindings"] = (
+        _rows(  # the entities of Home Assistant a plugin reads for this car (the interfaces they take follow from them)
+            conn, "SELECT b.* FROM ha_bindings b JOIN vehicle_addons a ON a.id = b.addon_pk WHERE a.vehicle_id = ?", (vid,)
+        )
     )
     from . import pagemods
 
@@ -382,6 +389,8 @@ def _wipe(conn: sqlite3.Connection, vid: int) -> None:
         conn.execute(f"DELETE FROM {table} WHERE vehicle_id = ?", (vid,))
     conn.execute("DELETE FROM api_tokens WHERE vehicle_id = ?", (vid,))
     conn.execute("DELETE FROM addon_deliveries WHERE addon_pk IN (SELECT id FROM vehicle_addons WHERE vehicle_id = ?)", (vid,))
+    conn.execute("DELETE FROM ha_bindings WHERE addon_pk IN (SELECT id FROM vehicle_addons WHERE vehicle_id = ?)", (vid,))
+    conn.execute("DELETE FROM field_claims WHERE vehicle_id = ?", (vid,))
     conn.execute("DELETE FROM vehicle_addons WHERE vehicle_id = ?", (vid,))
     from . import oauth
 
@@ -527,6 +536,25 @@ def _fill(conn: sqlite3.Connection, zf: zipfile.ZipFile, data: dict, new_id: int
                     clean.get("settings_hash") or "",
                 ),
             )
+    from . import claims, habridge
+
+    restored: dict[int, dict[str, dict]] = {}
+    for row in (tables.get("ha_bindings") or [])[
+        :MAX_ROWS
+    ]:  # the entities of Home Assistant a plugin reads: each one is checked again, the file may be from anywhere
+        if isinstance(row, dict) and row.get("addon_pk") in addon_ids:
+            binding = habridge.clean_stored(row.get("slot"), row.get("entity"), row.get("options"))
+            if binding is not None:
+                restored.setdefault(addon_ids[row["addon_pk"]], {})[row["slot"]] = binding
+    for pk, bound in restored.items():
+        for slot, binding in bound.items():
+            conn.execute(
+                "INSERT OR REPLACE INTO ha_bindings(addon_pk, slot, entity, options) VALUES(?,?,?,?)",
+                (pk, slot, binding["entity"], json.dumps(binding["options"], sort_keys=True)),
+            )
+        claims.register(
+            conn, new_id, pk, habridge.fields_bound(bound)
+        )  # what it reads is taken for it again (it starts off, like every restored plugin)
     from . import pagemods
 
     pagemods.restore(conn, new_id, secret["modules"] if isinstance(secret.get("modules"), list) else data.get("modules"))

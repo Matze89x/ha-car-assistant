@@ -19,7 +19,7 @@ from carassistant import addons, i18n, icons
 
 KNOWN = {
     "id", "kind", "name", "version", "description", "author", "homepage", "icon", "nav", "settings", "pages", "reminders", "tiles", "interfaces", "docs", "downloads",
-    "l10n", "connection_file", "simulation", "service", "setup", "bundles", "files", "capabilities", "settings_page", "buttons", "connector",
+    "l10n", "connection_file", "simulation", "service", "setup", "bundles", "files", "capabilities", "settings_page", "buttons", "connector", "bridge", "claims",
 }  # fmt: skip
 READABLE = {
     ".py",
@@ -255,6 +255,15 @@ def check(target: Path) -> tuple[list[str], list[str]]:
             notes.append("'connector' was dropped: it belongs to a plugin WITHOUT a service (the app itself runs it).")
         else:
             notes.append(f"'connector' was dropped: {addons.clean_connector(data.get('connector'), types)[1]}.")
+    if data.get("bridge") is not None and not manifest.get("bridge"):
+        if manifest.get("service") or manifest.get("connector") or data.get("kind") == "integration":
+            notes.append("'bridge' was dropped: it belongs to a plugin without a service and without a connector (the app itself reads Home Assistant).")
+        else:
+            notes.append(f"'bridge' was dropped: {addons.clean_bridge(data.get('bridge'))[1]}.")
+    if data.get("claims") is not None and not manifest.get("claims"):
+        notes.append("'claims' was left out: it is a list of fields of the Plugin API (docs/api.md), and not for a plugin with 'bridge' (that takes what the person binds).")
+    elif manifest.get("claims") and len(manifest["claims"]) != len(data.get("claims") or []):
+        notes.append("Some names in 'claims' were left out: only fields of the Plugin API count (not measured_at).")
     for st in asked_flow:
         if isinstance(st, dict) and st.get("type") == "oauth" and st.get("id") not in kept_flow:
             spec, why = addons.clean_oauth(st.get("oauth"), types)

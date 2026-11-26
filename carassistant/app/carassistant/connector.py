@@ -199,7 +199,7 @@ def run(addon: dict) -> str:
     name = addon["m"].get("name") or addon["addon_id"]
     with db.tx() as conn:
         try:
-            result = connectors.ingest(conn, addon["vehicle_id"], data, name)
+            result = connectors.ingest(conn, addon["vehicle_id"], data, name, caller=addon["id"])
         except connectors.ApiError as exc:
             raise ConnectorError(f"the values were refused: {exc.message[:150]}") from exc
         fields = sorted(k for k in data if k != "measured_at")

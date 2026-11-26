@@ -73,6 +73,12 @@ def preview(m: dict, t) -> dict:
             fields,
             t("pkg.note_connector"),
         )
+    if m.get("bridge"):  # the APP reads entities of Home Assistant (habridge.py); which ones, the administrator chooses
+        from . import habridge
+
+        add("sends", t("pkg.row_bridge"), "", sorted({slot.field for slot in habridge.offered(m)}), t("pkg.note_bridge"))
+    if m.get("claims"):  # fields of the Plugin API the plugin takes for itself (claims.py)
+        add("sends", t("pkg.row_claims"), "", m["claims"], t("pkg.note_claims"))
     for d in m.get("downloads", []):
         add("brings", t("pkg.row_download", label=d["label"]), d["path"], None, d.get("note", ""))
     for f in m.get("files", []):

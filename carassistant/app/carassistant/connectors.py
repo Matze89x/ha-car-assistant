@@ -840,13 +840,24 @@ def snapshot(conn: sqlite3.Connection, vehicle_id: int) -> dict:
     return {"data": data, "updated": updated}
 
 
-def ingest(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str) -> dict[str, str]:
-    """Validate and store pushed values. Returns what happened per key (stored / ignored)."""
+def ingest(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str, caller: int | None = None) -> dict[str, str]:
+    """Validate and store pushed values. Returns what happened per key (stored / ignored). ``caller`` = the install (its number) that sends: a field
+    that ANOTHER plugin has taken for this car (claims.py) is not stored and answered ``ignored (taken by <plugin>)``."""
     if not isinstance(data, dict):
         raise ApiError("invalid_body", "The body must be a JSON object.", 422)
     unknown = sorted(set(data) - KNOWN)
     if unknown:
         raise ApiError("unknown_field", f"Unknown field(s): {', '.join(unknown)}. Allowed: {', '.join(sorted(KNOWN))}.", 422)
+    from . import claims
+
+    data, taken = claims.guard(conn, vehicle_id, data, caller)
+    if taken:
+        result = _ingest(conn, vehicle_id, data, source) if data else {}
+        return {**result, **{field: f"ignored (taken by {who})" for field, who in taken.items()}}
+    return _ingest(conn, vehicle_id, data, source)
+
+
+def _ingest(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str) -> dict[str, str]:
     at = None
     if data.get("measured_at") not in (None, ""):
         at = moment(data["measured_at"])
