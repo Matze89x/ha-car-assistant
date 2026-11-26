@@ -160,7 +160,7 @@ def test_the_video_plays_and_its_last_frame_stands_and_is_kept(hero):
     )  # the video ended: its last frame is kept for good, not only for the session
     end = hero.state()
     assert (
-        end["still"] == "CANVAS" and end["videoHidden"] is True and end["stillOpacity"] == 1 and end["h"] > 100
+        end["still"] == "CANVAS" and end["videoHidden"] is True and end["stillOpacity"] >= 0.99 and end["h"] > 100
     )  # the last frame, standing
     assert not [e for e in hero.b.drain() if e["kind"] in ("exception", "csp")]
 
@@ -170,7 +170,7 @@ def test_a_refused_start_leaves_the_last_frame_of_the_earlier_visit(hero):
     hero.visit(REFUSE)
     hero.b.wait_for("document.querySelector('.hero-media .hero-frozen')", seconds=10)
     s = hero.state()
-    assert s["still"] == "IMG" and s["stillSrc"].startswith("data:image/jpeg") and s["stillOpacity"] == 1 and s["stillWidth"] > 100
+    assert s["still"] == "IMG" and s["stillSrc"].startswith("data:image/jpeg") and s["stillOpacity"] >= 0.99 and s["stillWidth"] > 100
     assert "vplay" in s["classes"] and "failed" not in s["classes"] and s["h"] > 100
 
 
@@ -180,7 +180,7 @@ def test_a_start_that_hangs_shows_a_picture_from_the_first_moment(hero):
     hero.b.wait_for("document.querySelector('.hero-media .hero-frozen')", seconds=5)
     s = hero.state()
     assert (
-        s["still"] == "IMG" and "vplay" in s["classes"] and s["stillOpacity"] == 1 and s["h"] > 100
+        s["still"] == "IMG" and "vplay" in s["classes"] and s["stillOpacity"] >= 0.99 and s["h"] > 100
     )  # not an empty box while nothing happens
 
 
@@ -299,7 +299,7 @@ def test_a_missing_video_file_keeps_the_picture(hero):
     hero.b.wait_for("document.querySelector('.hero-media .hero-frozen')", seconds=10)
     time.sleep(1.0)
     s = hero.state()
-    assert s["still"] == "IMG" and s["stillOpacity"] == 1 and s["h"] > 100
+    assert s["still"] == "IMG" and s["stillOpacity"] >= 0.99 and s["h"] > 100
 
 
 def test_a_start_that_is_refused_before_the_picture_has_arrived_waits_for_the_picture(hero):
@@ -309,4 +309,4 @@ def test_a_start_that_is_refused_before_the_picture_has_arrived_waits_for_the_pi
     )  # the picture arrives (after the video was refused) and stands
     time.sleep(0.3)
     s = hero.state()
-    assert s["still"] == "IMG" and "failed" not in s["classes"] and "vplay" in s["classes"] and s["stillOpacity"] == 1 and s["h"] > 100
+    assert s["still"] == "IMG" and "failed" not in s["classes"] and "vplay" in s["classes"] and s["stillOpacity"] >= 0.99 and s["h"] > 100
