@@ -1,7 +1,7 @@
 ---
 # https://developers.home-assistant.io/docs/apps/configuration
 name: Car Assistant Developer
-version: "0.5.43.2"
+version: "0.5.43.3"
 slug: carassistant_dev
 description: Developer version of Car Assistant - the newest development state from the dev branch, for testing. May contain unfinished features. Runs next to Car Assistant with its own data.
 url: https://github.com/Matze89x/ha-car-assistant
@@ -27,7 +27,7 @@ ports:
 map:
   - type: share
 options:
-  log_level: error
+  log_level: warning
   mqtt_sensors: true
 schema:
   log_level: list(debug|info|warning|error)
