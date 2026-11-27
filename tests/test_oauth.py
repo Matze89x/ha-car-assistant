@@ -275,13 +275,14 @@ def test_the_way_back_of_a_login_under_the_https_address_of_the_app(client, prov
     )
 
     # the browser comes back - nobody is signed in at that moment, and the page must still not tell more than it has to
-    back = client.get("/oauth/callback", params={"code": "c1", "state": query["state"]})
-    assert back.status_code == 200 and "Logged in." in back.text and "AT1" not in back.text and "c1" not in back.text
+    # (a code of letters a version fingerprint in the page cannot hold: two letters like "c1" are in it now and then)
+    back = client.get("/oauth/callback", params={"code": "no-code-xyz", "state": query["state"]})
+    assert back.status_code == 200 and "Logged in." in back.text and "AT1" not in back.text and "no-code-xyz" not in back.text
     assert provider.calls[0]["form"]["redirect_uri"] == "https://car.example.com/oauth/callback"
     assert _api(client, vid, token).json()["access_token"] == "AT1"
     assert client.get(base).text.count("Connected.") >= 1
     # used once: the same address again, a made-up one and one without anything find nothing
-    for params in ({"code": "c1", "state": query["state"]}, {"code": "c", "state": "made-up"}, {"code": "c"}, {}):
+    for params in ({"code": "no-code-xyz", "state": query["state"]}, {"code": "c", "state": "made-up"}, {"code": "c"}, {}):
         assert client.get("/oauth/callback", params=params).status_code == 400
     assert len(provider.calls) == 1
 
