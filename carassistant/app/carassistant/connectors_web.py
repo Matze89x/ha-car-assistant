@@ -251,9 +251,7 @@ async def api_plugin_settings_put(request: Request, vehicle_id: int):
             if exc.fields:
                 body["fields"] = exc.fields
             return JSONResponse(body, status_code=status)
-        connectors.write_logs(
-            conn, vehicle_id, addon["addon_id"], [(connectors._now(), "info", "app", f"settings changed by the plugin: {', '.join(keys)}")]
-        )
+        connectors.app_log(conn, vehicle_id, addon["addon_id"], "info", "app", f"settings changed by the plugin: {', '.join(keys)}")
     events.changed()
     return {"ok": True, "changed": keys}
 

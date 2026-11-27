@@ -4,14 +4,14 @@ import logging
 
 import uvicorn
 
-from . import __version__, config, db, events, pluginsvc, sources, worker
+from . import __version__, config, db, events, logsetup, pluginsvc, sources, worker
 from .mqtt_ha import publisher
 
 
 def main() -> None:
-    logging.basicConfig(level=config.log_level(), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logsetup.setup(config.log_level())
     log = logging.getLogger("carassistant")
-    log.info("Car Assistant %s starting (data: %s)", __version__, config.data_dir())
+    log.info("Car Assistant %s starting (log level %s, data: %s)", __version__, logsetup.level_name(config.log_level()), config.data_dir())
     db.migrate()
     try:
         with db.tx() as conn:
@@ -29,7 +29,7 @@ def main() -> None:
             "carassistant.asgi:app",
             host="0.0.0.0",  # noqa: S104 - reachable only through the Supervisor ingress gateway (checked in web.py)
             port=config.port(),
-            log_level=config.log_level().lower(),
+            log_level=logsetup.uvicorn_level(config.log_level()),
             proxy_headers=False,
             access_log=False,
         )

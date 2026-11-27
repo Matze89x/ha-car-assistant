@@ -140,4 +140,4 @@ Any other plugin may take interfaces for itself with `"claims": ["fuel_level_pct
 
 ## Watching it
 
-The plugin's **Logs** page (switch the log on for a day) says what it reads and what is wrong - once for each trouble, not at every try: *the unit "l" does not fit*, *the entity does not exist*, *Home Assistant cannot be reached; trying again*, *Home Assistant can be reached again*, *Home Assistant reports less than the odometer Car Assistant already knows*. The page of its settings shows live whether the connection stands and what every entity delivers.
+The plugin's **Logs** page (switch the log on for a day) says what it reads and what is wrong - once for each trouble, not at every try: *the unit "l" does not fit*, *the entity does not exist*, *Home Assistant cannot be reached; trying again*, *Home Assistant can be reached again*, *Home Assistant reports less than the odometer Car Assistant already knows*. The page of its settings shows live whether the connection stands and what every entity delivers. The same lines are in the log of the add-on in Home Assistant (see [the logs](logs.md)).

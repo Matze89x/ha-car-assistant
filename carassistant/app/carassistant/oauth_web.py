@@ -54,11 +54,14 @@ def oauth_callback(request: Request, state: str = "", code: str = "", error: str
     except oauth.OAuthError as exc:
         if addon:
             with db.tx() as conn:
-                connectors.write_logs(
+                connectors.app_log(
                     conn,
                     addon["vehicle_id"],
                     addon["addon_id"],
-                    [(connectors._now(), "warn", "app", f"login failed: {tr(exc.key)} {exc.detail}".strip())],
+                    "warn",
+                    "app",
+                    f"login failed: {tr(exc.key)} {exc.detail}".strip(),
+                    mirror=f"login failed ({exc.key})",  # (what the provider wrote stays in the log of the plugin)
                 )
         return _page(request, False, tr("oauth.callback_failed"), 400)
     except Exception:

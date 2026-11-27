@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import ipaddress
 import json
+import logging
 import re
 import socket
 import sqlite3
@@ -31,6 +32,8 @@ from pathlib import Path
 from urllib.parse import quote, urlsplit
 
 from . import addons, db, icons, vault
+
+log = logging.getLogger(__name__)
 
 MAX_SOURCES = 50
 MAX_FILE = 200_000  # bytes per downloaded file
@@ -483,6 +486,7 @@ def refresh(conn: sqlite3.Connection, source_id: int, offline: bool = False) -> 
         "UPDATE sources SET checked_at = COALESCE(?, checked_at), online_at = COALESCE(?, online_at), error = ?, note = ? WHERE id = ?",
         (None if offline else now, now if error is None and not offline else None, error, json.dumps(notes) if notes else None, source_id),
     )
+    log.info("Source %s: %s", str(new_name or source["name"])[:60], "list read" if error is None else f"not updated ({error})")
     return error
 
 

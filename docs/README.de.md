@@ -25,6 +25,7 @@ Auch als Webseite mit Menü, Suche und Sprachumschalter: **[matze89x.github.io/h
 | [Screenshots](screenshots.de.md) | die App im Einsatz |
 | [Installation](install.de.md) | in Home Assistant, aus dem Repository oder als lokale App |
 | [Sicherungen](backup.de.md) | ein Auto oder das ganze System sichern und wiederherstellen |
+| [Protokolle](logs.de.md) | das Protokoll des Add-ons in Home Assistant und die Seite Protokoll eines Plugins: was jedes sagt, was nie darin steht |
 | [MCP-Zugriff](mcp.de.md) | Claude Code Einträge lesen und korrigieren lassen (standardmäßig aus) |
 | [Handbuch-Paket](manual-package.de.md) | ein Handbuch mit Seitenbildern importieren |
 | [Fahrzeugdatei](vehicle-file.de.md) | ein Auto aus einem anderen Programm übernehmen |

@@ -331,16 +331,17 @@ def revoke(conn, addon: dict) -> None:
     stop(addon["id"])
 
 
-def _event(addon: dict | sqlite3.Row, level: str, text: str, conn=None) -> None:
+def _event(addon: dict | sqlite3.Row, level: str, text: str, conn=None, mirror: str | None = None) -> None:
     """A line in the plugin's log about what the add-on does with its service (install, start, crash, restart, stop). Written whether or not debug is on:
-    these lines say where something goes wrong and hold nothing about the car."""
-    row = [(datetime.now(UTC).isoformat(timespec="seconds"), level, "system", text[:500])]
+    these lines say where something goes wrong and hold nothing about the car. The log of the add-on says it too (``mirror`` when it must say less than
+    the plugin's own line: no output of the service, nothing a traceback already tells)."""
+    ts = datetime.now(UTC).isoformat(timespec="seconds")
     try:
         if conn is not None:
-            connectors.write_logs(conn, addon["vehicle_id"], addon["addon_id"], row)
+            connectors.app_log(conn, addon["vehicle_id"], addon["addon_id"], level, "system", text[:500], mirror=mirror, ts=ts)
         else:
             with db.tx() as own:
-                connectors.write_logs(own, addon["vehicle_id"], addon["addon_id"], row)
+                connectors.app_log(own, addon["vehicle_id"], addon["addon_id"], level, "system", text[:500], mirror=mirror, ts=ts)
     except Exception:
         log.debug("could not write a service event", exc_info=True)
 
@@ -392,7 +393,6 @@ def _install(pk: int) -> None:
                     cmd += service["requirements"]
                     done = subprocess.run(cmd, capture_output=True, text=True, timeout=INSTALL_TIMEOUT, check=False)  # noqa: S603
                     if done.returncode != 0:
-                        log.warning("requirements of %s failed: %s", addon_id, done.stderr[-500:])
                         error = "svc.err_install"
                         _event(addon, "error", "pip failed: " + " ".join(done.stderr.split())[-400:])
                 if not error:
@@ -403,7 +403,8 @@ def _install(pk: int) -> None:
         log.exception("installing the environment of plugin %s failed", pk)
         error = "svc.err_install"
         if addon is not None:
-            _event(addon, "error", f"Installing the environment failed: {type(exc).__name__}: {str(exc)[:200]}")
+            # (the add-on log has the traceback above: no second line for it)
+            _event(addon, "error", f"Installing the environment failed: {type(exc).__name__}: {str(exc)[:200]}", mirror="")
     finally:
         with _lock:
             _installing.discard(pk)
@@ -589,7 +590,6 @@ def _start(conn, addon: dict) -> None:
     conn.execute(
         "UPDATE vehicle_addons SET svc_started = ?, svc_error = NULL WHERE id = ?", (datetime.now(UTC).isoformat(timespec="seconds"), pk)
     )
-    log.info("service of plugin %s (car %s) started on port %s", addon["addon_id"], addon["vehicle_id"], port)
     _event(addon, "info", f"Service started (process {proc.pid}, port {port}, restarts so far {_procs[pk]['fails']})", conn)
 
 
@@ -821,7 +821,6 @@ def tick() -> None:
                 if info:  # crashed: pause longer each time
                     info["fails"] += 1
                     code = info["proc"].returncode
-                    log.warning("service of plugin %s exited (%s)", addon["addon_id"], code)
                     wait = BACKOFF[min(info["fails"] - 1, len(BACKOFF) - 1)]
                     last = (
                         " | ".join(_tail.get(pk, [])[-4:])
@@ -833,6 +832,7 @@ def tick() -> None:
                         "error",
                         f"Service stopped by itself (exit code {code}); start number {info['fails'] + 1} after a pause of {wait} s. {last}",
                         conn,
+                        mirror=f"Service stopped by itself (exit code {code}); start number {info['fails'] + 1} after a pause of {wait} s",
                     )
                 if not (venv_dir(addon["addon_id"]) / "bin" / "python").is_file() or not _env_ready(addon):
                     install_async(pk)
@@ -843,7 +843,6 @@ def tick() -> None:
                     _procs[pk]["fails"] = fails
                     _procs[pk]["next"] = now + BACKOFF[min(fails, len(BACKOFF) - 1)]
                 except (OSError, FileNotFoundError, ValueError) as exc:
-                    log.warning("could not start the service of plugin %s: %s", addon["addon_id"], exc)
                     _event(addon, "error", f"The service could not be started: {type(exc).__name__}: {str(exc)[:200]}", conn)
                     conn.execute("UPDATE vehicle_addons SET svc_error = 'svc.err_start' WHERE id = ?", (pk,))
             _rebuild_routes()

@@ -29,7 +29,7 @@ Open the app (*Settings → Apps → Car Assistant*) and its *Configuration* tab
 
 | Option | Meaning |
 |---|---|
-| `log_level` | How much the app writes to its log. `error` = only problems (default). Use `info` or `debug` only to find a problem. |
+| `log_level` | How much the app writes to its log (the *Log* tab in Home Assistant). `warning` (default) = errors and warnings, `error` = only errors, `info` adds what the app does (start, connections, updates, backups, the lines it writes for plugins), `debug` one line for every page request and every delivery of values - never a value, a token or a name. Use `info` or `debug` only to find a problem, then switch back. [More about the logs](https://matze89x.github.io/ha-car-assistant/logs.html) |
 | `mqtt_sensors` | No longer needed - kept only so that existing configurations stay valid. The sensors in Home Assistant (MQTT) are on by default whenever a broker is found and are switched in the app (*Settings → System*). |
 | `mqtt_host`, `mqtt_port`, `mqtt_user`, `mqtt_password` | Only for your own broker. Empty = the broker of Home Assistant (for example the Mosquitto app), found automatically. |
 

@@ -14,6 +14,15 @@ def test_defaults_match_schema_types():
             assert CONFIG["options"][key] in rule[5:-1].split("|")
 
 
+def test_the_log_level_starts_at_warning_and_the_add_on_page_says_what_the_levels_show():
+    """Warnings are what a person needs to see without asking; ``info`` and ``debug`` are for looking for a problem (docs/logs.md)."""
+    assert CONFIG["options"]["log_level"] == "warning"
+    for name in ("DOCS.md", "DOCS.de.md"):
+        text = (Path(__file__).resolve().parents[1] / "carassistant" / name).read_text(encoding="utf-8")
+        row = next(line for line in text.splitlines() if line.startswith("| `log_level`"))
+        assert all(f"`{level}`" in row for level in ("error", "warning", "info", "debug")), name
+
+
 def test_version_scheme():
     major, minor, patch = CONFIG["version"].split(".")
     assert major == "0" and minor.isdigit() and patch.isdigit()

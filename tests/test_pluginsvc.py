@@ -1,6 +1,7 @@
 import hashlib
 import io
 import json
+import logging
 import sys
 import time
 import zipfile
@@ -137,6 +138,30 @@ def test_an_uploaded_package_with_a_service_is_refused(client):
     r = client.post(f"/v/{vid}/integrations/upload", files={"package": ("plugin.json", json.dumps(MANIFEST), "application/json")})
     with db.tx() as conn:
         assert addons.list_for(conn, vid) == []
+
+
+def test_what_happens_to_a_service_is_said_in_the_log_of_the_add_on_without_what_it_printed(client, caplog):
+    vid, pk = _install(client)
+    with db.tx() as conn:
+        addon = addons.get(conn, vid, pk)
+        with caplog.at_level(logging.INFO, logger="carassistant.plugins"):
+            pluginsvc._event(addon, "info", "Service started (process 1, port 2, restarts so far 0)", conn)
+            pluginsvc._event(
+                addon,
+                "error",
+                "Service stopped by itself (exit code 3); start number 2 after a pause of 5 s. password=hunter2 printed",
+                conn,
+                mirror="Service stopped by itself (exit code 3); start number 2 after a pause of 5 s",
+            )
+            pluginsvc._event(addon, "error", "Installing the environment failed: OSError: x", conn, mirror="")  # (a traceback says it)
+        kept = [r["message"] for r in conn.execute("SELECT message FROM vehicle_logs WHERE vehicle_id = ? ORDER BY id", (vid,))]
+    said = [(r.levelname, r.getMessage()) for r in caplog.records if r.name == "carassistant.plugins"]
+    assert said == [
+        ("INFO", f"[car {vid}] echo-svc: Service started (process 1, port 2, restarts so far 0)"),
+        ("ERROR", f"[car {vid}] echo-svc: Service stopped by itself (exit code 3); start number 2 after a pause of 5 s"),
+    ]
+    # the log of the plugin has what the service printed, the log of the add-on does not
+    assert "hunter2" not in caplog.text and any("hunter2" in line for line in kept)
 
 
 def test_a_package_must_be_readable_and_safe(client):

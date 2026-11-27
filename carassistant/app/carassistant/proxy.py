@@ -164,6 +164,8 @@ class PluginProxy:
         route = pluginsvc.route_for(scope.get("path", ""))
         if route is None:
             return await self.app(scope, receive, send)
+        # what the request line of the log calls it (the address itself is never written)
+        scope["carassistant_label"] = f"plugin service {route['pk']}"
         client = (scope.get("client") or ("", 0))[0]
         if route.get("token_header") and not await asyncio.to_thread(token_ok, route, scope.get("headers", [])):
             query = scope.get("query_string", b"").decode("latin-1")

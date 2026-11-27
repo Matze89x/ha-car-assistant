@@ -2,6 +2,7 @@
 the server before a command that cannot be taken back lightly, a line in the log of the plugin for every command, and a limit against a storm."""
 
 import json
+import logging
 
 import pytest
 from tests.test_addons import MANIFEST
@@ -60,14 +61,17 @@ def _log(vid):
         ]
 
 
-def test_a_command_goes_to_the_service_with_its_name_and_leaves_a_line_in_the_log(client, car):
+def test_a_command_goes_to_the_service_with_its_name_and_leaves_a_line_in_the_log(client, car, caplog):
     vid, pk, sent = car
     base = f"/v/{slug(vid)}/integrations/{pk}/button"
-    done = client.post(f"{base}/lock")
+    with caplog.at_level(logging.INFO, logger="carassistant.plugins"):
+        done = client.post(f"{base}/lock")
     assert done.status_code == 200 and "addon-status ok" in done.text
     assert sent == [("/priv/lock", {"vehicle": vid, "button": "lock", "language": "en", "command": "lock"}, 20.0)]
     level, message = _log(vid)[-1]
     assert level == "info" and message.startswith("command lock by ") and message.endswith(": sent")  # who, what, and how it went
+    said = [(r.levelname, r.getMessage()) for r in caplog.records if r.name == "carassistant.plugins"]
+    assert said == [("INFO", f"[car {vid}] cmd-demo: command lock: sent")]  # the log of the add-on does not say WHO
 
 
 def test_a_command_that_cannot_be_taken_back_lightly_is_asked_by_the_server(client, car):
@@ -88,13 +92,16 @@ def test_a_command_that_cannot_be_taken_back_lightly_is_asked_by_the_server(clie
     assert f'action="/v/{slug(vid)}/integrations/{pk}/button/lock"' in tile  # and posts the harmless one at once
 
 
-def test_a_failure_is_written_down_and_a_storm_is_stopped(client, car, monkeypatch):
+def test_a_failure_is_written_down_and_a_storm_is_stopped(client, car, monkeypatch, caplog):
     vid, pk, sent = car
     base = f"/v/{slug(vid)}/integrations/{pk}/button"
     monkeypatch.setattr(pluginsvc, "call", lambda *a, **k: (False, "The car is asleep."))
-    failed = client.post(f"{base}/lock")
+    with caplog.at_level(logging.INFO, logger="carassistant.plugins"):
+        failed = client.post(f"{base}/lock")
     assert "The car is asleep." in failed.text
     assert _log(vid)[-1][0] == "warn" and _log(vid)[-1][1].endswith("failed - The car is asleep.")  # a failure is a warning, not news
+    said = [(r.levelname, r.getMessage()) for r in caplog.records if r.name == "carassistant.plugins"]
+    assert said == [("WARNING", f"[car {vid}] cmd-demo: command lock: failed")]  # what the service answered stays in the log of the plugin
     monkeypatch.setattr(pluginsvc, "call", lambda pk, path, payload, vehicle, user="ha", timeout=10.0: sent.append(path) or (True, ""))
     for _ in range(addons_web.COMMAND_LIMIT):  # (the failed one counted, too)
         client.post(f"{base}/lock")

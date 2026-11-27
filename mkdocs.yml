@@ -64,6 +64,7 @@ plugins:
             Screenshots: Screenshots
             Install: Installation
             Backups: Sicherungen
+            Logs: Protokolle
             MCP access: MCP-Zugriff
             Manual package: Handbuch-Paket
             Vehicle file: Fahrzeugdatei
@@ -131,6 +132,7 @@ nav:
       - Screenshots: screenshots.md
       - Install: install.md
       - Backups: backup.md
+      - Logs: logs.md
       - MCP access: mcp.md
       - Manual package: manual-package.md
       - Vehicle file: vehicle-file.md

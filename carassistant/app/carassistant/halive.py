@@ -153,6 +153,8 @@ class Link:
         if self._live == value:
             return
         self._live = value
+        if value:
+            log.info("Live connection to Home Assistant: connected")
         if not value:
             self._active = frozenset()
             with self._lock:

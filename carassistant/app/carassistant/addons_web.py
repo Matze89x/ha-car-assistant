@@ -1165,18 +1165,14 @@ async def addon_button(request: Request, vid: int, aid: int, bid: str):
         by = (who["username"] if who else None) or "Home Assistant"
         outcome = "sent" if ok else f"failed - {(message or '')[:120]}"
         with db.tx() as conn:
-            connectors.write_logs(
+            connectors.app_log(
                 conn,
                 vid,
                 addon["addon_id"],
-                [
-                    (
-                        connectors._now(),
-                        "warn" if button.get("dangerous") or not ok else "info",
-                        "app",
-                        f"command {command} by {by}: {outcome}",
-                    )
-                ],
+                "warn" if button.get("dangerous") or not ok else "info",
+                "app",
+                f"command {command} by {by}: {outcome}",
+                mirror=f"command {command}: {'sent' if ok else 'failed'}",  # (neither the person nor the text the service answered)
             )
     return render(
         request,

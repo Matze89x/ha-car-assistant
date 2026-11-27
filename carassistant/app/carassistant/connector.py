@@ -221,7 +221,7 @@ _state: dict[int, dict] = {}  # install -> {"next": when it is due (monotonic), 
 
 
 def _line(conn, addon: dict, level: str, text: str) -> None:
-    connectors.write_logs(conn, addon["vehicle_id"], addon["addon_id"], [(connectors._now(), level, "connector", text[:300])])
+    connectors.app_log(conn, addon["vehicle_id"], addon["addon_id"], level, "connector", text[:300])  # (also in the log of the add-on)
 
 
 def tick(now: float | None = None) -> int:

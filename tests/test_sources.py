@@ -1,4 +1,5 @@
 import json
+import logging
 
 import pytest
 
@@ -242,15 +243,17 @@ def test_factory_reset_brings_the_standard_source_back_and_it_can_be_removed_aga
         assert sources.get(conn, new_id) is None
 
 
-def test_auto_name_and_lenient_index(client, fake_source):
+def test_auto_name_and_lenient_index(client, fake_source, caplog):
     assert sources.auto_name("https://github.com/Owner/Repo-X") == "Owner/Repo-X"
     assert sources.auto_name("https://example.org/a/b/cars") == "example.org/cars"
     fake_source["files"]["plugins/index.json"] = json.dumps([{"id": "demo-one", "name": "Demo One"}, {"id": "Bad Id"}, {"name": "no id"}])
     fake_source["files"]["index.json"] = json.dumps({"name": "Fine Source"})
     with db.tx() as conn:
         sid = sources.add(conn, "", "https://example.org/x/cars", "", "plugin")
-    with db.tx() as conn:
+    with db.tx() as conn, caplog.at_level(logging.INFO, logger="carassistant.sources"):
         assert sources.refresh(conn, sid) is None
+    said = [r.getMessage() for r in caplog.records if r.name == "carassistant.sources"]
+    assert said == ["Source Fine Source: list read"]  # said, with the new name
     with db.tx() as conn:
         row = sources.listing(conn, "plugin")
     mine = next(r for r in row if r["id"] == sid)

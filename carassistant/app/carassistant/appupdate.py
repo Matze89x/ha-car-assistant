@@ -8,6 +8,7 @@ Package updates (plugins, integrations) come from the sources the app already re
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import time
 import urllib.error
@@ -15,6 +16,8 @@ import urllib.request
 from datetime import UTC, datetime
 
 from . import __version__, addons, db, sources
+
+log = logging.getLogger(__name__)
 
 SETTING = "app.update.check"
 URL = "https://raw.githubusercontent.com/Matze89x/ha-car-assistant/main/release.json"
@@ -35,7 +38,9 @@ def check(conn: sqlite3.Connection) -> bool:
         if not version or not all(p.isdigit() for p in version.split(".")):
             return False
     except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+        log.info("Update check: the file of the project could not be read (no connection or no answer)")
         return False
+    log.info("Update check: the newest version is %s", version)
     db.set_setting(conn, "app.update.latest", version)
     db.set_setting(conn, "app.update.stage", str(data.get("stage", ""))[:20])
     db.set_setting(conn, "app.update.checked", datetime.now(UTC).isoformat(timespec="minutes"))

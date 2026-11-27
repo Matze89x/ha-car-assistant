@@ -207,9 +207,7 @@ def finish(state: str, code: str, expect: tuple[int, str] | None = None) -> dict
     tokens = exchange(spec, code, verifier, row["redirect"])
     with db.tx() as conn:
         save(conn, addon, step["id"], tokens)
-        connectors.write_logs(
-            conn, addon["vehicle_id"], addon["addon_id"], [(connectors._now(), "info", "app", "logged in with an account")]
-        )
+        connectors.app_log(conn, addon["vehicle_id"], addon["addon_id"], "info", "app", "logged in with an account")
     return addon
 
 
@@ -317,9 +315,7 @@ def device_poll(addon: dict, step: dict) -> str:
         with db.tx() as conn:
             save(conn, addon, step["id"], tokens)
             conn.execute("DELETE FROM oauth_pending WHERE state = ?", (pend["state"],))
-            connectors.write_logs(
-                conn, addon["vehicle_id"], addon["addon_id"], [(connectors._now(), "info", "app", "logged in with an account")]
-            )
+            connectors.app_log(conn, addon["vehicle_id"], addon["addon_id"], "info", "app", "logged in with an account")
         return "connected"
 
 

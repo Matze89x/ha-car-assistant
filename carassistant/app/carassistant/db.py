@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import contextlib
+import logging
 import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
 
 from . import config
+
+log = logging.getLogger(__name__)
 
 SCHEMA_DIR = Path(__file__).parent
 
@@ -131,6 +134,8 @@ def migrate() -> int:
             conn.executescript(script)
             conn.execute(f"PRAGMA user_version = {version}")
             conn.commit()
+        if current < len(MIGRATIONS):
+            log.info("Database updated: schema %d -> %d", current, len(MIGRATIONS))
         from . import slugs
 
         slugs.backfill(conn)

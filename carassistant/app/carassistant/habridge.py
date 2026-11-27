@@ -496,7 +496,7 @@ def _fresh_state() -> dict:
 
 
 def _line(conn, addon: dict, level: str, text: str) -> None:
-    connectors.write_logs(conn, addon["vehicle_id"], addon["addon_id"], [(connectors._now(), level, SOURCE, text[:300])])
+    connectors.app_log(conn, addon["vehicle_id"], addon["addon_id"], level, SOURCE, text[:300])  # (also in the log of the add-on)
 
 
 def _say(conn, addon: dict, st: dict, key: str, level: str, text: str, now: float) -> None:

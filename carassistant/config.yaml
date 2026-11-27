@@ -27,7 +27,7 @@ ports:
 map:
   - type: share
 options:
-  log_level: error
+  log_level: warning
   mqtt_sensors: true
 schema:
   log_level: list(debug|info|warning|error)

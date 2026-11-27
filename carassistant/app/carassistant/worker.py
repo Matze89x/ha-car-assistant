@@ -105,6 +105,7 @@ def loop() -> None:
 def start() -> threading.Thread:
     thread = threading.Thread(target=loop, name="worker", daemon=True)
     thread.start()
+    log.info("Background jobs started (live values polled every %d s)", POLL_SECONDS)
     simulator.start()  # plays the scenario of plugins from a source that are switched on; idle otherwise
     connector.start()  # the connectors without code of the plugins that are switched on (connector.py); idle otherwise
     habridge.start()  # the plugins that read entities of Home Assistant (habridge.py); idle otherwise

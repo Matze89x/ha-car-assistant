@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import secrets
 import shutil
 import sqlite3
@@ -24,6 +25,8 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
 from . import __version__, appicon, backupsecrets, config, slugs, vault
+
+log = logging.getLogger(__name__)
 
 FORMAT = 2  # 2: more tables of a car, every setting of a car, where a package came from, secrets in a passphrase block
 MIN_FORMAT = 1
@@ -257,6 +260,8 @@ def export(conn: sqlite3.Connection, vid: int, with_codes: bool = False, passphr
                     zf.write(path, f"files/manual/{path.name}", compress_type=zipfile.ZIP_STORED)
         if appicon.custom_path(vid).is_file():  # the car's own app icon
             zf.write(appicon.custom_path(vid), "files/icon.png")
+    if not local:  # (a copy kept for safety before a restore is not worth a line)
+        log.info("Backup of vehicle %s created", vid)
     return buffer.getvalue()
 
 
@@ -378,6 +383,7 @@ def restore(conn: sqlite3.Connection, raw: bytes, passphrase: str = "") -> int:
         new_id = _insert(conn, "vehicles", values)
         conn.execute("UPDATE vehicles SET slug = ? WHERE id = ?", (slugs.unique(conn, name, new_id), new_id))
         _fill(conn, zf, data, new_id, secrets_found)
+    log.info("Vehicle %s created from a backup", new_id)
     return new_id
 
 
@@ -426,6 +432,7 @@ def replace(conn: sqlite3.Connection, raw: bytes, vid: int, passphrase: str = ""
             conn.execute("UPDATE vehicles SET " + ", ".join(f"{k} = ?" for k in values) + " WHERE id = ?", [*values.values(), vid])
         _wipe(conn, vid)
         _fill(conn, zf, data, vid, secrets_found)
+    log.info("Vehicle %s restored from a backup", vid)
     return vid
 
 

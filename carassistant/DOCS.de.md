@@ -27,7 +27,7 @@ Weitere Autos: *Einstellungen → Fahrzeuge → Fahrzeug hinzufügen*; oben ersc
 
 | Option | Bedeutung |
 |---|---|
-| `log_level` | Wie viel die App in ihr Protokoll schreibt. `error` = nur Probleme (Standard). `info` oder `debug` nur, um ein Problem zu finden. |
+| `log_level` | Wie viel die App in ihr Protokoll schreibt (der Reiter *Protokoll* in Home Assistant). `warning` (Standard) = Fehler und Warnungen, `error` = nur Fehler, `info` dazu, was die App tut (Start, Verbindungen, Updates, Sicherungen, die Zeilen, die sie für Plugins schreibt), `debug` eine Zeile für jede Seitenanfrage und jede Lieferung von Werten - nie ein Wert, ein Token oder ein Name. `info` oder `debug` nur, um ein Problem zu finden, danach zurückstellen. [Mehr zu den Protokollen](https://matze89x.github.io/ha-car-assistant/de/logs.html) |
 | `mqtt_sensors` | Nicht mehr nötig - bleibt nur, damit bestehende Konfigurationen gültig bleiben. Die Sensoren in Home Assistant (MQTT) sind standardmäßig an, sobald ein Broker gefunden wird, und werden in der App geschaltet (*Einstellungen → System*). |
 | `mqtt_host`, `mqtt_port`, `mqtt_user`, `mqtt_password` | Nur für einen eigenen Broker. Leer = der Broker von Home Assistant (zum Beispiel die Mosquitto-App), wird automatisch gefunden. |
 

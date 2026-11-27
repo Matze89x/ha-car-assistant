@@ -25,6 +25,7 @@ Also as a website with a menu, a search and a language switch: **[matze89x.githu
 | [Screenshots](screenshots.md) | the app in use |
 | [Install](install.md) | in Home Assistant, from the repository or as a local app |
 | [Backups](backup.md) | back up and restore one car or everything |
+| [Logs](logs.md) | the log of the add-on in Home Assistant and the Logs page of a plugin: what each says, what is never in it |
 | [MCP access](mcp.md) | let Claude Code read and correct your records (off by default) |
 | [Manual package](manual-package.md) | import a manual with page images |
 | [Vehicle file](vehicle-file.md) | bring a car in from another program |

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import shutil
 import sqlite3
 import tempfile
@@ -22,6 +23,8 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
 from . import __version__, backupsecrets, config, db
+
+log = logging.getLogger(__name__)
 
 MAX_RESTORE_BYTES = 500 * 1024 * 1024
 FORMAT = (
@@ -43,8 +46,9 @@ def secrets_state(data: bytes) -> str:
         return "none"
 
 
-def create(passphrase: str | None = None) -> bytes:
-    """The backup as a zip. With a ``passphrase`` (at least ``backupsecrets.MIN_LENGTH`` characters) the secrets travel in the block ``secrets.enc``."""
+def create(passphrase: str | None = None, safety: bool = False) -> bytes:
+    """The backup as a zip. With a ``passphrase`` (at least ``backupsecrets.MIN_LENGTH`` characters) the secrets travel in the block ``secrets.enc``.
+    ``safety``: the copy the app keeps for itself before a restore - not worth a line in the log."""
     if passphrase and len(backupsecrets.clean(passphrase)) < backupsecrets.MIN_LENGTH:
         raise BackupError("err.bk_short")
     buffer = io.BytesIO()
@@ -82,6 +86,8 @@ def create(passphrase: str | None = None) -> bytes:
             for path in sorted(config.files_dir().rglob("*")):
                 if path.is_file() and "icons/cache" not in path.as_posix():
                     zf.write(path, f"files/{path.relative_to(config.files_dir()).as_posix()}")
+    if not safety:
+        log.info("System backup created%s", " (secrets sealed with a passphrase)" if block else "")
     return buffer.getvalue()
 
 
@@ -214,7 +220,7 @@ def restore(data: bytes, passphrase: str = "") -> None:
             safety_dir = config.data_dir() / "backups"
             safety_dir.mkdir(exist_ok=True)
             stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-            (safety_dir / f"pre-restore-{stamp}.zip").write_bytes(create())
+            (safety_dir / f"pre-restore-{stamp}.zip").write_bytes(create(safety=True))
             for old in sorted(safety_dir.glob("pre-restore-*.zip"))[:-3]:
                 old.unlink()
 
@@ -237,3 +243,4 @@ def restore(data: bytes, passphrase: str = "") -> None:
         if held:
             _give_back(conn, held)
         connectors.reseal(conn)  # (a kept token that came in readable, format 1, is sealed with this system's key)
+    log.info("System backup restored (schema %s)", manifest.get("schema", "?"))

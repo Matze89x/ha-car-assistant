@@ -52,6 +52,7 @@ Everything exists in English and in German; switch the language at the top of an
 | [Screenshots](docs/screenshots.md) | the app in use |
 | [Install](docs/install.md) | in Home Assistant, from the repository or as a local app |
 | [Backups](docs/backup.md) | back up and restore one car or everything |
+| [Logs](docs/logs.md) | the log of the add-on in Home Assistant and the Logs page of a plugin: what each says, what is never in it |
 | [MCP access](docs/mcp.md) | let Claude Code read and correct your records (off by default) |
 | [Manual package](docs/manual-package.md) | import a manual with page images |
 | [Vehicle file](docs/vehicle-file.md) | bring a car in from another program |

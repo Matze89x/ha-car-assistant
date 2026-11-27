@@ -736,6 +736,33 @@ def write_logs(conn: sqlite3.Connection, vehicle_id: int, addon_id: str | None, 
     trim_logs(conn, vehicle_id, addon_id)
 
 
+_PYTHON_LEVELS = {"debug": logging.DEBUG, "info": logging.INFO, "warn": logging.WARNING, "error": logging.ERROR}
+plugin_log = logging.getLogger("carassistant.plugins")
+
+
+def app_log(
+    conn: sqlite3.Connection,
+    vehicle_id: int,
+    addon_id: str | None,
+    level: str,
+    source: str,
+    text: str,
+    *,
+    mirror: str | None = None,
+    ts: str | None = None,
+) -> None:
+    """A line the APP itself writes into the log of a plugin of one car (a reading of Home Assistant, the run of a connector, a command, a login, the
+    life of a service): kept there like every line AND said in the log of the add-on at the same level, so one place tells the whole story (docs/logs.md).
+
+    Only for text the app made. What a plugin sends or prints (``POST .../logs``, the output of its service) goes through ``write_logs`` and stays in
+    the log of the plugin: it may hold anything, and the log of the add-on is what people copy into a forum. ``mirror`` is what is said in the log of
+    the add-on when that must differ from the line of the plugin (without the name of a person, without a text a service answered); ``""`` says nothing."""
+    write_logs(conn, vehicle_id, addon_id, [(ts or _now(), level, source, text)])
+    said = text if mirror is None else mirror
+    if said:
+        plugin_log.log(_PYTHON_LEVELS.get(level, logging.INFO), "[car %s] %s: %s", vehicle_id, addon_id or "app", said)
+
+
 def trim_logs(conn: sqlite3.Connection, vehicle_id: int, addon_id: str | None) -> None:
     conn.execute(
         "DELETE FROM vehicle_logs WHERE vehicle_id = ? AND addon_id IS ? AND added IS NOT NULL AND added < ?",
@@ -852,7 +879,25 @@ def snapshot(conn: sqlite3.Connection, vehicle_id: int) -> dict:
 
 def ingest(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str, caller: int | None = None) -> dict[str, str]:
     """Validate and store pushed values. Returns what happened per key (stored / ignored). ``caller`` = the install (its number) that sends: a field
-    that ANOTHER plugin has taken for this car (claims.py) is not stored and answered ``ignored (taken by <plugin>)``."""
+    that ANOTHER plugin has taken for this car (claims.py) is not stored and answered ``ignored (taken by <plugin>)``.
+
+    At the log level debug the log of the add-on gets one line for it - the fields and what became of each, never a value."""
+    try:
+        result = _take(conn, vehicle_id, data, source, caller)
+    except ApiError as exc:
+        log.debug("data from %s for vehicle %s refused: %s", source, vehicle_id, exc.code)
+        raise
+    if log.isEnabledFor(logging.DEBUG):
+        log.debug(
+            "data from %s for vehicle %s: %s",
+            source,
+            vehicle_id,
+            ", ".join(f"{field}: {what}" for field, what in result.items()) or "nothing",
+        )
+    return result
+
+
+def _take(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str, caller: int | None) -> dict[str, str]:
     if not isinstance(data, dict):
         raise ApiError("invalid_body", "The body must be a JSON object.", 422)
     unknown = sorted(set(data) - KNOWN)
