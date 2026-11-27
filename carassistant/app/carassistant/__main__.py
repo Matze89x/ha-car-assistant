@@ -30,6 +30,7 @@ def main() -> None:
             host="0.0.0.0",  # noqa: S104 - reachable only through the Supervisor ingress gateway (checked in web.py)
             port=config.port(),
             log_level=logsetup.uvicorn_level(config.log_level()),
+            log_config=None,  # its lines go through our handler too: one format, and the filter against repeats
             proxy_headers=False,
             access_log=False,
         )
