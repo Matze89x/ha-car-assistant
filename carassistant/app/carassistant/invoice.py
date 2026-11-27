@@ -277,11 +277,19 @@ def _vendor(lines: list[str]) -> str:
     return best[:60] if best_score >= 2 else ""
 
 
+_ORDER_NUMBER = re.compile(
+    r"(?:bestell(?:ung)?s?[-\s]*(?:nr|nummer)|auftrags[-\s]*(?:nr|nummer)|order\s*(?:no|number|nr|#))\.?[\s:#.-]*([A-Z0-9][A-Z0-9\-/.]{2,24})",
+    re.I,
+)
+
+
 def _number(lines: list[str]) -> str:
-    for line in lines[:60]:
-        m = _NUMBER.search(line)
-        if m:
-            return m.group(1).strip(".-/")[:24]
+    """The number of the invoice; a shop that names only its order or job number gives that one."""
+    for pattern in (_NUMBER, _ORDER_NUMBER):
+        for line in lines[:60]:
+            m = pattern.search(line)
+            if m:
+                return m.group(1).strip(".-/")[:24]
     return ""
 
 

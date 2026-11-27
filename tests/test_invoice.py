@@ -388,6 +388,22 @@ def test_a_fixed_cost_and_a_refuel_are_booked_from_their_invoices(client):
     )
     with db.tx() as conn:
         assert conn.execute("SELECT booked_table FROM documents WHERE id = ?", (ids["ins.txt"],)).fetchone()[0] == "fixed_costs"
+    bought = client.post(
+        f"{base}/e/fuel",
+        data={
+            "invoice": str(ids["tank.txt"]),
+            "date": "2026-11-21",
+            "amount": "45.32",
+            "price_per_unit": "1.789",
+            "price_total": "81.08",
+            "full_tank": "1",
+        },
+        follow_redirects=False,
+    )
+    assert bought.status_code == 303 and f"/invoices/{ids['tank.txt']}" in bought.headers["location"]
+    with db.tx() as conn:
+        row = conn.execute("SELECT booked_table, booked_id FROM documents WHERE id = ?", (ids["tank.txt"],)).fetchone()
+        assert row["booked_table"] == "fuel" and conn.execute("SELECT 1 FROM fuel WHERE id = ?", (row["booked_id"],)).fetchone()
 
 
 def test_the_invoice_file_is_shown_with_its_own_type_and_the_tab_follows_the_cost_page_switch(client):
@@ -435,3 +451,20 @@ def test_deleting_an_invoice_keeps_the_entry_and_the_backup_keeps_the_link(clien
     with db.tx() as conn:
         assert conn.execute("SELECT COUNT(*) FROM service WHERE vehicle_id = ?", (vid,)).fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM documents WHERE vehicle_id = ?", (vid,)).fetchone()[0] == 0
+
+
+def test_the_cost_page_points_at_invoices_that_wait_to_be_booked(client):
+    from tests.test_web import create_vehicle, slug
+
+    vid = create_vehicle(client, "Hint Car")
+    base = f"/v/{slug(vid)}"
+    assert "waiting to be booked" not in client.get(f"{base}/report").text
+    _upload(client, vid, "r.pdf", _invoice_pdf())
+    page = client.get(f"{base}/report").text
+    assert "Invoices waiting to be booked: 1" in page and "277.03" in page and f'href="{base}/invoices"' in page
+
+
+def test_a_shop_that_names_only_an_order_number_gives_that_one():
+    assert invoice.parse("Autodoc\nBestellung Nr. 98123123 vom 15.10.2026\nGesamtbetrag 84,97 EUR", TODAY)["number"] == "98123123"
+    both = invoice.parse("Foo GmbH\nBestellnummer 555-1\nRechnungsnummer RE-9\nGesamtbetrag 10,00", TODAY)
+    assert both["number"] == "RE-9"  # the number of the invoice wins over the order's

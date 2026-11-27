@@ -1972,6 +1972,7 @@ def fuel_report(request: Request, vid: int):
             stats=stats,
             chart=charts.line_svg(series[-40:], unit=f" {shown.consumption_unit(unit)}", trend=5),
             price_chart=charts.line_svg(fuelstats.price_series(conn, vid, window)[-60:], unit=f" {units.of().cur}", trend=5),
+            inv_sums=invoice_book.sums(conn, vid),
             cost_chart=cost_chart,
             cost_names=names,
             cost_totals=cost_totals,

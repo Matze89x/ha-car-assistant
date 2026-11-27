@@ -35,9 +35,9 @@
   {% elif ex.get('amount') and not ex.get('checked') %}<p class="acct-warn">{{ icon('alert', 14) }}<span>{{ _('inv.unchecked') }}</span></p>{% endif %}
   {% if ex.get('doc_type') %}<p class="acct-warn">{{ icon('alert', 14) }}<span>{{ docs_t[ex.doc_type] }}</span></p>{% endif %}
   <div class="form-bar">
-    <form method="post" action="{{ iurl }}/read" class="inline"><button class="ghost-btn small">{{ icon('refresh', 16) }}<span>{{ _('inv.read_again') }}</span></button></form>
-    {% if has_file %}<a class="ghost-btn small" href="{{ iurl }}/file" target="_blank" rel="noopener">{{ icon('open-in-new', 16) }}<span>{{ _('docs.open') }}</span></a>{% endif %}
-    <form method="post" action="{{ iurl }}/delete" class="inline"><button class="danger small" data-confirm="{{ _('inv.confirm_delete') }}" data-confirm-ok="{{ _('btn.delete') }}">{{ icon('delete', 16) }}<span>{{ _('btn.delete') }}</span></button></form>
+    <form method="post" action="{{ iurl }}/read" class="inline"><button class="ghost-btn small" title="{{ _('inv.read_again') }}" aria-label="{{ _('inv.read_again') }}">{{ icon('refresh', 16) }}<span>{{ _('inv.read_again') }}</span></button></form>
+    {% if has_file %}<a class="ghost-btn small" href="{{ iurl }}/file" target="_blank" rel="noopener" title="{{ _('docs.open') }}" aria-label="{{ _('docs.open') }}">{{ icon('open-in-new', 16) }}<span>{{ _('docs.open') }}</span></a>{% endif %}
+    <form method="post" action="{{ iurl }}/delete" class="inline"><button class="danger small" title="{{ _('btn.delete') }}" aria-label="{{ _('btn.delete') }}" data-confirm="{{ _('inv.confirm_delete') }}" data-confirm-ok="{{ _('btn.delete') }}">{{ icon('delete', 16) }}<span>{{ _('btn.delete') }}</span></button></form>
   </div>
 </section>
 {% if not booked %}
