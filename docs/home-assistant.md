@@ -13,7 +13,7 @@ It works in the **Home Assistant add-on** (the app talks to Home Assistant throu
 
 ## Set up
 
-1. *Car → More → Plugins → Add* and take **Home Assistant** from your source (or upload the example [`examples/home-assistant/plugin.json`](examples/home-assistant/plugin.json)).
+1. *Car → More → Plugins → Add* and take **Home Assistant** from your source (or upload the example [`examples/home-assistant/plugin.json`](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/home-assistant/plugin.json)).
 2. Open its settings. The page lists the interfaces in groups - *Vehicle*, *Fuel and range*, *Battery and charging*, *Doors, windows and lock*, *Position*, *Tyres*, *Temperatures and climate*, *Service and warnings*.
 3. Click into the field of an interface: a list of **likely entities** opens. Type to narrow it down, click one.
 4. The line under the field says **what it delivers right now** (`64 %`, `7.4 kW from 7400 W`, `Locked`). Save.

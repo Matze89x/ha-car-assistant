@@ -2,7 +2,7 @@
 
 [🇬🇧 English](architecture.md) · 🇩🇪 Deutsch
 
-Drei Bilder, vom Großen zum Kleinen. GitHub zeichnet sie direkt aus dem Text (Mermaid); mit dem Pfeil-Symbol oben rechts im Bild kannst du zoomen.
+Drei Bilder, vom Großen zum Kleinen. Sie werden direkt aus dem Text gezeichnet (Mermaid).
 
 ## 1. Das ganze System
 

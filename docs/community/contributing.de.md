@@ -1,6 +1,6 @@
 # Mitmachen
 
-[🇬🇧 English](../../CONTRIBUTING.md) · 🇩🇪 Deutsch
+[🇬🇧 English](https://github.com/Matze89x/ha-car-assistant/blob/main/CONTRIBUTING.md) · 🇩🇪 Deutsch
 
 Danke, dass du helfen willst. Car Assistant entsteht in der Freizeit, deshalb sind kleine, klar abgegrenzte Änderungen nach den Regeln unten am leichtesten zu prüfen.
 
@@ -38,4 +38,4 @@ ruff check . && ruff format --check . && pytest -q
 
 ## Lizenz
 
-Mit deinem Beitrag stimmst du zu, dass deine Arbeit unter der [GNU General Public License v3.0](../../LICENSE) veröffentlicht wird.
+Mit deinem Beitrag stimmst du zu, dass deine Arbeit unter der [GNU General Public License v3.0](https://github.com/Matze89x/ha-car-assistant/blob/main/LICENSE) veröffentlicht wird.

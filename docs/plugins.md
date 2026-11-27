@@ -104,6 +104,7 @@ A package may bring checked **binary files** that the app hands out itself - for
                          {"from": "assets/carassistant.jar", "to": "mod/carassistant/carassistant.jar"}]}],
 "docs": "Get {file:carassistant.jar} and put it on the card."
 ```
+
 - **`files`** (at most 10): allowed endings `.jar .zip .bin .json .txt .md .pdf` (a fixed list, nothing runnable), at most 8 MB each and 20 MB together. `sha256` and `size` are required, and the same checksum and size stand in the index (`plugins/index.json`, `"files": [{"name", "sha256", "size"}]`) next to the checksum of `package.zip`. When one file does not match, **nothing** is unpacked or offered.
 - **Storage:** on install the files go, read-only, into a folder of the app (`plugin-files`) - apart from the code folder and closed to the service. They are not unpacked and not opened.
 - **Delivery:** `GET /plugins/<id>/files/<name>` for **signed-in people** only, with `Content-Disposition: attachment`, the `Content-Type` of the ending and `Cache-Control: no-store`. It works while a service is stopped. When the plugin is removed, the files are deleted.
@@ -249,9 +250,9 @@ Everything below is **optional** and only an addition; the security stays with t
 - **Own settings page.** `"settings_page": "<id of a frame page>"` names a page of the service as the plugin's settings page: the settings page of the plugin gets a main button to it. The field list stays as the fallback.
 - **Field type `value`.** `{"key": "status", "label": "Status", "type": "value"}` shows a value that the person cannot edit, only the plugin's service sets (for example *Running until 14:20*). Two optional looks: `"format": "datetime"` (or `"date"`) writes a time the service stored as ISO text (`2026-11-22T10:20:00+00:00`, UTC when it has no zone) in the system's time zone and writing; `"state": {"ok": ["connected"], "warn": ["waiting"], "bad": ["error", "lost"]}` puts a green, amber or red dot in front of exactly these texts (up to 8 per level; the text itself still says the same).
 - **The service changes its own settings.** A setting marked `"service_writable": true` (not for lists and multiple choice) and every `value` field may be changed by the service itself:
-  - `GET /api/v1/vehicles/<id>/plugin-settings` with the plugin's token -> `{"ok": true, "settings": {...typed...}, "writable": [...]}`. A password is never readable (`"***"` when set).
-  - `PUT /api/v1/vehicles/<id>/plugin-settings` with `{"values": {"mode": "eco", "interval": 30, "status": "Running until 14:20"}}` -> `{"ok": true, "changed": [...]}`. Only writable keys (`403 not_writable` otherwise), checked like the form (`422 invalid_value` with the keys that are wrong - nothing is stored then; numbers are held to their bounds), at most 30 calls a minute (`429`).
-  - **The list of writable keys belongs to what the administrator approves:** a new version that changes it needs a new approval. A change is noted in the plugin's log (the names of the keys, never the values).
+    - `GET /api/v1/vehicles/<id>/plugin-settings` with the plugin's token -> `{"ok": true, "settings": {...typed...}, "writable": [...]}`. A password is never readable (`"***"` when set).
+    - `PUT /api/v1/vehicles/<id>/plugin-settings` with `{"values": {"mode": "eco", "interval": 30, "status": "Running until 14:20"}}` -> `{"ok": true, "changed": [...]}`. Only writable keys (`403 not_writable` otherwise), checked like the form (`422 invalid_value` with the keys that are wrong - nothing is stored then; numbers are held to their bounds), at most 30 calls a minute (`429`).
+    - **The list of writable keys belongs to what the administrator approves:** a new version that changes it needs a new approval. A change is noted in the plugin's log (the names of the keys, never the values).
 - `GET /api/v1` lists `features` (`measured_at`, `plugin-settings`) so a plugin can check before it uses them.
 
 ### The set-up flow (`setup.flow`)
@@ -336,6 +337,7 @@ Both types need a **running, approved** service; the step says so when it is not
 Some plugins need a program of their own, for example to serve pages or data to a device in the car. They can bring one as a **service**. It runs **inside this add-on** (never in a second container): you install the plugin and that is all.
 
 **This is foreign code.** Only approve a service from a source you trust, and read what it does first. The app protects you as far as it can:
+
 - It must come from a **source**, never from an uploaded file. The index of the source names the **sha256** of `package.zip`; a file that does not match is not unpacked.
 - A package is **readable**: only text files (`.py`, `.json`, `.md`, ...) and plain images. No binaries, no compiled code, no links. The folder lies open on GitHub; the approval page lists every file.
 - Nothing runs before an **administrator approves** it on a page that shows the source, the checksum, the program, the Python packages it needs, the addresses it answers and the settings it receives. A package you allowed when installing it stays allowed when **you press *Update***: the new description is approved with that click (the page still shows it). Nothing is updated on its own, and a package you never approved stays unapproved after an update. Taking the approval back stops it.
@@ -355,7 +357,7 @@ plugins/echo-service/service/main.py
 plugins/echo-service/package.zip      <- built by tools/build_plugin_package.py
 plugins/index.json                    <- {"packages": [{"id": "echo-service", ..., "sha256": "..."}]}
 ```
-`tools/build_plugin_package.py <source folder> <id>` builds the zip the same way every time and writes the checksum into the index. A working example is in [`docs/examples/echo-service/`](examples/echo-service/).
+`tools/build_plugin_package.py <source folder> <id>` builds the zip the same way every time and writes the checksum into the index. A working example is in [`docs/examples/echo-service/`](https://github.com/Matze89x/ha-car-assistant/tree/main/docs/examples/echo-service).
 
 `plugin.json` gets an optional `service`:
 ```
@@ -367,6 +369,7 @@ plugins/index.json                    <- {"packages": [{"id": "echo-service", ..
   "env": {"GREETING": "{greeting}"}
 }
 ```
+
 - `files` - optional, `"read"` = the service may **read** the files of its package (`CA_FILES_DIR`, see *Files* above); anything else refuses the package.
 - `token` - optional, `false` = this service has **no token** and no Plugin API (see *A service without a token* below); `true` is the default and may be left out. Anything but a yes / no refuses the package.
 - `entry` - the program (a `.py` file of the package). `python` - the lowest Python version (`>=3.x`). `requirements` - names with optional versions, at most 30; no links, no options.
@@ -378,11 +381,13 @@ plugins/index.json                    <- {"packages": [{"id": "echo-service", ..
 
 ### Watching what happens
 Two things show on the *Logs* page of each plugin (*Info* on its tile, section *Log*):
+
 - **What the add-on does with the service** (install, pip errors, start, stop, crash with the exit code and the pause before the next start, approval) - always, whether or not debug is on. After a crash the last output lines are added while debug is on.
 - **Traffic**, only while debug is on: every call of the plugin to the Plugin API and every request from outside on a route of its service, with time, status, address, size, duration and the **names** of the fields (never their values). Its output and your own `print` lines are kept as log lines while debug is on.
 
 ### Logs and the debug button of a plugin
 Every tile under *Manage* (also a stopped one) has a **Logs** button, and the settings of every plugin (the tab *General*, fixed for all of them) have the card **Log**:
+
 - **Logs** opens the plugin's own page (`/v/<car>/integrations/<id>/logs`): only ITS log lines - *All* or only *Problems* (warnings and errors, with their number) -, what the add-on did with its service, and the traffic (folded), with *Clear* and *Download as text* (`logs.txt`, the last 1000 lines, to read offline or to send along with a bug report). This is the place to look first when something does not work.
 - **Log** (settings, tab *General*) switches more detail on **for this plugin only**, for **1, 3 or 7 days** counted from the moment you switch it on: while it is on, the plugin is told (`control.debug` is `true`, so it sends its log lines), its calls are noted in the traffic view and the output of its service is kept. When the time has run out the switch goes off by itself; choosing another time starts it again; removing or installing the plugin again also switches it off. The switch for the whole car on the *Debug & log* page does the same for every plugin of the car.
 
@@ -400,6 +405,7 @@ A package with a service can show a page of its own service as a **page of its o
 "pages": [{ "id": "editor", "kind": "frame", "title": "Editor", "route": "/ext/editor/", "icon": "settings",
             "l10n": { "de": { "title": "Editor" } } }]
 ```
+
 - `route` must lie under a **non-public** `routes` prefix of the same package's service (`public: false`); any other address is refused when the package is read. Without a service there is no frame page.
 - With `"nav": true` (the default) the package has its entry in *More* of every car where it is installed (under *Integrations* or *Plugins*, by its `kind`) **and its service runs**. Stopped = entry and page are gone. The entry opens the `route`.
 - **Which page opens first:** *Open* on the tile of the package opens the **first page** of `pages` (`pages[0]`); this is a promise, put the page that should open first at the top of the list.
@@ -411,6 +417,7 @@ A package with a service can show a page of its own service as a **page of its o
 **What the service gets** from the proxy for such a route (never the app's cookies): `X-CA-Vehicle` (the car's id, only if the car exists) and `X-CA-User` (the id of the signed-in person - no name -, or `ha` inside Home Assistant). What a caller sends under these names is dropped. A request that **changes** something (POST / PUT / PATCH / DELETE) must carry `X-Requested-With: frame`, otherwise the proxy answers `403` (protection against foreign sites). Limits: a request body up to **8 MB** (small uploads work), an answer up to **16 MB**, **30 seconds** per request. Only signed-in people reach the page, never the public.
 
 **Design:** the page matches the car's design if it links what the app hands out:
+
 - `css` = `/frame-theme.css?theme=<design>`: only the design variables (`--accent`, `--bg`, `--ok`, glass values, radii ...) and `color-scheme` of the chosen design, also of your own theme file. The list that is promised is in the [design contract](design-contract.md).
 - `kit` = `/frame-kit.css?theme=<design>`: those variables **plus** a small kit (`.card`, `.grid`, fields, `button` / `.primary` / `.danger`, `.icon-btn`, `.chip`, `.badge`, tables, fonts and the same fixed building blocks as the app: the section label `.label`, the notice tile `.notice` with `.ok` / `.warn` / `.err`, the tab bar `.seg-tabs` and the round symbol switch `.seg-icons`; put your own SVG symbol in front of the text; `.on` marks the active tab) built only from them. Use the classes and the page looks like the app in every design. The body is transparent; give the page `html { background: var(--bg) }` yourself (the head sets a background for `html`, your own style wins).
 
@@ -485,9 +492,10 @@ The tile decides by its own width, not the window's: while there is room the but
     "confirm": "Wake the car now?", "l10n": { "de": { "label": "Auto wecken", "confirm": "Auto jetzt wecken?" } } }
 ]
 ```
+
 - `id` (`a-z0-9_-`, unique), `label` (up to 40 characters), `icon` (one of the app's symbols; unknown names show a round *play* symbol) and **exactly one of**:
-  - `page`: the `id` of a `kind: "frame"` page of the same package. The button opens it like the *Open* entry does - the page is **freely designed by the plugin** (documentation, a form that collects data, a view that reads information from the service, ...). It can use the app's design kit (`kit`, see above).
-  - `action`: a route of the plugin's own service that lies under a **non-public** `routes` prefix (the same rule as for `capabilities`). A press sends `POST <action>` with `{"vehicle": <id>, "button": "<id>", "language": "en"}` and the two identity headers (`X-CA-Vehicle`, `X-CA-User`) and shows a result page: **2xx** (optionally `{"ok": true, "message": "text for the person"}`) = done, anything else or `{"ok": false, "message": "why"}` = the reason, taken from `message` / `error` (200 characters at most). The service has 10 seconds. A plugin that is not running or not approved is never called; the result page says so.
+    - `page`: the `id` of a `kind: "frame"` page of the same package. The button opens it like the *Open* entry does - the page is **freely designed by the plugin** (documentation, a form that collects data, a view that reads information from the service, ...). It can use the app's design kit (`kit`, see above).
+    - `action`: a route of the plugin's own service that lies under a **non-public** `routes` prefix (the same rule as for `capabilities`). A press sends `POST <action>` with `{"vehicle": <id>, "button": "<id>", "language": "en"}` and the two identity headers (`X-CA-Vehicle`, `X-CA-User`) and shows a result page: **2xx** (optionally `{"ok": true, "message": "text for the person"}`) = done, anything else or `{"ok": false, "message": "why"}` = the reason, taken from `message` / `error` (200 characters at most). The service has 10 seconds. A plugin that is not running or not approved is never called; the result page says so.
 - `confirm` (optional, `action` only): a question the person has to confirm first.
 - `l10n`: `label` and `confirm` per language.
 - Buttons are shown while the plugin is switched on; only people who may manage packages can press them. A button that does not fit these rules is dropped when the package is read (no error), and more than three are cut off - put everything else on one of your own pages, which can link anywhere. Buttons that are rarely used can stand in the tab *General* of the settings page instead (`place`), and `when` decides when a button shows: see [When things show, and the tab General](#when-things-show-and-the-tab-general).

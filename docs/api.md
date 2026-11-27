@@ -7,7 +7,7 @@ How a plugin or integration sends vehicle data to Car Assistant. Car Assistant n
 ## One token = one car
 Everything is per vehicle, because every car can be connected differently. Set a plugin up under *Car → More → Integrations* (see [plugins.md](plugins.md)); a **plugin** gets its own token at that moment (shown once, can be replaced, revoked by removing the plugin). A token works for **its car only** – any other vehicle id answers `403`.
 
-The API is reached through the address of your direct access (the port you chose or your reverse proxy, see [DOCS.md](../carassistant/DOCS.md)). The token is the only credential: `Authorization: Bearer ca_…`. Use HTTPS from outside.
+The API is reached through the address of your direct access (the port you chose or your reverse proxy, see [DOCS.md](https://github.com/Matze89x/ha-car-assistant/blob/main/carassistant/DOCS.md)). The token is the only credential: `Authorization: Bearer ca_…`. Use HTTPS from outside.
 
 ## Send data
 ```
@@ -109,7 +109,7 @@ Success: `{"ok": true, "result": {"odometer_km": "stored", …}, "control": {"de
 - One plugin per car; use *New token* if a token was exposed.
 
 ## Example
-[`docs/examples/push_data.py`](examples/push_data.py) – Python standard library only. The same works with `curl`, Node, a Home Assistant `rest_command` or a microcontroller.
+[`docs/examples/push_data.py`](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/push_data.py) – Python standard library only. The same works with `curl`, Node, a Home Assistant `rest_command` or a microcontroller.
 
 ## Stability and compatibility (a promise to everyone who writes plugins)
 People write their own plugins and integrations, so **what works today keeps working**. The rules:

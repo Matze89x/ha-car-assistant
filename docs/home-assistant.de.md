@@ -13,7 +13,7 @@ Es arbeitet im **Home-Assistant-Add-on** (die App spricht über den Supervisor m
 
 ## Einrichten
 
-1. *Fahrzeug → Weiteres → Plugins → Hinzufügen* und **Home Assistant** aus deiner Quelle nehmen (oder das Beispiel [`examples/home-assistant/plugin.json`](examples/home-assistant/plugin.json) hochladen).
+1. *Fahrzeug → Weiteres → Plugins → Hinzufügen* und **Home Assistant** aus deiner Quelle nehmen (oder das Beispiel [`examples/home-assistant/plugin.json`](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/home-assistant/plugin.json) hochladen).
 2. Die Einstellungen öffnen. Die Seite listet die Schnittstellen in Gruppen: *Fahrzeug*, *Kraftstoff und Reichweite*, *Batterie und Laden*, *Türen, Fenster und Schloss*, *Position*, *Reifen*, *Temperaturen und Klima*, *Service und Warnungen*.
 3. In das Feld einer Schnittstelle klicken: Es öffnet sich eine Liste **wahrscheinlicher Entitäten**. Zum Eingrenzen tippen, eine anklicken.
 4. Die Zeile unter dem Feld sagt, **was die Entität jetzt liefert** (`64 %`, `7,4 kW aus 7400 W`, `Verriegelt`). Speichern.

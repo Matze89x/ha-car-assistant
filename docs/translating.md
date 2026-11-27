@@ -13,6 +13,7 @@ A language is **one file**: `carassistant/app/carassistant/locales/<code>.json` 
   "nav.more": "Plus"
 }
 ```
+
 - `_name` – the language's name in itself (shown in the lists). `_date` – date format ([strftime](https://strftime.org)). `_dir` – `ltr` (default) or `rtl` for right-to-left scripts.
 - All other keys are the texts. Take the keys and the English texts from `EN` in `carassistant/app/carassistant/i18n.py`; keep placeholders such as `{n}` or `{name}` exactly as they are.
 - **You do not have to translate everything.** A missing key falls back to English, so a partial translation already works.

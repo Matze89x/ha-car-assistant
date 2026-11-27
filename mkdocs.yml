@@ -1,0 +1,155 @@
+# The documentation as a website (GitHub Pages): the pages in docs/ - the same files GitHub shows in the repository - made into a site with a menu, a search
+# and a language switch (English / German). Nothing is copied: the pages are written once, in docs/.
+#
+#   pip install -r docs-site/requirements.txt && mkdocs serve        look at it on your computer (http://127.0.0.1:8000/ha-car-assistant/)
+#   mkdocs build --strict                                             what the workflow .github/workflows/docs.yml does on every change of the pages
+#
+# English pages are docs/<page>.md, German ones docs/<page>.de.md (docs/translating.md). Every page must appear in the nav below (tests/test_docs_site.py).
+site_name: Car Assistant
+site_description: A vehicle logbook and dashboard for the cars of a family - the documentation
+site_url: https://matze89x.github.io/ha-car-assistant/
+docs_dir: docs
+site_dir: site
+hooks:
+  - docs-site/hooks.py  # the language line at the top of a page goes: the site has a language selector
+use_directory_urls: false  # a page stays <name>.html, so the relative picture paths of the pages (screenshots/...) keep working
+
+theme:
+  name: material
+  language: en
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  font: false  # the system fonts: the site asks no other server for anything (no web fonts)
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle: {icon: material/weather-night, name: Light mode}
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle: {icon: material/weather-sunny, name: Dark mode}
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: de
+          name: Deutsch
+          build: true
+          nav_translations:  # every name of the menu below (tests/test_docs_site.py checks that none is missing)
+            Start: Start
+            Use it: Benutzen
+            Connect your own: Eigenes anbinden
+            Work on the app itself: An der App mitbauen
+            User guide: Benutzerhandbuch
+            Screenshots: Screenshots
+            Install: Installation
+            Backups: Sicherungen
+            MCP access: MCP-Zugriff
+            Manual package: Handbuch-Paket
+            Vehicle file: Fahrzeugdatei
+            Roadmap: Roadmap
+            Architecture: Architektur
+            Start here: Hier anfangen
+            Plugin guide: Plugin-Anleitung
+            Plugins: Plugins
+            Home Assistant plugin: Home-Assistant-Plugin
+            Fuel price providers: Spritpreis-Anbieter
+            Charging point providers: Ladesäulen-Anbieter
+            Integrations: Integrationen
+            Plugin API: Plugin-API
+            Sources and packages: Quellen und Pakete
+            Examples: Beispiele
+            Design: Design
+            Design contract: Design-Vertrag
+            Icons: Symbole
+            Maintaining: Pflege
+            Translating: Übersetzen
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify {kwds: {case: lower}}  # the anchors of GitHub (umlauts stay), so the links between the pages work in both places
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+extra_css:
+  - stylesheets/site.css
+
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Matze89x/ha-car-assistant
+      name: Car Assistant on GitHub
+
+# the example packages are code, not pages: they stay in the repository (the pages link to them there)
+exclude_docs: |
+  examples/*/
+  examples/*.py
+  examples/*.yml
+
+validation:
+  omitted_files: info
+  absolute_links: info
+  unrecognized_links: warn
+  anchors: warn
+
+nav:
+  - Start: README.md
+  - Use it:
+      - User guide: guide.md
+      - Screenshots: screenshots.md
+      - Install: install.md
+      - Backups: backup.md
+      - MCP access: mcp.md
+      - Manual package: manual-package.md
+      - Vehicle file: vehicle-file.md
+      - Roadmap: roadmap.md
+  - Connect your own:
+      - Architecture: architecture.md
+      - Start here: start-here.md
+      - Plugin guide: plugin-guide.md
+      - Plugins: plugins.md
+      - Home Assistant plugin: home-assistant.md
+      - Fuel price providers: fuel-providers.md
+      - Charging point providers: charge-providers.md
+      - Integrations: integrations.md
+      - Plugin API: api.md
+      - Sources and packages: sources.md
+      - Examples: examples/README.md
+  - Work on the app itself:
+      - Design: design.md
+      - Design contract: design-contract.md
+      - Icons: icons.md
+      - Maintaining: maintaining.md
+      - Translating: translating.md

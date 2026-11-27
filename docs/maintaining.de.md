@@ -56,6 +56,17 @@ Vier kleine Werkzeuge in `tools/` (sie brauchen Google Chrome oder Chromium; das
 - `python tools/ocr_bench.py` - liest jedes Foto des **Übungssatzes** (`tools/practice_photos.py`: ausgedachte Tachos und Tankbelege in mehreren Stilen und Sprachen, jedes mit seiner richtigen Antwort) wie es ist und so schlecht, wie ein Handy es machen kann (unscharf, dunkel, schief, klein, stark komprimiert, mit Spiegelung) und zählt die richtigen Antworten. Vor und nach einer Änderung des Lesens ausführen: Die Zahl darf nicht sinken (saubere Fotos: `tests/test_ocr_practice.py`). `python tools/practice_photos.py <Ordner>` schreibt die Fotos und ihre Antworten, zum Üben von Hand.
 - `python tools/make_screenshots.py` - die Bilder der Dokumentation (siehe seine Beschreibung); `tools/cdp.py` ist der kleine DevTools-Client, den die Werkzeuge gemeinsam nutzen.
 
+## Die Dokumentations-Webseite
+
+Die Seiten in `docs/` sind auch eine Webseite (<https://matze89x.github.io/ha-car-assistant/de/>): mit Menü, Suche und Sprachumschalter, gemacht aus genau denselben Dateien - nichts wird doppelt geschrieben. `mkdocs.yml` (das Menü, die Farben, die Sprachen) und `docs-site/` (die genauen Versionen der Werkzeuge und zwei kleine Haken) bauen sie; `.github/workflows/docs.yml` baut sie bei jeder Änderung der Seiten auf `main` und veröffentlicht sie (GitHub Pages). Ein Pull Request baut sie nur, so wird ein kaputter Link gefunden, bevor er übernommen wird.
+
+- Auf dem eigenen Rechner ansehen: `pip install -r docs-site/requirements.txt && mkdocs serve`, dann `http://127.0.0.1:8000/ha-car-assistant/` öffnen. `mkdocs build --strict` schlägt bei einem kaputten Link oder Anker fehl, wie der Workflow.
+- Eine neue Seite: `docs/<name>.md` und `docs/<name>.de.md` schreiben, sie in das Verzeichnis `docs/README.md` / `README.de.md`, in die Startseite und in die `nav` von `mkdocs.yml` eintragen (mit ihrem deutschen Namen unter `nav_translations`); `tests/test_docs_site.py` prüft das alles.
+- Ein Link auf eine andere Seite der Doku bleibt relativ (`guide.de.md`, auch mit Anker); ein Link auf alles andere im Repository (eine Quelldatei, die Beispielpakete, das Änderungsprotokoll) ist eine volle GitHub-Adresse - die Webseite enthält nur die Seiten und ihre Bilder.
+- Vor einer Liste steht eine Leerzeile, und eine Liste in einer Liste ist um vier Leerzeichen eingerückt: Der Markdown-Leser der Webseite ist strenger als der von GitHub.
+- Was nur im Repository Sinn hat, steht zwischen `<!-- repo-only:start -->` und `<!-- repo-only:end -->` (die Webseite lässt es weg). Die Sprachzeile oben auf einer Seite fehlt auf der Webseite ebenfalls: Ihre Kopfzeile hat einen Sprachumschalter.
+- Das Theme *Material for MkDocs* bekommt Sicherheitskorrekturen bis Mai 2027; sein weiter gepflegter Nachfolger Zensical liest dieselbe `mkdocs.yml`. Die Diagramme der Architektur-Seite laden ihre Bibliothek von unpkg.com - die einzige Anfrage der Webseite an einen anderen Server.
+
 ## Einstellungen des Repositorys (einmalig)
 
-Eine kurze Liste steht in der Checkliste des Maintainers: eine Regel für `main` (Pull Request, CI muss grün sein, Code-Owner-Prüfung, kein Force-Push), Freigabe in *Actions* für Erstbeitragende und ein Nur-Lese-Token, *Discussions* an, private Meldung von Sicherheitslücken, Dependabot-Warnungen, Secret Scanning mit Push Protection.
+Eine kurze Liste steht in der Checkliste des Maintainers: eine Regel für `main` (Pull Request, CI muss grün sein, Code-Owner-Prüfung, kein Force-Push), Freigabe in *Actions* für Erstbeitragende und ein Nur-Lese-Token, *Discussions* an, private Meldung von Sicherheitslücken, Dependabot-Warnungen, Secret Scanning mit Push Protection und *Pages* mit der Quelle *GitHub Actions* für die Dokumentations-Webseite (Einstellungen → Pages).

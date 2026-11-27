@@ -91,6 +91,7 @@ Eine Erinnerung kann einen **`plan`** tragen: einen kurzen Wechsel, der mit **je
 }],
 "pages": [{ "id": "plan", "kind": "plan", "reminder": "additive", "title": "Additiv-Plan" }]
 ```
+
 - Ein Schritt ist ein fester **`label`** oder eine **`setting`** (der Name, den der Benutzer eingetragen hat) mit optionaler **`amount_setting`**; ein Schritt mit `setting` ist eine „Gabe", die fällig sein kann, ein Schritt nur mit Label ist eine saubere Tankung. 2 bis 8 Schritte; `l10n` übersetzt die Labels.
 - **`active_setting`** (ein Schalter) schaltet die Erinnerung ein und aus; **`range_setting`** (Kilometer Reichweite) hält sie zurück, bis die Reichweite des Autos darunter fällt.
 - Die Seite der Art **`plan`** braucht keine Felder; sie verweist mit `reminder` auf die Erinnerung.

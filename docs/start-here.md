@@ -123,7 +123,7 @@ Run it: the call shows up in the tool as `api ... POST /data -> 200`. A script o
 4. Put `my-source` into a GitHub repository (public, or private with an access key). In the app: *Plugins* (or *Integrations*) *→ Sources*: add the address of the repository. Then *Add → Update list*, tap your package, install. A service waits for the approval: *Manage → Review and approve*.
 5. A new version: raise `version` in `plugin.json` and in the list, rebuild the zip, push. People press *Check for updates*.
 
-All of it is explained in [sources.md](sources.md); a repository can also check itself every week ([docs/examples/source-ci.yml](examples/source-ci.yml)).
+All of it is explained in [sources.md](sources.md); a repository can also check itself every week ([docs/examples/source-ci.yml](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/source-ci.yml)).
 
 ## When something does not work
 

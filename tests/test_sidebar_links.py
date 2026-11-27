@@ -1,4 +1,4 @@
-"""The foot of the side bar: the version, then Help (the documentation on GitHub in the language of the app) and GitHub. Plain links that somebody has to
+"""The foot of the side bar: the version, then Help (the documentation website in the language of the app) and GitHub. Plain links that somebody has to
 click - the app fetches nothing from there."""
 
 import re
@@ -22,9 +22,9 @@ def test_the_foot_links_to_the_english_documentation_and_to_github(client, monke
     monkeypatch.setattr(config, "language", lambda: "en")
     foot = _foot(client.get("/about").text)
     got = _hrefs(foot)
-    assert got["Help"] == f"{links.PROJECT_URL}/blob/main/docs/README.md"
+    assert got["Help"] == links.SITE_URL
     assert got["GitHub"] == links.PROJECT_URL
-    assert "Documentation on GitHub (English)" in foot
+    assert "Documentation (English)" in foot
 
 
 def test_the_foot_links_to_the_german_documentation_in_german(client, monkeypatch):
@@ -32,9 +32,9 @@ def test_the_foot_links_to_the_german_documentation_in_german(client, monkeypatc
     monkeypatch.setattr(config, "language", lambda: "de")
     foot = _foot(client.get("/about").text)
     got = _hrefs(foot)
-    assert got["Hilfe"] == f"{links.PROJECT_URL}/blob/main/docs/README.de.md"
+    assert got["Hilfe"] == f"{links.SITE_URL}de/"
     assert got["GitHub"] == links.PROJECT_URL
-    assert "Dokumentation auf GitHub (Deutsch)" in foot
+    assert "Dokumentation (Deutsch)" in foot
 
 
 def test_the_links_open_in_a_new_tab_without_handing_over_the_page(client):

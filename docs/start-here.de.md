@@ -123,7 +123,7 @@ Führ ihn aus: Der Aufruf erscheint im Werkzeug als `api ... POST /data -> 200`.
 4. Leg `my-source` in ein GitHub-Repository (öffentlich, oder privat mit Zugangsschlüssel). In der App: *Plugins* (oder *Integrationen*) *→ Quellen*: die Adresse des Repositorys eintragen. Dann *Hinzufügen → Liste aktualisieren*, dein Paket antippen, installieren. Ein Dienst wartet auf die Freigabe: *Verwaltung → Prüfen und freigeben*.
 5. Eine neue Version: `version` in `plugin.json` und in der Liste erhöhen, das Zip neu bauen, pushen. Die Leute drücken *Nach Updates suchen*.
 
-Alles steht in [sources.de.md](sources.de.md); ein Repository kann sich auch jede Woche selbst prüfen ([docs/examples/source-ci.yml](examples/source-ci.yml)).
+Alles steht in [sources.de.md](sources.de.md); ein Repository kann sich auch jede Woche selbst prüfen ([docs/examples/source-ci.yml](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/source-ci.yml)).
 
 ## Wenn etwas nicht funktioniert
 

@@ -2,7 +2,11 @@
 
 🇬🇧 English · [🇩🇪 Deutsch](README.de.md)
 
-All pages at a glance - this is the page the **Help** link inside the app opens. Back to the [start page](../README.md).
+All pages at a glance - this is the page the **Help** link inside the app opens. Back to the [start page](https://github.com/Matze89x/ha-car-assistant).
+
+<!-- repo-only:start -->
+Also as a website with a menu, a search and a language switch: **[matze89x.github.io/ha-car-assistant](https://matze89x.github.io/ha-car-assistant/)**.
+<!-- repo-only:end -->
 
 **Where do I start?**
 
@@ -11,7 +15,7 @@ All pages at a glance - this is the page the **Help** link inside the app opens.
 | use the app | the [User guide](guide.md): every page of a car, step by step |
 | install it | [Install](install.md): in Home Assistant, from the repository or as a local app |
 | connect my own car, charger or service | [Start here](start-here.md) (running in ten minutes), then the [Plugin guide](plugin-guide.md) |
-| help with the app | [Contributing](../CONTRIBUTING.md) and the [Design](design.md) |
+| help with the app | [Contributing](https://github.com/Matze89x/ha-car-assistant/blob/main/CONTRIBUTING.md) and the [Design](design.md) |
 
 **Use it**
 
@@ -56,9 +60,7 @@ All pages at a glance - this is the page the **Help** link inside the app opens.
 
 | Page | What it is about |
 |---|---|
-| [Add-on page in Home Assistant](../carassistant/DOCS.md) | the *Documentation* tab of the add-on |
-| [Security](../SECURITY.md) | how to report a vulnerability and how the app protects you |
-| [Contributing](../CONTRIBUTING.md) | how to help: rules, tests, pull requests |
-| [Changelog](../carassistant/CHANGELOG.md) | what changed in which version |
-
-*Finding your way on GitHub:* every page has an outline (the list button at the top right of the page), and pressing `/` searches all pages of the project.
+| [Add-on page in Home Assistant](https://github.com/Matze89x/ha-car-assistant/blob/main/carassistant/DOCS.md) | the *Documentation* tab of the add-on |
+| [Security](https://github.com/Matze89x/ha-car-assistant/blob/main/SECURITY.md) | how to report a vulnerability and how the app protects you |
+| [Contributing](https://github.com/Matze89x/ha-car-assistant/blob/main/CONTRIBUTING.md) | how to help: rules, tests, pull requests |
+| [Changelog](https://github.com/Matze89x/ha-car-assistant/blob/main/carassistant/CHANGELOG.md) | what changed in which version |

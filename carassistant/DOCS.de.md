@@ -73,6 +73,7 @@ Ein Plugin oder eine Integration kann ein kleines Programm mitbringen (einen *Di
 
 ## Weitere Dokumente auf GitHub
 Die ausführlichen Beschreibungen liegen im Repository:
+- Dokumentations-Webseite (Menü, Suche, Englisch und Deutsch): https://matze89x.github.io/ha-car-assistant/de/
 - Benutzerhandbuch: https://github.com/Matze89x/ha-car-assistant/blob/main/docs/guide.de.md
 - Installation: https://github.com/Matze89x/ha-car-assistant/blob/main/docs/install.de.md
 - Quellen und Pakete: https://github.com/Matze89x/ha-car-assistant/blob/main/docs/sources.de.md

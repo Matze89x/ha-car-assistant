@@ -6,6 +6,7 @@ Car Assistant ist ein Fahrtenbuch und Dashboard für deine Autos. Das meiste erk
 
 ## Die drei Ebenen
 Jede Einstellung liegt auf genau einer Ebene, du weißt also immer, wo du suchen musst. *Einstellungen* hat drei Reiter - zuerst das Auto, dann du, dann die ganze App:
+
 - **Auto** – nur das Auto, das unter dem Titel steht (wechsle es mit dem Zeichen neben seinem Namen): Foto, Video, Design und Icon, Home-Assistant-Entitäten, Sicherung, Archivieren und Löschen.
 - **Benutzer** – du: dein Login (Name, Passwort, Passcode, Passkeys), deine Geräte und alle deine Benachrichtigungen (eine Liste für jedes Auto), das Start-Auto, wie viele Einträge eine Liste auf einmal lädt (5, 10, 25, 50 oder 100) und die Startlinks für eine [Web-App je Auto](#eine-web-app-je-auto).
 - **System** – die ganze App, für jedes Auto und jede Person: eine Karte **Region**: Sprache, Datum und Uhrzeit (Reihenfolge des Datums, 12 / 24 Stunden), **Zeitzone** (automatisch = die von Home Assistant; Sommer-/Winterzeit folgt) sowie Einheiten und Währung, Design, Karte und Spritpreise, Sensoren in Home Assistant, [MCP-Zugriff](mcp.de.md), Quellen und Updates (auf Wunsch einmal am Tag ein Blick auf ein neues Car Assistant und auf Paket-Updates – der Punkt am Fuß der Seitenleiste wird gelb, wenn etwas neu ist), Protokolle, die Adresse der App, Sicherung von allem.
@@ -23,6 +24,7 @@ Eine kurze Einführung fragt nach der Sprache, dann nach deinem ersten Auto (ode
 Die zwei Dinge, die du am häufigsten einträgst, brauchen **kein Plugin und keine lange Tipperei**. Beides geht bei einem Auto, das mit nichts verbunden ist.
 
 **Kilometerstand auf dem Dashboard aktualisieren - fünf Sekunden.**
+
 1. Öffne das Dashboard des Autos und tippe auf den Kilometerstand: Er dreht sich zu einem Eingabefeld um. (Ein Link auf `…/v/<Auto>#odometer` öffnet es sofort - die Liste *Los geht's* eines neuen Autos nutzt ihn.)
 2. Zahl tippen und auf den Pfeil drücken - **oder** auf den Kamera-Knopf tippen: Foto vom Tacho machen (der *untere* Teil genügt, dort sitzen Kilometerstand und Tageszähler) oder ein Foto vom Handy wählen.
 3. Der Server liest das Foto, trägt die Zahl ein und sagt *Aus dem Foto gelesen - bitte prüfe die Zahl, bevor du speicherst*. Die Zahl wird mit dem letzten Stand verglichen: Eine Warnung erscheint, wenn sie niedriger oder weit höher ist. Gespeichert wird erst mit dem Pfeil.
@@ -32,6 +34,7 @@ Das Lesen schaut zuerst auf die untere Hälfte des Fotos und vertraut einer Zahl
 ![Der Kilometerstand umgedreht: ein Foto vom Tacho wurde gelesen](screenshots/de/odometer-photo.png)
 
 **Tanken - drei Taps.**
+
 1. *Tanken* → der Plus-Knopf (oder *Los geht's → Erste Tankung eintragen*; der Link `…/e/fuel#fuel-add` öffnet das Formular).
 2. *Scannen* (die Kamera öffnet sich) oder *Datei laden* (ein Foto aus der Mediathek oder ein PDF-Beleg aus einer Tank-App oder E-Mail) → das Formular füllt sich: **Datum, Tankstelle, Sorte, Menge, Preis je Einheit, Betrag** und - wenn die Tankstelle ihn aufgedruckt hat (*KM-Stand*) - der **Kilometerstand**. Die ausgefüllten Felder sind markiert.
 3. Markierte Felder ansehen und speichern. Menge × Preis = Betrag wird auf den Cent geprüft: Eine falsch gelesene Ziffer wird gefunden, ein fehlender Wert berechnet - und das Formular sagt es.
@@ -47,6 +50,7 @@ Beide Fotos werden **auf deinem eigenen Server** gelesen (Texterkennung mit Tess
 
 ## Einstellungen eines Autos
 *Einstellungen → Auto* (das Auto unter dem Titel):
+
 - **Icon** – das eigene Icon des Autos für Weiteres, den Browser-Tab und den Home-Bildschirm.
 - **Foto und Video** – bis zu **10 Dateien pro Auto**, Fotos und Videos zusammen; beim elften Hinzufügen fällt die älteste heraus. Zwei Auswahlen, sofort gespeichert: *Für die Startseite* (ein Foto oder ein Video; ein Video läuft bei jedem Besuch einmal und bleibt dann auf seinem letzten Bild stehen - dieses Bild wird auf dem Gerät behalten, damit die Startseite auch dann ein Bild zeigt, wenn das Handy das Video nicht startet, zum Beispiel im Stromsparmodus, und ein Tipp spielt es wieder ab; lehnt der Video-Player des Handys die Adresse des Videos ab, lädt die Seite die Datei selbst und spielt sie aus dem Speicher ab, und lässt es sich trotzdem nicht abspielen, nennt ein Tipp den Grund) und *Als Foto des Autos* (für die Autoauswahl und alle Listen). Ein Video braucht zuerst ein Foto.
 - **Design** – das eigene Design des Autos mit eigenem Farbrad; *Wie das System* folgt dem Design von System.
@@ -124,6 +128,7 @@ Mit dem **MCP-Zugriff** unter *Einstellungen → System* lässt du Claude von ü
 
 ## Optionale Dienste (standardmäßig aus)
 Nichts verlässt deinen Server, wenn du es nicht unter *Einstellungen* einschaltest:
+
 - **Karteninfos** (*System*): zeigt die Standort-Karte mit OpenStreetMap-Kacheln, über die App geladen, **und** benennt Start und Ziel jeder Fahrt (aus einer Offline-Liste der Städte der Welt; mit eingetragener Adresse für Ortsnamen: von diesem Nominatim-kompatiblen Server), sodass das Fahrtenbuch Namen statt Koordinaten zeigt. Die Karte ist standardmäßig aus. Die Ortsnamen brauchen kein Internet; eine Adresse für Ortsnamen (ein Nominatim-kompatibler Server, nur https) ist optional, wird dann nur bei eingeschalteten Karteninfos gefragt und liefert auch die Straße des Autos.
 - **Spritpreise**: werden auf der Tanken-Seite mit dem Zahnrad oben eingestellt (Preisquellen je Land, deine eigenen Keys, Startwerte) – für Deutschland brauchst du **deinen eigenen** kostenlosen Key von tankerkoenig.de, es gibt keinen eingebauten Key. **Tanken** wird am Tankstand erkannt: springt er um 15 Punkte oder mehr, erscheint ein unfertiger Tank-Eintrag (Datum, Kilometerstand und der Anstieg sind da) und eine Karte auf der Tanken-Seite mit einem Knopf *Ergänzen*. Er öffnet den Eintrag: *Scannen* oder *Datei laden*, die ausgefüllten Felder ansehen (die grobe Menge aus der Tankgröße steht nur als Hinweis im Mengenfeld), speichern - fertig, und der Hinweis ist weg. Er verschwindet auch von selbst nach drei Fahrten oder drei Tagen; der Eintrag bleibt und lässt sich jederzeit von seiner Karte aus ergänzen. Die Markierung, dass ein Eintrag erkannt wurde, steht in den eigenen Daten des Eintrags, nie in deinen Notizen. Du kannst unter *Einstellungen → Benutzer* darüber benachrichtigt werden; die Mitteilung öffnet den Eintrag direkt (eine zu einer Fahrt öffnet diese Fahrt, eine zu einer Tür oder Fahrzeugwarnung die Statusseite) - ein Web-Push braucht dafür keine gespeicherte Adresse. Bei Autos mit Batterie geht dasselbe für das **Laden**: Beginnt das Auto zu laden, eröffnet die App einen Ladevorgang (Zeit, Batteriestand, höchste Leistung) und legt am Ende einen unfertigen Eintrag an (Energie und Preis von der Rechnung fehlen; eine ungefähre Energie schätzt sie aus der Batteriegröße) und listet die Ladevorgänge auf der Seite. Ergänzt du den Eintrag von der Rechnung, zeigt der Ladevorgang die echte Energie, die Kosten, den Preis je kWh und den **Ladeverlust** (abgerechnet gegenüber dem, was in der Batterie ankam), und eine Zusammenfassung der letzten 90 Tage addiert Ladevorgänge, Energie, Kosten, Durchschnittspreis und Spitzenleistung sowie schnelles gegenüber langsamem Laden.
 

@@ -2,7 +2,7 @@
 
 🇬🇧 English · [🇩🇪 Deutsch](architecture.de.md)
 
-Three pictures, from the big to the small. GitHub draws them straight from the text (Mermaid); use the controls at the top right of a picture to zoom.
+Three pictures, from the big to the small. They are drawn straight from the text (Mermaid).
 
 ## 1. The whole system
 

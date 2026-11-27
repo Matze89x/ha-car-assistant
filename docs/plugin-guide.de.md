@@ -88,6 +88,7 @@ Jedes Plugin sieht für die Person gleich aus, egal mit welchem Auto, Cloud-Kont
 | **Deine Seiten** | jede Seite deines Dienstes, frei gestaltet, darf Daten sammeln oder Informationen lesen | `pages` (`kind: "frame"`), erreichbar über einen `page`-Knopf oder einen `page`-Schritt |
 
 **Ein bestehendes Plugin umbauen - Checkliste** (nichts muss sich ändern, damit ein Plugin weiter funktioniert; so bekommt es die neue Struktur):
+
 1. **Behalte, was funktioniert.** Jeder Schlüssel der `plugin.json`, den du heute nutzt, wird weiter genauso gelesen. Neue Schlüssel sind Ergänzungen: `buttons`, `setup.flow`.
 2. **Ersetze die feste Anleitung durch einen Ablauf**, nur wenn du mehr als *Prüfen / Token / Dateien* brauchst: Verschiebe die Texte der Schritte in `flow`-Schritte (`text`, `requirements`, `form` / `check`, `token`, `files`) in der Reihenfolge, die du willst. Eine Anmeldung mit Benutzername und Kennwort ist ein `check`-Schritt mit `"settings": ["user", "password"]` und einer Route in deinem Dienst, die die Anmeldung versucht und `{"ok": true, "message": "Angemeldet als ..."}` oder `{"ok": false, "message": "Kennwort falsch."}` antwortet.
 3. **Lege, was die Person lesen muss, in Seiten, nicht in Texte**: Eine Dokumentationsseite ist eine `kind: "frame"`-Seite plus ein `buttons`-Eintrag (`"page": "docs"`); eine Seite, die Daten sammelt, sendet an deinen Dienst.

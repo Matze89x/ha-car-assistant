@@ -6,11 +6,11 @@ Kleine, vollständige Ausgangspunkte. Kopiere eines, ändere die Namen und baue 
 
 | Beispiel | Was es zeigt | Lesen |
 |---|---|---|
-| [push_data.py](push_data.py) | Ein **Plugin-Skript**: liest Werte (ersetze `read_car()`) und schickt sie mit einer HTTP-Anfrage. Nur Standardbibliothek. | [Plugin-API](../api.de.md) |
-| [sdk/carassistant_sdk.py](sdk/carassistant_sdk.py) | Die **Hilfsbibliothek** eines Plugin-Dienstes, eine Datei, nur Standardbibliothek: Einstellungen, ein kleiner Webclient mit Sitzungen, die Plugin-API, Routen, die Hauptschleife. `tools/new_plugin.py` kopiert sie neben dein `main.py`. | [Hier anfangen](../start-here.de.md) |
-| [echo-service/](echo-service) | Ein **Plugin mit Dienst**: ein eigenes kleines Programm, das auf einer Adresse antwortet (`/echo/ping`), mit einer Einstellung. | [Plugins](../plugins.de.md#plugins-mit-dienst) |
-| [example-stations/](example-stations) | Eine **Integration ohne Code**: eine Seite mit typisierten Feldern, die Car Assistant zeichnet und je Auto speichert. | [Integrationen](../integrations.de.md) |
-| [home-assistant/](home-assistant) | Ein **Plugin ohne Code und ohne Dienst**, das Entitäten aus Home Assistant in das Fahrzeug bringt: Die ganze Einstellungsseite kommt aus einem Schlüssel, `bridge`. | [Home-Assistant-Plugin](../home-assistant.de.md) |
-| [make_vehicle_file.py](make_vehicle_file.py) | Schreibt eine **Fahrzeugdatei**, um ein Auto aus einem anderen Programm zu übernehmen. | [Fahrzeugdatei](../vehicle-file.de.md) |
+| [push_data.py](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/push_data.py) | Ein **Plugin-Skript**: liest Werte (ersetze `read_car()`) und schickt sie mit einer HTTP-Anfrage. Nur Standardbibliothek. | [Plugin-API](../api.de.md) |
+| [sdk/carassistant_sdk.py](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/sdk/carassistant_sdk.py) | Die **Hilfsbibliothek** eines Plugin-Dienstes, eine Datei, nur Standardbibliothek: Einstellungen, ein kleiner Webclient mit Sitzungen, die Plugin-API, Routen, die Hauptschleife. `tools/new_plugin.py` kopiert sie neben dein `main.py`. | [Hier anfangen](../start-here.de.md) |
+| [echo-service/](https://github.com/Matze89x/ha-car-assistant/tree/main/docs/examples/echo-service) | Ein **Plugin mit Dienst**: ein eigenes kleines Programm, das auf einer Adresse antwortet (`/echo/ping`), mit einer Einstellung. | [Plugins](../plugins.de.md#plugins-mit-dienst) |
+| [example-stations/](https://github.com/Matze89x/ha-car-assistant/tree/main/docs/examples/example-stations) | Eine **Integration ohne Code**: eine Seite mit typisierten Feldern, die Car Assistant zeichnet und je Auto speichert. | [Integrationen](../integrations.de.md) |
+| [home-assistant/](https://github.com/Matze89x/ha-car-assistant/tree/main/docs/examples/home-assistant) | Ein **Plugin ohne Code und ohne Dienst**, das Entitäten aus Home Assistant in das Fahrzeug bringt: Die ganze Einstellungsseite kommt aus einem Schlüssel, `bridge`. | [Home-Assistant-Plugin](../home-assistant.de.md) |
+| [make_vehicle_file.py](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/make_vehicle_file.py) | Schreibt eine **Fahrzeugdatei**, um ein Auto aus einem anderen Programm zu übernehmen. | [Fahrzeugdatei](../vehicle-file.de.md) |
 
 Prüfe ein Paket, bevor du es teilst: `python tools/check_plugin.py <Ordner>`. Alles hier nutzt neutrale Werte (`car.example.com`, `Example`); ein Test sorgt dafür, dass die App diese Beispiele lesen kann.

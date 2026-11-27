@@ -104,6 +104,7 @@ Ein Paket darf geprüfte **Binärdateien** mitbringen, die die App selbst auslie
                          {"from": "assets/carassistant.jar", "to": "mod/carassistant/carassistant.jar"}]}],
 "docs": "Hol dir {file:carassistant.jar} und lege es auf die Karte."
 ```
+
 - **`files`** (höchstens 10): erlaubte Endungen `.jar .zip .bin .json .txt .md .pdf` (eine feste Liste, nichts Ausführbares), höchstens 8 MB je Datei und 20 MB zusammen. `sha256` und `size` sind Pflicht, und dieselbe Prüfsumme und Größe stehen im Index (`plugins/index.json`, `"files": [{"name", "sha256", "size"}]`) neben der Prüfsumme der `package.zip`. Passt eine Datei nicht, wird **nichts** entpackt oder angeboten.
 - **Ablage:** Beim Installieren landen die Dateien schreibgeschützt in einem Ordner der App (`plugin-files`) - getrennt vom Code-Ordner und für den Dienst gesperrt. Sie werden nicht entpackt und nicht geöffnet.
 - **Auslieferung:** `GET /plugins/<id>/files/<Name>` nur für **angemeldete Personen**, mit `Content-Disposition: attachment`, dem `Content-Type` der Endung und `Cache-Control: no-store`. Es geht auch bei gestopptem Dienst. Beim Entfernen des Plugins werden die Dateien gelöscht.
@@ -252,9 +253,9 @@ Alles Folgende ist **optional** und nur eine Ergänzung; die Sicherheit bleibt b
 - **Eigene Einstellungsseite.** `"settings_page": "<id einer Frame-Seite>"` benennt eine Seite des Dienstes als Einstellungsseite des Plugins: die Einstellungsseite des Plugins bekommt einen Hauptknopf dorthin. Die Feldliste bleibt als Rückfall.
 - **Feldtyp `value`.** `{"key": "status", "label": "Status", "type": "value"}` zeigt einen Wert, den der Mensch nicht ändert, sondern nur der Dienst des Plugins setzt (zum Beispiel *Betrieb läuft bis 14:20*). Zwei optionale Darstellungen: `"format": "datetime"` (oder `"date"`) schreibt eine Zeit, die der Dienst als ISO-Text gespeichert hat (`2026-11-22T10:20:00+00:00`, UTC wenn keine Zone dabei ist), in der Zeitzone und Schreibweise des Systems; `"state": {"ok": ["connected"], "warn": ["waiting"], "bad": ["error", "lost"]}` setzt vor genau diese Texte einen grünen, gelben oder roten Punkt (bis zu 8 je Stufe; der Text sagt weiterhin dasselbe).
 - **Der Dienst ändert seine eigenen Einstellungen.** Eine Einstellung mit `"service_writable": true` (nicht bei Listen und Mehrfachauswahl) und jedes `value`-Feld darf der Dienst selbst ändern:
-  - `GET /api/v1/vehicles/<id>/plugin-settings` mit dem Token des Plugins -> `{"ok": true, "settings": {...typisiert...}, "writable": [...]}`. Ein Passwort ist nie lesbar (`"***"`, wenn gesetzt).
-  - `PUT /api/v1/vehicles/<id>/plugin-settings` mit `{"values": {"mode": "eco", "interval": 30, "status": "Betrieb läuft bis 14:20"}}` -> `{"ok": true, "changed": [...]}`. Nur schreibbare Schlüssel (sonst `403 not_writable`), geprüft wie das Formular (`422 invalid_value` mit den falschen Schlüsseln - dann wird nichts gespeichert; Zahlen werden in ihre Grenzen gesetzt), höchstens 30 Aufrufe pro Minute (`429`).
-  - **Die Liste der schreibbaren Schlüssel gehört zu dem, was der Administrator freigibt:** eine neue Version, die sie ändert, braucht eine neue Freigabe. Eine Änderung steht im Protokoll des Plugins (die Namen der Schlüssel, nie die Werte).
+    - `GET /api/v1/vehicles/<id>/plugin-settings` mit dem Token des Plugins -> `{"ok": true, "settings": {...typisiert...}, "writable": [...]}`. Ein Passwort ist nie lesbar (`"***"`, wenn gesetzt).
+    - `PUT /api/v1/vehicles/<id>/plugin-settings` mit `{"values": {"mode": "eco", "interval": 30, "status": "Betrieb läuft bis 14:20"}}` -> `{"ok": true, "changed": [...]}`. Nur schreibbare Schlüssel (sonst `403 not_writable`), geprüft wie das Formular (`422 invalid_value` mit den falschen Schlüsseln - dann wird nichts gespeichert; Zahlen werden in ihre Grenzen gesetzt), höchstens 30 Aufrufe pro Minute (`429`).
+    - **Die Liste der schreibbaren Schlüssel gehört zu dem, was der Administrator freigibt:** eine neue Version, die sie ändert, braucht eine neue Freigabe. Eine Änderung steht im Protokoll des Plugins (die Namen der Schlüssel, nie die Werte).
 - `GET /api/v1` nennt `features` (`measured_at`, `plugin-settings`), damit ein Plugin vor der Nutzung prüfen kann.
 
 ### Der Einrichten-Ablauf (`setup.flow`)
@@ -339,6 +340,7 @@ Beide Typen brauchen einen **laufenden, freigegebenen** Dienst; der Schritt sagt
 Manche Plugins brauchen ein eigenes Programm, zum Beispiel um einem Gerät im Auto Seiten oder Daten zu liefern. Sie können es als **Dienst** mitbringen. Er läuft **im Add-on selbst** (nie in einem zweiten Container): Du installierst das Plugin, mehr nicht.
 
 **Das ist fremder Code.** Gib einen Dienst nur aus einer Quelle frei, der du vertraust, und lies vorher, was er tut. Die App schützt dich, so gut sie kann:
+
 - Er muss aus einer **Quelle** kommen, nie aus einer hochgeladenen Datei. Der Index der Quelle nennt die **sha256** der `package.zip`; eine Datei, die nicht passt, wird nicht entpackt.
 - Ein Paket ist **lesbar**: nur Textdateien (`.py`, `.json`, `.md`, ...) und einfache Bilder. Keine Binärdateien, kein kompilierter Code, keine Links. Der Ordner liegt offen auf GitHub; die Freigabe-Seite listet jede Datei.
 - Nichts läuft, bevor ein **Administrator es freigibt**, auf einer Seite mit Quelle, Prüfsumme, Programm, den nötigen Python-Paketen, den Adressen, auf die er antwortet, und den Einstellungen, die er bekommt. Ein Dienst, den du beim Installieren erlaubt hast, bleibt erlaubt, wenn **du auf *Aktualisieren* drückst**: Die neue Beschreibung wird mit diesem Klick freigegeben (die Seite zeigt sie weiterhin). Nichts wird von allein aktualisiert, und ein Paket, das du nie freigegeben hast, bleibt auch nach einem Update ungeprüft. Nimmst du die Freigabe zurück, stoppt er.
@@ -358,7 +360,7 @@ plugins/echo-service/service/main.py
 plugins/echo-service/package.zip      <- gebaut mit tools/build_plugin_package.py
 plugins/index.json                    <- {"packages": [{"id": "echo-service", ..., "sha256": "..."}]}
 ```
-`tools/build_plugin_package.py <Quellordner> <id>` baut die Zip jedes Mal gleich und schreibt die Prüfsumme in den Index. Ein lauffähiges Beispiel liegt in [`docs/examples/echo-service/`](examples/echo-service/).
+`tools/build_plugin_package.py <Quellordner> <id>` baut die Zip jedes Mal gleich und schreibt die Prüfsumme in den Index. Ein lauffähiges Beispiel liegt in [`docs/examples/echo-service/`](https://github.com/Matze89x/ha-car-assistant/tree/main/docs/examples/echo-service).
 
 Die `plugin.json` bekommt ein optionales `service`:
 ```
@@ -370,6 +372,7 @@ Die `plugin.json` bekommt ein optionales `service`:
   "env": {"GREETING": "{greeting}"}
 }
 ```
+
 - `files` - optional, `"read"` = der Dienst darf die Dateien seines Pakets **lesen** (`CA_FILES_DIR`, siehe *Dateien* oben); alles andere weist das Paket ab.
 - `token` - optional, `false` = dieser Dienst hat **kein Token** und keine Plugin-API (siehe *Ein Dienst ohne Token* unten); `true` ist der Standard und kann fehlen. Alles außer ja / nein weist das Paket ab.
 - `entry` - das Programm (eine `.py`-Datei des Pakets). `python` - die niedrigste Python-Version (`>=3.x`). `requirements` - Namen mit optionalen Versionen, höchstens 30; keine Links, keine Optionen.
@@ -381,11 +384,13 @@ Die `plugin.json` bekommt ein optionales `service`:
 
 ### Beobachten, was passiert
 Zwei Dinge erscheinen auf der *Protokolle*-Seite jedes Plugins (*Info* auf seiner Kachel, Abschnitt *Protokoll*):
+
 - **Was das Add-on mit dem Dienst tut** (Installation, pip-Fehler, Start, Stopp, Absturz mit Exit-Code und der Pause vor dem nächsten Start, Freigabe) - immer, ob Debug an ist oder nicht. Nach einem Absturz kommen die letzten Ausgabezeilen dazu, solange Debug an ist.
 - **Verkehr**, nur solange Debug an ist: jeder Aufruf des Plugins an die Plugin-API und jede Anfrage von außen auf eine Adresse seines Dienstes, mit Zeit, Status, Adresse, Größe, Dauer und den **Namen** der Felder (nie deren Werte). Seine Ausgabe und deine eigenen `print`-Zeilen werden als Log-Zeilen gespeichert, solange Debug an ist.
 
 ### Protokolle und der Debug-Knopf eines Plugins
 Jede Kachel unter *Verwaltung* (auch eine gestoppte) hat einen Knopf **Logs**, und die Einstellungen jedes Plugins (der Reiter *Allgemein*, für alle fest) haben die Karte **Protokoll**:
+
 - **Logs** öffnet die eigene Seite des Plugins (`/v/<Auto>/integrations/<id>/logs`): nur SEINE Log-Zeilen - *Alle* oder nur *Probleme* (Warnungen und Fehler, mit ihrer Anzahl) -, was das Add-on mit seinem Dienst getan hat und der Verkehr (eingeklappt), mit *Leeren* und *Als Text laden* (`logs.txt`, die letzten 1000 Zeilen, zum Offline-Lesen oder als Anhang zu einer Fehlermeldung). Hier schaut man zuerst nach, wenn etwas nicht funktioniert.
 - **Protokoll** (Einstellungen, Reiter *Allgemein*) schaltet mehr Details **nur für dieses Plugin** ein, für **1, 3 oder 7 Tage** ab dem Moment des Einschaltens: Solange er an ist, wird das Plugin informiert (`control.debug` ist `true`, es schickt also seine Log-Zeilen), seine Aufrufe werden im Verkehr vermerkt und die Ausgabe seines Dienstes wird gespeichert. Ist die Zeit um, geht der Schalter von selbst aus; eine andere Zeit zu wählen startet ihn neu; auch beim Löschen oder erneuten Installieren des Plugins ist er aus. Der Schalter für das ganze Auto auf der Seite *Debug & Log* wirkt auf jedes Plugin des Autos.
 
@@ -403,6 +408,7 @@ Ein Paket mit Dienst kann eine Seite seines eigenen Dienstes als **eigene Seite*
 "pages": [{ "id": "editor", "kind": "frame", "title": "Editor", "route": "/ext/editor/", "icon": "settings",
             "l10n": { "de": { "title": "Editor" } } }]
 ```
+
 - `route` muss unter einem **nicht öffentlichen** `routes`-Präfix des Dienstes desselben Pakets liegen (`public: false`); jede andere Adresse wird beim Lesen des Pakets abgelehnt. Ohne Dienst gibt es keine Frame-Seite.
 - Mit `"nav": true` (Standard) hat das Paket einen Eintrag in *Weiteres* jedes Autos, bei dem es installiert ist (unter *Integrationen* oder *Plugins*, je nach `kind`) **und sein Dienst läuft**. Gestoppt = Eintrag und Seite weg. Der Eintrag öffnet die `route`.
 - **Welche Seite zuerst aufgeht:** *Öffnen* auf der Kachel des Pakets öffnet die **erste Seite** von `pages` (`pages[0]`); das ist zugesagt, setze die Seite, die zuerst aufgehen soll, an den Anfang der Liste.
@@ -414,6 +420,7 @@ Ein Paket mit Dienst kann eine Seite seines eigenen Dienstes als **eigene Seite*
 **Was der Dienst bekommt** vom Proxy für so eine Route (nie die Cookies der App): `X-CA-Vehicle` (die Kennung des Autos, nur wenn es das Auto gibt) und `X-CA-User` (die Kennung der angemeldeten Person – kein Name –, oder `ha` in Home Assistant). Was ein Aufrufer unter diesen Namen schickt, wird verworfen. Eine Anfrage, die etwas **ändert** (POST / PUT / PATCH / DELETE), muss `X-Requested-With: frame` tragen, sonst antwortet der Proxy mit `403` (Schutz vor fremden Seiten). Grenzen: Anfragekörper bis **8 MB** (kleine Uploads gehen), Antwort bis **16 MB**, **30 Sekunden** je Anfrage. Nur angemeldete Personen erreichen die Seite, nie die Öffentlichkeit.
 
 **Design:** Die Seite passt zum Design des Autos, wenn sie einbindet, was die App bereitstellt:
+
 - `css` = `/frame-theme.css?theme=<Design>`: nur die Design-Variablen (`--accent`, `--bg`, `--ok`, Glas-Werte, Radien …) und `color-scheme` des gewählten Designs, auch einer eigenen Theme-Datei. Die zugesagte Liste steht im [Design-Vertrag](design-contract.de.md).
 - `kit` = `/frame-kit.css?theme=<Design>`: diese Variablen **plus** ein kleines Kit (`.card`, `.grid`, Felder, `button` / `.primary` / `.danger`, `.icon-btn`, `.chip`, `.badge`, Tabellen, Schriften und dieselben festen Bausteine wie in der App: die Abschnittsbeschriftung `.label`, die Hinweis-Kachel `.notice` mit `.ok` / `.warn` / `.err`, die Tab-Leiste `.seg-tabs` und der runde Symbol-Schalter `.seg-icons`; setze dein eigenes SVG-Symbol vor den Text; `.on` markiert den aktiven Tab), nur daraus gebaut. Mit den Klassen sieht die Seite in jedem Design aus wie die App. Der Body ist durchsichtig; gib der Seite selbst `html { background: var(--bg) }` (der Kopf setzt einen Hintergrund für `html`, dein eigener Stil gewinnt).
 
@@ -488,9 +495,10 @@ Die Kachel entscheidet nach ihrer eigenen Breite, nicht nach der des Fensters: S
     "confirm": "Auto jetzt wecken?", "l10n": { "en": { "label": "Wake the car", "confirm": "Wake the car now?" } } }
 ]
 ```
+
 - `id` (`a-z0-9_-`, eindeutig), `label` (bis zu 40 Zeichen), `icon` (eines der Symbole der App; unbekannte Namen zeigen ein rundes *Play*-Symbol) und **genau eines von**:
-  - `page`: die `id` einer `kind: "frame"`-Seite desselben Pakets. Der Knopf öffnet sie wie der Eintrag *Öffnen* - die Seite **gestaltet das Plugin völlig frei** (Dokumentation, ein Formular, das Daten sammelt, eine Ansicht, die Informationen aus dem Dienst liest, ...). Sie kann das Design-Kit der App nutzen (`kit`, siehe oben).
-  - `action`: eine Route des eigenen Dienstes des Plugins, die unter einem **nicht öffentlichen** `routes`-Präfix liegt (dieselbe Regel wie bei `capabilities`). Ein Druck sendet `POST <action>` mit `{"vehicle": <id>, "button": "<id>", "language": "de"}` und den beiden Identitäts-Headern (`X-CA-Vehicle`, `X-CA-User`) und zeigt eine Ergebnisseite: **2xx** (optional `{"ok": true, "message": "Text für die Person"}`) = erledigt, alles andere oder `{"ok": false, "message": "warum"}` = der Grund, aus `message` / `error` (höchstens 200 Zeichen). Der Dienst hat 10 Sekunden. Ein Plugin, das nicht läuft oder nicht freigegeben ist, wird nie aufgerufen; die Ergebnisseite sagt es.
+    - `page`: die `id` einer `kind: "frame"`-Seite desselben Pakets. Der Knopf öffnet sie wie der Eintrag *Öffnen* - die Seite **gestaltet das Plugin völlig frei** (Dokumentation, ein Formular, das Daten sammelt, eine Ansicht, die Informationen aus dem Dienst liest, ...). Sie kann das Design-Kit der App nutzen (`kit`, siehe oben).
+    - `action`: eine Route des eigenen Dienstes des Plugins, die unter einem **nicht öffentlichen** `routes`-Präfix liegt (dieselbe Regel wie bei `capabilities`). Ein Druck sendet `POST <action>` mit `{"vehicle": <id>, "button": "<id>", "language": "de"}` und den beiden Identitäts-Headern (`X-CA-Vehicle`, `X-CA-User`) und zeigt eine Ergebnisseite: **2xx** (optional `{"ok": true, "message": "Text für die Person"}`) = erledigt, alles andere oder `{"ok": false, "message": "warum"}` = der Grund, aus `message` / `error` (höchstens 200 Zeichen). Der Dienst hat 10 Sekunden. Ein Plugin, das nicht läuft oder nicht freigegeben ist, wird nie aufgerufen; die Ergebnisseite sagt es.
 - `confirm` (optional, nur bei `action`): eine Frage, die die Person erst bestätigen muss.
 - `l10n`: `label` und `confirm` je Sprache.
 - Die Knöpfe erscheinen, solange das Plugin eingeschaltet ist; nur wer Pakete verwalten darf, kann sie drücken. Ein Knopf, der diese Regeln nicht erfüllt, wird beim Lesen des Pakets verworfen (kein Fehler), mehr als drei werden abgeschnitten - alles Weitere gehört auf eine eigene Seite, die überallhin verlinken darf. Selten gebrauchte Knöpfe können stattdessen im Reiter *Allgemein* der Einstellungsseite stehen (`place`), und `when` bestimmt, wann ein Knopf erscheint: siehe [Wann etwas erscheint, und der Reiter Allgemein](#wann-etwas-erscheint-und-der-reiter-allgemein).

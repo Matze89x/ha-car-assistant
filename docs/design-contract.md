@@ -32,6 +32,7 @@ Use `rgba(var(--fg-rgb), .07)` for a light layer instead of white or black - lig
 
 ## 3. Designs (themes)
 A design is one file in `static/themes/<name>.css` with the rule `:root[data-theme="<name>"] { ... }`; it sets only the variables that differ from the dark base (`default`). A light design also sets `color-scheme: light`, the surfaces, `--fg-rgb`, the glass values and the status colours. What every design must keep (tested for all of them):
+
 - the variables of section 2 are there (from the base or the theme),
 - text on the background and on cards: contrast at least **4.5 : 1**; `--muted` on cards **4.5 : 1**; `--dim` **3 : 1** on cards and on the background (the section labels stand on the page),
 - the accent, `--ok`, `--soon` and `--overdue` on a card: at least **3 : 1**; `--accent-text` on `--accent`: at least **3 : 1**.

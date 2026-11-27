@@ -32,6 +32,7 @@ Für eine helle Ebene `rgba(var(--fg-rgb), .07)` statt Weiß oder Schwarz – he
 
 ## 3. Designs (Themes)
 Ein Design ist eine Datei `static/themes/<Name>.css` mit der Regel `:root[data-theme="<Name>"] { ... }`; sie setzt nur die Variablen, die vom dunklen Grund (`default`) abweichen. Ein helles Design setzt zusätzlich `color-scheme: light`, die Flächen, `--fg-rgb`, die Glas-Werte und die Statusfarben. Was jedes Design einhalten muss (für alle getestet):
+
 - die Variablen aus Abschnitt 2 sind da (aus dem Grund oder dem Design),
 - Text auf Hintergrund und auf Karten: Kontrast mindestens **4,5 : 1**; `--muted` auf Karten **4,5 : 1**; `--dim` **3 : 1** auf Karten und auf dem Hintergrund (die Abschnittsbeschriftungen stehen auf der Seite),
 - Akzent, `--ok`, `--soon` und `--overdue` auf einer Karte: mindestens **3 : 1**; `--accent-text` auf `--accent`: mindestens **3 : 1**.

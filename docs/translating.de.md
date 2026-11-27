@@ -13,6 +13,7 @@ Eine Sprache ist **eine Datei**: `carassistant/app/carassistant/locales/<code>.j
   "nav.more": "Plus"
 }
 ```
+
 - `_name` – der Name der Sprache in ihr selbst (erscheint in den Listen). `_date` – Datumsformat ([strftime](https://strftime.org)). `_dir` – `ltr` (Standard) oder `rtl` für Schriften von rechts nach links.
 - Alle anderen Schlüssel sind die Texte. Schlüssel und englische Texte findest du in `EN` in `carassistant/app/carassistant/i18n.py`; Platzhalter wie `{n}` oder `{name}` bleiben genau so stehen.
 - **Du musst nicht alles übersetzen.** Fehlt ein Schlüssel, gilt Englisch; eine teilweise Übersetzung funktioniert also schon.

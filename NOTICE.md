@@ -35,6 +35,10 @@ Car Assistant itself is licensed under the **GNU General Public License v3.0 onl
 
 Notes: *MPL-2.0* (pywebpush, py-vapid) and *LGPL-3.0* (fpdf2) apply to those libraries only and are used unmodified; their source is available from their projects (https://pypi.org). The Apache-2.0 and BSD libraries ask for their copyright notice and license text to stay with distributed copies: the packages carry them, and the installed packages are what the add-on image contains.
 
+## Documentation website (built from `docs/`, not part of the app)
+
+The website <https://matze89x.github.io/ha-car-assistant/> is built with **MkDocs** (BSD-2-Clause), **Material for MkDocs** (MIT), **mkdocs-static-i18n** (MIT) and **PyMdown Extensions** (MIT) - installed from `docs-site/requirements.txt` when the site is built, not copied into this repository. The diagrams of the architecture page are drawn by **Mermaid** (MIT), which that page loads from unpkg.com.
+
 ## Thanks
 
 Car Assistant runs as an app for [Home Assistant](https://www.home-assistant.io/) and is not affiliated with it.

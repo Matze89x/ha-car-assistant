@@ -76,6 +76,7 @@ A plugin or integration may bring a small program of its own (a *service*) that 
 
 ## More documents on GitHub
 Full descriptions are kept in the repository:
+- Documentation website (menu, search, English and German): https://matze89x.github.io/ha-car-assistant/
 - User guide: https://github.com/Matze89x/ha-car-assistant/blob/main/docs/guide.md
 - Installation: https://github.com/Matze89x/ha-car-assistant/blob/main/docs/install.md
 - Sources and packages: https://github.com/Matze89x/ha-car-assistant/blob/main/docs/sources.md

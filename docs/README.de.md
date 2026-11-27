@@ -2,7 +2,11 @@
 
 [🇬🇧 English](README.md) · 🇩🇪 Deutsch
 
-Alle Seiten auf einen Blick - das ist die Seite, die der Link **Hilfe** in der App öffnet. Zurück zum [Start](../README.de.md).
+Alle Seiten auf einen Blick - das ist die Seite, die der Link **Hilfe** in der App öffnet. Zurück zum [Start](https://github.com/Matze89x/ha-car-assistant/blob/main/README.de.md).
+
+<!-- repo-only:start -->
+Auch als Webseite mit Menü, Suche und Sprachumschalter: **[matze89x.github.io/ha-car-assistant](https://matze89x.github.io/ha-car-assistant/de/)**.
+<!-- repo-only:end -->
 
 **Wo fange ich an?**
 
@@ -56,9 +60,7 @@ Alle Seiten auf einen Blick - das ist die Seite, die der Link **Hilfe** in der A
 
 | Seite | Worum es geht |
 |---|---|
-| [Add-on-Seite in Home Assistant](../carassistant/DOCS.de.md) | der Reiter *Dokumentation* im Add-on |
+| [Add-on-Seite in Home Assistant](https://github.com/Matze89x/ha-car-assistant/blob/main/carassistant/DOCS.de.md) | der Reiter *Dokumentation* im Add-on |
 | [Sicherheit](community/security.de.md) | wie du eine Schwachstelle meldest und wie die App dich schützt |
 | [Mitmachen](community/contributing.de.md) | wie du hilfst: Regeln, Tests, Pull Requests |
-| [Änderungsprotokoll](../carassistant/CHANGELOG.de.md) | was sich in welcher Version geändert hat |
-
-*Zurechtfinden auf GitHub:* jede Seite hat eine Gliederung (der Listen-Knopf oben rechts auf der Seite), und mit der Taste `/` durchsuchst du alle Seiten des Projekts.
+| [Änderungsprotokoll](https://github.com/Matze89x/ha-car-assistant/blob/main/carassistant/CHANGELOG.de.md) | was sich in welcher Version geändert hat |

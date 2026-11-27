@@ -15,6 +15,7 @@ A **vehicle file** is the zip that *Settings → Car → Backup and manage* make
   "vehicle": {"name": "Example", "fuel_type": "diesel", ...},
   "tables": {"fuel": [{...}, ...], "service": [...], "trips": [...], "trip_points": [...]}}
 ```
+
 - `app` must be `carassistant`, `kind` `vehicle`, `format` `1` or `2` (an app only refuses a *higher* number than it knows; format 2 is what Car Assistant makes now and adds optional tables, where each package came from and the block `secrets.enc` - for a file from another program `1` is fine).
 - Fields you leave out get their default; fields the app does not know are ignored. Never write `id`, `vehicle_id`, `slug`, `uid`, `media_id` or `photo_id` of the car - the app makes them (a trip's `id` is only needed so its `trip_points` can point to it).
 - **Base units, always:** kilometres, litres (kWh for an electric car), money as a plain number, tyre pressure in bar, temperatures in °C. The app shows them in the units of *Settings → System → Region*.
@@ -48,4 +49,4 @@ A **vehicle file** is the zip that *Settings → Car → Backup and manage* make
 - Check the result: open the car, look at the lists and the *Report*; remove the car again if something is off and build the file anew.
 
 ## Example
-[`docs/examples/make_vehicle_file.py`](examples/make_vehicle_file.py) writes a small valid file with the Python standard library only.
+[`docs/examples/make_vehicle_file.py`](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/make_vehicle_file.py) writes a small valid file with the Python standard library only.

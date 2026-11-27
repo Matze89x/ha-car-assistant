@@ -1,6 +1,6 @@
 # Verhaltenskodex
 
-[🇬🇧 English](../../CODE_OF_CONDUCT.md) · 🇩🇪 Deutsch
+[🇬🇧 English](https://github.com/Matze89x/ha-car-assistant/blob/main/CODE_OF_CONDUCT.md) · 🇩🇪 Deutsch
 
 Car Assistant ist ein freundliches Projekt, das in der Freizeit entsteht. Alle sind willkommen - egal mit welcher Erfahrung, welchem Hintergrund oder welchen Werkzeugen (eine Person oder eine Person mit KI-Assistent).
 

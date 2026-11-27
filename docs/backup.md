@@ -42,7 +42,7 @@ The file format is described in [vehicle-file.md](vehicle-file.md) - it is also 
 
 Every backup carries a `format` number (now **2**; the system backup also the number of its database `schema`). **A newer Car Assistant restores every older format** - from now on, not only from 1.0:
 
-- the *golden files* of [`tests/fixtures/backups/`](../tests/fixtures/backups/README.md) - one backup of every format that ever existed, made by the code of that format and never changed - are restored by the test suite on every change; a new format brings its golden file first, or the tests fail;
+- the *golden files* of [`tests/fixtures/backups/`](https://github.com/Matze89x/ha-car-assistant/blob/main/tests/fixtures/backups/README.md) - one backup of every format that ever existed, made by the code of that format and never changed - are restored by the test suite on every change; a new format brings its golden file first, or the tests fail;
 - an older database is brought up to date by the migrations; the reader ignores columns it does not know and fills missing ones with their default, so small changes never break an old file;
 - a backup from a **newer** app is refused with a hint to update;
 - nothing of a car can be forgotten when the app grows: every table of the database is either part of the vehicle backup or named in `vehiclebackup.py` as left out, with the reason (logs and traffic views of the plugins, the people and devices of the whole system) - a test fails for a new table that is in neither list - and so is every setting the code keeps per car.

@@ -7,7 +7,7 @@ So schickt ein Plugin oder eine Integration Fahrzeugdaten an Car Assistant. Car 
 ## Ein Token = ein Auto
 Alles gilt pro Fahrzeug, weil jedes Auto anders angebunden sein kann. Ein Plugin richtest du unter *Auto → Weiteres → Integrationen* ein (siehe [plugins.de.md](plugins.de.md)); ein **Plugin** bekommt dabei sein eigenes Token (wird einmal angezeigt, lässt sich ersetzen und wird durch Entfernen des Plugins ungültig). Ein Token gilt **nur für sein Auto** – jede andere Fahrzeug-ID antwortet mit `403`.
 
-Die API erreichst du über die Adresse deines Direktzugriffs (der Port, den du gewählt hast, oder dein Reverse Proxy, siehe [DOCS.de.md](../carassistant/DOCS.de.md)). Das Token ist die einzige Zugangsangabe: `Authorization: Bearer ca_…`. Von außen immer HTTPS.
+Die API erreichst du über die Adresse deines Direktzugriffs (der Port, den du gewählt hast, oder dein Reverse Proxy, siehe [DOCS.de.md](https://github.com/Matze89x/ha-car-assistant/blob/main/carassistant/DOCS.de.md)). Das Token ist die einzige Zugangsangabe: `Authorization: Bearer ca_…`. Von außen immer HTTPS.
 
 ## Daten senden
 ```
@@ -109,7 +109,7 @@ Erfolg: `{"ok": true, "result": {"odometer_km": "stored", …}}`. Fehler haben d
 - Ein Plugin pro Auto; bei einem bekannt gewordenen Token *Neues Token* nutzen.
 
 ## Beispiel
-[`docs/examples/push_data.py`](examples/push_data.py) – nur Python-Standardbibliothek. Dasselbe geht mit `curl`, Node, einem Home-Assistant-`rest_command` oder einem Mikrocontroller.
+[`docs/examples/push_data.py`](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/push_data.py) – nur Python-Standardbibliothek. Dasselbe geht mit `curl`, Node, einem Home-Assistant-`rest_command` oder einem Mikrocontroller.
 
 ## Stabilität und Kompatibilität (ein Versprechen an alle, die Plugins schreiben)
 Menschen schreiben eigene Plugins und Integrationen, deshalb gilt: **was heute funktioniert, funktioniert weiter**. Die Regeln:

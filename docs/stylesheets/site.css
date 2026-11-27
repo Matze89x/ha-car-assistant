@@ -1,0 +1,23 @@
+/* The documentation site in the colours of the app (docs/design.md): dark glass, the red of Car Assistant as the accent. */
+:root > * {
+  --md-primary-fg-color: #e2001a;
+  --md-primary-fg-color--light: #ff3347;
+  --md-primary-fg-color--dark: #b30015;
+  --md-accent-fg-color: #e2001a;
+}
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #0d1016;
+  --md-default-bg-color--light: rgba(255, 255, 255, .06);
+  --md-default-fg-color: rgba(235, 236, 240, .92);
+  --md-default-fg-color--light: rgba(235, 236, 240, .68);
+  --md-typeset-a-color: #ff5a6d;
+  --md-primary-fg-color: #12161e;
+  --md-code-bg-color: rgba(255, 255, 255, .06);
+  --md-footer-bg-color: #0a0c11;
+  --md-footer-bg-color--dark: #07090c;
+}
+[data-md-color-scheme="slate"] .md-header { background-color: #12161e; box-shadow: 0 1px 0 rgba(255, 255, 255, .08); }
+[data-md-color-scheme="slate"] .md-tabs { background-color: #12161e; }
+.md-header__button.md-logo img { height: 1.6rem; width: auto; }
+.md-typeset table:not([class]) { font-size: .72rem; }
+.md-typeset img { border-radius: 12px; }

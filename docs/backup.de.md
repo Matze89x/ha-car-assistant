@@ -42,7 +42,7 @@ Das Dateiformat steht in [vehicle-file.de.md](vehicle-file.de.md) - es ist auch 
 
 Jede Sicherung trägt eine `format`-Nummer (jetzt **2**; die System-Sicherung dazu die Nummer ihres Datenbank-Schemas `schema`). **Ein neueres Car Assistant spielt jedes ältere Format ein** – ab sofort, nicht erst ab 1.0:
 
-- die *goldenen Dateien* in [`tests/fixtures/backups/`](../tests/fixtures/backups/README.md) – eine Sicherung jedes Formats, das es je gab, vom Code dieses Formats gemacht und nie verändert – spielt die Testsuite bei jeder Änderung ein; ein neues Format bringt seine goldene Datei zuerst mit, sonst scheitern die Tests;
+- die *goldenen Dateien* in [`tests/fixtures/backups/`](https://github.com/Matze89x/ha-car-assistant/blob/main/tests/fixtures/backups/README.md) – eine Sicherung jedes Formats, das es je gab, vom Code dieses Formats gemacht und nie verändert – spielt die Testsuite bei jeder Änderung ein; ein neues Format bringt seine goldene Datei zuerst mit, sonst scheitern die Tests;
 - eine ältere Datenbank bringen die Migrationen auf den neuen Stand; der Leser ignoriert unbekannte Spalten und füllt fehlende mit ihrem Standardwert, kleine Änderungen machen eine alte Datei also nicht kaputt;
 - eine Sicherung aus einer **neueren** App wird mit dem Hinweis abgelehnt, zu aktualisieren;
 - nichts von einem Auto geht verloren, wenn die App wächst: jede Tabelle der Datenbank gehört entweder zur Fahrzeug-Sicherung oder steht in `vehiclebackup.py` als ausgelassen, mit Grund (Protokolle und Verkehrsansichten der Plugins, die Personen und Geräte des ganzen Systems) – für eine neue Tabelle, die in keiner Liste steht, scheitert ein Test –, und ebenso jede Einstellung, die der Code je Auto hält.

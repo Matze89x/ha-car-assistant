@@ -22,7 +22,7 @@ Erscheint sie nicht, ist evtl. die `config.yaml` ungültig – prüfe Einstellun
 ## Wege zur Oberfläche
 - **Seitenleiste** (Ingress): immer da, kein Port, kein Login.
 - **Eigener Port** (optional): App → Konfiguration → *Netzwerk*: der Host-Port für `8099` ist standardmäßig leer - trage einen beliebigen freien Port deiner Wahl ein; lege unter *Einstellungen → Benutzer* ein Konto an, um ihn freizuschalten (Login-Seite, optional Passkey). Ist der Port schon belegt, startet die App nicht und das App-Protokoll sagt es – dann einen anderen wählen.
-- **Von außen:** Reverse-Proxy mit HTTPS auf diesen Port (siehe [DOCS.de.md](../carassistant/DOCS.de.md)) oder einfach den normalen Home-Assistant-Fernzugriff nutzen – das Seitenleisten-Panel funktioniert auch dort.
+- **Von außen:** Reverse-Proxy mit HTTPS auf diesen Port (siehe [DOCS.de.md](https://github.com/Matze89x/ha-car-assistant/blob/main/carassistant/DOCS.de.md)) oder einfach den normalen Home-Assistant-Fernzugriff nutzen – das Seitenleisten-Panel funktioniert auch dort.
 
 ## Unterstützen
 Kostenlos und in der Freizeit gemacht – [Ko-fi](https://ko-fi.com/matze89x).

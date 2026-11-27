@@ -22,7 +22,7 @@ If it does not appear, `config.yaml` may be invalid – check Settings → Syste
 ## Ways to open it
 - **Sidebar panel** (Ingress): always available, no port, no login.
 - **Own port** (optional): App → Configuration → *Network*: the host port for `8099` is empty by default - enter any free port of your choice; create an account under *Settings → User* to unlock it (login page, optional passkey). If the port is already used, the app does not start and the app log says so – pick another one.
-- **From outside:** reverse proxy with HTTPS to that port (see [DOCS.md](../carassistant/DOCS.md)), or simply use your normal Home Assistant remote access – the sidebar panel works there too.
+- **From outside:** reverse proxy with HTTPS to that port (see [DOCS.md](https://github.com/Matze89x/ha-car-assistant/blob/main/carassistant/DOCS.md)), or simply use your normal Home Assistant remote access – the sidebar panel works there too.
 
 ## Support
 Free and made in spare time – [Ko-fi](https://ko-fi.com/matze89x).

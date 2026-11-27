@@ -42,7 +42,7 @@ Der Button fügt das Repository in dein Home Assistant ein; installiere dann *Ca
 
 ## Dokumentation
 
-Alles gibt es auf Englisch und auf Deutsch; oben in jeder Seite wechselst du die Sprache.
+Alles gibt es auf Englisch und auf Deutsch; oben in jeder Seite wechselst du die Sprache. Lies sie als **[Webseite](https://matze89x.github.io/ha-car-assistant/de/)** mit Menü, Suche und Sprachumschalter.
 
 **Benutzen**
 

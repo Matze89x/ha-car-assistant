@@ -91,6 +91,7 @@ A reminder may carry a **`plan`**: a short rotation that moves on with **every r
 }],
 "pages": [{ "id": "plan", "kind": "plan", "reminder": "additive", "title": "Additive plan" }]
 ```
+
 - A step is a fixed **`label`**, or a **`setting`** (the name the user typed) with an optional **`amount_setting`**; a step with a `setting` is a "dose" that can be due, a step with only a label is a clean refuel. 2 to 8 steps; `l10n` translates the labels.
 - **`active_setting`** (a switch) turns the reminder on and off; **`range_setting`** (kilometres of range) holds it back until the car's range falls below that value.
 - The page of kind **`plan`** needs no fields; it points to the reminder with `reminder`.

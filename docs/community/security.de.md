@@ -1,6 +1,6 @@
 # Sicherheitsrichtlinie
 
-[🇬🇧 English](../../SECURITY.md) · 🇩🇪 Deutsch
+[🇬🇧 English](https://github.com/Matze89x/ha-car-assistant/blob/main/SECURITY.md) · 🇩🇪 Deutsch
 
 Car Assistant entsteht in der Freizeit einer einzelnen Person. Sicherheitsmeldungen werden ernst genommen und zuerst gelesen.
 

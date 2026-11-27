@@ -72,8 +72,8 @@ def test_every_doc_page_exists_in_both_languages_and_is_linked_from_the_start_pa
 
 
 def test_the_docs_index_lists_every_page_in_both_languages():
-    """docs/README.md is the page the Help link of the app opens (links.docs_url) and the one GitHub shows under the file list of docs/: a page that is
-    not in it cannot be found. The start page lists the same pages (test above), so the two cannot drift apart."""
+    """docs/README.md is the start page of the documentation website (the Help link of the app opens it, links.docs_url) and the one GitHub shows under the
+    file list of docs/: a page that is not in it cannot be found. The start page lists the same pages (test above), so the two cannot drift apart."""
     docs = ROOT / "docs"
     for readme, suffix in (("README.md", ""), ("README.de.md", ".de")):
         text = (docs / readme).read_text(encoding="utf-8")
@@ -81,14 +81,15 @@ def test_the_docs_index_lists_every_page_in_both_languages():
             assert f"({page[:-3]}{suffix}.md)" in text, f"docs/{readme} does not link {page[:-3]}{suffix}.md"
 
 
-def test_the_help_link_opens_the_documentation_in_the_language_of_the_app():
+def test_the_help_link_opens_the_documentation_website_in_the_language_of_the_app():
     from carassistant import links
 
-    assert links.docs_url("de") == f"{links.PROJECT_URL}/blob/main/docs/README.de.md"
+    assert links.docs_url("de") == f"{links.SITE_URL}de/"
     for lang in ("en", "fr", "es"):  # a language without pages of its own reads the English ones
-        assert links.docs_url(lang) == f"{links.PROJECT_URL}/blob/main/docs/README.md"
-    assert links.docs_url("de", "guide").endswith("/docs/guide.de.md")
-    for lang, suffix in (("en", ""), ("de", ".de")):  # the page it opens exists in the repository
+        assert links.docs_url(lang) == links.SITE_URL
+    assert links.docs_url("de", "guide") == f"{links.SITE_URL}de/guide.html"
+    assert links.docs_url("en", "guide") == f"{links.SITE_URL}guide.html"
+    for lang, suffix in (("en", ""), ("de", ".de")):  # the pages the site is built from exist
         assert (ROOT / "docs" / f"README{suffix}.md").is_file(), lang
 
 

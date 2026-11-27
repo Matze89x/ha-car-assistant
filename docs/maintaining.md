@@ -15,7 +15,7 @@ How reports and contributions become the next version. Contributors never touch 
 
 ## Version numbers
 
-`RELEASE.FEATURES.FIXES` plus the stage (Alpha / Beta): the first number counts releases, the second features, the third fixes and corrections. Only `release.json` holds the value; `tools/release.py` writes it everywhere. See [CONTRIBUTING](../CONTRIBUTING.md).
+`RELEASE.FEATURES.FIXES` plus the stage (Alpha / Beta): the first number counts releases, the second features, the third fixes and corrections. Only `release.json` holds the value; `tools/release.py` writes it everywhere. See [CONTRIBUTING](https://github.com/Matze89x/ha-car-assistant/blob/main/CONTRIBUTING.md).
 
 ## The standard source comes with the app
 
@@ -56,6 +56,17 @@ Four small tools in `tools/` (they need Google Chrome or Chromium; the photo too
 - `python tools/ocr_bench.py` - reads every photo of the **practice set** (`tools/practice_photos.py`: made-up instrument clusters and fuel receipts in several styles and languages, each with its right answer) as it is and as bad as a phone can make it (blurred, dim, crooked, small, over-compressed, with glare) and counts the right answers. Run it before and after a change of the reading: the number must not go down (clean photos: `tests/test_ocr_practice.py`). `python tools/practice_photos.py <folder>` writes the photos and their answers, for practising by hand.
 - `python tools/make_screenshots.py` - the pictures of the documentation (see its docstring); `tools/cdp.py` is the small DevTools client the tools above share.
 
+## The documentation website
+
+The pages in `docs/` are also a website (<https://matze89x.github.io/ha-car-assistant/>): a menu, a search and a language switch, made from the very same files - nothing is written twice. `mkdocs.yml` (the menu, the colours, the languages) and `docs-site/` (the exact versions of the tools and two small hooks) build it; `.github/workflows/docs.yml` builds it on every change of the pages on `main` and publishes it (GitHub Pages). A pull request only builds it, so a broken link is found before it is merged.
+
+- Look at it on your computer: `pip install -r docs-site/requirements.txt && mkdocs serve`, then open `http://127.0.0.1:8000/ha-car-assistant/`. `mkdocs build --strict` fails on a broken link or anchor, like the workflow.
+- A new page: write `docs/<name>.md` and `docs/<name>.de.md`, add it to the index `docs/README.md` / `README.de.md`, to the start page and to the `nav` of `mkdocs.yml` (with its German name under `nav_translations`); `tests/test_docs_site.py` checks all of it.
+- A link to another page of the docs stays relative (`guide.md`, also with an anchor); a link to anything else in the repository (a source file, the example packages, the changelog) is a full GitHub address - the site holds only the pages and their pictures.
+- A list is preceded by a blank line, and a list inside a list is indented by four spaces: the Markdown reader of the site is stricter than GitHub's.
+- What only makes sense in the repository stands between `<!-- repo-only:start -->` and `<!-- repo-only:end -->` (the site leaves it out). The language line at the top of a page is left out on the site too: its header has a language selector.
+- The theme *Material for MkDocs* gets security fixes until May 2027; its maintained successor, Zensical, reads the same `mkdocs.yml`. The diagrams of the architecture page load their library from unpkg.com - the only request the site makes to another server.
+
 ## Settings of the repository (once)
 
-A short list lives in the maintainer's checklist: a branch rule for `main` (pull request, CI must pass, code owner review, no force push), *Actions* approval for first-time contributors and a read-only token, *Discussions* on, private vulnerability reporting, Dependabot alerts, secret scanning with push protection.
+A short list lives in the maintainer's checklist: a branch rule for `main` (pull request, CI must pass, code owner review, no force push), *Actions* approval for first-time contributors and a read-only token, *Discussions* on, private vulnerability reporting, Dependabot alerts, secret scanning with push protection, and *Pages* with the source *GitHub Actions* for the documentation website (Settings → Pages).

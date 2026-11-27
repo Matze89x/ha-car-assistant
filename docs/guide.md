@@ -6,6 +6,7 @@ Car Assistant is a logbook and dashboard for your cars. Everything is explained 
 
 ## The three levels
 Every setting lives on exactly one level, so you always know where to look. *Settings* has three tabs - the car first, then you, then the whole app:
+
 - **Car** – only the car shown under the title (switch it with the sign next to its name): its photo, video, design and icon, Home Assistant entities, backup, archive and delete.
 - **User** – you: your login (name, password, passcode, passkeys), your devices and all your notifications (one list for every car), the start car, how many entries a list loads at a time (5, 10, 25, 50 or 100), and the start links for a [web app per car](#a-web-app-per-car).
 - **System** – the whole app, for every car and every person: one **Region** card: language, date and time (order of the date, 12 / 24 hours), **time zone** (automatic = the one of Home Assistant; summer / winter time follows) and units and currency, design, map and fuel prices, sensors in Home Assistant, [MCP access](mcp.md), sources and updates (optionally a daily look for a new Car Assistant and for package updates - the dot at the foot of the side bar turns amber when something is new), logs, the address of the app, backup of everything.
@@ -23,6 +24,7 @@ A short guide asks for a language, then your first car (or a demo car), then whi
 The two things you enter most need **no plugin and no typing marathon**. Both work on a car that is connected to nothing.
 
 **Update the odometer on the dashboard - five seconds.**
+
 1. Open the dashboard of the car and tap the odometer: it turns over to a box. (A link to `…/v/<car>#odometer` opens it at once - the *Get started* list of a new car uses it.)
 2. Type the number and press the arrow - **or** tap the camera button: take a photo of the instrument cluster (the *lower* part is enough, where the odometer and the trip counter sit) or pick a photo from your phone.
 3. The server reads the photo, puts the number in the box and says *Read from the photo - please check the number before you save*. The number is compared with the last reading: a warning appears when it is lower or far higher. Nothing is saved until you press the arrow.
@@ -32,6 +34,7 @@ The reading looks at the lower half of the photo first and trusts a number that 
 ![The odometer turned over: a photo of the cluster was read](screenshots/en/odometer-photo.png)
 
 **Fill up - three taps.**
+
 1. *Fuel* → the plus button (or *Get started → Add your first fill-up*; the link `…/e/fuel#fuel-add` opens the form).
 2. *Scan* (the camera opens) or *Load file* (a photo from the library, or a PDF receipt from a fuel app or an e-mail) → the form fills in: **date, station, fuel, amount, price per unit, total** and - when the station printed it (*KM-Stand*, *Odometer*) - the **odometer**. The filled fields are marked.
 3. Look at the marked fields and save. Amount × price = total is checked to the cent: a misread digit is found, a missing value is calculated and the form says so.
@@ -47,6 +50,7 @@ Both photos are read **on your own server** (text recognition with Tesseract, no
 
 ## Settings of a car
 *Settings → Car* (the car shown under the title):
+
 - **Icon** – the car's own icon for More, the browser tab and the home screen.
 - **Photo and video** – up to **10 files per car**, photos and videos together; the oldest drops out when you add an eleventh. Two choices, saved at once: *For the Dashboard* (a photo or a video; a video plays once at each visit and then stands on its last frame - that frame is kept on the device, so the dashboard shows a picture even when the phone does not start the video, for example in low power mode, and a tap plays it again; when the phone's video player refuses the video's address, the page loads the file itself and plays it from memory, and when it still cannot play, a tap names the reason) and *As the car's photo* (for the car choice and every list). A video needs a photo first.
 - **Design** – the car's own design with its own colour wheel; *Like the system* follows the design of System.
@@ -124,6 +128,7 @@ With the **MCP access** of *Settings → System* you can let Claude read - and, 
 
 ## Optional services (off by default)
 Nothing leaves your server unless you switch it on under *Settings*:
+
 - **Map info** (*System*): shows the location map with OpenStreetMap tiles, fetched through the app, **and** names the start and the end of each trip (from an offline list of the world's cities; with an address set for place names: from that Nominatim-compatible server), so the log book shows names instead of coordinates. The map is off by default. The place names need no internet; an address for place names (a Nominatim-compatible server, https only) is optional and then asked only while the map info is on, and also gives the street of the car.
 - **Fuel prices**: set on the fuel page with the cog at the top (price sources per country, your own keys, start values) - for Germany you need **your own** free key from tankerkoenig.de, there is no built-in key. **Refuels** are noticed from the tank level: when it jumps by 15 points or more, an unfinished fuel entry appears (date, mileage and the rise are there) and a card on the fuel page with a *Complete* button. It opens the entry: *Scan* or *Load file*, look at the filled fields (the rough amount from the tank size is only a hint in the amount field), save - that is all, and the reminder is gone. It also goes by itself after three trips or three days; the entry stays and can be completed from its card at any time. The mark that an entry was noticed is kept in the entry's own data, never in your notes. You can be told about it in *Settings → User*; the message opens the entry directly (a message about a trip opens that trip, one about a door or a car warning the status page) - a web push needs no saved address for that. For cars with a battery the same works for **charging**: when the car starts charging the app opens a session (time, battery level, strongest power) and, when it stops, adds an unfinished entry (energy and price from the bill are missing; a rough energy estimate comes from the battery size) and lists the sessions on the page. Once you complete the entry from the bill, the session shows the real energy, the cost, the price per kWh and the **charging loss** (billed against what reached the battery), and a summary of the last 90 days adds up sessions, energy, cost, average price and peak power, and fast against slow charging.
 

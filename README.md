@@ -42,7 +42,7 @@ The button adds the repository to your Home Assistant; install *Car Assistant* f
 
 ## Documentation
 
-Everything exists in English and in German; switch the language at the top of any page.
+Everything exists in English and in German; switch the language at the top of any page. Read it as a **[website](https://matze89x.github.io/ha-car-assistant/)** with a menu, a search and a language switch.
 
 **Use it**
 

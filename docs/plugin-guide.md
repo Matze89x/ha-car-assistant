@@ -88,6 +88,7 @@ Every plugin looks the same to the person, whatever car, cloud account, app or H
 | **Your pages** | any page of your service, freely designed, may collect data or read information | `pages` (`kind: "frame"`), reached by a `page` button or a `page` step |
 
 **Rebuilding an existing plugin - checklist** (nothing has to change for a plugin to keep working; this is how it gets the new structure):
+
 1. **Keep what works.** Every key of `plugin.json` that you use today is still read the same way. New keys are additions: `buttons`, `setup.flow`.
 2. **Replace the fixed guide by a flow** only if you need more than *check / token / files*: move the texts of the steps into `flow` steps (`text`, `requirements`, `form` / `check`, `token`, `files`) in the order you want. A login with a user name and password is a `check` step with `"settings": ["user", "password"]` and a route in your service that tries the login and answers `{"ok": true, "message": "Logged in as ..."}` or `{"ok": false, "message": "Wrong password."}`.
 3. **Put what the person must read into pages, not into texts**: a documentation page is a `kind: "frame"` page plus a `buttons` entry (`"page": "docs"`); a page that collects data posts to your service.
