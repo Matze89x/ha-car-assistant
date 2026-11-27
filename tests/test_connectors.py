@@ -209,8 +209,14 @@ def test_events_refuel_and_interval(api):
     from carassistant import db
 
     with db.tx() as conn:
-        row = conn.execute("SELECT amount, full_tank, notes FROM fuel").fetchone()
-    assert row["amount"] == 41.5 and row["full_tank"] == 1 and row["notes"] == "api:my-plugin"
+        row = conn.execute("SELECT amount, full_tank, notes, auto_kind, auto_src, auto_open FROM fuel").fetchone()
+    assert row["amount"] == 41.5 and row["full_tank"] == 1
+    assert (row["notes"], row["auto_kind"], row["auto_src"], row["auto_open"]) == (
+        None,
+        "api",
+        "my-plugin",
+        0,
+    )  # the mark is in columns, not in the notes
     assert api.post("/api/v1/vehicles/1/refuel", headers=hdr(token), json={"amount": -3}).status_code == 422
     api.post("/v/1/interval", data={"interval": "60"})
     assert api.get("/api/v1/vehicles/1/control", headers=hdr(token)).json()["control"]["interval_s"] == 60

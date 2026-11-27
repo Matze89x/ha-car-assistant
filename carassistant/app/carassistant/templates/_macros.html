@@ -26,7 +26,7 @@
   {%- endif -%}
 {%- endmacro %}
 
-{% macro field_input(f, value, has_form) -%}
+{% macro field_input(f, value, has_form, ph='') -%}
   {%- set val = value if has_form else f.default -%}
   {%- if f.kind == 'textarea' -%}
     <textarea name="{{ f.name }}" rows="2">{{ val or '' }}</textarea>
@@ -43,9 +43,9 @@
   {%- elif f.kind == 'month_or_date' -%}
     <input type="text" name="{{ f.name }}" value="{{ field_value(val) }}" placeholder="{{ date_placeholder() }}" {{ 'required' if f.required }}>
   {%- elif f.kind == 'int' -%}
-    <input type="number" inputmode="numeric" min="0" step="1" name="{{ f.name }}" value="{{ val if val is not none else '' }}">
+    <input type="number" inputmode="numeric" min="0" step="1" name="{{ f.name }}" value="{{ val if val is not none else '' }}"{% if ph %} placeholder="{{ ph }}"{% endif %}>
   {%- elif f.kind == 'float' -%}
-    <input type="text" inputmode="decimal" name="{{ f.name }}" value="{{ val if val is not none else '' }}">
+    <input type="text" inputmode="decimal" name="{{ f.name }}" value="{{ val if val is not none else '' }}"{% if ph %} placeholder="{{ ph }}"{% endif %}>
   {%- else -%}
     <input type="text" name="{{ f.name }}" value="{{ val or '' }}" {{ 'required' if f.required }} maxlength="200">
   {%- endif -%}
@@ -53,7 +53,8 @@
 
 {# a stored value (km, litres, price per litre) in the units shown, for forms and lists #}
 {% macro disp(f, v) -%}
-  {%- if v is none or v == '' or not f.dim -%}{{ v }}
+  {%- if v is none -%}
+  {%- elif v == '' or not f.dim -%}{{ v }}
   {%- elif f.dim == 'dist' -%}{{ units.d(v)|round(0)|int }}
   {%- elif f.dim == 'vol' -%}{{ units.v(v, unit or 'L')|round(3) }}
   {%- else -%}{{ units.price_vol(v, unit or 'L')|round(4) }}{%- endif -%}

@@ -1,28 +1,35 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, page_foot, field_input, flabel, disp, switch_row with context %}
+{% from "_macros.html" import icon, page_head, page_foot, field_input, flabel, disp, switch_row, del_form with context %}
 {% block scripts %}{% if stn %}<script src="{{ base }}/static/stations.js?v={{ asset_v }}" defer></script>{% endif %}{% if receipt_on %}<script src="{{ base }}/static/receipt.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 {% set vurl = base ~ '/v/' ~ v.id ~ '/e/fuel' %}
 {% set fu = vurl %}
-{% macro fuelform(r, url, inline=false) %}
-  <form class="eq-edit tp-form" method="post" action="{{ url }}" {{ 'hidden' if r and not inline else '' }}>
+{% macro fuelform(r, url, est=none) %}
+  {# one form for a new refuel and for the card of an entry: the scan row above the fields, the bar of every other list below (close, delete, save) #}
+  <form class="fuel-form tp-form" method="post" action="{{ url }}">
     {% if booking and not r %}<input type="hidden" name="invoice" value="{{ booking.doc.id }}">{% endif %}
-    {% if receipt_on and not r %}<div class="fuel-scan" data-scan="{{ base }}/v/{{ v.id }}/fuel/scan" data-t-busy="{{ _('fuel.scan_busy') }}" data-t-ok="{{ _('fuel.scan_ok') }}" data-t-fit="{{ _('fuel.scan_fit') }}" data-t-nofit="{{ _('fuel.scan_nofit') }}" data-t-derived="{{ _('fuel.scan_derived') }}" data-t-none="{{ _('fuel.scan_none') }}" data-t-err="{{ _('fuel.scan_err') }}">
-      <button type="button" class="button small" data-scan-btn>{{ icon('camera', 16) }}<span>{{ _('fuel.scan') }}</span></button>
-      <input type="file" accept="image/*" capture="environment" data-scan-file hidden>
+    {% if receipt_on %}
+    {% if not r %}<p class="hint">{{ icon('info', 14) }} {{ _('fuel.scan_hint') }}</p>{% endif %}
+    <div class="fuel-scan">
+      <button type="button" class="button small" data-scan-btn="camera">{{ icon('camera', 16) }}<span>{{ _('fuel.scan_camera') }}</span></button>
+      <button type="button" class="button small" data-scan-btn="file">{{ icon('upload', 16) }}<span>{{ _('fuel.scan_file') }}</span></button>
+      <input type="file" accept="image/*" capture="environment" data-scan-file="camera" hidden>
+      <input type="file" accept="image/*,application/pdf" data-scan-file="file" hidden>
       <p class="hint scan-note" data-scan-note hidden></p>
-      <p class="hint">{{ icon('info', 14) }} {{ _('fuel.scan_hint') }}</p>
-    </div>{% endif %}
+    </div>
+    {% endif %}
     {% if fuel2 %}<label>{{ _('f.fuel_kind') }}<select name="fuel_kind"><option value="main" {{ 'selected' if not r or (r['fuel_kind'] or 'main') == 'main' }}>{{ _('fuel_type.' ~ v.fuel_type) }}</option><option value="second" {{ 'selected' if r and r['fuel_kind'] == 'second' }}>{{ _('fuel_type.' ~ fuel2) }}</option></select></label>{% endif %}
-    <div class="eq-two">{% for name in ('date', 'odometer_km') %}{% set f = entity.fields|selectattr('name', 'equalto', name)|first %}<label>{{ flabel(f) }}{{ field_input(f, disp(f, r[name]) if r else form.get(name), true) }}</label>{% endfor %}</div>
-    <div class="eq-two">{% for name in ('amount', 'price_per_unit') %}{% set f = entity.fields|selectattr('name', 'equalto', name)|first %}<label>{{ flabel(f) }}{{ field_input(f, disp(f, r[name]) if r else form.get(name), true) }}</label>{% endfor %}</div>
+    <div class="eq-two">{% for name in ('date', 'odometer_km') %}{% set f = entity.fields|selectattr('name', 'equalto', name)|first %}<label>{{ flabel(f) }}{{ field_input(f, disp(f, r[name]) if r else (form.get(name) or (today if name == 'date' else '')), true) }}</label>{% endfor %}</div>
+    <div class="eq-two">{% for name in ('amount', 'price_per_unit') %}{% set f = entity.fields|selectattr('name', 'equalto', name)|first %}<label>{{ flabel(f) }}{{ field_input(f, disp(f, r[name]) if r else form.get(name), true, ('~' ~ fnum(units.v(est, unit), 0)) if (est and name == 'amount') else '') }}</label>{% endfor %}</div>
     <div class="eq-two">{% set f = entity.fields|selectattr('name', 'equalto', 'price_total')|first %}<label>{{ flabel(f) }}{{ field_input(f, r['price_total'] if r else form.get('price_total'), true) }}</label>
       {% set f = entity.fields|selectattr('name', 'equalto', 'station')|first %}<label>{{ flabel(f) }}{{ field_input(f, r['station'] if r else form.get('station'), true) }}</label></div>
     {{ switch_row('full_tank', _('f.full_tank'), (r['full_tank'] if r else 1)) }}
     {% set f = entity.fields|selectattr('name', 'equalto', 'notes')|first %}<label>{{ flabel(f) }}{{ field_input(f, r['notes'] if r else form.get('notes'), true) }}</label>
-    <div class="eq-acts"><button class="ghost-btn small ib">{{ icon('check', 16) }}<span class="sr">{{ _('btn.save') }}</span></button>
-      {% if r %}<button class="ghost-btn small warn ib" formaction="{{ fu }}/{{ r['id'] }}/delete" formnovalidate data-confirm="{{ _('confirm.delete') }}">{{ icon('delete-outline', 16) }} <span class="sr">{{ _('btn.delete') }}</span></button>
-      {% if not inline %}<button type="button" class="ghost-btn small ib" data-eqe-cancel>{{ icon('close', 16) }}<span class="sr">{{ _('btn.cancel') }}</span></button>{% endif %}{% endif %}</div>
+    <div class="form-bar">
+      {% if r %}<button type="button" class="ghost-btn small" data-rec-cancel>{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button><button type="submit" form="del-{{ r['id'] }}" class="danger">{{ icon('delete', 18) }}<span>{{ _('btn.delete') }}</span></button>
+      {% else %}<button type="button" class="ghost-btn small" data-toggle-panel="#fuel-add">{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button>{% endif %}
+      <button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button>
+    </div>
   </form>
 {% endmacro %}
 
@@ -34,11 +41,12 @@
 {% if stn %}<p class="hint">{{ icon('info', 14) }} {% if stn.electric %}{{ _('chg.intro') }}{% if not stn.has_key %} {{ _('chg.no_key_hint') }}{% endif %}{% else %}{{ _('stations.intro') }}{% if not stn.has_key %} {{ _('stations.no_key_hint') }}{% endif %}{% endif %}</p>{% endif %}
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
 
+{% set est_of = {} %}{% for it in refuel_todo %}{% if it.litres %}{% set _x = est_of.update({it.id: it.litres}) %}{% endif %}{% endfor %}
 {% for it in refuel_todo %}
 <section class="card fs-todo">
   <span class="mi-ic c6">{{ icon('plug' if it.charge else 'gas-station', 19) }}</span>
   <div class="fs-todo-t"><b>{{ _('fuel.todo_charge_title' if it.charge else 'fuel.todo_title') }} · {{ fdate(it.date) }}</b><small class="muted">{{ _('fuel.todo_charge_text' if it.charge else ('fuel.todo_text' if it.rise else 'fuel.todo_text_plain'), pct=it.rise or '', litres=(' (~' ~ it.litres ~ ' ' ~ it.unit ~ ')') if it.litres else '') }}</small></div>
-  <a class="button primary small" href="{{ fu }}?edit={{ it.id }}#fuel">{{ icon('pencil', 16) }}<span>{{ _('fuel.todo_btn') }}</span></a>
+  <a class="button primary small" href="{{ fu }}?edit={{ it.id }}#fuel-{{ it.id }}">{{ icon('pencil', 16) }}<span>{{ _('fuel.todo_btn') }}</span></a>
 </section>
 {% endfor %}
 {% if charge_stats %}
@@ -74,7 +82,7 @@
 </section>
 {% endif %}
 
-<section class="tp-sec" id="fuel">
+<section class="tp-sec" id="fuel"{% if receipt_on %} data-scan="{{ base }}/v/{{ v.id }}/fuel/scan" data-t-busy="{{ _('fuel.scan_busy') }}" data-t-ok="{{ _('fuel.scan_ok') }}" data-t-fit="{{ _('fuel.scan_fit') }}" data-t-nofit="{{ _('fuel.scan_nofit') }}" data-t-derived="{{ _('fuel.scan_derived') }}" data-t-derived_price_per_unit="{{ _('fuel.scan_derived_price') }}" data-t-derived_amount="{{ _('fuel.scan_derived_amount') }}" data-t-derived_price_total="{{ _('fuel.scan_derived_total') }}" data-t-none="{{ _('fuel.scan_none') }}" data-t-err="{{ _('fuel.scan_err') }}"{% endif %}>
   {% include "_invoice_booking.html" %}
   <div class="eq-panel tp-add" id="fuel-add" {{ 'hidden' if not (form and not edit_id) }}>{{ fuelform(none, fu) }}</div>
   <div class="eq-panel tp-add" id="fuel-export" hidden>
@@ -104,21 +112,20 @@
     {% for head, r in fuel_items %}
     {% if head %}<h3 class="rec-month"><span>{{ head.title }}</span></h3>{% endif %}
     {% set ru = unit2 if (fuel2 and r['fuel_kind'] == 'second') else unit %}
-    <article class="rec">
+    <article class="rec rec-tap{{ ' editing' if edit_id == r['id'] }}" id="fuel-{{ r['id'] }}" tabindex="0" data-rec-edit>
       <header class="rec-top">
         <div class="rec-main"><span class="rec-lead">{{ fdate(r['date']) }}</span>
-          <h3 class="rec-title">{% if r['amount'] is none and (r['notes'] or '').startswith('auto:') %}{{ _('fuel.todo_charge_title' if (r['notes'] or '').startswith('auto:charge') else 'fuel.todo_title') }}{% else %}{{ fnum(units.v(r['amount'], ru), 1) if r['amount'] is not none else '–' }} {{ units.vol_unit(ru) }}{% endif %}{% if r['station'] %} · {{ r['station'] }}{% endif %}</h3></div>
-        <div class="rec-badges">{% if fuel2 and r['fuel_kind'] == 'second' %}<span class="badge">{{ _('fuel_type.' ~ fuel2) }}</span>{% endif %}{% if r['price_total'] is not none %}<span class="badge">{{ fnum(r['price_total'], 2) }} {{ units.cur }}</span>{% endif %}</div>
+          <h3 class="rec-title">{% if r['amount'] is none and r['auto_kind'] %}{{ _('fuel.todo_charge_title' if r['auto_kind'] == 'charge' else 'fuel.todo_title') }}{% else %}{{ fnum(units.v(r['amount'], ru), 1) if r['amount'] is not none else '–' }} {{ units.vol_unit(ru) }}{% endif %}{% if r['station'] %} · {{ r['station'] }}{% endif %}</h3></div>
+        {% if fuel2 and r['fuel_kind'] == 'second' %}<div class="rec-badges"><span class="badge">{{ _('fuel_type.' ~ fuel2) }}</span></div>{% endif %}
+        {% if r['price_total'] is not none %}<div class="rec-price"><b>{{ fnum(r['price_total'], 2) }} {{ units.cur }}</b>{% if r['price_per_unit'] is not none %}<small>{{ fnum(units.price_vol(r['price_per_unit'], ru), 3) }} {{ units.cur }}/{{ units.vol_unit(ru) }}</small>{% endif %}</div>{% endif %}
       </header>
       <dl class="rec-facts">
         {% if r['odometer_km'] is not none %}<div><dt>{{ _('f.odometer') }}</dt><dd>{{ fnum(units.d(r['odometer_km']), 0) }} {{ units.dist_unit }}</dd></div>{% endif %}
-        {% if r['price_per_unit'] is not none %}<div><dt>{{ _('f.price_unit') }}</dt><dd>{{ fnum(units.price_vol(r['price_per_unit'], ru), 3) }} {{ units.cur }}/{{ units.vol_unit(ru) }}</dd></div>{% endif %}
+        {% if r['price_per_unit'] is not none and r['price_total'] is none %}<div><dt>{{ _('f.price_unit') }}</dt><dd>{{ fnum(units.price_vol(r['price_per_unit'], ru), 3) }} {{ units.cur }}/{{ units.vol_unit(ru) }}</dd></div>{% endif %}
         <div><dt>{{ _('f.full_tank') }}</dt><dd>{{ '✓' if r['full_tank'] else '–' }}</dd></div>
       </dl>
-      <details class="rec-edit" {{ 'open' if edit_id == r['id'] }}>
-        <summary class="ghost-btn small">{{ icon('pencil', 16) }} <span>{{ _('btn.edit') }}</span></summary>
-        {{ fuelform(r, fu ~ '/' ~ r['id'], true) }}
-      </details>
+      <div class="rec-actions md-acts"><button type="button" class="ghost-btn small" data-rec-open>{{ icon('pencil', 16) }}<span>{{ _('btn.edit') }}</span></button></div>
+      <div class="rec-inline">{{ fuelform(r, fu ~ '/' ~ r['id'], est_of.get(r['id'])) }}{{ del_form('del-' ~ r['id'], fu ~ '/' ~ r['id'] ~ '/delete') }}</div>
     </article>
     {% endfor %}
   </div>

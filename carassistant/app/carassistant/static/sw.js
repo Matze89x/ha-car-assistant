@@ -15,9 +15,17 @@ self.addEventListener("push", function (event) {
 });
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
-  var url = (event.notification.data && event.notification.data.url) || self.registration.scope;
-  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
-    for (var i = 0; i < list.length; i++) { if ("focus" in list[i]) { if ("navigate" in list[i]) { list[i].navigate(url); } return list[i].focus(); } }
-    return self.clients.openWindow(url);
-  }));
+  // the address of the page (a path of this app is resolved against the app's own address, so it is always on the same origin)
+  var target = new URL((event.notification.data && event.notification.data.url) || "/", self.registration.scope).href;
+  event.waitUntil((async function () {
+    var list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    var open = list.find(function (w) { return "focus" in w; });
+    if (open) {
+      try {  // the window that is open goes to the page ...
+        if ("navigate" in open) { var moved = await open.navigate(target); await (moved || open).focus(); return; }
+      } catch (e) { /* a window this worker does not control, or a system that refuses: the address is opened the standard way below */ }
+      try { await open.focus(); } catch (e) { /* ... and a window that cannot be focused is not the end of it */ }
+    }
+    return self.clients.openWindow(target);  // no window yet (or none could be taken there): open the page
+  })());
 });

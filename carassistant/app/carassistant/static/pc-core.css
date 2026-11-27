@@ -969,6 +969,9 @@ form[action$="/delete"] .round-del:hover { background: rgba(var(--overdue-rgb), 
 .rec-title { margin: 0; font-size: 16px; line-height: 1.25; overflow-wrap: anywhere; }
 .rec-arrow { color: var(--dim); font-weight: 400; }
 .rec-badges { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex-shrink: 0; }
+.rec-price { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: 0 0 auto; text-align: right; }  /* the amount of a card at its top right: the total big, the price per unit small under it */
+.rec-price b { font-family: "Space Mono", monospace; font-size: 20px; line-height: 1.1; font-weight: 700; white-space: nowrap; }
+.rec-price small { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .rec-facts { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
 .rec-facts:empty { display: none; }
 .rec-facts dt { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
@@ -3259,8 +3262,10 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .page-foot:empty { display: none; }
 
 /* fuel receipt scan */
-.fuel-scan { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 10px; }
-.fuel-scan .hint { flex: 1 0 100%; margin: 0; }
+.fuel-scan { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; margin: 0; }  /* Scan on the left, Load file on the right, above the fields */
+.fuel-scan .button { width: 100%; justify-content: center; margin: 0; }
+.fuel-scan .hint { grid-column: 1 / -1; margin: 0; }
+.tp-add .fuel-form .form-bar { justify-content: flex-end; margin-top: 4px; }
 .fuel-scan .scan-note.ok { color: var(--ok); }
 .fuel-scan .scan-note.warn { color: var(--warn, #f59e0b); }
 .scan-hit { border-color: var(--accent) !important; box-shadow: 0 0 0 1px var(--accent) inset; }

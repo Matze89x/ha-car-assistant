@@ -498,3 +498,55 @@ def test_photos_are_read_by_the_real_text_recognition_when_it_is_installed():
     r = receipt.scan(demo_photos.receipt_photo(odometer=86_020))
     assert (r["amount"], r["price_per_unit"], r["price_total"], r["notes"], r["odometer"]) == (42.7, 1.649, 70.41, "Diesel", 86020)
     assert r["checked"] and r["station"].lower().startswith("example")
+
+
+# ------------------------------------------------------------------ a price that blurred, a town that was misread, a PDF
+
+LATER = date(2026, 11, 28)  # the receipt below is of the 27th
+BLURRED_PRICE = """
+bft Tankstelle Beispielstadt
+Beispielweg 1a
+12345 Bj ldstoak ihe
++ 42,79 Liter  SAEULENNUMMER 2
+DIESEL     A     84,25 EUR
+1,959 EUR/Liter
+KUNDENBELEG
+BFT Freie Tankstelle
+Beispielweg 1a
+12345 Musterstadt aed - :
+Datum  27.11.2026
+Betrag 84,25 EUR
+TOTAL  84,25 EUR
+MWST 19,00% A  13,45 EUR
+"""
+
+
+def test_a_price_that_blurred_is_calculated_from_the_amount_and_the_total():
+    r = receipt.parse(BLURRED_PRICE, LATER)
+    # 42.79 l x 1.959 = 83.82, but the total says 84.25 (printed four times): the small digits of the price are the ones that blur
+    assert (r["amount"], r["price_per_unit"], r["price_total"]) == (42.79, 1.969, 84.25)
+    assert r["derived"] == ["price_per_unit"] and r["checked"] is False
+    assert r["notes"] == "Diesel" and r["date"] == "2026-11-27"
+
+
+def test_a_misread_town_is_dropped_and_the_one_that_reads_well_is_used():
+    assert receipt._town("Bj ldstoak ihe") == ""  # the first word is a fragment: the whole line was misread
+    assert receipt._town("Musterstadt aed - :") == "Musterstadt"  # a fragment after the name ends it
+    assert receipt._town("Bad Homburg") == "Bad Homburg" and receipt._town("Frankfurt am Main") == "Frankfurt am Main"
+    assert receipt.parse(BLURRED_PRICE, LATER)["station"] == "bft Musterstadt"  # not "bft Bj ldstoak ihe"
+
+
+def test_a_reading_that_was_completed_beats_one_whose_numbers_do_not_fit():
+    fit = receipt.parse("Shell\nDatum 01.11.2026\nDiesel 40,00 l\n1,500 EUR/l\nSumme 60,00 EUR", TODAY)
+    loose = {**fit, "checked": False, "derived": [], "found": list(fit["found"])}
+    calculated = {**fit, "checked": False, "derived": ["price_per_unit"], "found": list(fit["found"])}
+    assert receipt._score(fit) > receipt._score(calculated) > receipt._score(loose)
+
+
+def test_a_receipt_that_is_a_pdf_is_read_like_a_photo():
+    from tests.test_invoice import _pdf
+
+    lines = [line.strip() for line in BLURRED_PRICE.strip().split("\n")]
+    r = receipt.scan_file(_pdf(lines), LATER)
+    assert (r["amount"], r["price_total"], r["date"]) == (42.79, 84.25, "2026-11-27")
+    assert receipt.scan_file(b"%PDF-1.4 not really", LATER)["found"] == []  # an unreadable PDF: nothing found, no error

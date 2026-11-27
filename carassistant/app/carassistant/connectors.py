@@ -624,10 +624,20 @@ def ingest_refuel(conn: sqlite3.Connection, vehicle_id: int, data: dict, source:
     if any(km is None or r["odometer_km"] is None or abs(r["odometer_km"] - km) <= 5 for r in same):
         return "ignored (an entry for this day and mileage exists)"
     unfinished = amount is None  # the car noticed it but knows no amount: the person completes it, like a refuel noticed by the app
-    notes = f"auto:tank:api:{datetime.now(UTC).astimezone().strftime('%Y-%m-%dT%H:%M')}" if unfinished else f"api:{source}"[:60]
-    conn.execute(
-        "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_total, full_tank, notes) VALUES(?,?,?,?,?,?,?)",
-        (vehicle_id, day, km, amount, total, 1 if full else 0, notes),
+    conn.execute(  # the mark of a reported refuel is in its own columns (the notes are the person's)
+        "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_total, full_tank, auto_kind, auto_src, auto_at, auto_open) "
+        "VALUES(?,?,?,?,?,?,'api',?,?,?)",
+        (
+            vehicle_id,
+            day,
+            km,
+            amount,
+            total,
+            1 if full else 0,
+            source[:60] or None,
+            datetime.now(UTC).astimezone().strftime("%Y-%m-%dT%H:%M"),
+            1 if unfinished else 0,
+        ),
     )
     if unfinished:
         try:

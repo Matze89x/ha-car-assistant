@@ -1615,12 +1615,13 @@ def entity_page(request: Request, vid: int, key: str, form: dict | None = None, 
             from . import reminders as _rem
 
             extra["receipt_on"] = _receipt.available()  # a photo of the receipt fills in the form (needs text recognition on the server)
+            extra["today"] = date.today().isoformat()  # a new fill-up starts with today's date
             if vehicle["fuel2_type"]:  # a bi-fuel car: the second fuel has its own unit and its own consumption
                 extra["fuel2"] = vehicle["fuel2_type"]
                 extra["unit2"] = unit_for(vehicle["fuel2_type"])
                 extra["second_stats"] = fuelstats.overall(conn, vid, "second")
             extra["reminders"] = _rem.status(conn, vid)
-            ctx.update(fuel_list_context(conn, vid, request))  # replaces the generic list's rows and pager
+            ctx.update(fuel_list_context(conn, vid, request, edit_id))  # replaces the generic list's rows and pager
             return render(request, "fuel_page.html", status=status, form=form or {}, error=error, edit_id=edit_id, **ctx, **extra)
         return render(request, "entity.html", status=status, form=form or {}, error=error, edit_id=edit_id, **ctx, **extra)
 
@@ -1656,14 +1657,19 @@ def paged_list(conn: sqlite3.Connection, vid: int, request: Request, table: str,
     }
 
 
-def fuel_list_context(conn: sqlite3.Connection, vid: int, request: Request) -> dict:
+def fuel_list_context(conn: sqlite3.Connection, vid: int, request: Request, edit_id: int | None = None) -> dict:
     got = paged_list(conn, vid, request, "fuel", ("station", "notes", "date"), "date DESC, COALESCE(odometer_km, 0) DESC, id DESC")
     from . import refuel_detect
 
+    items = got["items"]
+    if edit_id is not None and all(r["id"] != edit_id for _head, r in items):  # the entry to complete is on another page: it is shown first
+        wanted = conn.execute("SELECT * FROM fuel WHERE vehicle_id = ? AND id = ?", (vid, edit_id)).fetchone()
+        if wanted is not None:
+            items = [(None, wanted), *items]
     return {
         "charge_sessions": charge_detect.sessions(conn, vid),
         "charge_stats": charge_detect.stats(conn, vid),
-        "fuel_items": got["items"],
+        "fuel_items": items,
         "total_rows": got["total"],
         "q": got["q"],
         "pager": got["pager"],
@@ -1726,7 +1732,10 @@ def entity_list(request: Request, vid: int, key: str):
         from . import places
 
         places.kick()
-    return entity_page(request, vid, key)
+    asked = request.query_params.get("edit", "")
+    return entity_page(
+        request, vid, key, edit_id=int(asked) if asked.isdigit() and key != "tires" else None
+    )  # ?edit=<id>: that entry is open
 
 
 def _save_pressure(conn: sqlite3.Connection, vid: int, season: str, texts: dict) -> None:
@@ -1850,6 +1859,8 @@ async def entity_update(request: Request, vid: int, key: str, row_id: int):
             vehicle = vehicle_or_404(conn, vid)
             values = entities.parse_form(entity, form, units.of(vehicle), unit_for(vehicle["fuel_type"]))
             entities.update(conn, entity, vid, row_id, values)
+            if key == "fuel":  # the person has seen and saved it: a noticed refuel needs no reminder any more
+                conn.execute("UPDATE fuel SET auto_open = 0 WHERE id = ? AND vehicle_id = ?", (row_id, vid))
     except FormError as exc:
         return entity_page(request, vid, "trips" if key == "counters" else key, form, exc.args, edit_id=row_id, status=400)
     events.changed()

@@ -20,7 +20,7 @@ import sys
 import tempfile
 import time
 import urllib.request
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -252,6 +252,10 @@ def seed(data: Path, lang: str) -> None:
                      "service" if n == 2 and booked_service else None, booked_service["id"] if n == 2 and booked_service else None),
                 ).lastrowid  # fmt: skip
                 (config.files_dir() / str(vid) / f"{doc}.txt").write_text("Example invoice.\n" * 6, encoding="utf-8")
+            conn.execute(  # a refuel the car noticed and that waits for its receipt: the reminder on the fuel page and an entry that is still unfinished
+                "INSERT INTO fuel(vehicle_id, date, odometer_km, full_tank, auto_kind, auto_rise, auto_at, auto_open) VALUES(?,?,?,1,?,62,?,1)",
+                (vid, date.today().isoformat(), 85_100, "charge" if electric else "tank", datetime.now().strftime("%Y-%m-%dT%H:%M")),
+            )
         vid = conn.execute(
             "INSERT INTO vehicles (name, make, model, fuel_type, plate) VALUES ('Demo Compact', 'Example', 'Compact', 'diesel', 'EF-GH 456')"
         ).lastrowid

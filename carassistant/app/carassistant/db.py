@@ -91,6 +91,7 @@ MIGRATIONS: list[str] = [
     ),  # the Home Assistant plugin: bindings of entities, the interfaces a plugin has taken
     (SCHEMA_DIR / "migrations_65.sql").read_text(encoding="utf-8"),  # fixed costs of a car (tax, insurance, ...)
     (SCHEMA_DIR / "migrations_66.sql").read_text(encoding="utf-8"),  # invoices: read, and booked as a cost
+    (SCHEMA_DIR / "migrations_67.sql").read_text(encoding="utf-8"),  # a noticed refuel / charge: its mark in columns, not in the notes
 ]
 
 
@@ -136,6 +137,9 @@ def migrate() -> int:
         from . import media
 
         media.import_legacy(conn)
+        from . import refuel_detect
+
+        refuel_detect.migrate_marks(conn)  # entries from before the columns: their mark leaves the notes
         conn.commit()
         return len(MIGRATIONS)
     finally:

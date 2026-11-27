@@ -270,8 +270,10 @@ def read_text(data: bytes, psm: int = 6, digits: bool = False) -> str:
 
 
 def _score(result: dict) -> int:
-    """How much a reading is worth: the fields found, a lot more when amount x price = total holds, less for a value that was calculated."""
-    return len(result["found"]) + (8 if result["checked"] else 0) - 2 * len(result["derived"])
+    """How much a reading is worth: the fields found; a lot more when amount x price = total holds (all three were read and fit); something more when a
+    value was calculated from the other two (it fits by construction, but it was not read) - that still beats three values that do not fit together."""
+    bonus = 8 if result["checked"] else (5 if result["derived"] else 0)
+    return len(result["found"]) + bonus - 2 * len(result["derived"])
 
 
 def _good(result: dict) -> bool:
@@ -301,7 +303,7 @@ def scan(data: bytes, today: date | None = None) -> dict:
             for kind, psm in tries:
                 other = note(parse(read_text(cleaned if kind is None else variant(cleaned, kind), psm), today))
                 better, worse = (other, best) if _score(other) > _score(best) else (best, other)
-                for key in ("date", "notes"):  # what only the other reading found is kept
+                for key in ("date", "notes", "station"):  # what only the other reading found is kept
                     if not better[key] and worse[key]:
                         better[key] = worse[key]
                 best = better
@@ -336,6 +338,45 @@ def _vote_odometer(seen: dict[int, int]) -> int | None:
         digits.append(max(votes.items(), key=lambda kv: (kv[1], kv[0] == str(top)[pos]))[0])
     value = int("".join(digits))
     return value if sum(group.values()) >= 2 else None
+
+
+def scan_pdf(data: bytes, today: date | None = None) -> dict:
+    """A receipt that is a PDF (from a fuel app, an e-mail, a scanner): the text of the file, else the picture on its page. Never raises: an unreadable
+    file is an empty result (``found == []``)."""
+    from . import invoice
+
+    best = None
+    try:
+        texts = invoice.pdf_texts(data)
+    except Exception:
+        texts = []
+    for text in texts:
+        if text and text.strip():
+            got = parse(text, today)
+            if best is None or _score(got) > _score(best):
+                best = got
+    if best is None or len(best["found"]) < 3:  # a scan has no text, only a picture per page
+        try:
+            pictures = invoice.pdf_pictures(data, pages=2, limit=2)
+        except Exception:
+            pictures = []
+        for picture in pictures:
+            try:
+                got = scan(picture, today)
+            except ValueError:
+                continue
+            if best is None or _score(got) > _score(best):
+                best = got
+    return best or parse("", today)
+
+
+def scan_file(data: bytes, today: date | None = None) -> dict:
+    """A photo or a PDF -> the fields of a refuel. ValueError for a file that is neither."""
+    if data[:5] == b"%PDF-":
+        if len(data) > MAX_BYTES:
+            raise ValueError("too large")
+        return scan_pdf(data, today)
+    return scan(data, today)
 
 
 # ------------------------------------------------------------------ the text of a receipt
@@ -381,6 +422,24 @@ def _dates(lines: list[str], today: date) -> str | None:
     return min(found, key=lambda x: x[0])[1].isoformat() if found else None
 
 
+_ZIP_TOWN = re.compile(r"(?<!\d)\d{4,5}\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.\-]*(?:\s+[A-Za-zÄÖÜäöüß.\-:]+){0,3})")
+_SMALL_WORDS = {"am", "an", "im", "in", "ob", "bei", "der", "die", "den", "vor", "auf", "bad", "st", "sankt", "le", "la", "de", "du", "el"}
+
+
+def _town(raw: str) -> str:
+    """A town from the words after a postcode. A first word that is only a fragment (``Bj ldstoak ihe``) means the line was misread: no town. Words
+    after the name that are fragments (two or three small letters) end it."""
+    words: list[str] = []
+    for token in raw.split():
+        word = token.strip(" .,-:;")
+        letters = re.sub(r"[^A-Za-zÄÖÜäöüß]", "", word)
+        small = word.lower().rstrip(".") in _SMALL_WORDS
+        if not small and (len(letters) < 3 or (len(letters) == 3 and word.islower())):
+            break
+        words.append(word)
+    return " ".join(words)
+
+
 def _station(lines: list[str]) -> str:
     head = "\n".join(lines[:14])
     whole = "\n".join(lines)
@@ -394,12 +453,14 @@ def _station(lines: list[str]) -> str:
             if re.search(pattern, whole, re.I):
                 name = brand
                 break
-    town = ""
-    for line in lines[:18]:
-        m = re.search(r"(?<!\d)\d{5}\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.\- ]{2,28})", line)
-        if m:
-            town = m.group(1).strip(" .-")
-            break
+    towns: dict[str, int] = {}
+    for line in lines[
+        :26
+    ]:  # the address of the station is printed more than once: the town that reads best (most often, then the longest) wins
+        m = _ZIP_TOWN.search(line)
+        if m and (town := _town(m.group(1))):
+            towns[town] = towns.get(town, 0) + 1
+    town = max(towns, key=lambda t: (towns[t], len(t))) if towns else ""
     if name and town and town.lower() not in name.lower():
         return f"{name} {town}"[:80]
     if name:
@@ -511,6 +572,10 @@ def parse(text: str, today: date | None = None) -> dict:
             calc = round(t / p, 2)
             if _one_digit_apart(f"{a:.2f}", f"{calc:.2f}"):  # the amount was misread by one digit: price and total agree with each other
                 a, out["derived"] = calc, ["amount"]
+            elif a > 0 and _one_digit_apart(
+                f"{p:.3f}", f"{round(t / a, 3):.3f}"
+            ):  # ... or the price (its small digits are the first to blur)
+                p, out["derived"] = round(t / a, 3), ["price_per_unit"]
         out["amount"], out["price_per_unit"], out["price_total"] = a, p, t
     out["date"] = _dates(lines, today)
     out["station"] = _station(lines)

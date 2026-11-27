@@ -18,7 +18,13 @@ def test_a_big_rise_of_the_tank_level_adds_an_unfinished_fuel_entry_once(client)
         assert conn.execute("SELECT COUNT(*) FROM fuel WHERE vehicle_id = ?", (vid,)).fetchone()[0] == 0
         _level(conn, vid, 95)  # +75 points from the lowest level of the rise (20)
         row = conn.execute("SELECT * FROM fuel WHERE vehicle_id = ?", (vid,)).fetchone()
-        assert row["amount"] is None and row["price_total"] is None and row["full_tank"] == 1 and row["notes"].startswith("auto:tank:+75%")
+        assert row["amount"] is None and row["price_total"] is None and row["full_tank"] == 1
+        assert (row["auto_kind"], row["auto_rise"], row["auto_open"], row["notes"]) == (
+            "tank",
+            75,
+            1,
+            None,
+        )  # the mark is in columns, the notes stay empty
         _level(conn, vid, 30)
         _level(conn, vid, 98)  # a second jump hours later would be a new refuel, but not within the guard time
         assert conn.execute("SELECT COUNT(*) FROM fuel WHERE vehicle_id = ?", (vid,)).fetchone()[0] == 1
@@ -74,7 +80,7 @@ def test_a_charging_session_is_noticed_and_leaves_an_unfinished_entry(client):
         conn.execute("UPDATE charge_sessions SET started = ? WHERE vehicle_id = ?", (started, vid))
         connectors._store(conn, vid, "charging", "no")
         row = conn.execute("SELECT * FROM fuel WHERE vehicle_id = ?", (vid,)).fetchone()
-        assert row["amount"] is None and row["notes"].startswith("auto:charge:+50%")
+        assert row["amount"] is None and (row["auto_kind"], row["auto_rise"], row["notes"]) == ("charge", 50, None)
         done = charge_detect.sessions(conn, vid)[0]
         assert done["start_pct"] == 30 and done["end_pct"] == 80 and done["max_kw"] == 11 and done["kwh"] == 30.0 and done["minutes"] >= 49
         todo = refuel_detect.todo(conn, vid)[0]

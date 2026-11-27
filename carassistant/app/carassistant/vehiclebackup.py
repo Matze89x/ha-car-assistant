@@ -471,6 +471,10 @@ def _fill(conn: sqlite3.Connection, zf: zipfile.ZipFile, data: dict, new_id: int
             clean["trip_id"] = ids["trips"][row["trip_id"]]
             _insert(conn, "trip_points", clean)
 
+    from . import refuel_detect
+
+    refuel_detect.migrate_marks(conn, new_id)  # a backup from before the columns carries the mark of a noticed refuel in its notes
+
     # files: documents are stored by their new id, media by their (unchanged) file name
     for old_id, new_doc in ids["documents"].items():
         doc = next((d for d in tables.get("documents", []) if d.get("id") == old_id), None)

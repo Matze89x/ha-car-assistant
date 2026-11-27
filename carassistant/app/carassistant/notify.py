@@ -255,16 +255,23 @@ PAGE_OF = {
     "tyre_pressure": "/e/tires",
     "trip_end": "/e/trips",
     "refuel": "/e/fuel",
+    "car_message": "/security",
+    "open_closure": "/security",
 }
 
 
-def link_for(vehicle, pages: set[str]) -> str:
-    """The address a notification opens: the page of that one topic, or the car when it is about several (empty without a saved address)."""
-    base = (config.external_url() or "").rstrip("/")
-    if not base:
-        return ""
+def link_path(vehicle, pages: set[str]) -> str:
+    """The path a notification opens, below the app's own address: the page of that one topic (a refuel to complete leads right to its card, a trip
+    to its page), or the car's overview when the message is about several. A web push uses this path as it is - it is always the app's own address,
+    whatever address was saved - so a tap never lands on a page that is not there."""
     only = next(iter(pages)) if len(pages) == 1 else ""
-    return f"{base}/v/{vehicle['slug'] or vehicle['id']}{only}"
+    return f"/v/{vehicle['slug'] or vehicle['id']}{only}"
+
+
+def link_for(vehicle, pages: set[str]) -> str:
+    """The same as a full address with the saved external address in front (the Home Assistant app needs one); empty without a saved address."""
+    base = (config.external_url() or "").rstrip("/")
+    return f"{base}{link_path(vehicle, pages)}" if base else ""
 
 
 def _lines_for(
@@ -298,14 +305,14 @@ def _lines_for(
             if not _recently_sent(conn, key, now):
                 keys.append(key)
                 lines.append(m["text"])
-                pages.add("")
+                pages.add(PAGE_OF["car_message"])
     if "open_closure" in events:
         opened = status.open_closures(live)
         key = f"{user_key}:open:{vid}"
         if opened and not _recently_sent(conn, key, now):
             keys.append(key)
             lines.append(t("notify.closures_open", n=len(opened)))
-            pages.add("")
+            pages.add(PAGE_OF["open_closure"])
     if "tyre_pressure" in events:
         low = status.low_tyres(conn, vid, live)
         key = f"{user_key}:tyres:{vid}:{','.join(sorted(low))}"
@@ -314,6 +321,7 @@ def _lines_for(
             lines.append(t("notify.tyres_low", n=len(low), names=", ".join(t("tp." + w) for w in sorted(low))))
             pages.add(PAGE_OF["tyre_pressure"])
     if "trip_end" in events:
+        trip_ids: list[int] = []
         since = (now - timedelta(days=1)).date().isoformat()
         for trip in conn.execute(
             "SELECT id, distance_km, end_place FROM trips WHERE vehicle_id = ? AND date >= ? AND source != 'manual' ORDER BY id DESC LIMIT 3",
@@ -322,18 +330,22 @@ def _lines_for(
             key = f"{user_key}:trip:{vid}:{trip['id']}"
             if not _recently_sent(conn, key, now):
                 keys.append(key)
+                trip_ids.append(trip["id"])
                 distance = trip["distance_km"]
                 lines.append(
                     t("notify.trip_end", d=units.of().dist_str(distance) if distance else "-", place=_readable_place(trip["end_place"]))
                 )
-                pages.add(PAGE_OF["trip_end"])
+        if trip_ids:  # one trip: its own page; several: the list
+            pages.add(f"/trips/{trip_ids[0]}" if len(trip_ids) == 1 else PAGE_OF["trip_end"])
     if "refuel" in events:
         from . import refuel_detect
 
+        fresh: list[int] = []
         for item in refuel_detect.todo(conn, vid):
             key = f"{user_key}:refuel:{vid}:{item['id']}"
             if not _recently_sent(conn, key, now):
                 keys.append(key)
+                fresh.append(item["id"])
                 lines.append(
                     t(
                         "notify.charge" if item["charge"] else ("notify.refuel" if item["rise"] else "notify.refuel_plain"),
@@ -341,7 +353,8 @@ def _lines_for(
                         litres=f" (~{item['litres']} {item['unit']})" if item["litres"] else "",
                     )
                 )
-                pages.add(PAGE_OF["refuel"])
+        if fresh:  # one refuel to complete: the tap opens its card (with the scan buttons); several: the list
+            pages.add(f"{PAGE_OF['refuel']}?edit={fresh[0]}#fuel-{fresh[0]}" if len(fresh) == 1 else PAGE_OF["refuel"])
     return lines, keys, pages
 
 
@@ -468,7 +481,16 @@ def _check_energy(conn: sqlite3.Connection, vehicle_ids: set[int] | None, now: d
                 _set_energy_fired(conn, uid, vehicle["id"], False, now)
             elif what == "fire":
                 ok, error = _deliver(
-                    conn, uid, row["service"], vehicle["name"], _energy_text(vehicle, pct, km, t), link_for(vehicle, set()), vehicle["id"]
+                    conn,
+                    uid,
+                    row["service"],
+                    vehicle["name"],
+                    _energy_text(vehicle, pct, km, t),
+                    link_for(
+                        vehicle, {PAGE_OF["refuel"]}
+                    ),  # a low tank or battery: the page where it is filled up (stations, charging points)
+                    vehicle["id"],
+                    link_path(vehicle, {PAGE_OF["refuel"]}),
                 )
                 if ok:
                     sent += 1
@@ -502,10 +524,18 @@ SAME_MESSAGE_SECONDS = 180
 
 
 def _deliver(
-    conn: sqlite3.Connection, user_id: int, service: str, title: str, message: str, url: str = "", vehicle_id: int | None = None
+    conn: sqlite3.Connection,
+    user_id: int,
+    service: str,
+    title: str,
+    message: str,
+    url: str = "",
+    vehicle_id: int | None = None,
+    path: str = "",
 ) -> tuple[bool, str]:
-    """One message to one person: web push with a port, the Home Assistant service without. ``url`` is the page a tap opens. The same words to
-    the same person within three minutes go out once."""
+    """One message to one person: web push with a port, the Home Assistant service without. ``url`` is the full address a tap opens (the Home Assistant
+    app needs one); ``path`` the same page as a path of the app itself - a web push takes that, so it needs no saved address. The same words to the same
+    person within three minutes go out once."""
     now = time.monotonic()
     for k in [k for k, at in _recent.items() if now - at > SAME_MESSAGE_SECONDS]:
         _recent.pop(k, None)
@@ -513,7 +543,7 @@ def _deliver(
         return True, ""
     _recent[(user_id, title, message)] = now
     if push_mode():
-        sent = push.send(conn, user_id, title, message, url, vehicle_id)
+        sent = push.send(conn, user_id, title, message, path or url, vehicle_id)
         conn.execute(
             "INSERT INTO notify_log(title, message, ok, error) VALUES(?,?,?,?)",
             (title, message, int(bool(sent)), None if sent else "no device"),
@@ -586,7 +616,14 @@ def _check_users(conn: sqlite3.Connection, now: datetime | None, only: set[str] 
             if not lines:
                 continue
             ok, error = _deliver(
-                conn, row["user_id"], row["service"], vehicle["name"], "\n".join(lines), link_for(vehicle, pages), vehicle["id"]
+                conn,
+                row["user_id"],
+                row["service"],
+                vehicle["name"],
+                "\n".join(lines),
+                link_for(vehicle, pages),
+                vehicle["id"],
+                link_path(vehicle, pages),
             )
             if ok:
                 sent += 1
@@ -604,6 +641,8 @@ def _check_users(conn: sqlite3.Connection, now: datetime | None, only: set[str] 
                     "Car Assistant",
                     "\n".join(t("notify.addon_update", name=n, version=v) for _k, n, v in fresh),
                     config.external_url() or "",
+                    None,
+                    "/",
                 )
                 if ok:
                     sent += 1

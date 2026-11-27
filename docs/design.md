@@ -78,6 +78,7 @@ Next to the *More* list the first element of the page starts on the same line as
 | Switch | `.switch`, `switch_row()` macro | **always on the right** (see rule below); on = accent; every on/off setting is a switch row with a line above and below (two rows share one line; never a second line above a button bar) A switch row has no outer gap: a rule for stacked labels must exclude `.sw-row` (a test guards it), so every row is centred between its two lines. |
 | Name + slogan | `.brand-lock`, `.sb-brand`, `.about-id` | always ONE unit: slogan half the size, exactly as wide as the name (side bar: fills the bar), same gap everywhere |
 | Dates and times | `regional.py` | shown as set under Settings → System → Date & time; stored ISO / 24 h |
+| Price figure | `.rec-price` | the amount of a list card at its top right (fill-ups): the total in Space Mono bold, the price per unit small below it - never a small pill |
 | Chips / badges | `.badge`, `.pos-chip`, `.schip` | pills (`999px`), status colours only |
 | Info page | `.about-hero`, `.about-stats`, `.about-car` | hero card (logo, name, version), figure tiles, then one card per car with rows (icon chip, name, small text, badges) – see the About page |
 | Car picture / video | `.hero-car.soft`, `.hero-media` | photos and videos fade out on all sides; a video plays once and rests on its last frame (`static/media.js`); library page `media.html` with thumbnails, "in use" badge, delete x |

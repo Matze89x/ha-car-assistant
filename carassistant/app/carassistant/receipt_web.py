@@ -51,7 +51,7 @@ async def fuel_scan(request: Request, vid: int):
         raise HTTPException(400, "bad length") from None
     data = await request.body()
     try:
-        result = await asyncio.to_thread(receipt.scan, data)
+        result = await asyncio.to_thread(receipt.scan_file, data)  # a photo or a PDF
     except ValueError:
         raise HTTPException(400, "not a photo") from None
     out = shown(result, units.of(vehicle), base, last_km)

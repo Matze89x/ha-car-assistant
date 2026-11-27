@@ -91,12 +91,13 @@ def _close(conn: sqlite3.Connection, vehicle_id: int, session, battery_kwh) -> b
         return False
     day = ended.astimezone().date().isoformat()
     km = session["odometer_km"]
-    own_entry = conn.execute("SELECT 1 FROM fuel WHERE vehicle_id = ? AND date = ? AND notes LIKE 'auto:%'", (vehicle_id, day)).fetchone()
+    own_entry = conn.execute("SELECT 1 FROM fuel WHERE vehicle_id = ? AND date = ? AND auto_kind IS NOT NULL", (vehicle_id, day)).fetchone()
     for row in conn.execute("SELECT odometer_km FROM fuel WHERE vehicle_id = ? AND date = ?", (vehicle_id, day)):
         if (km is None or row["odometer_km"] is None or abs(row["odometer_km"] - km) <= 5) and own_entry is None:
             return False  # the person logged this charge already
     cur = conn.execute(
-        "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_total, full_tank, notes) VALUES(?,?,?,?,?,?,?)",
+        "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_total, full_tank, auto_kind, auto_rise, auto_at, auto_open) "
+        "VALUES(?,?,?,?,?,?,?,?,?,1)",
         (
             vehicle_id,
             day,
@@ -104,7 +105,9 @@ def _close(conn: sqlite3.Connection, vehicle_id: int, session, battery_kwh) -> b
             None,
             None,
             1 if end_pct >= 95 else 0,
-            f"auto:charge:+{round(rise)}%:{ended.astimezone().strftime('%Y-%m-%dT%H:%M')}",
+            "charge",
+            round(rise),
+            ended.astimezone().strftime(refuel_detect.STAMP),
         ),
     )
     conn.execute("UPDATE charge_sessions SET fuel_id = ? WHERE id = ?", (cur.lastrowid, session["id"]))
@@ -216,7 +219,3 @@ def stats(conn: sqlite3.Connection, vehicle_id: int, days: int = 90) -> dict | N
         "loss_pct": sum(losses) / len(losses) if losses else None,
         "minutes": sum(s["minutes"] for s in items),
     }
-
-
-# the unfinished-entry helpers of refuel_detect also serve charging entries (notes ``auto:charge:+N%:...``)
-rise_of = refuel_detect.rise_of
