@@ -14,7 +14,8 @@
 * **sub-windows one under the other stand `--sp-sub` apart and are padded by the tokens** (docs/design.md, 4c: spacing is measured),
 * **a switch is the last thing at the right end of its row** (like the settings of an iPhone; never on the left),
 * **a thing you tap in a corner of a rounded box has rounded corners too** (no square flash behind a round card),
-* **the buttons at the bottom of a plugin tile lie inside the tile** (nothing cut off, however many downloads and buttons the plugin has).
+* **the buttons at the bottom of a plugin tile lie inside the tile** (nothing cut off, however many downloads and buttons the plugin has),
+* **every button lies inside the box it belongs to** (a card, the panel of a new entry, a record) - the panels of a new entry are opened for the check, too.
 
 Folded forms (the add form, the edit form of a card) are opened first so that the buttons inside are measured, too. German has the longest words, a
 phone the least room: ``tests/test_page_ui.py`` runs German at phone width and English wide, when Chrome is installed.
@@ -405,6 +406,19 @@ MEASURE = r"""
       if (r.left < tr.left - 0.5 || r.right > tr.right + 0.5) { out.push('a button of a tile bar lies outside its tile: "' + (name(b) || b.getAttribute('aria-label') || b.className) + '" (' + Math.round(Math.min(r.left - tr.left, 0) + Math.max(r.right - tr.right, 0)) + ' px)'); }
     });
     if (bar.scrollWidth > bar.clientWidth + 1) { out.push('the bar of a tile is wider than the tile (' + (bar.scrollWidth - bar.clientWidth) + ' px)'); }
+  });
+  /* every button lies inside the box it belongs to (a card, the panel of a new entry, a record): nothing sticks out at the left or the right. A light button that
+     is as wide as its bar and has a neighbour pushes the row out of the card - the Cancel button of the form of a new fill-up did, and no check opened that panel */
+  var BOXES = '.card, .tp-add, .stn-card, .rec, .msg-card, .sub-card, .notice';
+  document.querySelectorAll('button, a.button, a.ghost-btn').forEach(function (b) {
+    if (!vis(b) || b.closest('.addon-bar, .tabbar, .page-head, .more-pane, nav, .wd-ctl')) { return; }
+    var pos = getComputedStyle(b).position, box = b.closest(BOXES);
+    if (pos === 'fixed' || pos === 'absolute' || !box || !vis(box)) { return; }
+    for (var p = b.parentElement; p && p !== box; p = p.parentElement) { var ov = getComputedStyle(p).overflowX; if (ov === 'auto' || ov === 'scroll') { return; } }  /* a row that scrolls sideways on purpose */
+    var r = b.getBoundingClientRect(), br = box.getBoundingClientRect();
+    if (r.width > 1 && (r.left < br.left - 0.5 || r.right > br.right + 0.5)) {
+      out.push('a button lies outside its box (' + Math.round(Math.min(r.left - br.left, 0) + Math.max(r.right - br.right, 0)) + ' px): "' + (name(b) || b.getAttribute('aria-label') || b.className) + '" in ' + ident(box));
+    }
   });
   /* a thing with a background - or a thing you tap (the tap highlight of a phone is the rectangle of what you tap) - that fills a corner of a rounded
      box has the same corners, or square corners poke out of the round ones */

@@ -550,3 +550,12 @@ def test_the_message_card_stands_the_block_gap_from_what_follows():
     assert ".msg-card { display: grid; gap: 14px; margin: 0 0 var(--sp-block); }" in css
     assert ".msg-card:has(+ .msg-card) { margin-bottom: var(--sp-col); }" in css  # several messages are one stack
     assert ".notice-slot { display: grid; gap: 10px; margin: 0 0 var(--sp-block); }" in css  # the distance the card above it copies
+
+
+def test_form_bars_and_panels_stay_inside_their_card():
+    """A light button is 100 % wide on its own: in a form bar beside Save it pushed the row out of the card (the form of a new fill-up), and an auto
+    grid track grew to the widest field and pushed the fuel settings out of their card on a phone. tools/check_ui.py measures both on every page
+    (it opens the panels of a new entry, too)."""
+    css = _css()
+    assert ".form-bar .ghost-btn { width: auto; }" in css
+    assert ".fs-panel { display: grid; grid-template-columns: minmax(0, 1fr);" in css

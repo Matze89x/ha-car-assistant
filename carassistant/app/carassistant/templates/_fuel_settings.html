@@ -15,8 +15,8 @@
       <form method="post" action="{{ base }}/settings/fuelkey" class="fs-key">
         <input type="hidden" name="id" value="{{ o.id }}"><input type="hidden" name="back" value="/v/{{ v.slug }}/e/fuel">{% if stn.electric %}<input type="hidden" name="kind" value="charge">{% endif %}
         <input type="password" name="api_key" autocomplete="off" maxlength="200" aria-label="{{ o.name }}" placeholder="{{ _('settings.tk_set') if o.has_key else _('settings.tk_key') }}">
+        {% if o.key_url %}<div class="fs-keylink"><a class="button small" href="{{ o.key_url }}" target="_blank" rel="noopener" title="{{ _('settings.tk_link_title') }}">{{ icon('key-variant', 16) }}<span>{{ _('settings.tk_link') }}</span></a></div>{% endif %}
         <div class="nm-actions">
-          {% if o.key_url %}<a class="button small" href="{{ o.key_url }}" target="_blank" rel="noopener">{{ icon('key-variant', 16) }}<span>{{ _('settings.tk_link') }}</span></a>{% endif %}
           {% if o.has_key %}<button type="submit" name="remove" value="1" class="danger small">{{ icon('delete', 16) }}<span>{{ _('settings.tk_remove') }}</span></button>{% endif %}
           <button class="primary small">{{ icon('check', 16) }}<span>{{ _('btn.save') }}</span></button>
         </div>

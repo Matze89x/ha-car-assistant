@@ -19,11 +19,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
-# what is folded away until somebody taps it: the add form, the edit form of a card, extra-work edit boxes
+# what is folded away until somebody taps it: the add form, the edit form of a card, extra-work edit boxes, the panel of a new entry
 OPEN_ALL = (
     "document.querySelectorAll('details').forEach(function (d) { d.open = true; });"
     "document.querySelectorAll('[data-rec-edit]').forEach(function (c) { c.classList.add('editing'); });"
     "document.querySelectorAll('.za-edit[hidden]').forEach(function (e) { e.hidden = false; });"
+    "document.querySelectorAll('.tp-add[hidden], .tp-add .tp-form[hidden]').forEach(function (e) { e.hidden = false; });"  # the form of a new entry
 )
 
 

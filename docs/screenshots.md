@@ -30,13 +30,13 @@ Tap the odometer on the dashboard: it turns over to a box. Type the number or ta
 
 ## Quick entry: a fill-up from a receipt
 
-*Fuel → plus → Scan receipt*: date, station, fuel, amount, price per unit, total and - when the receipt prints it - the odometer are filled in and marked; amount × price = total is checked.
+*Fuel → plus* (or *Complete* on the card of a refuel the car noticed): at the top of the form of every fill-up stand *Scan* (the camera) and *Load file* (a photo from the library, or a PDF receipt). Date, station, fuel, amount, price per unit, total and - when the receipt prints it - the odometer are filled in and marked; amount × price = total is checked. Nothing is saved before *Save*.
 
 ![A fuel receipt read: the form is filled in](screenshots/en/fuel-scan.png)
 
 ## Fuel
 
-All fill-ups by month with consumption and prices. The **station search** on top is deliberately simple: the car decides the fuel, the radius is 15 km, each station is one line with name, distance and price, and the cheapest is marked in green.
+All fill-ups by month with consumption and prices - each one is a till receipt: date and station on top, the amount and its price in a line, the details below; tap it to correct it or to scan a receipt again. When the tank level of the car jumps, a **message card** *Refuel noticed* asks for the receipt with one button; it goes away when the entry is saved, after three trips or after three days. The **station search** on top is deliberately simple: the car decides the fuel, the radius is 15 km, each station is one line with name, distance and price, and the cheapest is marked in green.
 
 ![Fuel](screenshots/en/fuel.png)
 
@@ -48,9 +48,17 @@ All fill-ups by month with consumption and prices. The **station search** on top
 
 ## Evaluation (costs)
 
-What the car costs in the chosen period: the total, the share of fuel, service, modifications and parts, a chart per period and a list of every priced entry.
+What the car costs in the chosen period: the total, the share of fuel, service, modifications, parts and fixed costs, a chart per period and a list of every priced entry. The page has three tabs: *Overview*, *Fixed costs* and *Invoices*.
 
 ![Evaluation](screenshots/en/report.png)
+
+## Invoices
+
+The third tab of the cost page: *Photograph* an invoice or *Upload* a PDF, a picture or a scan (up to ten files at once). Car Assistant reads it on this server - nothing is sent anywhere - and shows what it found: date, total (net + VAT = total is checked), sender, invoice number, odometer and what kind of cost it is. *Check and book* opens the ordinary form of a service, parts, modification, fixed cost or fill-up entry, filled in; nothing is booked before you save.
+
+![Invoices](screenshots/en/invoices.png)
+
+![One invoice: what was read and the ways to book it](screenshots/en/invoice.png)
 
 ## Trips and trip analysis
 
@@ -66,7 +74,7 @@ Tap a trip and its card opens with the distance, duration, average speed, an est
 
 ## Service
 
-Maintenance with odometer, costs and notes; tap a card to edit it.
+Maintenance with odometer, costs and notes; tap a card to edit it. *Service*, *extra work*, *parts* and *modifications* are one entry in *More* with a bar of tabs - like *Costs* (overview, fixed costs, invoices) and *Documents & manual*.
 
 ![Service](screenshots/en/service.png)
 
@@ -146,8 +154,8 @@ On a phone the sidebar becomes a bar at the bottom (Home, up to four pages of yo
 |---|---|---|
 | <img src="screenshots/en/mobile-report.png" alt="Evaluation" width="260"> | <img src="screenshots/en/mobile-more.png" alt="More" width="260"> | <img src="screenshots/en/mobile-settings-car.png" alt="Settings: Car" width="260"> |
 
-| A trip on the map | Tyres |
-|---|---|
-| <img src="screenshots/en/mobile-trip-map.png" alt="A trip on the map" width="260"> | <img src="screenshots/en/mobile-tires.png" alt="Tyres" width="260"> |
+| A trip on the map | Tyres | An invoice |
+|---|---|---|
+| <img src="screenshots/en/mobile-trip-map.png" alt="A trip on the map" width="260"> | <img src="screenshots/en/mobile-tires.png" alt="Tyres" width="260"> | <img src="screenshots/en/mobile-invoice.png" alt="An invoice" width="260"> |
 
 More: [User guide](guide.md) · [Install](install.md) · [MCP access](mcp.md)

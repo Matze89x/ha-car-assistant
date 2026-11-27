@@ -60,6 +60,8 @@ DESKTOP = (
     ("appointments", f"/v/{DIESEL}/e/appointments", 1200, 1000),
     ("parts", f"/v/{DIESEL}/e/parts", 1200, 1000),
     ("report", f"/v/{DIESEL}/report?g=month&n=12", 1200, 2000),
+    ("invoices", f"/v/{DIESEL}/invoices", 1200, 880),  # the third tab of the cost page: upload, and the invoices waiting or booked
+    ("invoice", f"/v/{DIESEL}/invoices/{INVOICE_OPEN}", 1200, 920),  # one invoice: what was read from it and the ways to book it
     ("documents", f"/v/{DIESEL}/docs", 1200, 900),
     ("security", f"/v/{DIESEL}/security", 1200, 1200),
     ("passport", f"/v/{DIESEL}/edit", 1200, 1700),
@@ -76,6 +78,7 @@ MOBILE = (
     ("mobile-trips", f"/v/{DIESEL}/e/trips?ap=all", 500, 1500),
     ("mobile-trip-map", f"/v/{DIESEL}/e/trips?ap=all&open=1", 500, 3000, (1700, 2700)),
     ("mobile-tires", f"/v/{DIESEL}/e/tires", 500, 1100),
+    ("mobile-invoice", f"/v/{DIESEL}/invoices/{INVOICE_OPEN}", 500, 844),
     ("mobile-report", f"/v/{DIESEL}/report?g=month&n=12", 500, 1500),
     ("mobile-more", f"/v/{DIESEL}/more", 500, 844),
     ("mobile-settings-car", f"/settings/car?car={DIESEL}", 500, 1500),
@@ -238,7 +241,9 @@ def seed(data: Path, lang: str) -> None:
                 folder.mkdir(parents=True, exist_ok=True)
                 (folder / f"{doc}.txt").write_text("Example document.\n" * 6, encoding="utf-8")
             booked_service = conn.execute("SELECT id FROM service WHERE vehicle_id = ? ORDER BY id LIMIT 1", (vid,)).fetchone()
-            for n, (number, day_ago, total, work) in enumerate((("2026-0042", 12, 184.50, "inspection"), ("2026-0017", 40, 96.80, "oil")), start=1):
+            for n, (number, day_ago, total, work) in enumerate(
+                (("2026-0042", 12, 184.50, "inspection"), ("2026-0017", 40, 96.80, "oil")), start=1
+            ):
                 found = {  # what the reading of an invoice would have found (the invoice page and the list show it)
                     "date": (date.today() - timedelta(days=day_ago)).isoformat(), "amount": total, "net": round(total / 1.19, 2),
                     "vat": round(total - total / 1.19, 2), "checked": True, "guess": False, "vendor": "Example Garage GmbH", "number": number,

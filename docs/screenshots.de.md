@@ -30,13 +30,13 @@ Tippe auf den Kilometerstand im Dashboard: Er dreht sich zu einem Eingabefeld um
 
 ## Schnell eintragen: eine Tankung vom Beleg
 
-*Tanken → Plus → Beleg scannen*: Datum, Tankstelle, Sorte, Menge, Preis je Einheit, Betrag und - wenn der Beleg ihn aufdruckt - der Kilometerstand werden eingetragen und markiert; Menge × Preis = Betrag wird geprüft.
+*Tanken → Plus* (oder *Ergänzen* auf der Karte eines vom Auto erkannten Tankens): oben im Formular jeder Tankung stehen *Scannen* (die Kamera) und *Datei laden* (ein Foto aus der Mediathek oder ein PDF-Beleg). Datum, Tankstelle, Sorte, Menge, Preis je Einheit, Betrag und - wenn der Beleg ihn aufdruckt - der Kilometerstand werden eingetragen und markiert; Menge × Preis = Betrag wird geprüft. Gespeichert wird erst mit *Speichern*.
 
 ![Ein Tankbeleg wurde gelesen: das Formular ist ausgefüllt](screenshots/de/fuel-scan.png)
 
 ## Tanken
 
-Alle Tankungen nach Monaten mit Verbrauch und Preisen. Die **Tankstellensuche** oben ist bewusst einfach: Das Auto bestimmt den Kraftstoff, der Umkreis sind 15 km, jede Tankstelle ist eine Zeile mit Name, Entfernung und Preis, die günstigste ist grün markiert.
+Alle Tankungen nach Monaten mit Verbrauch und Preisen - jede ist ein Kassenbon: oben Datum und Tankstelle, in einer Zeile die Menge und ihr Preis, darunter die Einzelheiten; tippe darauf, um sie zu korrigieren oder einen Beleg noch einmal zu scannen. Springt der Tankstand des Autos, bittet eine **Mitteilungskarte** *Tanken erkannt* mit einem Knopf um den Beleg; sie verschwindet, wenn der Eintrag gespeichert ist, nach drei Fahrten oder nach drei Tagen. Die **Tankstellensuche** oben ist bewusst einfach: Das Auto bestimmt den Kraftstoff, der Umkreis sind 15 km, jede Tankstelle ist eine Zeile mit Name, Entfernung und Preis, die günstigste ist grün markiert.
 
 ![Tanken](screenshots/de/fuel.png)
 
@@ -48,9 +48,17 @@ Alle Tankungen nach Monaten mit Verbrauch und Preisen. Die **Tankstellensuche** 
 
 ## Kostensicht
 
-Was das Auto im gewählten Zeitraum kostet: die Summe, der Anteil von Tanken, Service, Umbauten und Teilen, ein Diagramm je Zeitraum und eine Liste jedes Eintrags mit Preis.
+Was das Auto im gewählten Zeitraum kostet: die Summe, der Anteil von Tanken, Service, Umbauten, Teilen und Fixkosten, ein Diagramm je Zeitraum und eine Liste jedes Eintrags mit Preis. Die Seite hat drei Reiter: *Übersicht*, *Fixkosten* und *Rechnungen*.
 
 ![Kostensicht](screenshots/de/report.png)
+
+## Rechnungen
+
+Der dritte Reiter der Kostenseite: eine Rechnung *Fotografieren* oder ein PDF, ein Bild oder einen Scan *Hochladen* (bis zu zehn Dateien auf einmal). Car Assistant liest sie auf diesem Server - nichts wird verschickt - und zeigt, was es gefunden hat: Datum, Summe (Netto + MwSt = Summe wird geprüft), Absender, Rechnungsnummer, Kilometerstand und welche Art Kosten es ist. *Prüfen und buchen* öffnet das ganz normale Formular eines Service-, Teile-, Umbau-, Fixkosten- oder Tankeintrags, ausgefüllt; gebucht wird erst mit Speichern.
+
+![Rechnungen](screenshots/de/invoices.png)
+
+![Eine Rechnung: was gelesen wurde und die Wege, sie zu buchen](screenshots/de/invoice.png)
 
 ## Fahrten und Fahrten-Auswertung
 
@@ -66,7 +74,7 @@ Tippe auf eine Fahrt, und ihre Karte öffnet sich mit Strecke, Dauer, Durchschni
 
 ## Service
 
-Wartung mit Kilometerstand, Kosten und Notizen; tippe auf eine Karte, um sie zu bearbeiten.
+Wartung mit Kilometerstand, Kosten und Notizen; tippe auf eine Karte, um sie zu bearbeiten. *Service*, *Zusatzarbeiten*, *Teile* und *Umbauten* sind ein Eintrag unter *Weiteres* mit einer Leiste aus Reitern - wie *Kosten* (Übersicht, Fixkosten, Rechnungen) und *Dokumente & Handbuch*.
 
 ![Service](screenshots/de/service.png)
 
@@ -146,8 +154,8 @@ Auf dem Handy wird die Seitenleiste zu einer Leiste unten (Home, bis zu vier Sei
 |---|---|---|
 | <img src="screenshots/de/mobile-report.png" alt="Kostensicht" width="260"> | <img src="screenshots/de/mobile-more.png" alt="Weiteres" width="260"> | <img src="screenshots/de/mobile-settings-car.png" alt="Einstellungen: Auto" width="260"> |
 
-| Eine Fahrt auf der Karte | Reifen |
-|---|---|
-| <img src="screenshots/de/mobile-trip-map.png" alt="Eine Fahrt auf der Karte" width="260"> | <img src="screenshots/de/mobile-tires.png" alt="Reifen" width="260"> |
+| Eine Fahrt auf der Karte | Reifen | Eine Rechnung |
+|---|---|---|
+| <img src="screenshots/de/mobile-trip-map.png" alt="Eine Fahrt auf der Karte" width="260"> | <img src="screenshots/de/mobile-tires.png" alt="Reifen" width="260"> | <img src="screenshots/de/mobile-invoice.png" alt="Eine Rechnung" width="260"> |
 
 Mehr: [Benutzerhandbuch](guide.de.md) · [Installation](install.de.md) · [MCP-Zugriff](mcp.de.md)

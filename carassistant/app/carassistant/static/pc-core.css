@@ -1046,6 +1046,7 @@ body.page-editing .hero-pic { outline: 2px dashed rgba(var(--accent-rgb), .5); o
 /* ONE action bar for every form: Save fills the row, Delete sits beside it - same height, same radius, same type, always at the bottom */
 .form-bar { display: flex; gap: 10px; align-items: stretch; justify-content: flex-start; margin-top: 6px; }
 .form-bar button { flex: 0 0 auto; white-space: nowrap; margin: 0; }
+.form-bar .ghost-btn { width: auto; }  /* .ghost-btn is 100% wide on its own: beside Save it pushed the row out of the card to the left (the form of a new fill-up) */
 .form-bar .ico { flex-shrink: 0; }
 @media (max-width: 420px) {  /* the big delete button keeps only its symbol on a phone; a small one (it says what it does in a word: Sign out, Delete) keeps its word */
   .form-bar button.danger:not(.small) span { display: none; }
@@ -2841,6 +2842,8 @@ html.is-app .page-head:not(:has(.ph-s:not([data-car]))) { min-height: var(--head
 .push-box [hidden] { display: none !important; }  /* the buttons carry their own display: without this the script's hidden did nothing and a switch that cannot work stayed on the page */
 .nm-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .nm-actions form { margin: 0; }
+.fs-keylink { margin-top: 10px; }  /* the link to the page where a key is got: on its own line above the bar, so that the bar stays one line on the narrowest phone */
+.fs-keylink + .nm-actions { margin-top: 10px; }
 .nm-actions button { white-space: nowrap; }
 .push-box .ar-v { margin-top: 6px; }  /* the devices of this person, under the label of their window */
 
@@ -2873,10 +2876,11 @@ label.nm-row.sw-row { cursor: pointer; text-transform: none; letter-spacing: 0; 
 .nm-row .nm-t, .nm-row .nm-state, .nm-row .switch { align-self: center; }
 
 /* Fuel page settings panel */
-.fs-panel { display: grid; gap: 0; }
+.fs-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }  /* one column that may shrink: an auto track grew to the widest field and pushed the panel out of its card on a phone */
 .fs-h { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font-size: 18px; }
 .fs-src { padding: 12px 0; border-bottom: 1px solid var(--glass-b); display: grid; gap: 4px; }
 .fs-src:last-child { border-bottom: 0; }
+.sub-card > .fs-src { margin-inline: calc(-1 * var(--bleed)); padding-inline: var(--bleed); }  /* the line between two sources runs through the whole window */
 .fs-name { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .fs-key { margin-top: 8px; display: grid; gap: 4px; }
 

@@ -2533,7 +2533,8 @@ EN: dict[str, str] = {
     "settings.tk_key": "Your API key",
     "settings.tk_set": "A key is saved - enter a new one to replace it",
     "settings.tk_remove": "Remove key",
-    "settings.tk_link": "Get a free key at tankerkoenig.de",
+    "settings.tk_link": "Get a key",
+    "settings.tk_link_title": "Opens the page of the provider where you get a free key",
     "about.coffee_hint": "A free hobby project – a coffee is welcome, never expected.",
 }
 
@@ -5047,7 +5048,8 @@ DE: dict[str, str] = {
     "settings.tk_key": "Dein API-Key",
     "settings.tk_set": "Ein Key ist gespeichert – neuen eintragen zum Ersetzen",
     "settings.tk_remove": "Key entfernen",
-    "settings.tk_link": "Kostenlosen Key bei tankerkoenig.de holen",
+    "settings.tk_link": "Key holen",
+    "settings.tk_link_title": "Öffnet die Seite des Anbieters, auf der du einen kostenlosen Key bekommst",
     "about.coffee_hint": "Ein freies Hobbyprojekt – über einen Kaffee freue ich mich, erwartet wird er nie.",
 }
 
