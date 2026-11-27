@@ -39,9 +39,9 @@ def test_the_card_of_a_noticed_refuel_is_the_form_to_complete_it(client, monkeyp
     assert (
         f'href="/v/{vid}/e/fuel?edit={row["id"]}#fuel-{row["id"]}"' in page and f'id="fuel-{row["id"]}"' in page
     )  # the reminder leads to the card
-    assert 'class="rec rec-tap" id="fuel-' in page  # still closed until it is asked for
+    assert 'class="rec rcpt rec-tap" id="fuel-' in page  # still closed until it is asked for; a till receipt like the cards of Parts
     open_page = client.get(f"{base}?edit={row['id']}").text
-    assert f'class="rec rec-tap editing" id="fuel-{row["id"]}"' in open_page
+    assert f'class="rec rcpt rec-tap editing" id="fuel-{row["id"]}"' in open_page
     card = open_page.split(f'id="fuel-{row["id"]}"')[1].split("</article>")[0]
     assert "None" not in card and 'value="50000"' in card  # an empty field is empty, and the odometer the car gave stays
     assert 'placeholder="~38"' in card  # the rough estimate from the tank size is a hint in the amount field, never a value

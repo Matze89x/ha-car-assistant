@@ -112,19 +112,18 @@
     {% for head, r in fuel_items %}
     {% if head %}<h3 class="rec-month"><span>{{ head.title }}</span></h3>{% endif %}
     {% set ru = unit2 if (fuel2 and r['fuel_kind'] == 'second') else unit %}
-    <article class="rec rec-tap{{ ' editing' if edit_id == r['id'] }}" id="fuel-{{ r['id'] }}" tabindex="0" data-rec-edit>
-      <header class="rec-top">
-        <div class="rec-main"><span class="rec-lead">{{ fdate(r['date']) }}</span>
-          <h3 class="rec-title">{% if r['amount'] is none and r['auto_kind'] %}{{ _('fuel.todo_charge_title' if r['auto_kind'] == 'charge' else 'fuel.todo_title') }}{% else %}{{ fnum(units.v(r['amount'], ru), 1) if r['amount'] is not none else '–' }} {{ units.vol_unit(ru) }}{% endif %}{% if r['station'] %} · {{ r['station'] }}{% endif %}</h3></div>
-        {% if fuel2 and r['fuel_kind'] == 'second' %}<div class="rec-badges"><span class="badge">{{ _('fuel_type.' ~ fuel2) }}</span></div>{% endif %}
-        {% if r['price_total'] is not none %}<div class="rec-price"><b>{{ fnum(r['price_total'], 2) }} {{ units.cur }}</b>{% if r['price_per_unit'] is not none %}<small>{{ fnum(units.price_vol(r['price_per_unit'], ru), 3) }} {{ units.cur }}/{{ units.vol_unit(ru) }}</small>{% endif %}</div>{% endif %}
-      </header>
-      <dl class="rec-facts">
-        {% if r['odometer_km'] is not none %}<div><dt>{{ _('f.odometer') }}</dt><dd>{{ fnum(units.d(r['odometer_km']), 0) }} {{ units.dist_unit }}</dd></div>{% endif %}
-        {% if r['price_per_unit'] is not none and r['price_total'] is none %}<div><dt>{{ _('f.price_unit') }}</dt><dd>{{ fnum(units.price_vol(r['price_per_unit'], ru), 3) }} {{ units.cur }}/{{ units.vol_unit(ru) }}</dd></div>{% endif %}
-        <div><dt>{{ _('f.full_tank') }}</dt><dd>{{ '✓' if r['full_tank'] else '–' }}</dd></div>
-      </dl>
-      <div class="rec-actions md-acts"><button type="button" class="ghost-btn small" data-rec-open>{{ icon('pencil', 16) }}<span>{{ _('btn.edit') }}</span></button></div>
+    {% set draft = r['amount'] is none and r['auto_kind'] %}
+    <article class="rec rcpt rec-tap{{ ' editing' if edit_id == r['id'] }}" id="fuel-{{ r['id'] }}" tabindex="0" data-rec-edit>
+      <div class="rcpt-head"><span>{{ fdate(r['date']) }}</span><span>{{ r['station'] or '' }}</span></div>
+      <div class="rcpt-line"><h3>{% if draft %}{{ _('fuel.todo_charge_title' if r['auto_kind'] == 'charge' else 'fuel.todo_title') }}{% else %}{{ fnum(units.v(r['amount'], ru), 1) if r['amount'] is not none else '–' }} {{ units.vol_unit(ru) }}{% endif %}</h3>
+        {% if r['price_total'] is not none %}<span class="rcpt-price">{{ fnum(r['price_total'], 2) }} {{ units.cur }}</span>{% elif draft %}<span class="badge soon">{{ _('fuel.to_complete') }}</span>{% endif %}</div>
+      <div class="rcpt-meta">
+        {% if fuel2 and r['fuel_kind'] == 'second' %}<span>{{ _('fuel_type.' ~ fuel2) }}</span>{% endif %}
+        {% if r['price_per_unit'] is not none %}<span>{{ fnum(units.price_vol(r['price_per_unit'], ru), 3) }} {{ units.cur }}/{{ units.vol_unit(ru) }}</span>{% endif %}
+        {% if r['odometer_km'] is not none %}<span>{{ fnum(units.d(r['odometer_km']), 0) }} {{ units.dist_unit }}</span>{% endif %}
+        {% if r['full_tank'] %}<span class="ok">✓ {{ _('f.full_tank') }}</span>{% endif %}
+      </div>
+      <div class="rcpt-acts"><button type="button" class="ghost-btn small" data-rec-open>{{ icon('pencil', 16) }}<span>{{ _('btn.edit') }}</span></button></div>
       <div class="rec-inline">{{ fuelform(r, fu ~ '/' ~ r['id'], est_of.get(r['id'])) }}{{ del_form('del-' ~ r['id'], fu ~ '/' ~ r['id'] ~ '/delete') }}</div>
     </article>
     {% endfor %}
