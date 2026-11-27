@@ -576,3 +576,51 @@ def test_a_word_on_two_lines_of_the_address_is_kept_even_when_it_is_no_known_pla
     assert (got["station"], got["station_ok"]) == ("Aral Hinterwaldhausen", True)
     once = receipt.parse(text.replace("Kundenbeleg\nExample Street 1\n12345 Hinterwaldhausen\n", ""), LATER)
     assert (once["station"], once["station_ok"]) == ("Aral", False)  # once only: could be a misreading
+
+
+def _fake_reader(monkeypatch, texts):
+    """``scan`` with the text recognition replaced: the n-th reading of the photo is ``texts[n]`` (the last one again and again)."""
+    import io
+
+    from PIL import Image
+
+    calls = iter(range(10_000))
+    monkeypatch.setattr(receipt, "read_text", lambda data, psm=6, digits=False: texts[min(next(calls), len(texts) - 1)])
+    out = io.BytesIO()
+    Image.new("L", (300, 600), 255).save(out, "PNG")
+    return out.getvalue()
+
+
+HALF_READ = "bft Tankstelle\nExample Street 1\n69117 Geshe\nDatum 27.11.2026\nDiesel 42,79 l\n1,969 EUR/l\nTOTAL 84,25 EUR"
+
+
+def test_a_station_that_is_only_half_read_is_tried_again_in_other_views(monkeypatch):
+    """The numbers fit on the first reading, but the town of the station does not: other views of the photo are read for it, the better one wins."""
+    photo = _fake_reader(monkeypatch, [HALF_READ, HALF_READ.replace("Geshe", "Heidelberg")])
+    got = receipt.scan(photo, LATER)
+    assert (got["station"], got["station_ok"]) == ("bft Heidelberg", True)
+    assert (got["amount"], got["price_total"]) == (42.79, 84.25)
+
+
+def test_a_station_that_stays_half_read_says_so(monkeypatch):
+    photo = _fake_reader(monkeypatch, [HALF_READ])
+    got = receipt.scan(photo, LATER)
+    assert (got["station"], got["station_ok"]) == ("bft", False)  # the brand is kept, the person completes it
+
+
+def test_the_scan_route_hands_over_whether_the_station_is_complete(client, monkeypatch):
+    from conftest import demo_car
+
+    demo_car(client)
+    monkeypatch.setattr(receipt, "available", lambda: True)
+    monkeypatch.setattr(receipt, "scan_file", lambda data, today=None: receipt.parse(HALF_READ, LATER))
+    got = client.post("/v/1/fuel/scan", content=b"x", headers={"content-type": "image/jpeg"}).json()
+    assert got["station"] == "bft" and got["station_ok"] is False
+
+
+def test_the_first_line_is_the_station_only_when_it_names_a_business():
+    """A line with the name of a person (the one who runs the station) is no station - the reader had taken it for one."""
+    person = "Max Mustermann\nExample Street 1\nDatum 27.11.2026\nDiesel 42,79 l\n1,969 EUR/l\nTOTAL 84,25 EUR"
+    assert receipt.parse(person, LATER)["station"] == ""
+    business = person.replace("Max Mustermann", "Autohof Example")
+    assert receipt.parse(business, LATER)["station"] == "Autohof Example"

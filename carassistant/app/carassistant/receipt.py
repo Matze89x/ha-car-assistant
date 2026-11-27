@@ -106,6 +106,11 @@ PRODUCTS = (
     ("Erdgas", r"erdgas|\bcng\b"),
     ("Strom", r"\bkwh\b|ladevorgang|charging"),
 )
+# the first line of a receipt is taken as the name of the station only when it names a business (it may just as well be the name of the person who runs it)
+BUSINESS_WORD = re.compile(
+    r"tank|station|autohof|fuel|energie|energy|\boil\b|\böl\b|mineral|service|garage|raststätte|raststaette|rasthof|markt|\bshop\b|center|centre|gmbh|\bkg\b|\bag\b|\bohg\b|\be\.?\s?k\b",
+    re.I,
+)
 NOT_A_NAME = re.compile(
     r"^(kassenbon|beleg|rechnung|quittung|tankbeleg|tank\s*quittung|kundenbeleg|kundenquittung|tax\s+invoice|receipt|invoice|danke|vielen dank)\b",
     re.I,
@@ -307,11 +312,14 @@ def scan(data: bytes, today: date | None = None) -> dict:
             for kind, psm in tries:
                 other = note(parse(read_text(cleaned if kind is None else variant(cleaned, kind), psm), today))
                 better, worse = (other, best) if _score(other) > _score(best) else (best, other)
-                for key in ("date", "notes", "station"):  # what only the other reading found is kept
+                for key in ("date", "notes"):  # what only the other reading found is kept
                     if not better[key] and worse[key]:
                         better[key] = worse[key]
-                if worse["station_ok"] and not better["station_ok"]:  # a station read in full beats one that is only half there
-                    better["station"], better["station_ok"] = worse["station"], True
+                if worse["station"] and (not better["station"] or (worse["station_ok"] and not better["station_ok"])):
+                    better["station"], better["station_ok"] = (
+                        worse["station"],
+                        worse["station_ok"],
+                    )  # a station only the other reading found, or one read in full
                 best = better
                 if _good(best):
                     break
@@ -320,7 +328,7 @@ def scan(data: bytes, today: date | None = None) -> dict:
         ]:  # the station is only half read (a brand, a word that is no place): a few other views of the photo are tried for it
             for kind, psm in (("sharp", 6), ("bin", 6), (None, 4)):
                 other = parse(read_text(cleaned if kind is None else variant(cleaned, kind), psm), today)
-                if other["station_ok"]:
+                if other["station"] and other["station_ok"]:
                     best["station"], best["station_ok"] = other["station"], True
                     break
         # one digit wrong in a kilometre figure would go unnoticed (a 0 read as a 9): a figure that was found is read once more in other views, and the
@@ -560,7 +568,13 @@ def _station(lines: list[str]) -> tuple[str, bool]:
         return name, bool(town)
     for line in lines[:6]:
         letters = re.sub(r"[^A-Za-zÄÖÜäöüß ]", "", line).strip()
-        if len(letters) >= 4 and not NOT_A_NAME.match(letters) and len(letters.split()) <= 5 and not re.search(r"\d{4,}", line):
+        if (
+            len(letters) >= 4
+            and not NOT_A_NAME.match(letters)
+            and BUSINESS_WORD.search(letters)
+            and len(letters.split()) <= 5
+            and not re.search(r"\d{4,}", line)
+        ):
             return letters[:60], True
     return "", True
 
