@@ -201,6 +201,20 @@ class Browser:
                     }
                 )
         self.events = []
+        # A map tile that OpenStreetMap could not deliver (a busy or missing network) is answered 502 by the tile proxy (tiles_web.py, tested in test_tiles.py):
+        # that is the network, not the page - the failed request and the console line the browser writes for it (one each, without an address) are left out
+        tiles = [e for e in out if e["kind"] == "http" and e["text"].startswith("502 ") and "/tiles/" in e["text"]]
+        if tiles:
+            skip = len(tiles)
+            kept = []
+            for e in out:
+                if e in tiles:
+                    continue
+                if skip and e["kind"] == "console" and "status of 502" in e["text"]:
+                    skip -= 1
+                    continue
+                kept.append(e)
+            out = kept
         return out
 
     def open(self, url: str, width: int, height: int, scale: int = 1, settle: float = 2.5) -> None:
