@@ -99,6 +99,7 @@ def apply_recommended(conn: sqlite3.Connection, vehicle_id: int) -> None:
 _ROUTES: tuple[tuple[re.Pattern[str], str | None], ...] = (
     (re.compile(r"^/v/\d+/e/fixed"), "report"),  # the fixed costs are a tab of the cost page: they follow its switch
     (re.compile(r"^/v/\d+/invoices"), "report"),  # so are the invoices
+    (re.compile(r"^/v/\d+/fuel/import"), "fuel"),  # the import of fill-ups belongs to the fuel page
     (re.compile(r"^/v/\d+/e/([a-z_]+)"), None),  # entity key == module key
     (re.compile(r"^/v/\d+/(report)"), None),
     (re.compile(r"^/v/\d+/trips"), "trips"),

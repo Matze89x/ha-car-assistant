@@ -34,6 +34,14 @@ Tap the odometer on the dashboard: it turns over to a box. Type the number or ta
 
 ![A fuel receipt read: the form is filled in](screenshots/en/fuel-scan.png)
 
+## Import fill-ups from another app
+
+*Fuel → the arrows at the top right → Import CSV*: choose the CSV file of Fuelio (or another app), check which column is what - Car Assistant has guessed from the names and shows an example value beside every choice - and look at what will be written before you press *Import*.
+
+![The columns of the file assigned to the points of a fill-up](screenshots/en/import-columns.png)
+
+![The check before the import](screenshots/en/import-check.png)
+
 ## Fuel
 
 All fill-ups by month with consumption and prices - each one is a till receipt: date and station on top, the amount and its price in a line, the details below; tap it to correct it or to scan a receipt again. When the tank level of the car jumps, a **message card** *Refuel noticed* asks for the receipt with one button; it goes away when the entry is saved, after three trips or after three days. The **station search** on top is deliberately simple: the car decides the fuel, the radius is 15 km, each station is one line with name, distance and price, and the cheapest is marked in green.

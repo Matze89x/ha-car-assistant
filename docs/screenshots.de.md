@@ -34,6 +34,14 @@ Tippe auf den Kilometerstand im Dashboard: Er dreht sich zu einem Eingabefeld um
 
 ![Ein Tankbeleg wurde gelesen: das Formular ist ausgefüllt](screenshots/de/fuel-scan.png)
 
+## Tankungen aus einer anderen App importieren
+
+*Tanken → die Pfeile oben rechts → CSV importieren*: Wähle die CSV-Datei von Fuelio (oder einer anderen App), prüfe, welche Spalte was ist - Car Assistant hat an den Namen geraten und zeigt neben jeder Wahl einen Beispielwert - und sieh dir an, was geschrieben wird, bevor du *Importieren* drückst.
+
+![Die Spalten der Datei den Punkten einer Tankung zugeordnet](screenshots/de/import-columns.png)
+
+![Die Prüfung vor dem Import](screenshots/de/import-check.png)
+
 ## Tanken
 
 Alle Tankungen nach Monaten mit Verbrauch und Preisen - jede ist ein Kassenbon: oben Datum und Tankstelle, in einer Zeile die Menge und ihr Preis, darunter die Einzelheiten; tippe darauf, um sie zu korrigieren oder einen Beleg noch einmal zu scannen. Springt der Tankstand des Autos, bittet eine **Mitteilungskarte** *Tanken erkannt* mit einem Knopf um den Beleg; sie verschwindet, wenn der Eintrag gespeichert ist, nach drei Fahrten oder nach drei Tagen. Die **Tankstellensuche** oben ist bewusst einfach: Das Auto bestimmt den Kraftstoff, der Umkreis sind 15 km, jede Tankstelle ist eine Zeile mit Name, Entfernung und Preis, die günstigste ist grün markiert.

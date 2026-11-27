@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, page_foot, field_input, flabel, disp, switch_row, del_form, msg_card with context %}
+{% from "_macros.html" import icon, page_head, page_foot, field_input, flabel, disp, switch_row, del_form, msg_card, sub_h with context %}
 {% block scripts %}{% if stn %}<script src="{{ base }}/static/stations.js?v={{ asset_v }}" defer></script>{% endif %}{% if receipt_on %}<script src="{{ base }}/static/receipt.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 {% set vurl = base ~ '/v/' ~ v.id ~ '/e/fuel' %}
@@ -35,7 +35,7 @@
 
 {% call page_head(module_icon.get('fuel', 'gas-station'), _('fuel.title')) %}
   <button type="button" class="icon-btn" data-toggle-panel="#fuel-settings" aria-label="{{ _('chg.settings_title' if stn and stn.electric else 'fs.title') }}" title="{{ _('chg.settings_title' if stn and stn.electric else 'fs.title') }}">{{ icon('settings', 18) }}</button>
-  <button type="button" class="icon-btn" data-toggle-panel="#fuel-export" aria-label="{{ _('fx.export') }}">{{ icon('download', 18) }}</button>
+  <button type="button" class="icon-btn" data-toggle-panel="#fuel-export" aria-label="{{ _('fx.title') }}" title="{{ _('fx.title') }}">{{ icon('swap-vertical', 18) }}</button>
   <button type="button" class="button primary" data-toggle-panel="#fuel-add" aria-label="{{ _('btn.add') }}" title="{{ _('btn.add') }}">{{ icon('plus', 18) }}<span class="lbl">{{ _('btn.add') }}</span></button>
 {% endcall %}
 {% if stn %}<p class="hint">{{ icon('info', 14) }} {% if stn.electric %}{{ _('chg.intro') }}{% if not stn.has_key %} {{ _('chg.no_key_hint') }}{% endif %}{% else %}{{ _('stations.intro') }}{% if not stn.has_key %} {{ _('stations.no_key_hint') }}{% endif %}{% endif %}</p>{% endif %}
@@ -81,16 +81,25 @@
 <section class="tp-sec" id="fuel"{% if receipt_on %} data-scan="{{ base }}/v/{{ v.id }}/fuel/scan" data-t-busy="{{ _('fuel.scan_busy') }}" data-t-ok="{{ _('fuel.scan_ok') }}" data-t-fit="{{ _('fuel.scan_fit') }}" data-t-nofit="{{ _('fuel.scan_nofit') }}" data-t-station="{{ _('fuel.scan_station') }}" data-t-derived="{{ _('fuel.scan_derived') }}" data-t-derived_price_per_unit="{{ _('fuel.scan_derived_price') }}" data-t-derived_amount="{{ _('fuel.scan_derived_amount') }}" data-t-derived_price_total="{{ _('fuel.scan_derived_total') }}" data-t-none="{{ _('fuel.scan_none') }}" data-t-err="{{ _('fuel.scan_err') }}"{% endif %}>
   {% include "_invoice_booking.html" %}
   <div class="eq-panel tp-add" id="fuel-add" {{ 'hidden' if not (form and not edit_id) }}>{{ fuelform(none, fu) }}</div>
-  <div class="eq-panel tp-add" id="fuel-export" hidden>
+  <div class="eq-panel tp-add fs-panel" id="fuel-export" hidden>
+    <h2 class="fs-h">{{ icon('swap-vertical', 20) }} {{ _('fx.title') }}</h2>
+    <div class="sub-card">
+    {{ sub_h('download', _('fx.export_h')) }}
+    <p class="hint">{{ icon('info', 14) }} {{ _('fx.hint') }}</p>
     <form method="get" class="eq-edit tp-form fx-form">
       <div class="eq-two">
         <label>{{ _('fx.range') }}<select name="range" id="fx-range">{% for k, label in [('all', _('fx.r_all')), ('7d', _('fx.r_7d')), ('30d', _('fx.r_30d')), ('month', _('fx.r_month')), ('lastmonth', _('fx.r_lastmonth')), ('year', _('fx.r_year')), ('lastyear', _('fx.r_lastyear')), ('custom', _('fx.r_custom'))] %}<option value="{{ k }}">{{ label }}</option>{% endfor %}</select></label>
         <span></span>
       </div>
       <div class="eq-two fx-custom"><label>{{ _('exp.from') }}<input type="date" name="start"></label><label>{{ _('exp.to') }}<input type="date" name="end"></label></div>
-      <p class="hint">{{ icon('info', 14) }} {{ _('fx.hint') }}</p>
       <div class="eq-acts fx-acts"><button class="ghost-btn small" formaction="{{ base }}/v/{{ v.slug }}/fuel-export.csv">{{ icon('download', 16) }} <span>CSV</span></button><button class="ghost-btn small" formaction="{{ base }}/v/{{ v.slug }}/fuel-export.pdf">{{ icon('download', 16) }} <span>PDF</span></button></div>
     </form>
+    </div>
+    <div class="sub-card">
+    {{ sub_h('upload', _('fx.import_h')) }}
+    <p class="hint">{{ icon('info', 14) }} {{ _('fx.import_hint') }}</p>
+    <div class="nm-actions"><a class="ghost-btn small" href="{{ base }}/v/{{ v.slug }}/fuel/import">{{ icon('upload', 16) }}<span>{{ _('fx.import_btn') }}</span></a></div>
+    </div>
   </div>
   {% if fuel2 and second_stats and second_stats.fills %}
   <section class="card fuel-second">

@@ -43,6 +43,15 @@ The reading is patient: when the first try does not add up, it tries again with 
 
 ![A fuel receipt read: the form is filled in](screenshots/en/fuel-scan.png)
 
+**Bring in the fill-ups of another app - Fuelio and others.**
+
+1. *Fuel* → the arrows at the top right (*Export and import*) → *Import CSV*.
+2. **File:** choose the CSV file of the other app (in Fuelio: the menu of the car → *Export* → *CSV*). The file is read on your server; nothing is saved yet.
+3. **Columns:** the columns of the file are listed. For each point - *Date* and *Amount* are needed, *Odometer*, *Total price*, *Price per unit*, *Full tank*, *Station* and *Notes* are optional - you choose the column that holds it, with an example value beside the choice. Car Assistant has guessed from the names (a Fuelio file is set up completely); change what is wrong. Below you say what the file counts in (kilometres or miles, litres or gallons - a Fuelio file says it itself), in which order its dates are written (found by itself) and whether entries that are in the log already are skipped (on).
+4. **Import:** the page says how many fill-ups are ready, how many are skipped and which rows could not be read, and shows the first rows as they will be saved. *Import* writes them; the last page says that it worked.
+
+The same file can be imported twice: a row with the same day and the same amount (or the same odometer) as an entry that is in the log already is skipped. Several date formats, decimal commas and thousands separators, semicolons or tabs between the columns and old Windows files are understood; a file with several tables (Fuelio writes its vehicle, its fill-ups and its costs into one file) is read from its fill-up table. Everything is stored in the units of the app (kilometres, litres) and shown in the units of your settings.
+
 Both photos are read **on your own server** (text recognition with Tesseract, nothing goes online) and are never stored. The add-on has the text recognition built in; on a manual install the buttons appear when Tesseract is installed.
 
 ## Vehicle data

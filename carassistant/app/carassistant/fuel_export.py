@@ -53,6 +53,12 @@ def columns(fuels: dict[str, str] | None = None) -> list[str]:
     return cols
 
 
+def _text(value: str) -> str:
+    """A text for a spreadsheet: one that starts with ``=``, ``+``, ``-``, ``@`` or a tab would be read as a formula (and the text of an imported file or of
+    a plugin is not one the person typed) - a quote in front makes it a text."""
+    return "'" + value if value[:1] in ("=", "+", "-", "@", "\t", "\r") else value
+
+
 def _cells(row: sqlite3.Row, conv, fuels: dict[str, str] | None = None) -> list[str]:
     def num(value, digits=None):
         return "" if value is None else (f"{value:.{digits}f}" if digits is not None else f"{value:g}")
@@ -67,8 +73,8 @@ def _cells(row: sqlite3.Row, conv, fuels: dict[str, str] | None = None) -> list[
         num(None if row["price_per_unit"] is None else price(row["price_per_unit"]), 3),
         num(row["price_total"], 2),
         "1" if row["full_tank"] else "0",
-        row["station"] or "",
-        (row["notes"] or "").replace("\n", " "),
+        _text(row["station"] or ""),
+        _text((row["notes"] or "").replace("\n", " ")),
     ]
     if fuels:
         cells.insert(3, fuels["second" if second else "main"])

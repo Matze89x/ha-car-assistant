@@ -3159,6 +3159,7 @@ from . import (  # noqa: E402,F401
     connectors_web,
     demo_web,
     equipment_web,
+    fuelimport_web,
     habridge_web,
     invoice_web,
     linkmap_web,

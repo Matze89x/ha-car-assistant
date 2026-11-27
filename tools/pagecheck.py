@@ -28,6 +28,45 @@ OPEN_ALL = (
 )
 
 
+FUELIO_DEMO = (
+    '"Data","Odo (km)","Fuel (litres)","Full","Price (optional)","l/100km (optional)","latitude (optional)","longitude (optional)","City (optional)",'
+    '"Notes (optional)","Missed","TankNumber","FuelType","VolumePrice"\n'
+    '"2024-09-16 15:39","36633.0","37.17","1","59.43","5.86","0.0","0.0","","Example","0","1","110","1.599"\n'
+    '"2024-09-05 21:00","35999.0","38.0","1","58.0","6.51","0.0","0.0","","Example","0","1","110","1.526"\n'
+)
+
+
+def import_pages(base: str, car: str) -> list[str]:
+    """The pages of the import of fill-ups (fuelimport_web.py): the file, the columns of a file that was chosen, the check. The file is uploaded the way a
+    browser does it; nothing is written to the fuel log (the last page is only asked for)."""
+    import urllib.parse
+    import urllib.request
+    import uuid
+
+    boundary = uuid.uuid4().hex
+    body = (
+        f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="fuelio.csv"\r\nContent-Type: text/csv\r\n\r\n{FUELIO_DEMO}\r\n--{boundary}--\r\n'
+    ).encode()
+    request = urllib.request.Request(
+        f"{base}/v/{car}/fuel/import", data=body, headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}, method="POST"
+    )
+    with urllib.request.urlopen(request, timeout=20) as answer:  # noqa: S310 - the app on this machine
+        columns = urllib.parse.urlparse(answer.geturl()).path
+    mapping = {
+        "col_date": 0,
+        "col_amount": 2,
+        "col_odometer_km": 1,
+        "col_price_total": 4,
+        "col_price_per_unit": 13,
+        "col_full_tank": 3,
+        "col_notes": 9,
+    }
+    form = urllib.parse.urlencode({**mapping, "order": "auto", "dist": "km", "vol": "l", "skip": "1"}).encode()
+    with urllib.request.urlopen(urllib.request.Request(f"{base}{columns}", data=form, method="POST"), timeout=20):  # noqa: S310
+        pass
+    return [f"/v/{car}/fuel/import", columns, f"{columns}/check"]
+
+
 def sweep(
     script: str,
     *,
@@ -84,6 +123,7 @@ def sweep(
                         f"/v/{ms.DIESEL}/invoices/{ms.INVOICE_OPEN}",
                         f"/v/{ms.DIESEL}/invoices/{ms.INVOICE_BOOKED}",
                         f"/v/{ms.DIESEL}/e/service?invoice={ms.INVOICE_OPEN}",
+                        *import_pages(base, ms.DIESEL),
                     ]  # the main tabs of a car: trips (a card per trip) and the fill-ups; the invoices (list, one open, one booked) and an entry being booked
                     + ([f"/v/{ms.DIESEL}", f"/v/{ms.COMPACT}"] if home else [])
                 )

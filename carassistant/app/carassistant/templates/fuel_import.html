@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head, switch_row with context %}
+{% block scripts %}<script src="{{ base }}/static/fuelimport.js?v={{ asset_v }}" defer></script>{% endblock %}
+{% block content %}
+{% set names = {'date': _('f.date'), 'amount': _('f.amount'), 'odometer_km': _('f.odometer'), 'price_total': _('f.price_total'), 'price_per_unit': _('f.price_unit'), 'full_tank': _('f.full_tank'), 'station': _('f.station'), 'notes': _('f.notes')} %}
+{% set targets = ['date', 'amount', 'odometer_km', 'price_total', 'price_per_unit', 'full_tank', 'station', 'notes'] %}
+{{ page_head('upload', _('fi.title')) }}
+<ol class="guide-bar">
+  <li class="{{ 'cur' if step == 1 }}{{ ' done' if step > 1 }}"><span class="gnum">1</span><b>{{ _('fi.s1') }}</b></li>
+  <li class="{{ 'cur' if step == 2 }}{{ ' done' if step > 2 }}"><span class="gnum">2</span><b>{{ _('fi.s2') }}</b></li>
+  <li class="{{ 'cur' if step == 3 }}{{ ' done' if step > 3 }}"><span class="gnum">3</span><b>{{ _('fi.s3') }}</b></li>
+</ol>
+{% if error %}<p class="flash err">{{ _(error) }}</p>{% endif %}
+
+{% if step == 1 %}
+<section class="card guide-step">
+  <h2>{{ icon('upload', 20) }} {{ _('fi.file_h') }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ _('fi.file_hint') }}</p>
+  <form method="post" enctype="multipart/form-data" action="{{ furl }}" class="guide-stack">
+    <div class="guide-nav"><a class="button fi-cancel" href="{{ base }}/v/{{ v.slug }}/e/fuel" aria-label="{{ _('btn.cancel') }}" title="{{ _('btn.cancel') }}">{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></a>
+      <label class="button primary">{{ icon('upload', 18) }}<span>{{ _('fi.choose') }}</span><input type="file" name="file" required hidden data-send accept=".csv,.txt,text/csv,text/plain"></label></div>
+  </form>
+</section>
+
+{% elif step == 2 %}
+<form method="post" action="{{ furl }}/{{ token }}" class="sys-col">
+  <section class="card guide-step">
+    <h2>{{ icon('list', 20) }} {{ _('fi.cols_h') }}</h2>
+    <p class="hint">{{ icon('info', 14) }} {{ _('fi.cols_hint', n=table.rows|length) }}</p>
+    <div class="tp-form fi-map">
+      {% for key in targets %}
+      <label>{{ names[key] }}{{ ' *' if key in ('date', 'amount') }}
+        <select name="col_{{ key }}" data-sample-for="fi-smp-{{ key }}">
+          <option value="">{{ _('fi.none') }}</option>
+          {% for c in table.columns %}<option value="{{ loop.index0 }}" data-sample="{{ _('fi.example', v=samples[loop.index0]) if samples[loop.index0] }}"{{ ' selected' if mapping.get(key) == loop.index0 }}>{{ c }}</option>{% endfor %}
+        </select>
+        <small class="muted" id="fi-smp-{{ key }}">{% set at = mapping.get(key) %}{{ _('fi.example', v=samples[at]) if at is not none and samples[at] }}</small>
+      </label>
+      {% endfor %}
+    </div>
+  </section>
+  <section class="card guide-step">
+    <h2>{{ icon('settings', 20) }} {{ _('fi.opts_h') }}</h2>
+    <div class="tp-form">
+      <label>{{ _('fi.order') }}
+        <select name="order">
+          <option value="auto"{{ ' selected' if options.order == 'auto' }}>{{ _('fi.order_auto') }}</option>
+          <option value="ymd"{{ ' selected' if options.order == 'ymd' }}>{{ _('fi.order_ymd') }}</option>
+          <option value="dmy"{{ ' selected' if options.order == 'dmy' }}>{{ _('fi.order_dmy') }}</option>
+          <option value="mdy"{{ ' selected' if options.order == 'mdy' }}>{{ _('fi.order_mdy') }}</option>
+        </select>
+      </label>
+      <label>{{ _('fi.dist') }}
+        <select name="dist">
+          <option value="km"{{ ' selected' if options.dist != 'mi' }}>{{ _('fi.dist_km') }}</option>
+          <option value="mi"{{ ' selected' if options.dist == 'mi' }}>{{ _('fi.dist_mi') }}</option>
+        </select>
+      </label>
+      {% if base_unit == 'L' %}<label>{{ _('fi.vol') }}
+        <select name="vol">
+          <option value="l"{{ ' selected' if options.vol not in ('usgal', 'ukgal') }}>{{ _('fi.vol_l') }}</option>
+          <option value="usgal"{{ ' selected' if options.vol == 'usgal' }}>{{ _('fi.vol_usgal') }}</option>
+          <option value="ukgal"{{ ' selected' if options.vol == 'ukgal' }}>{{ _('fi.vol_ukgal') }}</option>
+        </select>
+      </label>{% endif %}
+    </div>
+    {{ switch_row('skip', _('fi.skip'), options.skip) }}
+    <div class="guide-nav"><a class="button" href="{{ furl }}">{{ _('btn.back') }}</a><button class="primary">{{ _('guide.next') }}</button></div>
+  </section>
+</form>
+
+{% elif step == 3 %}
+<section class="card guide-step">
+  <h2>{{ icon('check-circle-outline', 20) }} {{ _('fi.check_h') }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ _('fi.check_hint', n=result.rows|length, d=result.duplicates, p=result.problem_count) }}</p>
+  {% if preview %}
+  <ul class="fi-rows">
+    {% for r in preview %}
+    <li><b>{{ fdate(r.date) }}</b><span>{% if r.odometer_km %}{{ fnum(units.d(r.odometer_km)) }} {{ units.dist_unit }} · {% endif %}{{ fnum(units.v(r.amount, base_unit), 2) }} {{ units.vol_unit(base_unit) }}{% if r.price_total is not none %} · {{ fnum(r.price_total, 2) }} {{ units.cur }}{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% for p in result.problems[:5] %}<p class="acct-warn">{{ icon('alert', 14) }}<span>{{ _(p[1], n=p[0], v=p[2]) }}</span></p>{% endfor %}
+  {% if result.problem_count > 5 %}<p class="muted">{{ _('fi.more', n=result.problem_count - 5) }}</p>{% endif %}
+  <div class="guide-nav"><a class="button" href="{{ furl }}/{{ token }}">{{ _('btn.back') }}</a>
+    <form method="post" action="{{ furl }}/{{ token }}/run" class="up-form"><button class="primary"{{ '' if result.rows else ' disabled' }}>{{ icon('check', 18) }}<span>{{ _('fi.import') }}</span></button></form></div>
+</section>
+
+{% else %}
+<section class="card fi-done">
+  <h2>{{ icon('check-circle-outline', 20) }} {{ _('fi.done_h') }}</h2>
+  <p class="hint">{{ icon('info', 14) }} {{ _('fi.done_text', n=done.imported, d=done.duplicates) }}</p>
+  <div class="form-bar"><a class="button primary" href="{{ base }}/v/{{ v.slug }}/e/fuel">{{ icon('gas-station', 18) }}<span>{{ _('fi.open') }}</span></a></div>
+</section>
+{% endif %}
+{% endblock %}

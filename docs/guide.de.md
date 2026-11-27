@@ -43,6 +43,15 @@ Das Lesen ist geduldig: Geht der erste Versuch nicht auf, probiert es noch einma
 
 ![Ein Tankbeleg wurde gelesen: das Formular ist ausgefüllt](screenshots/de/fuel-scan.png)
 
+**Die Tankungen einer anderen App holen - Fuelio und andere.**
+
+1. *Tanken* → die Pfeile oben rechts (*Export und Import*) → *CSV importieren*.
+2. **Datei:** Wähle die CSV-Datei der anderen App (in Fuelio: Menü des Autos → *Export* → *CSV*). Die Datei wird auf deinem Server gelesen; gespeichert wird noch nichts.
+3. **Spalten:** Die Spalten der Datei werden aufgelistet. Für jeden Punkt - *Datum* und *Menge* werden gebraucht, *Kilometerstand*, *Gesamtpreis*, *Preis je Einheit*, *Vollgetankt*, *Tankstelle* und *Notizen* sind freiwillig - wählst du die Spalte, die ihn enthält, mit einem Beispielwert neben der Wahl. Car Assistant hat an den Namen geraten (eine Fuelio-Datei ist vollständig eingestellt); ändere, was nicht stimmt. Darunter sagst du, in was die Datei zählt (Kilometer oder Meilen, Liter oder Gallonen - eine Fuelio-Datei sagt es selbst), in welcher Reihenfolge ihre Daten stehen (wird selbst gefunden) und ob Einträge übersprungen werden, die schon im Tankbuch stehen (an).
+4. **Import:** Die Seite sagt, wie viele Tankungen bereit sind, wie viele übersprungen werden und welche Zeilen nicht gelesen werden konnten, und zeigt die ersten Zeilen so, wie sie gespeichert werden. *Importieren* schreibt sie; die letzte Seite sagt, dass es geklappt hat.
+
+Dieselbe Datei kann zweimal importiert werden: Eine Zeile mit demselben Tag und derselben Menge (oder demselben Kilometerstand) wie ein Eintrag, der schon im Tankbuch steht, wird übersprungen. Verschiedene Datumsformate, Dezimalkommas und Tausenderpunkte, Semikolon oder Tabulator zwischen den Spalten und alte Windows-Dateien werden verstanden; eine Datei mit mehreren Tabellen (Fuelio schreibt Fahrzeug, Tankungen und Kosten in eine Datei) wird aus der Tabelle der Tankungen gelesen. Alles wird in den Einheiten der App gespeichert (Kilometer, Liter) und in den Einheiten deiner Einstellungen gezeigt.
+
 Beide Fotos werden **auf deinem eigenen Server** gelesen (Texterkennung mit Tesseract, nichts geht ins Internet) und nie gespeichert. Das Add-on hat die Texterkennung eingebaut; bei einer manuellen Installation erscheinen die Knöpfe, wenn Tesseract installiert ist.
 
 ## Fahrzeugdaten

@@ -487,6 +487,17 @@ def main() -> None:
                     if not only or name in only:
                         shot(base, path, out_root / lang / f"{name}.png", w, h, 2, *crop)
                         print(lang, name, flush=True)
+                if not only or only & {
+                    "import-columns",
+                    "import-check",
+                }:  # the import of fill-ups: a file was chosen (the way a browser sends it), the columns are set
+                    import pagecheck
+
+                    _, columns, check = pagecheck.import_pages(base, DIESEL)
+                    for name, path, w, h in (("import-columns", columns, 1200, 1150), ("import-check", check, 1200, 560)):
+                        if not only or name in only:
+                            shot(base, path, out_root / lang / f"{name}.png", w, h, 1)
+                            print(lang, name, flush=True)
                 if not only or only & set(SCENES):
                     scenes(base, out_root, lang, only)
                 db = sqlite3.connect(data / "carassistant.db")

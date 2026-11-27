@@ -3703,3 +3703,18 @@ html.odo-settled .odo-drum i, html.odo-settled .odo-strip { animation: none; }
   .hb-h .hb-help { flex: 1 0 100%; }
   .hb-held { grid-column: 1; padding-top: 0; }
 }
+
+/* Import of fill-ups from a CSV file (docs/guide.md): the choice of the column for each point, the rows that will be written, the page that says it worked */
+.fi-map small { min-height: 1.3em; font-size: 12px; font-weight: 400; letter-spacing: 0; text-transform: none; }  /* an example is written as it stands in the file */
+.guide-step .tp-form + .sw-row { margin-top: 14px; }
+@media (min-width: 700px) { .fi-map, .guide-step .tp-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }  /* the choices of the columns stand in two columns on a wide page */
+.fi-rows { list-style: none; margin: 14px calc(-1 * var(--bleed)) 0; padding: 0; }
+.fi-rows li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; padding: 10px var(--bleed); border-top: 1px solid var(--glass-b); }
+.fi-rows li:first-child { border-top: 0; padding-top: 0; }
+.fi-rows span { font-family: "Space Mono", monospace; font-size: 13px; color: var(--muted); }
+.fi-done h2 { display: flex; align-items: center; gap: 12px; }
+.fi-done h2 svg { color: var(--ok); }
+@media (max-width: 380px) {  /* beside the button that chooses the file there is room for the cross only */
+  .fi-cancel span { display: none; }
+  .fi-cancel { width: 44px; padding: 0; justify-content: center; }
+}
