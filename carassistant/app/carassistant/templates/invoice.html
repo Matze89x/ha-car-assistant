@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head with context %}
+{% from "_macros.html" import icon, page_head, msg_card with context %}
 {% block content %}
 {% set money = units.cur %}
 {% set kn = {'service': _('inv.k_service'), 'parts': _('inv.k_parts'), 'mods': _('inv.k_mods'), 'fixed': _('inv.k_fixed'), 'fuel': _('inv.k_fuel')} %}
@@ -10,11 +10,7 @@
 {% set iurl = base ~ '/v/' ~ v.slug ~ '/invoices/' ~ doc.id %}
 {% call page_head('chart', _('tab.report')) %}{% endcall %}
 {% if booked %}
-<section class="card fs-todo inv-booking">
-  <span class="mi-ic c2">{{ icon('check-circle-outline', 19) }}</span>
-  <div class="fs-todo-t"><b>{{ _('inv.booked_as', k=kn[booked.key], d=fdate(booked.day)) }}</b>{% if booked.title %}<small class="muted">{{ booked.title }}</small>{% endif %}</div>
-  <form method="post" action="{{ iurl }}/unlink" class="inline"><button class="button small">{{ icon('close', 16) }}<span>{{ _('inv.unlink') }}</span></button></form>
-</section>
+{% call msg_card('check-circle-outline', _('inv.booked_as', k=kn[booked.key], d=fdate(booked.day)), _('inv.booked_note'), small=booked.title, chip='c2') %}<form method="post" action="{{ iurl }}/unlink" class="inline"><button class="button">{{ icon('close', 16) }}<span>{{ _('inv.unlink') }}</span></button></form>{% endcall %}
 {% endif %}
 <section class="card inv-doc">
   <h2>{{ icon('file-document-outline', 20) }} {{ doc.title }}</h2>

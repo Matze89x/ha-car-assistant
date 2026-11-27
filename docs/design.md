@@ -107,6 +107,7 @@ Everything on every page is built from this short list. A new page uses these; a
 | **Card / tile** | `.card`, `.wd` (widget, the arrow top right when it is a link), `.rec` (list card) | `.card`, `.wd`, `.rec` |
 | **Buttons** | `.button` (+ `.primary`, `.danger`, `.small`), `.icon-btn` (round); bottom right of a card, one line | `.button`, `.icon-btn` |
 | **Receipt card** | `.rcpt` (`.rcpt-head`, `.rcpt-line` + `.rcpt-price`, `.rcpt-meta`, `.rcpt-acts`): a fill-up and a purchase as a till receipt (4d) | `.rcpt` |
+| **Message card** | `msg_card()` (`_macros.html`): what needs a person's attention - the head of a card with a symbol, one sentence, the button bottom right (4e) | `.msg-card`, `.card-head` |
 | **Fields / switch** | `input`, `select`, `textarea`; every on / off choice is a `switch_row()` (text left, Yes / No, the round switch right) - no loose checkbox | `app.css`, `_macros.html` |
 | **Odometer plate** | `odo_plate()`: the dark counter box with the label above; the digits roll down, a tap turns it over to the entry (the back IS the input box). `.odo-static` (fixed, nothing to turn) while a plugin reports the odometer and as the widget look *Counter box* | `_macros.html`, `.odo-flip` |
 | **Map** | `.tp-map` / `.pos-map`: full width, 16:9; the tiles come from our own tile address | `.pos-map` |
@@ -148,6 +149,16 @@ A fill-up (*Fuel*) and a purchase (*Parts*) are shown as a **till receipt** - on
 | Opened | `.rec-inline` | a tap on the card (or *Edit*) turns the **whole card into its form** - the receipt parts and the Edit button disappear. The bar at the bottom is always: **close** (✕) at the far left, then **delete** (bin), and **Save** at the right (words on a wide card, only symbols on a narrow one). A form of a fill-up starts with the **scan row**: *Scan* (the camera) on the left and *Load file* (a photo from the library or a PDF) on the right, above its fields; the odometer that is already there is never overwritten by a scan |
 
 Rules: the price is always in the line, at the right - no second price look (no pill, no big figure). An empty value is empty, never `None` / `null`. What the car noticed on its own is marked in the entry's own data, never in the notes, and never shown to the person as text. A new look for a purchase or a fill-up is a change of `.rcpt`, not a new class.
+
+## 4e. The message card (something needs your attention)
+
+What needs a person's attention and has one button that deals with it - a refuel the car noticed, invoices that wait to be booked, the invoice a form is filled from - is **one card, built by one macro** (`msg_card()` in `_macros.html`; `.msg-card`). Its head is the head of the station search (`.card-head`: a symbol chip, the title in 18 px, a small muted line under it - the date, a count, a name), so the two cards one under the other look like one family:
+
+1. **Head** - the chip (`mi-ic c1…c7`), the title, the small line.
+2. **One sentence** with the info symbol (`.hint`) that says what happened and what is missing.
+3. **The button** bottom right (`.form-bar`): the one main action (`.primary`), or a plain button when the action is only a way back.
+
+All three are `--sp-card` (18 px) from the edges and 14 px apart; no card of this kind has a second look.
 
 ## 5. Behaviour rules
 

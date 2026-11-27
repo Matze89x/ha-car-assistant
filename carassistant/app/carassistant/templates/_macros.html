@@ -96,6 +96,15 @@
 <form method="post" action="{{ action }}" id="{{ id }}" data-confirm="{{ _(confirm_key) }}" hidden></form>
 {%- endmacro %}
 
+{# The message card (docs/design.md, 4e): what needs a person's attention. The head is the one of the station search (a symbol chip, the title, a small line under it), then ONE sentence with the info symbol, then the button at the bottom right (the body of the call). #}
+{% macro msg_card(ic, title, text, small='', chip='c6') -%}
+<section class="card msg-card">
+  <div class="card-head"><span class="mi-ic {{ chip }}">{{ icon(ic, 19) }}</span><div class="card-ht"><h2>{{ title }}</h2>{% if small %}<small>{{ small }}</small>{% endif %}</div></div>
+  <p class="hint">{{ icon('info', 14) }} {{ text }}</p>
+  <div class="form-bar">{{ caller() }}</div>
+</section>
+{%- endmacro %}
+
 {% macro page_head(ic, title, sub=none, tabs=true, tag='h1') -%}
 <div class="page-head">{% if back_href %}<a class="back-btn{{ ' deep' if back_deep }}" href="{{ base }}{{ back_href }}" aria-label="{{ _('nav.more') }}" title="{{ _('nav.more') }}">{{ icon('chevron-left', 22) }}</a>{% endif %}<div class="ph-t"><{{ tag }}>{{ icon(ic, 26) }}<span>{{ title }}</span></{{ tag }}>{% set subline = (v.name if v and not app_car else none) if sub is none else sub %}{% if subline %}<div class="ph-s"{{ ' data-car' if sub is none }}>{{ subline }}{% if sub is none and switch_vehicles %}<button type="button" class="cur-switch" data-open="vsw" aria-label="{{ _('nav.change') }}" title="{{ _('nav.change') }}">{{ icon('swap', 15) }}</button>{% endif %}</div>{% endif %}</div>{% if caller %}<div class="actions">{{ caller() }}</div>{% endif %}</div>
 {% if section_tabs and tabs %}<nav class="seg-tabs{{ ' fold' if section_tabs[0].fold and section_tabs|selectattr('icon')|list|length == section_tabs|length }}" aria-label="{{ v.name }}">{% for st in section_tabs %}<a href="{{ base }}{{ st.href }}" class="{{ 'on' if st.on }}" title="{{ st.title }}" aria-label="{{ st.title }}"{% if st.on %} aria-current="page"{% endif %}>{% if st.icon %}{{ icon(st.icon, 18) }}{% endif %}<span>{{ st.title }}</span></a>{% endfor %}</nav>{% endif %}

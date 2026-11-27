@@ -461,7 +461,7 @@ def test_the_cost_page_points_at_invoices_that_wait_to_be_booked(client):
     assert "waiting to be booked" not in client.get(f"{base}/report").text
     _upload(client, vid, "r.pdf", _invoice_pdf())
     page = client.get(f"{base}/report").text
-    assert "Invoices waiting to be booked: 1" in page and "277.03" in page and f'href="{base}/invoices"' in page
+    assert "1 waiting to be booked" in page and "277.03" in page and f'href="{base}/invoices"' in page
 
 
 def test_a_shop_that_names_only_an_order_number_gives_that_one():

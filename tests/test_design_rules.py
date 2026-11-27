@@ -528,3 +528,16 @@ def test_fill_ups_and_purchases_are_receipt_cards():
         )
     css = _css()
     assert css.count(".rcpt-price {") == 1 and ".rec-price" not in css  # one definition, no second price look
+
+
+def test_message_cards_come_from_one_macro():
+    """docs/design.md, 4e: a message card is msg_card() - no template builds its own."""
+    macros = (TEMPLATES / "_macros.html").read_text(encoding="utf-8")
+    assert "{% macro msg_card(" in macros
+    for name in ("fuel_page.html", "_invoice_booking.html", "invoice.html", "report.html"):
+        text = (TEMPLATES / name).read_text(encoding="utf-8")
+        assert "msg_card(" in text and "fs-todo" not in text, name
+    css = _css()
+    assert (
+        ".fs-todo" not in css and css.count(".card-head {") == 1 and css.count(".msg-card {") == 1
+    )  # one definition of the head, one of the card

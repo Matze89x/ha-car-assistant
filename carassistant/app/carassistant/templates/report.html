@@ -1,12 +1,8 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon,page_head with context %}
+{% from "_macros.html" import icon, page_head, msg_card with context %}
 {% block content %}
 {{ page_head('chart', _('tab.report')) }}
-{% if inv_sums and inv_sums.open %}<section class="card fs-todo inv-booking">
-  <span class="mi-ic c3">{{ icon('file-document-outline', 19) }}</span>
-  <div class="fs-todo-t"><b>{{ _('inv.cost_hint', n=inv_sums.open, a=fnum(inv_sums.open_amount, 2) ~ ' ' ~ units.cur) }}</b></div>
-  <a class="button small" href="{{ base }}/v/{{ v.slug }}/invoices">{{ icon('chevron', 16) }}<span>{{ _('inv.cost_link') }}</span></a>
-</section>{% endif %}
+{% if inv_sums and inv_sums.open %}{% call msg_card('file-document-outline', _('tab.invoices'), _('inv.cost_text'), small=_('inv.waiting', n=inv_sums.open, a=fnum(inv_sums.open_amount, 2) ~ ' ' ~ units.cur), chip='c3') %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/invoices">{{ icon('chevron', 16) }}<span>{{ _('inv.cost_link') }}</span></a>{% endcall %}{% endif %}
 {% set gnames = {'day': _('report.days'), 'week': _('report.weeks'), 'month': _('report.months')} %}
 {% set per_names = {'day': _('report.per_day'), 'week': _('report.per_week'), 'month': _('report.per_month')} %}
 {% set kn = {'fuel': 1, 'service': 2, 'mods': 3, 'parts': 4, 'fixed': 5} %}

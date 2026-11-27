@@ -107,6 +107,7 @@ Alles auf jeder Seite besteht aus dieser kurzen Liste. Eine neue Seite nutzt sie
 | **Karte / Kachel** | `.card`, `.wd` (Widget, Pfeil oben rechts, wenn es ein Link ist), `.rec` (Listenkarte) | `.card`, `.wd`, `.rec` |
 | **Knöpfe** | `.button` (+ `.primary`, `.danger`, `.small`), `.icon-btn` (rund); unten rechts in der Karte, eine Zeile | `.button`, `.icon-btn` |
 | **Belegkarte** | `.rcpt` (`.rcpt-head`, `.rcpt-line` + `.rcpt-price`, `.rcpt-meta`, `.rcpt-acts`): eine Tankung und ein Einkauf als Kassenbon (4d) | `.rcpt` |
+| **Mitteilungskarte** | `msg_card()` (`_macros.html`): was die Aufmerksamkeit einer Person braucht - der Kopf einer Karte mit Symbol, ein Satz, der Knopf unten rechts (4e) | `.msg-card`, `.card-head` |
 | **Felder / Schalter** | `input`, `select`, `textarea`; jede Ja/Nein-Wahl ist eine `switch_row()` (Text links, Ja / Nein, der runde Schalter rechts) - kein loses Kontrollkästchen | `app.css`, `_macros.html` |
 | **Kilometer-Zählwerk** | `odo_plate()`: der dunkle Zählwerk-Kasten mit der Beschriftung darüber; die Ziffern laufen durch, ein Tipp dreht ihn zur Eingabe um (die Rückseite IST das Eingabefeld). `.odo-static` (fest, nichts zum Umdrehen), solange ein Plugin den Kilometerstand meldet, und als Widget-Look *Zählwerk* | `_macros.html`, `.odo-flip` |
 | **Karte (Map)** | `.tp-map` / `.pos-map`: volle Breite, 16:9; die Kacheln kommen von unserer eigenen Kachel-Adresse | `.pos-map` |
@@ -148,6 +149,16 @@ Eine Tankung (*Tanken*) und ein Einkauf (*Teile*) werden als **Kassenbon** gezei
 | Geöffnet | `.rec-inline` | ein Tipp auf die Karte (oder *Bearbeiten*) macht die **ganze Karte zu ihrem Formular** - die Belegteile und der Bearbeiten-Knopf verschwinden. Die Leiste unten ist immer: **Schließen** (✕) ganz links, dann **Löschen** (Mülleimer) und **Speichern** rechts (auf einer breiten Karte mit Worten, auf einer schmalen nur Symbole). Das Formular einer Tankung beginnt mit der **Scan-Zeile**: *Scannen* (die Kamera) links und *Datei laden* (ein Foto aus der Mediathek oder ein PDF) rechts, über den Feldern; ein Kilometerstand, der schon da ist, wird von einem Scan nie überschrieben |
 
 Regeln: Der Preis steht immer in der Zeile, rechts - kein zweites Preis-Aussehen (keine Pille, keine große Zahl). Ein leerer Wert ist leer, nie `None` / `null`. Was das Auto von selbst erkannt hat, steht in den eigenen Daten des Eintrags, nie in den Notizen und nie als Text vor der Person. Ein neues Aussehen für Einkauf oder Tankung ist eine Änderung von `.rcpt`, keine neue Klasse.
+
+## 4e. Die Mitteilungskarte (etwas braucht deine Aufmerksamkeit)
+
+Was die Aufmerksamkeit einer Person braucht und einen Knopf hat, der es erledigt - ein vom Auto erkanntes Tanken, Rechnungen, die noch gebucht werden müssen, die Rechnung, aus der ein Formular gefüllt wird - ist **eine Karte, gebaut von einem Makro** (`msg_card()` in `_macros.html`; `.msg-card`). Ihr Kopf ist der Kopf der Tankstellensuche (`.card-head`: ein Symbol-Chip, der Titel in 18 px, darunter eine kleine gedämpfte Zeile - das Datum, eine Zahl, ein Name), damit die beiden Karten untereinander wie eine Familie aussehen:
+
+1. **Kopf** - der Chip (`mi-ic c1…c7`), der Titel, die kleine Zeile.
+2. **Ein Satz** mit dem Info-Symbol (`.hint`), der sagt, was passiert ist und was fehlt.
+3. **Der Knopf** unten rechts (`.form-bar`): die eine Hauptaktion (`.primary`), oder ein schlichter Knopf, wenn die Aktion nur ein Weg zurück ist.
+
+Alle drei sind `--sp-card` (18 px) von den Rändern entfernt und 14 px voneinander; keine Karte dieser Art hat ein zweites Aussehen.
 
 ## 5. Verhaltensregeln
 

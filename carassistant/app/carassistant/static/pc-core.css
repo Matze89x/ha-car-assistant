@@ -1206,10 +1206,11 @@ input[type=date], input[type=time] { height: 48px; }
 .acl-t small { font-size: 12px; color: var(--muted); }
 
 /* station search on the fuel page: where (car / me), filter chips, and the stations as ranked tiles with the price big on the right */
-.stn-card { display: grid; gap: 14px; padding: 16px; border-radius: var(--r-l); border: 1px solid var(--glass-b); background: var(--glass); }
-.stn-head { display: flex; align-items: center; gap: 12px; }
-.stn-ht h2 { margin: 0; font-size: 18px; }
-.stn-ht small { color: var(--muted); font-size: 13px; }
+.stn-card { display: grid; gap: 14px; padding: var(--sp-card, 18px); border-radius: var(--r-l); border: 1px solid var(--glass-b); background: var(--glass); }
+.card-head { display: flex; align-items: center; gap: 12px; }  /* the head of a card with a symbol: the chip, the title, a small line under it (station search, message card) */
+.card-ht { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.card-ht h2 { margin: 0; font-size: 18px; }
+.card-ht small { color: var(--muted); font-size: 13px; }
 .stn-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 0; }
 
 /* minmax: a long name wraps instead of widening the card */
@@ -2888,14 +2889,10 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 .cs-meta { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
 .trip-kpis .tg { align-content: start; }
 
-/* the card "refuel / charging noticed": icon and text on top, the button bottom right */
-.fs-todo { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px 12px; }
-.fs-todo-t { display: grid; gap: 2px; min-width: 0; }
-.fs-todo .button { grid-column: 1 / -1; justify-self: end; margin: 0; }
-@media (min-width: 640px) {
-  .fs-todo { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .fs-todo .button { grid-column: auto; }
-}
+/* The message card (docs/design.md, 4e): what needs a person's attention - the head of the station search, one sentence, the button bottom right */
+.msg-card { display: grid; gap: 14px; }
+.msg-card > .hint { margin: 0; }
+.msg-card > .form-bar { margin: 0; }
 
 /* the pressures the car reported sit below the label of the set */
 .tp-recv { margin-top: 14px; }
@@ -3236,7 +3233,6 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .stn-more > summary { list-style: none; cursor: pointer; }
 .stn-more > summary::-webkit-details-marker, .stn-more[open] > summary { display: none; }
 .stn-more .stn-list { margin-top: 0; }
-.stn-head .stn-ht { flex: 1; min-width: 0; }
 
 /* the second tab bar: round, symbols only, two or three options (price | distance ...) - next to .seg-tabs the only one */
 .seg-icons { flex: 0 0 auto; display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .06); }

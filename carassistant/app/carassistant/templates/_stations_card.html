@@ -2,9 +2,9 @@
 {% with s = stn %}
 <section class="stn-card{{ '' if inline else ' card' }}" id="stations{{ '-body' if inline else '' }}">
   {% set keep = ('&lat=' ~ request.query_params.get('lat', '') ~ '&lon=' ~ request.query_params.get('lon', '')) if s.where == 'me' else '' %}
-  <div class="stn-head">
+  <div class="card-head">
     <span class="mi-ic c6">{{ icon('plug' if s.electric else 'gas-station', 20) }}</span>
-    <div class="stn-ht"><h2>{{ _('chg.title' if s.electric else 'stn.title') }}</h2><small>{{ ('15 ' ~ units.dist_unit) if s.electric else (s.fuel|upper ~ ' · 15 ' ~ units.dist_unit) }}</small></div>
+    <div class="card-ht"><h2>{{ _('chg.title' if s.electric else 'stn.title') }}</h2><small>{{ ('15 ' ~ units.dist_unit) if s.electric else (s.fuel|upper ~ ' · 15 ' ~ units.dist_unit) }}</small></div>
     {% if s.searched and s.electric %}<div class="seg-icons" role="group" aria-label="{{ _('stations.sort') }}">
       <a href="{{ vurl }}{{ s.link(sort='distance')|e }}" class="{{ 'on' if s.sort == 'distance' }}" title="{{ _('stations.sort_distance') }}" aria-label="{{ _('stations.sort_distance') }}">{{ icon('map-marker-radius', 18) }}</a>
       <a href="{{ vurl }}{{ s.link(sort='power')|e }}" class="{{ 'on' if s.sort == 'power' }}" title="{{ _('chg.sort_power') }}" aria-label="{{ _('chg.sort_power') }}">{{ icon('lightning-bolt', 18) }}</a>
