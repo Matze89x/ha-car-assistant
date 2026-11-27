@@ -514,3 +514,17 @@ def test_one_explanation_per_window_is_a_rule_of_the_book_and_of_the_check():
     assert "webapp.steps" not in user and user.count("webapp.text") == 1
     system = (tpl / "_settings_system.html").read_text(encoding="utf-8")
     assert "settings.fuel_moved" not in system and "settings.backup_codes" not in system
+
+
+def test_fill_ups_and_purchases_are_receipt_cards():
+    """docs/design.md, 4d: one card look for a fill-up and a purchase - a till receipt, the price in the line at the right, the bar close / delete / save."""
+    for name in ("fuel_page.html", "_parts_list.html"):
+        text = (TEMPLATES / name).read_text(encoding="utf-8")
+        assert 'class="rec rcpt' in text and all(
+            part in text for part in ("rcpt-head", "rcpt-line", "rcpt-price", "rcpt-meta", "rcpt-acts")
+        ), name
+        assert text.index("data-rec-cancel") < text.index('class="danger"') < text.index('class="primary"'), (
+            f"{name}: close, delete, save - in this order"
+        )
+    css = _css()
+    assert css.count(".rcpt-price {") == 1 and ".rec-price" not in css  # one definition, no second price look

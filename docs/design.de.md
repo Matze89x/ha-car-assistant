@@ -78,6 +78,7 @@ Neben der *Weiteres*-Liste beginnt das erste Element der Seite auf derselben Lin
 | Schalter | `.switch`, Makro `switch_row()` | **immer rechts** (siehe Regel unten); an = Akzent; jede An/Aus-Einstellung ist eine Schalter-Zeile mit Linie oben und unten (zwei Zeilen teilen sich eine Linie; nie eine zweite Linie über einer Button-Leiste) Eine Schalter-Zeile hat keinen äußeren Abstand: Eine Regel für untereinander stehende Beschriftungen muss `.sw-row` ausnehmen (ein Test prüft das), damit jede Zeile mittig zwischen ihren zwei Linien steht. |
 | Name + Slogan | `.brand-lock`, `.sb-brand`, `.about-id` | immer EINE Einheit: Slogan halb so groß, exakt so breit wie der Name (Seitenleiste: füllt die Leiste), überall gleicher Abstand |
 | Datum und Uhrzeit | `regional.py` | angezeigt wie unter Einstellungen → System → Datum & Uhrzeit; gespeichert ISO / 24 h |
+| Belegkarte | `.rcpt` | ein Einkauf (*Teile*) und eine Tankung (*Tanken*) sehen aus wie ein Kassenbon - siehe 4d |
 | Chips / Marken | `.badge`, `.pos-chip`, `.schip` | Pillen (`999px`), nur Statusfarben |
 | Info-Seite | `.about-hero`, `.about-stats`, `.about-car` | Kopfkarte (Logo, Name, Version), Zahlenkacheln, dann je Auto eine Karte mit Zeilen (Icon-Chip, Name, Kleintext, Badges) – siehe Seite „Über“ |
 | Auto-Bild / Video | `.hero-car.soft`, `.hero-media` | Fotos und Videos blenden an allen Seiten aus; ein Video läuft einmal und bleibt auf dem letzten Bild stehen (`static/media.js`); Bibliothek `media.html` mit Vorschau, Badge „In Benutzung“, Löschen-x |
@@ -105,6 +106,7 @@ Alles auf jeder Seite besteht aus dieser kurzen Liste. Eine neue Seite nutzt sie
 | **Abschnittsbeschriftung** | `.vd-group-h`, `.rec-month`: 28 px darüber, 10 px zur Kachel darunter | `--sp-label-*` |
 | **Karte / Kachel** | `.card`, `.wd` (Widget, Pfeil oben rechts, wenn es ein Link ist), `.rec` (Listenkarte) | `.card`, `.wd`, `.rec` |
 | **Knöpfe** | `.button` (+ `.primary`, `.danger`, `.small`), `.icon-btn` (rund); unten rechts in der Karte, eine Zeile | `.button`, `.icon-btn` |
+| **Belegkarte** | `.rcpt` (`.rcpt-head`, `.rcpt-line` + `.rcpt-price`, `.rcpt-meta`, `.rcpt-acts`): eine Tankung und ein Einkauf als Kassenbon (4d) | `.rcpt` |
 | **Felder / Schalter** | `input`, `select`, `textarea`; jede Ja/Nein-Wahl ist eine `switch_row()` (Text links, Ja / Nein, der runde Schalter rechts) - kein loses Kontrollkästchen | `app.css`, `_macros.html` |
 | **Kilometer-Zählwerk** | `odo_plate()`: der dunkle Zählwerk-Kasten mit der Beschriftung darüber; die Ziffern laufen durch, ein Tipp dreht ihn zur Eingabe um (die Rückseite IST das Eingabefeld). `.odo-static` (fest, nichts zum Umdrehen), solange ein Plugin den Kilometerstand meldet, und als Widget-Look *Zählwerk* | `_macros.html`, `.odo-flip` |
 | **Karte (Map)** | `.tp-map` / `.pos-map`: volle Breite, 16:9; die Kacheln kommen von unserer eigenen Kachel-Adresse | `.pos-map` |
@@ -132,6 +134,20 @@ Eine **Karte ist eine Kategorie** (ihr Titel ist `h2`: Symbol, Name, rechts ein 
 - **Ein Schalter am Ende einer Karte** steht in der Mitte zwischen der Linie über ihm und dem Rand der Karte: oben über dem Text so viel Luft wie unten (`tools/check_ui.py` misst es).
 - Die Fenster einer Karte folgen der Reihenfolge, die man braucht: was am häufigsten getan wird, zuerst.
 - Der Abstand wird **gemessen**: `tools/check_ui.py` schlägt fehl, wenn zwei Unterfenster untereinander nicht `--sp-sub` auseinanderstehen oder der Innenabstand eines Unterfensters nicht dem Maß entspricht.
+
+## 4d. Die Belegkarte (eine Tankung, ein Einkauf)
+
+Eine Tankung (*Tanken*) und ein Einkauf (*Teile*) werden als **Kassenbon** gezeigt - eine Karte, ein Aussehen, einmal definiert (`.rcpt` in `pc-core.css`, in `fuel_page.html` und `_parts_list.html` gleich gebaut). Eine Tankung ist der Beleg eines Besuchs an der Zapfsäule, darum ist dieses Aussehen für sie festgelegt:
+
+| Teil | Klasse | Regel |
+|---|---|---|
+| Kopf | `.rcpt-head` | links das Datum, rechts die Tankstelle / der Laden - Space Mono 12 px, gedämpft |
+| Zeile | `.rcpt-line` | darüber eine gestrichelte Linie; links, was es ist (`h3`, fett: *42,8 L*, *Bremsscheiben*), rechts **der Preis** `.rcpt-price` (Space Mono 15 px, fett). Ein erkanntes Tanken, das noch auf seinen Beleg wartet, zeigt an der Stelle des Preises die Status-Marke `.badge.soon` *Zu ergänzen* |
+| Einzelheiten | `.rcpt-meta` | darüber eine gestrichelte Linie; Space Mono 12 px, gedämpft: Preis je Einheit, Kilometerstand, Teilenummer ...; ein guter Zustand (*✓ Vollgetankt*, *✓ Verbaut*) in der OK-Farbe |
+| Knopf | `.rcpt-acts` | *Bearbeiten* unten rechts |
+| Geöffnet | `.rec-inline` | ein Tipp auf die Karte (oder *Bearbeiten*) macht die **ganze Karte zu ihrem Formular** - die Belegteile und der Bearbeiten-Knopf verschwinden. Die Leiste unten ist immer: **Schließen** (✕) ganz links, dann **Löschen** (Mülleimer) und **Speichern** rechts (auf einer breiten Karte mit Worten, auf einer schmalen nur Symbole). Das Formular einer Tankung beginnt mit der **Scan-Zeile**: *Scannen* (die Kamera) links und *Datei laden* (ein Foto aus der Mediathek oder ein PDF) rechts, über den Feldern; ein Kilometerstand, der schon da ist, wird von einem Scan nie überschrieben |
+
+Regeln: Der Preis steht immer in der Zeile, rechts - kein zweites Preis-Aussehen (keine Pille, keine große Zahl). Ein leerer Wert ist leer, nie `None` / `null`. Was das Auto von selbst erkannt hat, steht in den eigenen Daten des Eintrags, nie in den Notizen und nie als Text vor der Person. Ein neues Aussehen für Einkauf oder Tankung ist eine Änderung von `.rcpt`, keine neue Klasse.
 
 ## 5. Verhaltensregeln
 

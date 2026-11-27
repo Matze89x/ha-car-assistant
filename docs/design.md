@@ -78,7 +78,7 @@ Next to the *More* list the first element of the page starts on the same line as
 | Switch | `.switch`, `switch_row()` macro | **always on the right** (see rule below); on = accent; every on/off setting is a switch row with a line above and below (two rows share one line; never a second line above a button bar) A switch row has no outer gap: a rule for stacked labels must exclude `.sw-row` (a test guards it), so every row is centred between its two lines. |
 | Name + slogan | `.brand-lock`, `.sb-brand`, `.about-id` | always ONE unit: slogan half the size, exactly as wide as the name (side bar: fills the bar), same gap everywhere |
 | Dates and times | `regional.py` | shown as set under Settings → System → Date & time; stored ISO / 24 h |
-| Receipt card | `.rcpt` (`.rcpt-head`, `.rcpt-line` + `.rcpt-price`, `.rcpt-meta`) | a purchase or a fill-up looks like a till receipt: date and shop / station on top, the item and its price, a dashed line, the details; the same card on *Parts* and *Fuel* |
+| Receipt card | `.rcpt` | a purchase (*Parts*) and a fill-up (*Fuel*) look like a till receipt - see 4d |
 | Chips / badges | `.badge`, `.pos-chip`, `.schip` | pills (`999px`), status colours only |
 | Info page | `.about-hero`, `.about-stats`, `.about-car` | hero card (logo, name, version), figure tiles, then one card per car with rows (icon chip, name, small text, badges) – see the About page |
 | Car picture / video | `.hero-car.soft`, `.hero-media` | photos and videos fade out on all sides; a video plays once and rests on its last frame (`static/media.js`); library page `media.html` with thumbnails, "in use" badge, delete x |
@@ -106,6 +106,7 @@ Everything on every page is built from this short list. A new page uses these; a
 | **Section label** | `.vd-group-h`, `.rec-month`: 28 px above, 10 px to the tile below | `--sp-label-*` |
 | **Card / tile** | `.card`, `.wd` (widget, the arrow top right when it is a link), `.rec` (list card) | `.card`, `.wd`, `.rec` |
 | **Buttons** | `.button` (+ `.primary`, `.danger`, `.small`), `.icon-btn` (round); bottom right of a card, one line | `.button`, `.icon-btn` |
+| **Receipt card** | `.rcpt` (`.rcpt-head`, `.rcpt-line` + `.rcpt-price`, `.rcpt-meta`, `.rcpt-acts`): a fill-up and a purchase as a till receipt (4d) | `.rcpt` |
 | **Fields / switch** | `input`, `select`, `textarea`; every on / off choice is a `switch_row()` (text left, Yes / No, the round switch right) - no loose checkbox | `app.css`, `_macros.html` |
 | **Odometer plate** | `odo_plate()`: the dark counter box with the label above; the digits roll down, a tap turns it over to the entry (the back IS the input box). `.odo-static` (fixed, nothing to turn) while a plugin reports the odometer and as the widget look *Counter box* | `_macros.html`, `.odo-flip` |
 | **Map** | `.tp-map` / `.pos-map`: full width, 16:9; the tiles come from our own tile address | `.pos-map` |
@@ -133,6 +134,20 @@ A **card is a category** (its title is `h2`: symbol, name, a badge at the right 
 - **A switch that ends its card** stands in the middle between the line above it and the card's edge: the same air above its text as below it (`tools/check_ui.py` measures it).
 - The windows of a card follow the order a person needs them: the thing done most often first.
 - Spacing is **measured**: `tools/check_ui.py` fails when two sub-windows one under the other are not `--sp-sub` apart or a sub-window's padding is not the token.
+
+## 4d. The receipt card (a fill-up, a purchase)
+
+A fill-up (*Fuel*) and a purchase (*Parts*) are shown as a **till receipt** - one card, one look, defined once (`.rcpt` in `pc-core.css`, built the same way in `fuel_page.html` and `_parts_list.html`). A fill-up is the receipt of a visit to the pump, so this look is fixed for it:
+
+| Part | Class | Rule |
+|---|---|---|
+| Head | `.rcpt-head` | the date on the left, the station / shop on the right - Space Mono 12 px, muted |
+| Line | `.rcpt-line` | a dashed line above it; on the left what it is (`h3`, bold: *42,8 L*, *Brake discs*), on the right **the price** `.rcpt-price` (Space Mono 15 px, bold). A noticed refuel that still waits for its receipt shows the status chip `.badge.soon` *To complete* in the place of the price |
+| Details | `.rcpt-meta` | a dashed line above it; Space Mono 12 px, muted: price per unit, odometer, part number ...; a good state (*✓ Filled up completely*, *✓ Installed*) in the OK colour |
+| Button | `.rcpt-acts` | *Edit* at the bottom right |
+| Opened | `.rec-inline` | a tap on the card (or *Edit*) turns the **whole card into its form** - the receipt parts and the Edit button disappear. The bar at the bottom is always: **close** (✕) at the far left, then **delete** (bin), and **Save** at the right (words on a wide card, only symbols on a narrow one). A form of a fill-up starts with the **scan row**: *Scan* (the camera) on the left and *Load file* (a photo from the library or a PDF) on the right, above its fields; the odometer that is already there is never overwritten by a scan |
+
+Rules: the price is always in the line, at the right - no second price look (no pill, no big figure). An empty value is empty, never `None` / `null`. What the car noticed on its own is marked in the entry's own data, never in the notes, and never shown to the person as text. A new look for a purchase or a fill-up is a change of `.rcpt`, not a new class.
 
 ## 5. Behaviour rules
 
