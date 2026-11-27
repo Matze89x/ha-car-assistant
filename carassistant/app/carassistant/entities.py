@@ -407,6 +407,10 @@ def update(conn: sqlite3.Connection, entity: Entity, vehicle_id: int, row_id: in
 
 def delete(conn: sqlite3.Connection, entity: Entity, vehicle_id: int, row_id: int) -> None:
     conn.execute(f"DELETE FROM {entity.table} WHERE id = ? AND vehicle_id = ?", (row_id, vehicle_id))
+    conn.execute(  # an invoice booked as this entry is not booked any more (a new entry may get the number again)
+        "UPDATE documents SET booked_table = NULL, booked_id = NULL WHERE vehicle_id = ? AND booked_table = ? AND booked_id = ?",
+        (vehicle_id, entity.table, row_id),
+    )
 
 
 def count(conn: sqlite3.Connection, entity: Entity, vehicle_id: int) -> int:

@@ -90,6 +90,7 @@ MIGRATIONS: list[str] = [
         encoding="utf-8"
     ),  # the Home Assistant plugin: bindings of entities, the interfaces a plugin has taken
     (SCHEMA_DIR / "migrations_65.sql").read_text(encoding="utf-8"),  # fixed costs of a car (tax, insurance, ...)
+    (SCHEMA_DIR / "migrations_66.sql").read_text(encoding="utf-8"),  # invoices: read, and booked as a cost
 ]
 
 

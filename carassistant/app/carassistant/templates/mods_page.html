@@ -4,6 +4,7 @@
 {% set mu = base ~ '/v/' ~ v.id ~ '/e/mods' %}
 {% macro modform(r, url, lazy=false) %}
   <form class="eq-edit tp-form" method="post" action="{{ url }}" {{ 'hidden' if (r or lazy) else '' }}>
+    {% if booking and not r and not lazy %}<input type="hidden" name="invoice" value="{{ booking.doc.id }}">{% endif %}
     <label>{{ _('f.work') }} *<input type="text" name="title" maxlength="200" required value="{{ (r['title'] if r else form.get('title')) or '' }}"></label>
     <div class="eq-two"><label>{{ _('f.date') }}<input type="date" name="date" required value="{{ (r['date'] if r else (form.get('date') or today)) }}"></label>
       <label>{{ _('f.odometer') }} ({{ units.dist_unit }})<input type="number" inputmode="numeric" min="0" step="1" name="odometer_km" value="{{ (units.d(r['odometer_km'])|round|int if r and r['odometer_km'] is not none else form.get('odometer_km')) or '' }}"></label></div>
@@ -19,6 +20,7 @@
 <p class="hint">{{ icon('info', 14) }} {{ _('mods.intro') }}</p>
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
 
+{% include "_invoice_booking.html" %}
 <details class="card add-card add-card-top" id="addcard" {{ 'open' if form }}>
   <summary><span class="add-ic">{{ icon('plus', 18) }}</span><span>{{ _('btn.add') }}</span></summary>
   {{ modform(none, mu) }}

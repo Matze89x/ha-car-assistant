@@ -99,7 +99,7 @@ def test_a_single_payment_ignores_an_end_date(client):
         assert conn.execute("SELECT end_date FROM fixed_costs WHERE vehicle_id = ?", (vid,)).fetchone()[0] is None
 
 
-def test_the_cost_page_has_two_tabs_with_symbols_and_the_fixed_costs_are_no_page_of_the_list(client):
+def test_the_cost_page_has_three_tabs_with_symbols_and_the_fixed_costs_are_no_page_of_the_list(client):
     from tests.test_web import create_vehicle, slug
 
     from carassistant import db, modules
@@ -108,9 +108,9 @@ def test_the_cost_page_has_two_tabs_with_symbols_and_the_fixed_costs_are_no_page
     base = f"/v/{slug(vid)}"
     for url, current in ((f"{base}/report", "report"), (f"{base}/e/fixed", "fixed")):
         page = client.get(url).text
-        tabs = page.split('<nav class="seg-tabs"')[1].split("</nav>")[0]
+        tabs = page.split('<nav class="seg-tabs')[1].split("</nav>")[0]
         assert f'href="{base}/report"' in tabs and f'href="{base}/e/fixed"' in tabs and "Overview" in tabs and "Fixed costs" in tabs
-        assert tabs.count("<svg") == 2  # a symbol on each tab
+        assert tabs.count("<svg") == 3 and f'href="{base}/invoices"' in tabs  # a symbol on each tab; the invoices are the third
         assert tabs.count('aria-current="page"') == 1 and (f'href="{base}/e/fixed" class="on"' in tabs) == (current == "fixed")
     assert f"{base}/e/fixed" not in client.get(f"{base}/more").text  # one entry for the costs, not two
     with db.tx() as conn:

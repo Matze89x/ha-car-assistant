@@ -22,9 +22,11 @@
 
 {% if stn %}{% include "_stations_card.html" %}{% endif %}
 {% if entity.key == 'tires' %}{% include "tires_edit.html" if tp_edit else "tires_view.html" %}{% else %}
+{% include "_invoice_booking.html" %}
 <details class="card add-card add-card-top" id="addcard" {{ 'open' if form and not edit_id }}>
   <summary><span class="add-ic">{{ icon('plus', 18) }}</span><span>{{ _('btn.add') }}</span></summary>
   <form method="post" action="{{ vurl }}" class="grid">
+    {% if booking %}<input type="hidden" name="invoice" value="{{ booking.doc.id }}">{% endif %}
     {% for f in entity.fields %}
       {% if f.kind == 'bool' %}<div class="wide">{{ switch_row(f.name, _(f.label), (form.get(f.name) if form and not edit_id else f.default)) }}</div>
       {% else %}<label class="{{ 'wide' if f.kind == 'textarea' }}">

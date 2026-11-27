@@ -6,6 +6,7 @@
 {% set fu = vurl %}
 {% macro fuelform(r, url, inline=false) %}
   <form class="eq-edit tp-form" method="post" action="{{ url }}" {{ 'hidden' if r and not inline else '' }}>
+    {% if booking and not r %}<input type="hidden" name="invoice" value="{{ booking.doc.id }}">{% endif %}
     {% if receipt_on and not r %}<div class="fuel-scan" data-scan="{{ base }}/v/{{ v.id }}/fuel/scan" data-t-busy="{{ _('fuel.scan_busy') }}" data-t-ok="{{ _('fuel.scan_ok') }}" data-t-fit="{{ _('fuel.scan_fit') }}" data-t-nofit="{{ _('fuel.scan_nofit') }}" data-t-derived="{{ _('fuel.scan_derived') }}" data-t-none="{{ _('fuel.scan_none') }}" data-t-err="{{ _('fuel.scan_err') }}">
       <button type="button" class="button small" data-scan-btn>{{ icon('camera', 16) }}<span>{{ _('fuel.scan') }}</span></button>
       <input type="file" accept="image/*" capture="environment" data-scan-file hidden>
@@ -74,6 +75,7 @@
 {% endif %}
 
 <section class="tp-sec" id="fuel">
+  {% include "_invoice_booking.html" %}
   <div class="eq-panel tp-add" id="fuel-add" {{ 'hidden' if not (form and not edit_id) }}>{{ fuelform(none, fu) }}</div>
   <div class="eq-panel tp-add" id="fuel-export" hidden>
     <form method="get" class="eq-edit tp-form fx-form">

@@ -133,8 +133,9 @@ def languages() -> list[str]:
     return _langs
 
 
-def clean(data: bytes) -> bytes:
-    """Upright, grey, with the contrast stretched and the size brought to what the recognition likes. ValueError for anything that is no photo."""
+def clean(data: bytes, target: int = 2000) -> bytes:
+    """Upright, grey, with the contrast stretched and the size brought to what the recognition likes (``target`` pixels on the long side - a whole
+    page of an invoice wants more than a narrow receipt). ValueError for anything that is no photo."""
     from PIL import Image, ImageOps, UnidentifiedImageError
 
     Image.MAX_IMAGE_PIXELS = MAX_PIXELS
@@ -146,8 +147,8 @@ def clean(data: bytes) -> bytes:
     img = ImageOps.exif_transpose(img).convert("L")
     img = ImageOps.autocontrast(img, cutoff=2)
     width = max(img.size)
-    if width > 2600 or width < 1400:
-        factor = 2000 / width
+    if width > target * 1.3 or width < target * 0.7:
+        factor = target / width
         img = img.resize((max(1, round(img.width * factor)), max(1, round(img.height * factor))), Image.LANCZOS)
     out = io.BytesIO()
     img.save(out, "PNG")

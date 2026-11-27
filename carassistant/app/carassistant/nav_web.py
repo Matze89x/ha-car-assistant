@@ -60,9 +60,29 @@ def _hint(conn: sqlite3.Connection, vid: int, key: str, t) -> str:
     return ""
 
 
+TAB_TITLE = {"report": "report.tab_overview", "fixed": "tab.fixed", "invoices": "tab.invoices"}  # the other pages are called tab.<key>
+
+
 def section_tabs(conn: sqlite3.Connection, vid: int | None, current: str | None, t) -> list[dict] | None:
-    """No umbrella tab bars any more: every page of a car is reached from the bar or from More, one by one."""
-    return None
+    """The tabs of the bundle that the page ``current`` belongs to (modules.BUNDLES): one for each of its pages that is switched on, with its symbol.
+    None for a page that is in no bundle, or whose bundle has only this one page on."""
+    name = modules.BUNDLE_OF.get(current or "")
+    if vid is None or name is None:
+        return None
+    pages = modules.bundle_pages(conn, vid, name)
+    if len(pages) < 2:
+        return None
+    base = f"/v/{slugs.slug_of(conn, vid) or vid}"
+    return [
+        {
+            "href": f"{base}{page.path}",
+            "title": t(TAB_TITLE.get(page.key, f"tab.{page.key}")),
+            "icon": page.icon,
+            "on": page.key == current,
+            **({"fold": True} if i == 0 else {}),  # on a phone only the open tab shows its name
+        }
+        for i, page in enumerate(pages)
+    ]
 
 
 def more_groups(conn: sqlite3.Connection, vid: int | None, t) -> list[dict]:
@@ -79,6 +99,7 @@ def more_groups(conn: sqlite3.Connection, vid: int | None, t) -> list[dict]:
         }
         in_bar = {key for key, _ic in navigation.slots(conn, vid)}
         items = []
+        shown_bundles: set[str] = set()
         # fixed pages AND the pages of running integrations in ONE list, in the order of the editor
         for key in [*rest, *(k for k in mods if k not in rest and k not in in_bar)]:
             if key in mods:
@@ -95,6 +116,24 @@ def more_groups(conn: sqlite3.Connection, vid: int | None, t) -> list[dict]:
                 )
                 continue
             if key not in modules.BY_KEY or (key != "edit" and key in off):
+                continue
+            bundle = modules.BUNDLE_OF.get(key)
+            pages = modules.bundle_pages(conn, vid, bundle) if bundle else []
+            if len(pages) >= 2:  # pages that belong together are one entry: it leads to the first of them that is not in the bar
+                if bundle in shown_bundles:
+                    continue
+                shown_bundles.add(bundle)
+                lead = next((p for p in pages if p.key not in in_bar), pages[0])
+                items.append(
+                    {
+                        "href": base + lead.path,
+                        "paths": [base + p.path for p in pages],
+                        "icon": icons.MODULE_ICON.get(lead.key, lead.icon),
+                        "chip": CHIP.get(lead.module, "c1"),
+                        "title": t(modules.BUNDLE_TITLE[bundle]),
+                        "hint": "",
+                    }
+                )
                 continue
             items.append(
                 {

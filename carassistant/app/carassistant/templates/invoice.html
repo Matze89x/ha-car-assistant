@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head with context %}
+{% block content %}
+{% set money = units.cur %}
+{% set kn = {'service': _('inv.k_service'), 'parts': _('inv.k_parts'), 'mods': _('inv.k_mods'), 'fixed': _('inv.k_fixed'), 'fuel': _('inv.k_fuel')} %}
+{% set docs_t = {'estimate': _('inv.doc_estimate'), 'delivery': _('inv.doc_delivery'), 'reminder': _('inv.doc_reminder')} %}
+{% set read_t = {'pdf': _('inv.read_pdf'), 'ocr': _('inv.read_ocr'), 'text': _('inv.read_text')} %}
+{% set kicons = {'service': 'wrench', 'parts': 'cog', 'mods': 'tires', 'fixed': 'calendar-clock', 'fuel': 'gas-station'} %}
+{% set kchips = {'service': 'c4', 'parts': 'c2', 'mods': 'c3', 'fixed': 'c7', 'fuel': 'c6'} %}
+{% set iurl = base ~ '/v/' ~ v.slug ~ '/invoices/' ~ doc.id %}
+{% call page_head('chart', _('tab.report')) %}{% endcall %}
+{% if booked %}
+<section class="card fs-todo inv-booking">
+  <span class="mi-ic c2">{{ icon('check-circle-outline', 19) }}</span>
+  <div class="fs-todo-t"><b>{{ _('inv.booked_as', k=kn[booked.key], d=fdate(booked.day)) }}</b>{% if booked.title %}<small class="muted">{{ booked.title }}</small>{% endif %}</div>
+  <form method="post" action="{{ iurl }}/unlink" class="inline"><button class="button small">{{ icon('close', 16) }}<span>{{ _('inv.unlink') }}</span></button></form>
+</section>
+{% endif %}
+<section class="card inv-doc">
+  <h2>{{ icon('file-document-outline', 20) }} {{ doc.title }}</h2>
+  {% if is_image and has_file %}<a class="inv-preview" href="{{ iurl }}/file" target="_blank" rel="noopener"><img src="{{ iurl }}/file" alt="{{ doc.filename }}" loading="lazy"></a>{% endif %}
+  <dl class="rec-facts">
+    <div><dt>{{ _('inv.f_date') }}</dt><dd>{{ fdate(ex.date) if ex.get('date') else (fdate(doc.doc_date) if doc.doc_date else '–') }}</dd></div>
+    <div><dt>{{ _('inv.f_total') }}</dt><dd>{{ (fnum(ex.amount, 2) ~ ' ' ~ money) if ex.get('amount') else '–' }}{% if ex.get('checked') %} <small class="inv-ok" title="{{ _('inv.checked', n=fnum(ex.net, 2), v=fnum(ex.vat, 2), t=fnum(ex.amount, 2)) }}">{{ icon('check-circle-outline', 14) }}</small>{% endif %}</dd></div>
+    {% if ex.get('net') is not none and ex.get('vat') is not none %}<div><dt>{{ _('inv.f_net') }}</dt><dd>{{ fnum(ex.net, 2) }} {{ money }}</dd></div>
+    <div><dt>{{ _('inv.f_vat') }}</dt><dd>{{ fnum(ex.vat, 2) }} {{ money }}</dd></div>{% endif %}
+    <div><dt>{{ _('inv.f_vendor') }}</dt><dd>{{ ex.get('vendor') or '–' }}</dd></div>
+    <div><dt>{{ _('inv.f_number') }}</dt><dd>{{ ex.get('number') or '–' }}</dd></div>
+    {% if ex.get('odometer') %}<div><dt>{{ _('f.odometer') }}</dt><dd>{{ fnum(units.d(ex.odometer)) }} {{ units.dist_unit }}</dd></div>{% endif %}
+    {% if ex.get('kind') %}<div><dt>{{ _('inv.f_looks') }}</dt><dd>{{ kn[ex.kind] }}</dd></div>{% endif %}
+    {% if ex.get('how') %}<div><dt>{{ _('inv.f_read') }}</dt><dd>{{ read_t[ex.how] }}</dd></div>{% endif %}
+  </dl>
+  {% if not ex.get('how') %}<p class="acct-warn">{{ icon('alert', 14) }}<span>{{ _('inv.not_read') }}</span></p>
+  {% elif ex.get('guess') %}<p class="acct-warn">{{ icon('alert', 14) }}<span>{{ _('inv.guess') }}</span></p>
+  {% elif ex.get('amount') and not ex.get('checked') %}<p class="acct-warn">{{ icon('alert', 14) }}<span>{{ _('inv.unchecked') }}</span></p>{% endif %}
+  {% if ex.get('doc_type') %}<p class="acct-warn">{{ icon('alert', 14) }}<span>{{ docs_t[ex.doc_type] }}</span></p>{% endif %}
+  <div class="form-bar">
+    <form method="post" action="{{ iurl }}/read" class="inline"><button class="ghost-btn small">{{ icon('refresh', 16) }}<span>{{ _('inv.read_again') }}</span></button></form>
+    {% if has_file %}<a class="ghost-btn small" href="{{ iurl }}/file" target="_blank" rel="noopener">{{ icon('open-in-new', 16) }}<span>{{ _('docs.open') }}</span></a>{% endif %}
+    <form method="post" action="{{ iurl }}/delete" class="inline"><button class="danger small" data-confirm="{{ _('inv.confirm_delete') }}" data-confirm-ok="{{ _('btn.delete') }}">{{ icon('delete', 16) }}<span>{{ _('btn.delete') }}</span></button></form>
+  </div>
+</section>
+{% if not booked %}
+<section class="mgroup-wrap inv-book">
+  <div class="mg-head"><h2>{{ _('inv.book_as') }}</h2></div>
+  <p class="hint">{{ icon('info', 14) }} {{ _('inv.book_hint') }}{% if suggested %} {{ _('inv.suggested', k=kn[suggested]) }}{% endif %}</p>
+  {% if kinds %}
+  <div class="mgroup">
+    {% for k in kinds %}
+    <a class="mi{{ ' sel' if k == suggested }}" href="{{ base }}/v/{{ v.slug }}/e/{{ k }}?invoice={{ doc.id }}">
+      <span class="mi-ic {{ kchips[k] }}">{{ icon(kicons[k], 19) }}</span>
+      <span class="mi-t">{{ kn[k] }}</span>
+      {% if k == suggested %}<span class="mi-v">{{ _('inv.suggested_tag') }}</span>{% endif %}
+      {{ icon('chevron', 20) }}
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}<p class="hint">{{ icon('info', 14) }} {{ _('inv.no_kinds') }}</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

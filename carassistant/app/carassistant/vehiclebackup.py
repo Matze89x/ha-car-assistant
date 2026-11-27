@@ -435,7 +435,16 @@ def _fill(conn: sqlite3.Connection, zf: zipfile.ZipFile, data: dict, new_id: int
     from . import addons, manual, media
 
     tables = data.get("tables") if isinstance(data.get("tables"), dict) else {}
-    ids: dict[str, dict] = {"trips": {}, "documents": {}, "vehicle_media": {}, "fuel": {}}
+    ids: dict[str, dict] = {
+        "trips": {},
+        "documents": {},
+        "vehicle_media": {},
+        "fuel": {},
+        "service": {},
+        "mods": {},
+        "parts": {},
+        "fixed_costs": {},
+    }
     for table in LISTS:
         columns = _columns(conn, table)
         for row in (tables.get(table) or [])[:MAX_ROWS]:
@@ -445,6 +454,9 @@ def _fill(conn: sqlite3.Connection, zf: zipfile.ZipFile, data: dict, new_id: int
             clean["vehicle_id"] = new_id
             if table == "charge_sessions":  # the refuel it was made into has a new number now (fuel comes first in LISTS)
                 clean["fuel_id"] = ids["fuel"].get(row.get("fuel_id"))
+            if table == "documents":  # the entry an invoice was booked as has a new number now (the cost lists come first in LISTS)
+                booked = ids.get(row.get("booked_table") or "", {}).get(row.get("booked_id"))
+                clean["booked_table"], clean["booked_id"] = (row["booked_table"], booked) if booked else (None, None)
             if table == "live":
                 conn.execute("INSERT OR REPLACE INTO live (vehicle_id, key, value, updated) VALUES (?,?,?,?)",
                              (new_id, clean.get("key"), clean.get("value"), clean.get("updated") or ""))  # fmt: skip

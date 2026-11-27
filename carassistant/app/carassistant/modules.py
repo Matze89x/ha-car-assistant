@@ -44,6 +44,47 @@ MODULES: tuple[Module, ...] = (
 )
 BY_KEY = {m.key: m for m in MODULES}
 
+
+@dataclass(frozen=True)
+class Page:
+    key: str  # what a page of a bundle is called: the key of its function, or of a page of its own (fixed, invoices)
+    module: str  # the function whose switch it follows
+    path: str  # below /v/<id>
+    icon: str
+
+
+# Pages that belong together are ONE entry of the More list with a tab for each page (docs/design.md, 4b: the tab bar). A bundle needs two of its pages
+# switched on; with one the page stands alone. The first page of a bundle is where its entry leads.
+BUNDLES: tuple[tuple[str, tuple[Page, ...]], ...] = (
+    (
+        "costs",
+        (
+            Page("report", "report", "/report", "chart"),
+            Page("fixed", "report", "/e/fixed", "calendar-clock"),
+            Page("invoices", "report", "/invoices", "file-document-outline"),
+        ),
+    ),
+    (
+        "service",
+        (
+            Page("service", "service", "/e/service", "wrench"),
+            Page("tasks", "tasks", "/e/tasks", "tasks"),
+            Page("parts", "parts", "/e/parts", "parts"),
+            Page("mods", "mods", "/e/mods", "mods"),
+        ),
+    ),
+    ("papers", (Page("docs", "docs", "/docs", "docs"), Page("manual", "manual", "/manual", "book-open-page"))),
+)
+BUNDLE_OF = {page.key: name for name, pages in BUNDLES for page in pages}
+BUNDLE_TITLE = {"costs": "mod.report.name", "service": "bundle.service", "papers": "bundle.papers"}  # the name of an entry of More
+
+
+def bundle_pages(conn: sqlite3.Connection, vehicle_id: int | None, name: str) -> list[Page]:
+    """The pages of a bundle that are switched on for this car (their function is not hidden)."""
+    off = disabled(conn, vehicle_id)
+    return [page for bundle, pages in BUNDLES if bundle == name for page in pages if page.module not in off]
+
+
 # What most people need from day one (switched on for a new car, in this order) and what is added when needed (switched off at first).
 RECOMMENDED = ("service", "appointments", "fuel", "docs", "security", "report")
 ON_REQUEST = ("tasks", "tires", "mods", "parts", "counters", "trips", "manual", "stations", "map")
@@ -57,6 +98,7 @@ def apply_recommended(conn: sqlite3.Connection, vehicle_id: int) -> None:
 # URL -> module key, enforced centrally in the web middleware.
 _ROUTES: tuple[tuple[re.Pattern[str], str | None], ...] = (
     (re.compile(r"^/v/\d+/e/fixed"), "report"),  # the fixed costs are a tab of the cost page: they follow its switch
+    (re.compile(r"^/v/\d+/invoices"), "report"),  # so are the invoices
     (re.compile(r"^/v/\d+/e/([a-z_]+)"), None),  # entity key == module key
     (re.compile(r"^/v/\d+/(report)"), None),
     (re.compile(r"^/v/\d+/trips"), "trips"),

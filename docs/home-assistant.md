@@ -56,6 +56,41 @@ Where the entity does not say it in words Car Assistant knows, the options of th
 
 Rarely needed, folded away until you have chosen an entity: **Attribute** (read this attribute of the entity instead of its state - the temperature of a climate entity, the course of a tracker), **Unit**, **Factor** and **Offset** (`value × factor + offset`, applied last), **States that mean yes**, **Yes above**, **Turn round**, and for a warning the **Text shown**.
 
+## Special cases: let Home Assistant do the thinking
+
+Every car, wallbox and integration is a little different. The options of a row cover what a single entity can say differently (unit, factor, attribute, yes-words); everything that needs **logic** is best done where it belongs, in Home Assistant itself: a template sensor or a helper is one entity more, and the plugin reads it like any other. Four recipes that come up again and again:
+
+- **The tank in litres, the interface wants a percentage.** No template needed: choose *As it is* for the *Unit* of the row and enter the **Factor** `100 ÷ tank size` (`1.818` for a 55 litre tank). The same works for a battery in kWh (`100 ÷ capacity`).
+- **One wallbox, two cars.** A helper (*Settings → Devices & services → Helpers → Dropdown*, called `input_select.wallbox_car`) says which car is plugged in; every car gets its own pair of template entities, and the plugin of that car reads those instead of the wallbox itself:
+
+  ```yaml
+  template:
+    - binary_sensor:
+        - name: "Car A charging"
+          device_class: battery_charging
+          state: "{{ is_state('sensor.wallbox_status', 'charging') and is_state('input_select.wallbox_car', 'Car A') }}"
+        - name: "Car A plugged in"
+          device_class: plug
+          state: "{{ states('sensor.wallbox_status') in ['preparing', 'charging', 'suspended_ev'] and is_state('input_select.wallbox_car', 'Car A') }}"
+  ```
+
+- **Two sources for one value** (the car maker's integration sleeps, a tracker never does): one template sensor takes the first that is there.
+
+  ```yaml
+  template:
+    - sensor:
+        - name: "Car range best"
+          device_class: distance
+          unit_of_measurement: "km"
+          state: >
+            {% set a = states('sensor.car_range') %}
+            {{ a if a not in ['unknown', 'unavailable'] else states('sensor.car_range_estimate') }}
+  ```
+
+- **A number with its unit in the text** (`"12.5 km"`): the plugin wants a number, so a template cuts the unit off: `{{ states('sensor.trip_text').split(' ')[0] | float(0) }}`.
+
+The plugin reads only what Home Assistant says is a value; it never evaluates templates itself, so a template can never run anything inside Car Assistant.
+
 ## One interface, one plugin
 
 An interface you choose here **belongs to this plugin** for that car: while it is on, no other source of the car fills it - another plugin, a connector, the older Home Assistant fields of the vehicle form. Whatever such a source sends is answered with `ignored (taken by Home Assistant)` and not stored, so a value of the car always has exactly **one origin**.

@@ -1,0 +1,7 @@
+{% if booking %}
+<section class="card fs-todo inv-booking">
+  <span class="mi-ic c3">{{ icon('file-document-outline', 19) }}</span>
+  <div class="fs-todo-t"><b>{{ _('inv.booking_from') }} · {{ booking.doc.title }}</b><small class="muted">{{ _('inv.booking_hint') }}</small></div>
+  <a class="button small" href="{{ base }}/v/{{ v.slug }}/invoices/{{ booking.doc.id }}">{{ icon('chevron-left', 16) }}<span>{{ _('inv.back') }}</span></a>
+</section>
+{% endif %}

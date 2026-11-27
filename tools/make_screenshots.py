@@ -11,6 +11,7 @@ demo cars of tools/demo_data.py and takes the pictures; nothing of a real instal
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import socket
 import sqlite3
@@ -28,6 +29,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 CHROME = os.environ.get("CHROME") or "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 DIESEL, EV = "demo-diesel", "demo-electric"
+INVOICE_OPEN, INVOICE_BOOKED = 4, 5  # the two invoices of the first demo car (the documents come right after its three others)
 COMPACT = "demo-compact"  # a plain car with no data from the car: its dashboard shows the odometer plate you can turn over and type on
 SCENES = ("odometer-photo", "fuel-scan", "connections-map")  # pictures that need a tap and a photo first (tools/cdp.py)
 
@@ -235,6 +237,21 @@ def seed(data: Path, lang: str) -> None:
                 folder = config.files_dir() / str(vid)  # a real (tiny) file: the page offers *Open* only for a file that is there
                 folder.mkdir(parents=True, exist_ok=True)
                 (folder / f"{doc}.txt").write_text("Example document.\n" * 6, encoding="utf-8")
+            booked_service = conn.execute("SELECT id FROM service WHERE vehicle_id = ? ORDER BY id LIMIT 1", (vid,)).fetchone()
+            for n, (number, day_ago, total, work) in enumerate((("2026-0042", 12, 184.50, "inspection"), ("2026-0017", 40, 96.80, "oil")), start=1):
+                found = {  # what the reading of an invoice would have found (the invoice page and the list show it)
+                    "date": (date.today() - timedelta(days=day_ago)).isoformat(), "amount": total, "net": round(total / 1.19, 2),
+                    "vat": round(total - total / 1.19, 2), "checked": True, "guess": False, "vendor": "Example Garage GmbH", "number": number,
+                    "odometer": None, "kind": "service", "fixed_kind": "other", "every": "once", "work": work, "doc_type": None, "fuel": None,
+                    "found": ["date", "amount", "vendor", "number"], "how": "pdf",
+                }  # fmt: skip
+                doc = conn.execute(
+                    "INSERT INTO documents(vehicle_id, category, title, filename, mime, size, doc_date, amount, extract, booked_table, booked_id) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                    (vid, "invoice", f"Example Garage GmbH {number}", "invoice.txt", "text/plain", 120, found["date"], total, json.dumps(found),
+                     "service" if n == 2 and booked_service else None, booked_service["id"] if n == 2 and booked_service else None),
+                ).lastrowid  # fmt: skip
+                (config.files_dir() / str(vid) / f"{doc}.txt").write_text("Example invoice.\n" * 6, encoding="utf-8")
         vid = conn.execute(
             "INSERT INTO vehicles (name, make, model, fuel_type, plate) VALUES ('Demo Compact', 'Example', 'Compact', 'diesel', 'EF-GH 456')"
         ).lastrowid

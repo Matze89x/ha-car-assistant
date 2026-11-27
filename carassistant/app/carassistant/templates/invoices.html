@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, page_head, page_foot with context %}
+{% block content %}
+{% set money = units.cur %}
+{% set kn = {'service': _('inv.k_service'), 'parts': _('inv.k_parts'), 'mods': _('inv.k_mods'), 'fixed': _('inv.k_fixed'), 'fuel': _('inv.k_fuel')} %}
+{% call page_head('chart', _('tab.report')) %}{% endcall %}
+<p class="hint">{{ icon('info', 14) }} {{ _('inv.intro') }}</p>
+<section class="card inv-up">
+  <div class="inv-up-row">
+    <form method="post" enctype="multipart/form-data" action="{{ base }}/v/{{ v.slug }}/invoices" class="up-form"><label class="button primary">{{ icon('camera', 18) }}<span>{{ _('inv.photo') }}</span><input type="file" name="file" required hidden data-send accept="image/*" capture="environment"></label></form>
+    <form method="post" enctype="multipart/form-data" action="{{ base }}/v/{{ v.slug }}/invoices" class="up-form"><label class="button">{{ icon('upload', 18) }}<span>{{ _('inv.upload') }}</span><input type="file" name="file" required hidden multiple data-send accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.txt,image/*"></label></form>
+  </div>
+  {% if not ocr %}<p class="acct-warn">{{ icon('alert', 14) }}<span>{{ _('inv.no_ocr') }}</span></p>{% endif %}
+</section>
+{% if docs %}
+{% if sums.open %}<div class="vd-group-h">{{ _('inv.waiting', n=sums.open, a=fnum(sums.open_amount, 2) ~ ' ' ~ money) }}</div>{% endif %}
+<div class="rec-grid doc-grid" id="invlist">
+  {% for d in docs %}
+    {% set ex = extracts[d.id] %}
+    {% set b = booked.get(d.id) %}
+    {% set shown_date = ex.get('date') or d.doc_date or d.created_at[:10] %}
+    <article class="rec doc-rec">
+      <header class="doc-top"><span class="mi-ic c3">{{ icon('file-document-outline', 19) }}</span>
+        <div class="doc-main"><h3 class="rec-title">{{ d.title }}</h3>
+          <small class="doc-sub">{{ fdate(shown_date) }}{% if d.amount %} · {{ fnum(d.amount, 2) }} {{ money }}{% endif %}</small></div>
+        {% if b %}<span class="badge ok">{{ _('inv.badge_booked') }}</span>{% else %}<span class="badge soon">{{ _('inv.badge_open') }}</span>{% endif %}</header>
+      <dl class="rec-facts">
+        {% if ex.get('vendor') %}<div><dt>{{ _('inv.f_vendor') }}</dt><dd>{{ ex.vendor }}</dd></div>{% endif %}
+        {% if b %}<div><dt>{{ _('inv.f_booked') }}</dt><dd>{{ kn[b.key] }}{% if b.title %} · {{ b.title }}{% endif %}</dd></div>
+        {% elif ex.get('kind') %}<div><dt>{{ _('inv.f_looks') }}</dt><dd>{{ kn[ex.kind] }}</dd></div>{% endif %}
+      </dl>
+      <div class="rec-actions doc-acts"><a class="ghost-btn small" href="{{ base }}/v/{{ v.slug }}/invoices/{{ d.id }}">{{ icon('eye' if b else 'check', 16) }}<span>{{ _('inv.open') if b else _('inv.check') }}</span></a></div>
+    </article>
+  {% endfor %}
+</div>
+{% with pager_url=base ~ '/v/' ~ v.slug ~ '/invoices', pager_into='#invlist' %}{% include "_pager.html" %}{% endwith %}
+{{ page_foot(pager.total) }}
+{% else %}<div class="card empty-state">{{ icon('file-document-outline', 36) }}<p>{{ _('inv.empty') }}</p></div>{% endif %}
+{% endblock %}

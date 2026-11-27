@@ -79,7 +79,11 @@ def sweep(
                     + [
                         f"/v/{ms.DIESEL}/e/trips",
                         f"/v/{ms.DIESEL}/e/fuel",
-                    ]  # the main tabs of a car: trips (a card per trip) and the fill-ups
+                        f"/v/{ms.DIESEL}/invoices",
+                        f"/v/{ms.DIESEL}/invoices/{ms.INVOICE_OPEN}",
+                        f"/v/{ms.DIESEL}/invoices/{ms.INVOICE_BOOKED}",
+                        f"/v/{ms.DIESEL}/e/service?invoice={ms.INVOICE_OPEN}",
+                    ]  # the main tabs of a car: trips (a card per trip) and the fill-ups; the invoices (list, one open, one booked) and an entry being booked
                     + ([f"/v/{ms.DIESEL}", f"/v/{ms.COMPACT}"] if home else [])
                 )
                 if os.environ.get("CA_CHECK_BLOCK_FONTS"):  # to see what a machine without the web fonts would see

@@ -56,6 +56,41 @@ Wo die Entität es nicht in Worten sagt, die Car Assistant kennt, helfen die Opt
 
 Selten nötig, eingeklappt, bis du eine Entität gewählt hast: **Attribut** (dieses Attribut der Entität statt ihres Zustands lesen - die Temperatur einer Klima-Entität, den Kurs eines Trackers), **Einheit**, **Faktor** und **Versatz** (`Wert × Faktor + Versatz`, zuletzt angewendet), **Zustände, die Ja bedeuten**, **Ja über**, **Umkehren** und bei einer Warnung der **Angezeigte Text**.
 
+## Sonderfälle: Home Assistant das Denken überlassen
+
+Jedes Auto, jede Wallbox und jede Integration ist ein wenig anders. Die Optionen einer Zeile decken ab, was eine einzelne Entität anders sagen kann (Einheit, Faktor, Attribut, Ja-Wörter); alles, was **Logik** braucht, gehört dorthin, wo es zu Hause ist: in Home Assistant selbst. Ein Template-Sensor oder ein Helfer ist eine Entität mehr, und das Plugin liest sie wie jede andere. Vier Rezepte, die immer wieder vorkommen:
+
+- **Der Tank in Litern, die Schnittstelle will Prozent.** Kein Template nötig: wähle bei der **Einheit** der Zeile *Unverändert* und trage als **Faktor** `100 ÷ Tankgröße` ein (`1,818` bei 55 Litern). Dasselbe gilt für eine Batterie in kWh (`100 ÷ Kapazität`).
+- **Eine Wallbox, zwei Autos.** Ein Helfer (*Einstellungen → Geräte & Dienste → Helfer → Auswahlliste*, etwa `input_select.wallbox_car`) sagt, welches Auto angesteckt ist; jedes Auto bekommt ein eigenes Paar Template-Entitäten, und das Plugin dieses Autos liest diese statt der Wallbox selbst:
+
+  ```yaml
+  template:
+    - binary_sensor:
+        - name: "Auto A lädt"
+          device_class: battery_charging
+          state: "{{ is_state('sensor.wallbox_status', 'charging') and is_state('input_select.wallbox_car', 'Auto A') }}"
+        - name: "Auto A angesteckt"
+          device_class: plug
+          state: "{{ states('sensor.wallbox_status') in ['preparing', 'charging', 'suspended_ev'] and is_state('input_select.wallbox_car', 'Auto A') }}"
+  ```
+
+- **Zwei Quellen für einen Wert** (die Integration des Herstellers schläft, ein Tracker nie): ein Template-Sensor nimmt die erste, die da ist.
+
+  ```yaml
+  template:
+    - sensor:
+        - name: "Reichweite beste"
+          device_class: distance
+          unit_of_measurement: "km"
+          state: >
+            {% set a = states('sensor.auto_reichweite') %}
+            {{ a if a not in ['unknown', 'unavailable'] else states('sensor.auto_reichweite_schaetzung') }}
+  ```
+
+- **Eine Zahl mit Einheit im Text** (`"12,5 km"`): das Plugin will eine Zahl, also schneidet ein Template die Einheit ab: `{{ states('sensor.fahrt_text').split(' ')[0] | replace(',', '.') | float(0) }}`.
+
+Das Plugin liest nur, was Home Assistant als Wert meldet; es wertet selbst nie Templates aus, ein Template kann also nichts in Car Assistant ausführen.
+
 ## Eine Schnittstelle, ein Plugin
 
 Eine Schnittstelle, die du hier wählst, **gehört diesem Plugin** für dieses Fahrzeug: Solange es an ist, füllt keine andere Quelle des Fahrzeugs sie - weder ein anderes Plugin noch ein Connector noch die älteren Home-Assistant-Felder des Fahrzeugformulars. Was eine solche Quelle sendet, wird mit `ignored (taken by Home Assistant)` beantwortet und nicht gespeichert; ein Wert des Fahrzeugs hat also immer genau **einen Ursprung**.
