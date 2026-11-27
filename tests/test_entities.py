@@ -49,3 +49,18 @@ def test_trip_distance_and_order():
 def test_bool_checkbox():
     assert parse_form(entities.FUEL, {"date": "2026-01-01", "full_tank": "1"})["full_tank"] == 1
     assert parse_form(entities.FUEL, {"date": "2026-01-01"})["full_tank"] == 0
+
+
+def test_the_label_of_a_money_field_names_the_currency_like_the_other_units(client):
+    """The total price of a fill-up, the cost of a service, a part and a fixed cost say what they are counted in: (€) - or the currency of the server."""
+    from carassistant import db
+
+    vid = client.post("/vehicles", data={"name": "Money Car", "fuel_type": "diesel"}, follow_redirects=False)
+    with db.tx() as conn:
+        vid = conn.execute("SELECT id FROM vehicles ORDER BY id DESC LIMIT 1").fetchone()[0]
+    page = client.get(f"/v/{vid}/e/fuel").text
+    assert "Total price (€)" in page and "Amount (L)" in page and "Price per unit (€/L)" in page
+    assert "Cost (€)" in client.get(f"/v/{vid}/e/service").text
+    assert "Cost (€)" in client.get(f"/v/{vid}/e/parts").text
+    client.post("/settings/units", data={"units": "us", "currency": "USD"})
+    assert "Total price ($)" in client.get(f"/v/{vid}/e/fuel").text

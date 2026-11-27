@@ -10,7 +10,7 @@ TODAY = date(2026, 11, 23)
 ARAL = """
 ARAL Tankstelle
 Musterstrasse 12
-12345 Musterstadt
+69117 Heidelberg
 Tel. 01234 56789
 
 Datum: 21.11.2026   Uhrzeit 17:42
@@ -40,7 +40,7 @@ def test_a_typical_receipt_is_read_completely():
     assert r["price_per_unit"] == 1.789
     assert r["price_total"] == 81.08
     assert r["date"] == "2026-11-21"
-    assert r["station"] == "Aral Musterstadt"
+    assert r["station"] == "Aral Heidelberg"
     assert r["notes"] == "Super E10"
     assert r["checked"] is True
     assert set(r["found"]) == {"date", "amount", "price_per_unit", "price_total", "station", "notes"}
@@ -119,7 +119,7 @@ def test_the_scan_route_fills_in_the_units_shown(env, monkeypatch):
     r = client.post(f"/v/{vid}/fuel/scan", content=b"\xff\xd8\xff", headers={"Content-Type": "image/jpeg"})
     assert r.status_code == 200, r.text
     d = r.json()
-    assert (d["amount"], d["price_per_unit"], d["price_total"], d["station"]) == ("45.32", "1.789", "81.08", "Aral Musterstadt")
+    assert (d["amount"], d["price_per_unit"], d["price_total"], d["station"]) == ("45.32", "1.789", "81.08", "Aral Heidelberg")
     assert receipt_web.shown(rc.parse("", TODAY), __import__("carassistant.units", fromlist=["x"]).of(None), "L")["amount"] == ""
     monkeypatch.setattr(rc, "available", lambda: False)
     assert client.post(f"/v/{vid}/fuel/scan", content=b"x").status_code == 501
@@ -513,7 +513,7 @@ DIESEL     A     84,25 EUR
 KUNDENBELEG
 BFT Freie Tankstelle
 Beispielweg 1a
-12345 Musterstadt aed - :
+69117 Heidelberg aed - :
 Datum  27.11.2026
 Betrag 84,25 EUR
 TOTAL  84,25 EUR
@@ -531,9 +531,9 @@ def test_a_price_that_blurred_is_calculated_from_the_amount_and_the_total():
 
 def test_a_misread_town_is_dropped_and_the_one_that_reads_well_is_used():
     assert receipt._town("Bj ldstoak ihe") == ""  # the first word is a fragment: the whole line was misread
-    assert receipt._town("Musterstadt aed - :") == "Musterstadt"  # a fragment after the name ends it
+    assert receipt._town("Heidelberg aed - :") == "Heidelberg"  # a fragment after the name ends it
     assert receipt._town("Bad Homburg") == "Bad Homburg" and receipt._town("Frankfurt am Main") == "Frankfurt am Main"
-    assert receipt.parse(BLURRED_PRICE, LATER)["station"] == "bft Musterstadt"  # not "bft Bj ldstoak ihe"
+    assert receipt.parse(BLURRED_PRICE, LATER)["station"] == "bft Heidelberg"  # not "bft Bj ldstoak ihe"
 
 
 def test_a_reading_that_was_completed_beats_one_whose_numbers_do_not_fit():
@@ -550,3 +550,29 @@ def test_a_receipt_that_is_a_pdf_is_read_like_a_photo():
     r = receipt.scan_file(_pdf(lines), LATER)
     assert (r["amount"], r["price_total"], r["date"]) == (42.79, 84.25, "2026-11-27")
     assert receipt.scan_file(b"%PDF-1.4 not really", LATER)["found"] == []  # an unreadable PDF: nothing found, no error
+
+
+def test_a_town_that_is_no_place_is_dropped_and_the_station_is_asked_for():
+    """A receipt read badly gave "bft Geshe": a word that is no place stays out, the brand stays, and the reading says the station is not complete."""
+    text = "bft Tankstelle\nExample Street 1\n69117 Geshe\nDatum 27.11.2026\nDiesel 42,79 l\n1,969 EUR/l\nTOTAL 84,25 EUR"
+    got = receipt.parse(text, LATER)
+    assert (got["station"], got["station_ok"]) == ("bft", False)
+    complete = receipt.parse(text.replace("Geshe", "Heidelberg"), LATER)
+    assert (complete["station"], complete["station_ok"]) == ("bft Heidelberg", True)
+
+
+def test_a_place_that_was_read_a_little_wrong_is_corrected_but_never_guessed():
+    assert receipt._town("Friedrichshafcn") == "Friedrichshafen"  # one letter off, one place that fits
+    assert receipt._town("Heidelbarg") == "Heidelberg"  # a long name one letter off
+    assert receipt._town("Kasscl") == ""  # a short name must be exact: no guess
+    assert receipt._town("Gesche") != "Geseke"  # not just any place that looks alike
+    assert receipt._place("Fr1edrichshafen") == "Friedrichshafen"
+
+
+def test_a_word_on_two_lines_of_the_address_is_kept_even_when_it_is_no_known_place():
+    """A village below 1,000 inhabitants is not in the list of places: the address is printed twice, and a word that stands there twice is no misreading."""
+    text = "Aral\nExample Street 1\n12345 Hinterwaldhausen\nKundenbeleg\nExample Street 1\n12345 Hinterwaldhausen\nDiesel 42,79 l\n1,969 EUR/l\nTOTAL 84,25 EUR"
+    got = receipt.parse(text, LATER)
+    assert (got["station"], got["station_ok"]) == ("Aral Hinterwaldhausen", True)
+    once = receipt.parse(text.replace("Kundenbeleg\nExample Street 1\n12345 Hinterwaldhausen\n", ""), LATER)
+    assert (once["station"], once["station_ok"]) == ("Aral", False)  # once only: could be a misreading

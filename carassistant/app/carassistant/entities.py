@@ -30,6 +30,9 @@ class Field:
     show: bool = True  # shown as a column in the list view
     step: str = "any"
     dim: str = ""  # dist | vol | price_vol: stored in km / litres / price per litre, shown and entered in the units of Settings -> Region
+    money: bool = (
+        False  # an amount of money: its label names the currency of Settings -> Region, like "(km)" or "(L)" name the unit of the others
+    )
 
 
 @dataclass(frozen=True)
@@ -206,7 +209,7 @@ SERVICE = Entity(
         Field("odometer_km", "int", "f.odometer", dim="dist", step="1"),
         Field("title", "text", "f.work", required=True),
         Field("workshop", "text", "f.workshop"),
-        Field("cost", "float", "f.cost"),
+        Field("cost", "float", "f.cost", money=True),
         Field("notes", "textarea", "f.notes", show=False),
     ),
     empty_hint="service.empty",
@@ -236,7 +239,7 @@ MODS = Entity(
         Field("date", "date", "f.date", required=True),
         Field("odometer_km", "int", "f.odometer", dim="dist", step="1"),
         Field("title", "text", "f.work", required=True),
-        Field("cost", "float", "f.cost"),
+        Field("cost", "float", "f.cost", money=True),
         Field("notes", "textarea", "f.notes", show=False),
     ),
     empty_hint="mods.empty",
@@ -251,7 +254,7 @@ FUEL = Entity(
         Field("odometer_km", "int", "f.odometer", dim="dist", step="1"),
         Field("amount", "float", "f.amount", dim="vol"),
         Field("price_per_unit", "float", "f.price_unit", step="0.001", dim="price_vol"),
-        Field("price_total", "float", "f.price_total", step="0.01"),
+        Field("price_total", "float", "f.price_total", step="0.01", money=True),
         Field("full_tank", "bool", "f.full_tank", default=1),
         Field("fuel_kind", "choice", "f.fuel_kind", choices=("main", "second"), default="main", show=False),
         Field("station", "text", "f.station", show=False),
@@ -348,7 +351,7 @@ PARTS = Entity(
         Field("manufacturer", "text", "f.manufacturer", show=False),
         Field("shop", "text", "f.shop"),
         Field("quantity", "float", "f.quantity", show=False),
-        Field("cost", "float", "f.cost"),
+        Field("cost", "float", "f.cost", money=True),
         Field("installed", "bool", "f.installed"),
         Field("installed_km", "int", "f.installed_km", dim="dist", step="1", show=False),
         Field("notes", "textarea", "f.notes", show=False),
@@ -377,7 +380,7 @@ FIXED = Entity(
     fields=(
         Field("title", "text", "f.name", required=True),
         Field("cost_kind", "choice", "f.cost_kind", choices=FIXED_KINDS, default="tax"),
-        Field("cost", "float", "f.fixed_cost", required=True, step="0.01"),
+        Field("cost", "float", "f.fixed_cost", required=True, step="0.01", money=True),
         Field("every", "choice", "f.every", choices=FIXED_EVERY, default="year"),
         Field("start_date", "date", "f.first_due", required=True),
         Field("end_date", "date", "f.last_due", show=False),

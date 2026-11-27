@@ -78,7 +78,7 @@
 </section>
 {% endif %}
 
-<section class="tp-sec" id="fuel"{% if receipt_on %} data-scan="{{ base }}/v/{{ v.id }}/fuel/scan" data-t-busy="{{ _('fuel.scan_busy') }}" data-t-ok="{{ _('fuel.scan_ok') }}" data-t-fit="{{ _('fuel.scan_fit') }}" data-t-nofit="{{ _('fuel.scan_nofit') }}" data-t-derived="{{ _('fuel.scan_derived') }}" data-t-derived_price_per_unit="{{ _('fuel.scan_derived_price') }}" data-t-derived_amount="{{ _('fuel.scan_derived_amount') }}" data-t-derived_price_total="{{ _('fuel.scan_derived_total') }}" data-t-none="{{ _('fuel.scan_none') }}" data-t-err="{{ _('fuel.scan_err') }}"{% endif %}>
+<section class="tp-sec" id="fuel"{% if receipt_on %} data-scan="{{ base }}/v/{{ v.id }}/fuel/scan" data-t-busy="{{ _('fuel.scan_busy') }}" data-t-ok="{{ _('fuel.scan_ok') }}" data-t-fit="{{ _('fuel.scan_fit') }}" data-t-nofit="{{ _('fuel.scan_nofit') }}" data-t-station="{{ _('fuel.scan_station') }}" data-t-derived="{{ _('fuel.scan_derived') }}" data-t-derived_price_per_unit="{{ _('fuel.scan_derived_price') }}" data-t-derived_amount="{{ _('fuel.scan_derived_amount') }}" data-t-derived_price_total="{{ _('fuel.scan_derived_total') }}" data-t-none="{{ _('fuel.scan_none') }}" data-t-err="{{ _('fuel.scan_err') }}"{% endif %}>
   {% include "_invoice_booking.html" %}
   <div class="eq-panel tp-add" id="fuel-add" {{ 'hidden' if not (form and not edit_id) }}>{{ fuelform(none, fu) }}</div>
   <div class="eq-panel tp-add" id="fuel-export" hidden>

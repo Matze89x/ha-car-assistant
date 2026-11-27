@@ -20,6 +20,9 @@ def shown(result: dict, u: units.Units, base: str, last_km: int | None = None) -
         "checked": result["checked"],
         "derived": result["derived"],
         "station": result["station"],
+        "station_ok": result.get(
+            "station_ok", True
+        ),  # False: only a part of the station could be read - the person is asked to complete it
         "notes": result["notes"],
         "date": result["date"],
     }

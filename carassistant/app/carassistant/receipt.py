@@ -9,6 +9,9 @@ that ``amount x price = total`` (to the cent): with that check a misread digit i
 
 from __future__ import annotations
 
+import difflib
+import functools
+import gzip
 import io
 import os
 import re
@@ -16,6 +19,7 @@ import shutil
 import subprocess
 import tempfile
 import threading
+import unicodedata
 from datetime import date, timedelta
 from itertools import product
 
@@ -306,8 +310,18 @@ def scan(data: bytes, today: date | None = None) -> dict:
                 for key in ("date", "notes", "station"):  # what only the other reading found is kept
                     if not better[key] and worse[key]:
                         better[key] = worse[key]
+                if worse["station_ok"] and not better["station_ok"]:  # a station read in full beats one that is only half there
+                    better["station"], better["station_ok"] = worse["station"], True
                 best = better
                 if _good(best):
+                    break
+        if not best[
+            "station_ok"
+        ]:  # the station is only half read (a brand, a word that is no place): a few other views of the photo are tried for it
+            for kind, psm in (("sharp", 6), ("bin", 6), (None, 4)):
+                other = parse(read_text(cleaned if kind is None else variant(cleaned, kind), psm), today)
+                if other["station_ok"]:
+                    best["station"], best["station_ok"] = other["station"], True
                     break
         # one digit wrong in a kilometre figure would go unnoticed (a 0 read as a 9): a figure that was found is read once more in other views, and the
         # digits are voted on position by position; a figure that does not come out the same in at least two readings is not offered
@@ -316,6 +330,7 @@ def scan(data: bytes, today: date | None = None) -> dict:
                 if max(seen.values()) >= 3 or sum(seen.values()) >= 4:
                     break
                 note(parse(read_text(cleaned if kind is None else variant(cleaned, kind), psm), today))
+    forget_places()
     best["odometer"] = _vote_odometer(seen)
     best["found"] = [k for k in FIELDS if best.get(k)]
     return best
@@ -367,6 +382,7 @@ def scan_pdf(data: bytes, today: date | None = None) -> dict:
                 continue
             if best is None or _score(got) > _score(best):
                 best = got
+    forget_places()
     return best or parse("", today)
 
 
@@ -426,8 +442,65 @@ _ZIP_TOWN = re.compile(r"(?<!\d)\d{4,5}\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.\-]*
 _SMALL_WORDS = {"am", "an", "im", "in", "ob", "bei", "der", "die", "den", "vor", "auf", "bad", "st", "sankt", "le", "la", "de", "du", "el"}
 
 
-def _town(raw: str) -> str:
-    """A town from the words after a postcode. A first word that is only a fragment (``Bj ldstoak ihe``) means the line was misread: no town. Words
+def _norm(text: str) -> str:
+    """A name by its plain letters: no case, no accents (``ß`` is ``ss``), nothing but a-z - how a misread name is compared with a real one."""
+    folded = unicodedata.normalize("NFKD", text.replace("ß", "ss").replace("ẞ", "ss")).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z]", "", folded.lower())
+
+
+@functools.lru_cache(maxsize=1)
+def _places() -> tuple[dict[str, str], dict[tuple[str, int], list[str]]]:
+    """The places of the world with more than 1,000 inhabitants that the app brings for the names of trips (citydb.py), offline: ``{plain letters:
+    the name as it is written}`` (the German name too) and the same names sorted by first letter and length, so that a misread name is only compared
+    with a few hundred names. About a second and 20 MB - ``forget_places`` lets go of it once a photo is read."""
+    from . import citydb
+
+    names: dict[str, str] = {}
+    try:
+        with gzip.open(citydb.DATA, "rt", encoding="utf-8") as fh:
+            for line in fh:
+                parts = line.rstrip("\n").split("\t")
+                for name in {parts[0], parts[4] if len(parts) > 4 else ""}:
+                    key = _norm(name)
+                    if len(key) >= 3:
+                        names.setdefault(key, name)
+    except OSError:
+        pass
+    buckets: dict[tuple[str, int], list[str]] = {}
+    for key in names:
+        buckets.setdefault((key[0], len(key)), []).append(key)
+    return names, buckets
+
+
+def forget_places() -> None:
+    _places.cache_clear()
+
+
+def _place(words: str) -> str:
+    """The place that some words stand for: the name as it is written when they are one, the place that a reading one or two letters off stands for
+    (``Friedrichshafcn`` is Friedrichshafen), else ``''`` - a short name must be exact, a reading that is no place at all (``Geshe``) is not one."""
+    key = _norm(words)
+    if len(key) < 4:
+        return ""
+    names, buckets = _places()
+    if key in names:
+        return names[key]
+    if len(key) < 8:
+        return ""
+    for size in range(
+        len(key) + 1, len(key) + 26
+    ):  # "Bad Homburg" is the beginning of the real name "Bad Homburg vor der Höhe": it stands as it was written
+        if any(k.startswith(key) for k in buckets.get((key[0], size), ())):
+            return words.strip()
+    near = [k for size in range(len(key) - 2, len(key) + 3) for k in buckets.get((key[0], size), ())]
+    hits = difflib.get_close_matches(key, near, n=2, cutoff=0.88)
+    if len(hits) == 2 and difflib.SequenceMatcher(None, key, hits[0]).ratio() - difflib.SequenceMatcher(None, key, hits[1]).ratio() < 0.03:
+        return ""  # two places are about as near: a guess is worse than no town
+    return names[hits[0]] if hits else ""
+
+
+def _town_words(raw: str) -> list[str]:
+    """The words of a town after a postcode. A first word that is only a fragment (``Bj ldstoak ihe``) means the line was misread: no town. Words
     after the name that are fragments (two or three small letters) end it."""
     words: list[str] = []
     for token in raw.split():
@@ -437,10 +510,22 @@ def _town(raw: str) -> str:
         if not small and (len(letters) < 3 or (len(letters) == 3 and word.islower())):
             break
         words.append(word)
-    return " ".join(words)
+    return words
 
 
-def _station(lines: list[str]) -> str:
+def _town(raw: str) -> str:
+    """A town from the words after a postcode, but only one that is a real place (the longest name of one to three words)."""
+    words = _town_words(raw)
+    for size in (3, 2, 1):
+        if len(words) >= size and (place := _place(" ".join(words[:size]))):
+            return place
+    return ""
+
+
+def _station(lines: list[str]) -> tuple[str, bool]:
+    """``(the station, whether it is complete)``: the brand and the town, the town only when it is a real place (or the same word on two lines of the
+    address). A brand without a town is incomplete (``False``: the person is asked to complete it); the first line of a receipt that names no brand is
+    taken as it is."""
     head = "\n".join(lines[:14])
     whole = "\n".join(lines)
     name = ""
@@ -453,23 +538,31 @@ def _station(lines: list[str]) -> str:
             if re.search(pattern, whole, re.I):
                 name = brand
                 break
-    towns: dict[str, int] = {}
+    known: dict[str, int] = {}  # real places
+    plain: dict[str, int] = {}  # words that look like a town and stand on more than one line
     for line in lines[
         :26
     ]:  # the address of the station is printed more than once: the town that reads best (most often, then the longest) wins
         m = _ZIP_TOWN.search(line)
-        if m and (town := _town(m.group(1))):
-            towns[town] = towns.get(town, 0) + 1
+        if not m:
+            continue
+        if town := _town(m.group(1)):
+            known[town] = known.get(town, 0) + 1
+        elif words := _town_words(m.group(1)):
+            first = words[0]
+            if len(re.sub(r"[^A-Za-zÄÖÜäöüß]", "", first)) >= 5:
+                plain[first] = plain.get(first, 0) + 1
+    towns = known or {t: n for t, n in plain.items() if n >= 2}
     town = max(towns, key=lambda t: (towns[t], len(t))) if towns else ""
     if name and town and town.lower() not in name.lower():
-        return f"{name} {town}"[:80]
+        return f"{name} {town}"[:80], True
     if name:
-        return name
+        return name, bool(town)
     for line in lines[:6]:
         letters = re.sub(r"[^A-Za-zÄÖÜäöüß ]", "", line).strip()
         if len(letters) >= 4 and not NOT_A_NAME.match(letters) and len(letters.split()) <= 5 and not re.search(r"\d{4,}", line):
-            return letters[:60]
-    return ""
+            return letters[:60], True
+    return "", True
 
 
 def _product(lines: list[str]) -> str:
@@ -543,6 +636,7 @@ def parse(text: str, today: date | None = None) -> dict:
         "price_per_unit": None,
         "price_total": None,
         "station": "",
+        "station_ok": True,
         "notes": "",
         "odometer": None,
         "found": [],
@@ -578,7 +672,7 @@ def parse(text: str, today: date | None = None) -> dict:
                 p, out["derived"] = round(t / a, 3), ["price_per_unit"]
         out["amount"], out["price_per_unit"], out["price_total"] = a, p, t
     out["date"] = _dates(lines, today)
-    out["station"] = _station(lines)
+    out["station"], out["station_ok"] = _station(lines)
     out["notes"] = _product(lines)
     out["odometer"] = _odometer(lines)
     out["found"] = [k for k in FIELDS if out[k]]

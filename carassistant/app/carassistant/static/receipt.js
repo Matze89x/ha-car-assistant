@@ -57,7 +57,8 @@
             show(note, d.plausible ? t('ok') : t('odd').replace('{n}', d.last === null ? '' : String(d.last)), d.plausible ? 'ok' : 'warn');
             return;
           }
-          show(note, t('ok') + ' ' + (d.amount && d.price_per_unit && d.price_total ? (d.derived && d.derived.length ? (t('derived_' + d.derived[0]) || t('derived')) : (d.checked ? t('fit') : t('nofit'))) : ''), d.checked && !(d.derived && d.derived.length) ? 'ok' : 'warn');
+          var sure = d.checked && !(d.derived && d.derived.length), station = form.elements.station && d.station_ok === false && t('station'); /* a station that was only half read: the person completes it */
+          show(note, t('ok') + ' ' + (d.amount && d.price_per_unit && d.price_total ? (d.derived && d.derived.length ? (t('derived_' + d.derived[0]) || t('derived')) : (d.checked ? t('fit') : t('nofit'))) : '') + (station ? ' ' + station : ''), sure && !station ? 'ok' : 'warn');
         })
         .catch(function () { show(note, t('err'), 'warn'); })
         .then(function () { busy(false); input.value = ''; });

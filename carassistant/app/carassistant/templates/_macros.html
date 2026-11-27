@@ -62,7 +62,7 @@
 
 {# the label of a field with its unit #}
 {% macro flabel(f) -%}
-  {{ _(f.label) }}{{ ' *' if f.required }}{% if f.dim == 'dist' %} ({{ units.dist_unit }}){% elif f.dim == 'vol' %} ({{ units.vol_unit(unit or 'L') }}){% elif f.dim == 'price_vol' %} ({{ units.cur }}/{{ units.vol_unit(unit or 'L') }}){% endif %}
+  {{ _(f.label) }}{{ ' *' if f.required }}{% if f.dim == 'dist' %} ({{ units.dist_unit }}){% elif f.dim == 'vol' %} ({{ units.vol_unit(unit or 'L') }}){% elif f.dim == 'price_vol' %} ({{ units.cur }}/{{ units.vol_unit(unit or 'L') }}){% elif f.money %} ({{ units.cur }}){% endif %}
 {%- endmacro %}
 
 {% macro cell(f, row) -%}
