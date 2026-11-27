@@ -68,7 +68,7 @@ Ein Plugin mit Anbindungsdatei kann eine **Einrichtungsanleitung** (`setup`) mit
 1. `python tools/check_plugin.py plugins/mein-plugin` - nennt Tippfehler, falsche Icons, fehlende Dateien, eine falsche Prüfsumme.
 2. Ordner, `package.zip` und `plugins/index.json` zusammen committen.
 3. In der App: *Plugins → Hinzufügen → Liste aktualisieren*, dein Plugin antippen, installieren. Mit Dienst: *Verwaltung → Prüfen und freigeben*.
-4. Beobachten: *Verwaltung → Debug* (nur dieses Plugin) und *Protokoll*: Log-Zeilen, was das Add-on mit dem Dienst tut, und der Verkehr. Protokolle bleiben 1, 7 oder 30 Tage.
+4. Beobachten: *Verwaltung → Debug* (nur dieses Plugin) und *Protokoll*: Protokollzeilen, was das Add-on mit dem Dienst tut, und der Verkehr. Protokolle bleiben 1, 7 oder 30 Tage.
 5. Neue Version: `version` in `plugin.json` und Index erhöhen, Zip neu bauen, committen; die Leute drücken *Nach Updates suchen*. Ein Update, das der Administrator drückt, behält die Freigabe vom Installieren.
 
 ## 9. Integrationen ohne Code: Seiten, Erinnerungen, Pläne

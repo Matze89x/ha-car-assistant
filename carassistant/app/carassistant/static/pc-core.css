@@ -2158,6 +2158,7 @@ mark { background: rgba(var(--soon-rgb), .35); color: inherit; border-radius: va
 .pkg-row:last-child { border-bottom: 0; }
 .pkg-row b, .pkg-sec b { font-size: 15px; font-weight: 600; }
 .pkg-row small, .pkg-sec small { font-size: 13px; line-height: 1.5; color: var(--muted); }
+.pkg-note { margin-top: 4px; }  /* the note after a list of field names is a line of its own, not a tail of the list */
 .pkg-sec { display: grid; gap: 2px; padding: 16px 0 6px; border-bottom: 1px solid var(--glass-b); }
 .pkg-sec:first-child { padding-top: 0; }
 .pkg-sec b { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }

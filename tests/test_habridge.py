@@ -3,11 +3,12 @@ to the Plugin API, the schedule, saving the bindings (and the interfaces they ta
 
 import json
 import time
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from tests.test_web import create_vehicle
 
-from carassistant import addons, claims, connectors, db, ha, habridge, i18n, summary
+from carassistant import addons, claims, connectors, db, ha, habridge, i18n, summary, trips
 from carassistant import habridge_slots as cat
 
 T = i18n.translator("en")
@@ -449,6 +450,9 @@ def test_the_page_of_a_bridge_lists_the_interfaces_by_group(client, home):
         else:
             assert f'name="e.{slot.key}"' in html, slot.key
     assert 'name="every"' in html and '<option value="30" selected>' in html  # the interval comes from the package's own setting
+    assert (
+        'name="o.position.track"' in html and 'name="o.range_km.track"' not in html
+    )  # the option to record trips belongs to the tracker row
     assert "0 of" in html  # nothing chosen yet
     assert 'action="/v/' not in html.split("hbform")[0] or True  # (the generic settings form is replaced)
     assert 'id="aform"' not in html
@@ -572,6 +576,103 @@ def test_an_odometer_below_the_known_one_is_said_once_and_never_after_a_restart(
     habridge._state.clear()
     drives("70100", 2000.0, "2026-11-26T15:00:00+00:00")
     assert lines() == [habridge.ODOMETER_LOW] * 2
+
+
+# ------------------------------------------------------------------ the drives of a tracker (option "Record trips" of the position row)
+
+DRIVE = [(52.5230, 13.4080, 3), (52.5260, 13.4110, 4), (52.5290, 13.4140, 5)]  # about 390 m between two reports
+
+
+def _story(client, home, monkeypatch, **form):
+    """The plugin installed with the tracker chosen (and ``form`` on top) and the drive told minute by minute: returns ``(vid, moves, clock)`` where
+    ``moves(lat, lon, minute, **attributes)`` is one report of the tracker. The clock of the trip maker is the time of the report, as it is in life."""
+    clock = {"now": datetime(2026, 11, 26, 8, 0, tzinfo=UTC)}
+    real = trips.from_track
+    monkeypatch.setattr(trips, "from_track", lambda conn, vid, now=None: real(conn, vid, now=clock["now"]))
+    vid, pk = install(client)
+    assert save(client, vid, pk, **form).status_code == 303
+    ticks = [999.0]
+
+    def moves(lat, lon, minute, **attributes):
+        when = datetime(2026, 11, 26, 8, 0, tzinfo=UTC) + timedelta(minutes=minute)
+        clock["now"] = when
+        attributes.setdefault("gps_accuracy", 8)
+        home.states["device_tracker.car"] = state(
+            "device_tracker.car", "not_home", at=when.isoformat(), latitude=lat, longitude=lon, **attributes
+        )
+        ticks[0] += 31
+        assert habridge.tick(ticks[0]) == 1
+
+    return vid, moves, clock
+
+
+def _route(vid):
+    with db.tx() as conn:
+        points = conn.execute("SELECT ts, lat, lon, trip_id FROM vehicle_track WHERE vehicle_id = ? ORDER BY ts", (vid,)).fetchall()
+        made = conn.execute("SELECT * FROM trips WHERE vehicle_id = ?", (vid,)).fetchall()
+    return points, made
+
+
+def test_the_drives_of_a_tracker_become_trips_when_the_option_is_on(client, home, monkeypatch):
+    vid, moves, clock = _story(client, home, monkeypatch, **{"o.position.track": "on"})
+    moves(52.5200, 13.4050, 0)  # parked
+    moves(52.52003, 13.40502, 1)  # a parked tracker jitters by a few metres: no point
+    moves(52.52002, 13.40499, 2)
+    for lat, lon, minute in DRIVE:
+        moves(lat, lon, minute)
+    moves(52.5290, 13.4140, 6)  # it stands: the same place again, no new point
+    points, made = _route(vid)
+    assert [p["ts"][11:16] for p in points] == [
+        "08:02",
+        "08:03",
+        "08:04",
+        "08:05",
+    ]  # the place where it stood, then the moves - nothing of the jitter
+    assert made == []  # one minute after the last point the drive is not over
+    clock["now"] = datetime(2026, 11, 26, 8, 20, tzinfo=UTC)
+    with db.tx() as conn:
+        assert trips.from_track(conn, vid) == 1  # ten minutes of nothing new: it was a trip
+    points, made = _route(vid)
+    assert len(made) == 1 and made[0]["source"] == "track" and 0.9 < made[0]["distance_km"] < 1.5
+    assert {p["trip_id"] for p in points} == {made[0]["id"]}
+    assert stored(vid)["position"] == "52.529000,13.414000"  # the position of the car is the newest point, as always
+
+
+def test_nothing_of_the_route_is_kept_without_the_option(client, home, monkeypatch):
+    vid, moves, _clock = _story(client, home, monkeypatch)  # the default: only the position of the car is kept
+    moves(52.5200, 13.4050, 0)
+    for lat, lon, minute in DRIVE:
+        moves(lat, lon, minute)
+    points, made = _route(vid)
+    assert points == [] and made == []
+    assert stored(vid)["position"] == "52.529000,13.414000"
+
+
+def test_a_car_that_is_off_and_a_fix_that_is_inexact_leave_no_points(client, home, monkeypatch):
+    home.states["binary_sensor.ignition"] = state("binary_sensor.ignition", "off")
+    vid, moves, _clock = _story(client, home, monkeypatch, **{"o.position.track": "on", "e.ignition": "binary_sensor.ignition"})
+    moves(52.5200, 13.4050, 0)
+    moves(52.5210, 13.4060, 1)  # the tracker drifts by about 130 m (a garage), the ignition says off: no point
+    assert _route(vid)[0] == []
+    home.states["binary_sensor.ignition"] = state("binary_sensor.ignition", "on")
+    moves(52.5240, 13.4090, 2, gps_accuracy=500)  # a fix the tracker calls 500 m wrong: left out altogether
+    assert _route(vid)[0] == []
+    moves(52.5270, 13.4120, 3)
+    moves(52.5300, 13.4150, 4)
+    assert [p["ts"][11:16] for p in _route(vid)[0]] == ["08:01", "08:03", "08:04"]  # from where it stood, never through the inexact fix
+
+
+def test_the_option_record_trips_belongs_to_the_tracker_row_only():
+    tracker = cat.BY_KEY["position"]
+    assert habridge.parse_options({"x.track": "on"}, "x.", tracker) == ({"track": True}, "")
+    assert habridge.parse_options({}, "x.", tracker) == ({}, "")
+    assert habridge.parse_options({"x.track": "on"}, "x.", cat.BY_KEY["range_km"]) == ({}, "")  # any other row ignores it
+    assert habridge.clean_stored("position", "device_tracker.car", {"track": True}) == {
+        "entity": "device_tracker.car",
+        "options": {"track": True},
+    }
+    assert habridge.clean_stored("position", "device_tracker.car", {"track": False})["options"] == {}  # (a backup file is read like a form)
+    assert habridge._typed_options({"o.position.track": "on"}, "o.position.", tracker) == {"track": True}
 
 
 def test_what_is_wrong_is_said_once_in_the_log_and_never_stops_the_rest(client, home):

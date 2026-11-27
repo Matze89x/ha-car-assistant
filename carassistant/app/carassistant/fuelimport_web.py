@@ -41,9 +41,9 @@ def _purge() -> None:
             continue
 
 
-def _load(vid: int, token: str) -> tuple[dict, fuelimport.Table | None] | None:
+def _load(vid: int, token: str, kind: str = "fuel") -> tuple[dict, fuelimport.Table | None] | None:
     """``(state, table)`` of a chosen file; ``table`` is None once the import is done (the file is gone then). ``None`` when the token is unknown,
-    too old or belongs to another car."""
+    too old, a file of the other import (``kind``: the fill-ups or the trips share the folder) or belongs to another car."""
     if not TOKEN.match(token):
         raise HTTPException(404)
     try:
@@ -52,6 +52,8 @@ def _load(vid: int, token: str) -> tuple[dict, fuelimport.Table | None] | None:
         return None
     if state.get("vid") != vid:
         raise HTTPException(404)
+    if state.get("kind", "fuel") != kind:
+        return None
     try:
         table = fuelimport.read((_folder() / f"{token}.csv").read_bytes())
     except (OSError, fuelimport.FileError):

@@ -59,7 +59,7 @@ Die Request headers lassen sich später nicht ändern: für einen neuen Schlüss
 | `list_entries` | Lesen | die Einträge einer Art (Service, Tanken, Termine, Aufgaben, Reifen, Umbauten, Teile, Fahrten, Zähler), neueste zuerst, seitenweise |
 | `get_costs` | Lesen | Kosten je Tag / Woche / Monat und jeder Eintrag mit Preis |
 | `data_gaps` | Lesen | was noch fehlt: leere Fahrzeugfelder, Tankungen ohne Kilometerstand / Menge / Preis, Service ohne Kosten oder Kilometerstand, nie erledigte Aufgaben, Fahrten ohne Orte |
-| `get_logs` | Lesen | die neuesten Log-Zeilen der Plugins - nützlich, wenn etwas nicht läuft |
+| `get_logs` | Lesen | die neuesten Protokollzeilen der Plugins - nützlich, wenn etwas nicht läuft |
 | `list_plugins` | Lesen | Plugins und Integrationen eines Fahrzeugs: Name, Version, an / aus, eingerichtet, Einstellungen (Geheimnisse verborgen) |
 | `list_documents` | Lesen | die Dokumente eines Fahrzeugs (Titel, Kategorie, Größe - nicht die Dateien) |
 | `get_charging` | Lesen | Ladevorgänge eines Elektroautos |

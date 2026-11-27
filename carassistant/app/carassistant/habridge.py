@@ -24,9 +24,9 @@ import re
 import threading
 import time
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
-from . import addons, claims, config, connectors, db, events, ha, halive, i18n, linkmap, summary
+from . import addons, claims, config, connectors, db, events, ha, halive, i18n, linkmap, summary, trips
 from . import habridge_slots as cat
 from . import vin as vin_info
 
@@ -44,6 +44,10 @@ ODOMETER_LOW = (
     "odometer_km: Home Assistant reports less than the odometer Car Assistant already knows (the highest of all readings and entries - a fill-up, "
     "a service, a trip). The odometer only grows, so this reading was not taken; it counts again as soon as it is higher."
 )  # (no figures: the same words are said once, not with every kilometre driven)
+TRACK_STEP_M = (
+    40  # a point of the route is kept only when the car moved this far from the last one: a parked tracker jitters by a few metres
+)
+TRACK_ACCURACY_M = 100  # a fix the tracker itself calls less exact than this (``gps_accuracy``, metres) is left out
 
 
 # ------------------------------------------------------------------ units
@@ -527,6 +531,58 @@ def _report(conn, addon: dict, st: dict, bound: dict, readings: dict[str, Readin
         _say(conn, addon, st, key, "warn", f"{key} ({entity}): {_problem_words(reading.problem, reading.detail)}", now)
 
 
+def _moment(text) -> datetime | None:
+    try:
+        when = datetime.fromisoformat(str(text).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return when if when.tzinfo else when.replace(tzinfo=UTC)
+
+
+def _record_track(conn, addon: dict, st: dict, readings: dict[str, Reading], states: dict[str, dict] | None, bound: dict) -> int:
+    """The option *Record trips* of the position row: every move of the tracker becomes a point of the route (``connectors.ingest_track``, the same
+    place a plugin's track goes), and ``trips.from_track`` makes a trip of a drive that is over. Returns how many points were kept.
+
+    A tracker in a parked car jitters by a few metres, and one of those points every few minutes would keep a drive "running" for ever: a point is
+    kept only when the car is at least ``TRACK_STEP_M`` from the last one. A drive starts at the place the car STOOD (the last position seen before it
+    moved), not at the first reading after it set off. While an ignition entity is chosen and says off nothing is kept, and a fix the tracker calls
+    inexact is ignored. How fine the route is depends on how often the tracker reports - a car that reports every ten minutes makes no trips."""
+    reading = readings.get("position")
+    if reading is None or not reading.ok:
+        return 0
+    lat, lon = reading.value
+    when = _moment(reading.at) if reading.at else datetime.now(UTC)
+    if when is None:
+        return 0
+    entity = (bound.get("position") or {}).get("entity", "")
+    accuracy = (((states or {}).get(entity) or {}).get("attributes") or {}).get("gps_accuracy")
+    if isinstance(accuracy, int | float) and not isinstance(accuracy, bool) and accuracy > TRACK_ACCURACY_M:
+        return 0
+    seen, last = st.get("seen"), st.get("track")
+    st["seen"] = {"lat": lat, "lon": lon, "at": when}
+    ignition = readings.get("ignition")
+    if (ignition is not None and ignition.ok and not ignition.value) or seen is None or when <= seen["at"]:
+        return 0  # parked, or the first reading since the start (nothing to compare with), or an old one
+    if last is not None and when <= last["at"]:
+        return 0
+    new_drive = last is None or when - last["at"] > trips.TRIP_GAP
+    origin = seen if new_drive else last
+    if trips.haversine_km(origin["lat"], origin["lon"], lat, lon) * 1000 < TRACK_STEP_M:
+        return 0
+    points = [{"ts": when.isoformat(timespec="seconds"), "lat": lat, "lon": lon}]
+    if new_drive:
+        points.insert(0, {"ts": seen["at"].isoformat(timespec="seconds"), "lat": seen["lat"], "lon": seen["lon"]})
+    try:
+        connectors.ingest_track(conn, addon["vehicle_id"], {"points": points})
+    except connectors.ApiError as exc:
+        log.debug("track of %s for vehicle %s refused: %s", addon["addon_id"], addon["vehicle_id"], exc.code)
+        return 0
+    st["track"] = {"lat": lat, "lon": lon, "at": when}
+    connectors.note_usage(conn, addon["vehicle_id"], addon["addon_id"], "POST", "/api/v1/vehicles/{id}/track", "points")
+    log.debug("track of %s for vehicle %s: %d point(s)", addon["addon_id"], addon["vehicle_id"], len(points))
+    return len(points)
+
+
 def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None = None) -> str:
     """One reading of an install: read the entities, send what is new. Returns a sentence about it (for the log in debug mode)."""
     now = time.monotonic() if now is None else now
@@ -552,9 +608,11 @@ def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None
         batches = build(fresh)
         fields: set[str] = set()
         retry: set[str] = set()
+        landed: set[str] = set()  # the fields the intake took (the position of a tracker may be refused: another plugin holds it)
         for at, data in batches:
             done, refused = deliver(conn, addon, at, data)
             fields |= set(data)
+            landed |= {field for field, text in done.items() if text.startswith("stored")}
             for field, text in refused.items():
                 retry.add(field)
                 _say(conn, addon, st, f"refused.{field}", "warn", f"{field}: the Plugin API refused the value: {text[:150]}", now)
@@ -574,6 +632,8 @@ def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None
             slot = split(key)[0]
             if slot is not None and slot.field not in retry:
                 st["sent"][key] = (reading.value, reading.at)
+        if "position" in landed and (bound.get("position") or {}).get("options", {}).get("track"):
+            _record_track(conn, addon, st, effective, states, bound)
         names = sorted(fields)
         connectors.note_usage(conn, addon["vehicle_id"], addon["addon_id"], "POST", "/api/v1/vehicles/{id}/data", ", ".join(names))
         merged: dict = {}
@@ -823,6 +883,8 @@ def parse_options(form: dict, prefix: str, slot: cat.Slot) -> tuple[dict, str]:
         text = " ".join(str(form.get(prefix + "text") or "").split())[: connectors.MAX_WARNING_TEXT]
         if text:
             opts["text"] = text
+    if slot.key == "position" and str(form.get(prefix + "track") or "") in ("1", "on", "true"):
+        opts["track"] = True  # the drives of this tracker become trips (see _record_track)
     return opts, ""
 
 
@@ -961,6 +1023,8 @@ def _typed_options(form: dict, prefix: str, slot: cat.Slot) -> dict:
             opts[name] = value
     if str(form.get(prefix + "invert") or "") in ("1", "on", "true"):
         opts["invert"] = True
+    if str(form.get(prefix + "track") or "") in ("1", "on", "true"):
+        opts["track"] = True
     return opts
 
 

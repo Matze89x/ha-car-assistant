@@ -36,22 +36,37 @@ FUELIO_DEMO = (
 )
 
 
-def import_pages(base: str, car: str) -> list[str]:
-    """The pages of the import of fill-ups (fuelimport_web.py): the file, the columns of a file that was chosen, the check. The file is uploaded the way a
-    browser does it; nothing is written to the fuel log (the last page is only asked for)."""
+TRIPS_DEMO = (
+    "Date;Start time;End time;From;To;Start odometer;End odometer;Distance;Category;Purpose\n"
+    "2024-09-16;08:05;08:40;Example town;Other town;12000;12035;35,2;Business;Client\n"
+    "2024-09-17;17:10;17:45;Other town;Example town;12035;12071;;Private;\n"
+)
+
+
+def _import_flow(base: str, car: str, path: str, text: str, filename: str, mapping: dict, options: dict) -> list[str]:
+    """The pages of an import from a CSV file: the file, the columns of a file that was chosen, the check. The file is uploaded the way a browser does
+    it; nothing is written (the last page is only asked for)."""
     import urllib.parse
     import urllib.request
     import uuid
 
     boundary = uuid.uuid4().hex
     body = (
-        f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="fuelio.csv"\r\nContent-Type: text/csv\r\n\r\n{FUELIO_DEMO}\r\n--{boundary}--\r\n'
+        f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{filename}"\r\nContent-Type: text/csv\r\n\r\n{text}\r\n--{boundary}--\r\n'
     ).encode()
     request = urllib.request.Request(
-        f"{base}/v/{car}/fuel/import", data=body, headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}, method="POST"
+        f"{base}/v/{car}/{path}", data=body, headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}, method="POST"
     )
     with urllib.request.urlopen(request, timeout=20) as answer:  # noqa: S310 - the app on this machine
         columns = urllib.parse.urlparse(answer.geturl()).path
+    form = urllib.parse.urlencode({**mapping, **options}).encode()
+    with urllib.request.urlopen(urllib.request.Request(f"{base}{columns}", data=form, method="POST"), timeout=20):  # noqa: S310
+        pass
+    return [f"/v/{car}/{path}", columns, f"{columns}/check"]
+
+
+def import_pages(base: str, car: str) -> list[str]:
+    """The pages of the import of fill-ups (fuelimport_web.py)."""
     mapping = {
         "col_date": 0,
         "col_amount": 2,
@@ -61,10 +76,26 @@ def import_pages(base: str, car: str) -> list[str]:
         "col_full_tank": 3,
         "col_notes": 9,
     }
-    form = urllib.parse.urlencode({**mapping, "order": "auto", "dist": "km", "vol": "l", "skip": "1"}).encode()
-    with urllib.request.urlopen(urllib.request.Request(f"{base}{columns}", data=form, method="POST"), timeout=20):  # noqa: S310
-        pass
-    return [f"/v/{car}/fuel/import", columns, f"{columns}/check"]
+    return _import_flow(
+        base, car, "fuel/import", FUELIO_DEMO, "fuelio.csv", mapping, {"order": "auto", "dist": "km", "vol": "l", "skip": "1"}
+    )
+
+
+def trip_import_pages(base: str, car: str) -> list[str]:
+    """The pages of the import of trips (tripimport_web.py)."""
+    mapping = {
+        "col_date": 0,
+        "col_start_time": 1,
+        "col_end_time": 2,
+        "col_start_place": 3,
+        "col_end_place": 4,
+        "col_start_km": 5,
+        "col_end_km": 6,
+        "col_distance_km": 7,
+        "col_category": 8,
+        "col_purpose": 9,
+    }
+    return _import_flow(base, car, "trips-csv", TRIPS_DEMO, "trips.csv", mapping, {"order": "auto", "dist": "km", "skip": "1"})
 
 
 def sweep(
@@ -124,6 +155,7 @@ def sweep(
                         f"/v/{ms.DIESEL}/invoices/{ms.INVOICE_BOOKED}",
                         f"/v/{ms.DIESEL}/e/service?invoice={ms.INVOICE_OPEN}",
                         *import_pages(base, ms.DIESEL),
+                        *trip_import_pages(base, ms.DIESEL),
                     ]  # the main tabs of a car: trips (a card per trip) and the fill-ups; the invoices (list, one open, one booked) and an entry being booked
                     + ([f"/v/{ms.DIESEL}", f"/v/{ms.COMPACT}"] if home else [])
                 )

@@ -38,7 +38,7 @@
     {% if not logo_only %}
     {% set cur = namespace(i=0) %}
     {% for it in nav_items %}{% if it.on %}{% set cur.i = loop.index0 %}{% endif %}{% endfor %}
-    <nav class="tabbar n{{ nav_items|length }} i{{ cur.i }}" id="tabbar" data-i="{{ cur.i }}" aria-label="Main">
+    <nav class="tabbar n{{ nav_items|length }} i{{ cur.i }}" id="tabbar" data-i="{{ cur.i }}" aria-label="{{ _('nav.main_aria') }}">
       <span class="tab-ind" aria-hidden="true"></span>
       {% for it in nav_items %}<a href="{{ base }}{{ it.href }}" class="tab {{ 'on' if it.on }}" data-alert="{{ 1 if it.alert else 0 }}" aria-label="{{ (it.text or _(it.label)) }}{{ ' – ' ~ _('nav.alert') if it.alert }}" title="{{ (it.text or _(it.label)) }}{{ ' – ' ~ _('nav.alert') if it.alert }}">{{ icon(it.icon, 27) }}<span class="tl">{{ (it.text or _(it.label)) }}</span></a>{% endfor %}
     </nav>

@@ -3175,6 +3175,7 @@ from . import (  # noqa: E402,F401
     setupflow_web,
     sources_web,
     tiles_web,
+    tripimport_web,
     vehiclebackup_web,
     widgets_web,
 )  # register the login, account, plugin API, navigation and page-module routes

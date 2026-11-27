@@ -56,8 +56,9 @@
   <form method="post" enctype="multipart/form-data" class="eq-edit tp-form" action="{{ base }}/v/{{ v.slug }}/trips-import">
     <div class="eq-two"><label>{{ _('trips.import_gpx') }}<input type="file" name="gpx" accept=".gpx,application/gpx+xml,text/xml" required></label>
       <label>{{ _('f.category') }}<select name="category">{% for c in trip_categories %}<option value="{{ c }}">{{ _('category.' ~ c) }}</option>{% endfor %}</select></label></div>
-    <div class="eq-acts"><button class="ghost-btn small">{{ icon('download', 16) }} <span>{{ _('btn.import') }}</span></button></div>
+    <div class="eq-acts"><button class="ghost-btn small">{{ icon('download', 16) }} <span>{{ _('trips.import_gpx_btn') }}</span></button></div>
   </form>
+  <div class="eq-acts"><a class="ghost-btn small" href="{{ base }}/v/{{ v.slug }}/trips-csv">{{ icon('upload', 16) }} <span>{{ _('trips.import_csv') }}</span></a></div>
   <p class="hint">{{ icon('info', 14) }} {{ _('exp.disclaimer') }}</p>
 </div>
 
