@@ -3614,6 +3614,8 @@ html.lmz-lock { overflow: hidden; }
 .odo-back .scan-note { position: absolute; left: 0; right: 0; top: calc(100% + 6px); margin: 0; text-align: center; }
 .odo-back .odo-all { position: absolute; left: 0; right: 0; top: calc(100% + 8px); margin: 0; gap: 7px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }  /* the same look as the label above the plate */
 .odo-back .scan-note:not([hidden]) ~ .odo-all { display: none; }  /* the note takes the place of the link while it has something to say */
+.odo-flip.open > .odo-all.odd { visibility: hidden; }  /* turned over, the line under the plate is the back's own (the note, or all readings) and stands exactly where this warning stands: it waits there unseen */
+.odo-flip.open:has(> .odo-all.odd) { margin-bottom: 8px; }  /* ... and its room is the room that line needs, so the page does not jump */
 /* as the third look of the odometer widget the plate follows the width of its slot (small or wide), the cells shrink with it */
 .wd-look-plate .odo-flip { min-width: 0; }
 .wd-look-plate .odo-front .odo-drum i { width: min(34px, 10.5cqw); }
