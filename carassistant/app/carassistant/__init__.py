@@ -1,4 +1,4 @@
 """Car Assistant – vehicle logbook as a Home Assistant app."""
 
-__version__ = "0.5.42"
+__version__ = "0.5.43"
 STAGE = "Beta"
