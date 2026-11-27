@@ -61,7 +61,7 @@ def test_about_and_charging_wording_in_german(client, env):
     with db.tx() as conn:
         db.set_setting(conn, "language", "de")
     page = client.get("/about").text
-    assert "Über" in page and "Installiert je Fahrzeug" in page and "Spendiere mir einen Kaffee" in page
+    assert "Über" in page and "Installiert je Fahrzeug" in page and "Kaffee spendieren" in page
     assert "about." not in page  # no untranslated key shows
 
 

@@ -26,8 +26,8 @@
     {{ switch_row('full_tank', _('f.full_tank'), (r['full_tank'] if r else 1)) }}
     {% set f = entity.fields|selectattr('name', 'equalto', 'notes')|first %}<label>{{ flabel(f) }}{{ field_input(f, r['notes'] if r else form.get('notes'), true) }}</label>
     <div class="form-bar">
-      {% if r %}<button type="button" class="ghost-btn small" data-rec-cancel>{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button><button type="submit" form="del-{{ r['id'] }}" class="danger">{{ icon('delete', 18) }}<span>{{ _('btn.delete') }}</span></button>
-      {% else %}<button type="button" class="ghost-btn small" data-toggle-panel="#fuel-add">{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button>{% endif %}
+      {% if r %}<button type="button" class="ghost-btn small" data-rec-cancel aria-label="{{ _('btn.cancel') }}" title="{{ _('btn.cancel') }}">{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button><button type="submit" form="del-{{ r['id'] }}" class="danger">{{ icon('delete', 18) }}<span>{{ _('btn.delete') }}</span></button>
+      {% else %}<button type="button" class="ghost-btn small" data-toggle-panel="#fuel-add" aria-label="{{ _('btn.cancel') }}" title="{{ _('btn.cancel') }}">{{ icon('close', 16) }}<span>{{ _('btn.cancel') }}</span></button>{% endif %}
       <button class="primary">{{ icon('check', 18) }}<span>{{ _('btn.save') }}</span></button>
     </div>
   </form>

@@ -4353,7 +4353,7 @@ DE: dict[str, str] = {
     "about.license": "Freie Software unter der GNU GPL v3.0. Nichts verlässt dein Home Assistant, solange du es nicht einschaltest.",
     "about.made_by": "Gemacht von {who}",
     "about.made_text": "Mit Liebe zum Detail in meiner Freizeit gebaut – teils allein, teils mit Claude Code. Eine praktische, handliche App rund ums Auto, nur mit den Funktionen, die man wirklich braucht. Kostenlos und ohne Abo!",
-    "about.coffee": "Spendiere mir einen Kaffee",
+    "about.coffee": "Kaffee spendieren",
     "nav.charge_stations": "Ladesäulen",
     "mod.charge_stations.name": "Ladesäulensuche",
     "mod.charge_stations.desc": "Ladesäulen in der Nähe mit Steckern und Leistung (OpenStreetMap oder Open Charge Map mit eigenem Schlüssel).",

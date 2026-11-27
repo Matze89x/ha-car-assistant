@@ -559,3 +559,4 @@ def test_form_bars_and_panels_stay_inside_their_card():
     css = _css()
     assert ".form-bar .ghost-btn { width: auto; }" in css
     assert ".fs-panel { display: grid; grid-template-columns: minmax(0, 1fr);" in css
+    assert "@container addform (max-width: 290px)" in css  # on the narrowest phone Cancel keeps only its cross

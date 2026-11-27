@@ -3283,6 +3283,11 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .fuel-scan .button { width: 100%; justify-content: center; margin: 0; }
 .fuel-scan .hint { grid-column: 1 / -1; margin: 0; }
 .tp-add .fuel-form .form-bar { justify-content: flex-end; margin-top: 4px; }
+.tp-add .fuel-form { container: addform / inline-size; }  /* the panel of a new fill-up is as tight as its width: on the narrowest phone Cancel keeps only its cross, like the edit forms of the cards */
+@container addform (max-width: 290px) {
+  .form-bar .ghost-btn span { display: none; }
+  .form-bar .ghost-btn { width: 44px; padding: 0; justify-content: center; }
+}
 .fuel-scan .scan-note.ok { color: var(--ok); }
 .fuel-scan .scan-note.warn { color: var(--warn, #f59e0b); }
 .scan-hit { border-color: var(--accent) !important; box-shadow: 0 0 0 1px var(--accent) inset; }
