@@ -8,10 +8,9 @@ from importlib import metadata
 from pathlib import Path
 
 from . import STAGE, __version__, addons, config, integrations, regional
+from .links import AUTHOR_URL, PROJECT_URL
 
 AUTHOR = "Matze89x"
-AUTHOR_URL = "https://github.com/Matze89x"
-PROJECT_URL = "https://github.com/Matze89x/ha-car-assistant"
 SUPPORT_URL = "https://ko-fi.com/matze89x"  # a coffee; shown only on this page
 
 # every table holding entries of a car (counted for the "entries" figure)

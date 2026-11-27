@@ -36,6 +36,8 @@ Verschachtelte Radien: innen = außen − Innenabstand (eine 32-px-Kachel in ein
 
 **Der Raum in einer Karte (feste Regel).** Der Abstand unter dem Letzten in einer Karte ist der Innenabstand der Karte und nicht mehr - derselbe wie links. Was zuletzt steht, hat keinen eigenen Rand, eine durch Linien getrennte Zeile endet als letzte mit ihrem Inhalt (`pc-core.css`, Dateiende); `python tools/check_ui.py` misst es auf jeder Seite.
 
+**Der Raum zwischen Blöcken (feste Regel).** Blöcke einer Seite untereinander stehen in einem Abstand, den das Design kennt, und in keinem anderen: `--sp-col` (14 px) zwischen den Karten eines Stapels, `--sp-head` (16 px) unter dem Seitenkopf und der Reiterleiste, `--sp-block` (20 px) zwischen Blöcken und von der Hinweiskachel zum ersten Block. Eine **Meldungskarte** (4e) ist ein Block für sich: sie steht `--sp-block` vom Block unter ihr entfernt, so weit wie die Hinweiskachel über ihr - auf beiden Seiten derselbe Abstand (nur mehrere Meldungskarten untereinander sind ein Stapel, `--sp-col`). Keine Seite schreibt einen eigenen Abstand (eine 18, eine 22, eine 12): `tools/check_ui.py` misst jede Seite und schlägt fehl bei einem Abstand, der keiner der drei ist, und bei einer Meldungskarte, die nicht `--sp-block` vom Folgenden entfernt ist.
+
 **Leichte Knöpfe, eine Zeile (feste Regel).** Jede Nebenaktion – Speichern in einem Feld, Löschen, Abbrechen, Hinzufügen, Bearbeiten – ist ein *leichter* Knopf (`.ghost-btn` / umrandet, `.danger` ist rot umrandet, nie ein gefüllter Block), und eine Reihe von Knöpfen bleibt IMMER in EINER Zeile (`flex-wrap: nowrap`, kurze Beschriftung). Nur die eine Hauptaktion einer Seite darf `.primary` sein.
 
 **Die Leiste einer Plugin-Kachel (`.addon-bar`).** Eine Zeile, unten in der Kachel, immer in derselben Reihenfolge: *Deinstallieren* als Mülleimer ohne Text (`.ico-only`, der einzige Knopf, der bei jeder Breite ein Symbol ist), *Logs*, *Einstellungen*, bis zu drei Knöpfe des Plugins selbst (`buttons` im Manifest, [plugins.de.md](plugins.de.md#die-kachel-eines-plugins-und-seine-knöpfe-buttons)), rechts der eine Hauptknopf. Die Leiste ist ein Größen-Container (`container: abar`): Die Knöpfe verlieren ihre Wörter nach der Breite der KACHEL (nicht des Fensters; `fb0`-`fb3` = Zahl der eigenen Knöpfe des Plugins), dann weichen sie bis auf 32 px aus, und nur bei zwei oder drei eigenen Knöpfen auf einer Kachel unter 330 px wird auch der Hauptknopf zum Symbol. Nie umbrechen, nie eine zweite Zeile, nie ein *Mehr*-Menü.
@@ -158,7 +160,7 @@ Was die Aufmerksamkeit einer Person braucht und einen Knopf hat, der es erledigt
 2. **Ein Satz** mit dem Info-Symbol (`.hint`), der sagt, was passiert ist und was fehlt.
 3. **Der Knopf** unten rechts (`.form-bar`): die eine Hauptaktion (`.primary`), oder ein schlichter Knopf, wenn die Aktion nur ein Weg zurück ist.
 
-Alle drei sind `--sp-card` (18 px) von den Rändern entfernt und 14 px voneinander; keine Karte dieser Art hat ein zweites Aussehen.
+Alle drei sind `--sp-card` (18 px) von den Rändern entfernt und 14 px voneinander; keine Karte dieser Art hat ein zweites Aussehen. Die Karte selbst steht `--sp-block` (20 px) vom Block unter ihr entfernt, so weit wie die Hinweiskachel über ihr.
 
 ## 5. Verhaltensregeln
 

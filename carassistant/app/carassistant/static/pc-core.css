@@ -429,7 +429,7 @@ a.wd:active { background: rgba(var(--fg-rgb),.1); }
 .vhome main { padding-top: var(--sp-top); }
 
 /* edit widgets */
-.wd-edit { text-align: center; margin: 22px 0 8px; }
+.wd-edit { text-align: center; margin: var(--sp-block) 0 8px; }
 .wd-edit-list { display: grid; gap: 10px; }
 .wd-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-l); border: 1px solid var(--glass-b); background: var(--glass); }
 .wd-row.off { opacity: .55; }
@@ -2007,7 +2007,7 @@ details.eq > summary, details.eq[open] > summary { margin: 0; }
 .za-edit { padding-top: 4px; }
 .za-edit[hidden] { display: none; }
 .za-edit .eq-edit[hidden] { display: grid; }
-.za-foot { margin: 12px 6px 0; font-size: 12px; }
+.za-foot { margin: var(--sp-col) 6px 0; font-size: 12px; }
 
 /* manual */
 .mn-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 6px 8px; }
@@ -2890,7 +2890,8 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 .trip-kpis .tg { align-content: start; }
 
 /* The message card (docs/design.md, 4e): what needs a person's attention - the head of the station search, one sentence, the button bottom right */
-.msg-card { display: grid; gap: 14px; }
+.msg-card { display: grid; gap: 14px; margin: 0 0 var(--sp-block); }  /* a block of its own: the same distance below it as the notice tile has above it (--sp-block) */
+.msg-card:has(+ .msg-card) { margin-bottom: var(--sp-col); }  /* several messages one under the other are one stack */
 .msg-card > .hint { margin: 0; }
 .msg-card > .form-bar { margin: 0; }
 
@@ -3009,6 +3010,7 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 .rec-grid.doc-grid { grid-template-columns: minmax(0, 1fr); }
 /* Invoices, the third tab of the cost page: the upload card and the page of one invoice */
 .inv-up-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.inv-book { margin-top: var(--sp-block); }  /* a group of its own under the card of the invoice: --sp-block, not the 18 px of the More list */
 .inv-up .acct-warn { margin-top: 12px; }
 .inv-ok { color: var(--ok); vertical-align: -2px; }
 .inv-doc .rec-facts { margin-top: 14px; }
@@ -3046,6 +3048,24 @@ ul.plain.cs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) aut
 
 /* side bar foot: the dot is green when all is current, warm when the app or a package has an update; the update lines show on wide screens only */
 .side .sb-foot .dot.warn { background: var(--soon); box-shadow: 0 0 0 3px rgba(var(--soon-rgb), .2); }
+
+/* side bar foot: the state (dot and version), then Help (the documentation on GitHub, in the language of the app) and GitHub. On the narrow rail the two are icons above the dot. */
+.side .sb-foot .sb-state { display: inline-flex; align-items: center; gap: 8px; }
+.side .sb-foot .sb-links { display: flex; align-items: center; gap: 14px; }
+.side .sb-foot .sb-links a { display: inline-flex; align-items: center; gap: 5px; color: var(--dim); text-decoration: none; border-radius: var(--r-s); }
+.side .sb-foot .sb-links a:hover { color: var(--strong); text-decoration: none; }
+.side .sb-foot .sb-links a:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.side .sb-foot .sb-links .ico { flex-shrink: 0; }
+@media (min-width: 760px) and (max-width: 1279px) {
+  .side .sb-foot { flex-direction: column; gap: 10px; }
+  .side .sb-foot .sb-links { flex-direction: column; gap: 6px; }
+  .side .sb-foot .sb-links a { padding: 5px; }
+  .side .sb-foot .sb-links a > span { display: none; }
+  .side .sb-foot .sb-links .ico { width: 20px; height: 20px; }
+}
+@media (min-width: 1280px) {
+  .side .sb-foot { flex-wrap: wrap; column-gap: 16px; row-gap: 8px; }
+}
 .side .sb-upd { display: none; }
 @media (min-width: 1280px) {
   .side .sb-upd { display: grid; gap: 6px; margin-top: auto; padding: 0 8px; }

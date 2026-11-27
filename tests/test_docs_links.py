@@ -71,6 +71,27 @@ def test_every_doc_page_exists_in_both_languages_and_is_linked_from_the_start_pa
             assert f"docs/{page}{suffix}.md" in text, f"{readme} does not link docs/{page}{suffix}.md"
 
 
+def test_the_docs_index_lists_every_page_in_both_languages():
+    """docs/README.md is the page the Help link of the app opens (links.docs_url) and the one GitHub shows under the file list of docs/: a page that is
+    not in it cannot be found. The start page lists the same pages (test above), so the two cannot drift apart."""
+    docs = ROOT / "docs"
+    for readme, suffix in (("README.md", ""), ("README.de.md", ".de")):
+        text = (docs / readme).read_text(encoding="utf-8")
+        for page in sorted(p.name for p in docs.glob("*.md") if not p.name.endswith(".de.md") and p.name != "README.md"):
+            assert f"({page[:-3]}{suffix}.md)" in text, f"docs/{readme} does not link {page[:-3]}{suffix}.md"
+
+
+def test_the_help_link_opens_the_documentation_in_the_language_of_the_app():
+    from carassistant import links
+
+    assert links.docs_url("de") == f"{links.PROJECT_URL}/blob/main/docs/README.de.md"
+    for lang in ("en", "fr", "es"):  # a language without pages of its own reads the English ones
+        assert links.docs_url(lang) == f"{links.PROJECT_URL}/blob/main/docs/README.md"
+    assert links.docs_url("de", "guide").endswith("/docs/guide.de.md")
+    for lang, suffix in (("en", ""), ("de", ".de")):  # the page it opens exists in the repository
+        assert (ROOT / "docs" / f"README{suffix}.md").is_file(), lang
+
+
 def test_the_notice_names_every_library_the_add_on_installs():
     notice = (ROOT / "NOTICE.md").read_text(encoding="utf-8").lower()
     for line in (ROOT / "carassistant" / "requirements.txt").read_text().splitlines():

@@ -9,6 +9,8 @@
 * **nothing is wider than the screen** (no sideways scrolling) and **no text runs out of its own box or is cut off by it**,
 * **the space below the last thing in a card is only the card's padding** (the same distance below as at its left),
 * **cards one under the other stand `--sp-col` apart** (no margin on top of the gap),
+* **blocks one under the other stand a distance the design knows** (`--sp-col` 14, `--sp-head` 16 or `--sp-block` 20 - never an 18 or a 22 written by hand) and
+  **a message card stands `--sp-block` from the block under it** (the same as the notice tile above it),
 * **sub-windows one under the other stand `--sp-sub` apart and are padded by the tokens** (docs/design.md, 4c: spacing is measured),
 * **a switch is the last thing at the right end of its row** (like the settings of an iPhone; never on the left),
 * **a thing you tap in a corner of a rounded box has rounded corners too** (no square flash behind a round card),
@@ -153,7 +155,7 @@ MEASURE = r"""
   };
   document.querySelectorAll('.card').forEach(function (a) {
     var b = nextCard(a);
-    if (!b || !(b.matches('.card')) || !vis(a) || a.closest('[hidden], dialog')) { return; }
+    if (!b || !(b.matches('.card')) || a.matches('.msg-card') || !vis(a) || a.closest('[hidden], dialog')) { return; }  /* a message card has its own distance (below) */
     var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
     if (rb.left > ra.right - 10 || ra.left > rb.right - 10 || rb.top < ra.bottom - 1) { return; }  /* side by side, or not one under the other */
     var gap = Math.round(rb.top - ra.bottom);
@@ -161,6 +163,36 @@ MEASURE = r"""
       var tt = function (e) { return e.tagName.toLowerCase() + '.' + String(e.className).split(' ').filter(Boolean).slice(0, 2).join('.') + ' "' + ((e.querySelector('h2, h3') || e).textContent || '').trim().replace(/\s+/g, ' ').slice(0, 20) + '"'; };
       out.push('cards one under the other are ' + gap + ' px apart instead of ' + spcol + ': ' + tt(a) + ' / ' + tt(b));
     }
+  });
+
+  /* the space between blocks (docs/design.md, "The space between blocks"): two blocks one under the other of a page stand a distance the design knows -
+     --sp-col (cards of one stack), --sp-head (under the page header or a tab bar) or --sp-block (between blocks). An 18, a 22 or a 12 is a margin somebody wrote by hand. */
+  var spblock = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sp-block')) || 20, sphead = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sp-head')) || 16;
+  var BLOCK = '.page-head, .notice-slot, .seg-tabs, .card, .stn-card, .rec, .tile, .mgroup-wrap, .tp-sec, .rec-grid, .pk-grid, .cards, .rp-bar, .rp-hero, .status-banner, .about-wrap, .vd';
+  var ident = function (e) { return e.tagName.toLowerCase() + '.' + String(e.className).split(' ').filter(Boolean).slice(0, 2).join('.'); };
+  document.querySelectorAll('main, main .tp-sec, main .vd, main .sys-col, main .cards, main .guide-stack').forEach(function (flow) {
+    if (!vis(flow) || flow.closest('[hidden], dialog')) { return; }
+    var kids = Array.prototype.filter.call(flow.children, inflow);
+    for (var i = 1; i < kids.length; i++) {
+      var a = kids[i - 1], b = kids[i];
+      if (!a.matches(BLOCK) || !b.matches(BLOCK)) { continue; }
+      var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      if (rb.left > ra.right - 10 || ra.left > rb.right - 10 || rb.top < ra.bottom - 1) { continue; }  /* side by side, or not one under the other */
+      var gap = rb.top - ra.bottom;
+      if (gap > 3 * spblock) { continue; }  /* something that is not drawn lies between them (a layout of its own) */
+      if ([spcol, sphead, spblock].every(function (want) { return Math.abs(gap - want) > 1.5; })) {
+        out.push('blocks one under the other are ' + Math.round(gap * 10) / 10 + ' px apart - the design knows ' + spcol + ', ' + sphead + ' and ' + spblock + ': ' + ident(a) + ' / ' + ident(b));
+      }
+    }
+  });
+  /* a message card (docs/design.md, 4e) is a block of its own: the same distance below it as the notice tile has above it (--sp-block), one stack when another message follows */
+  document.querySelectorAll('.msg-card').forEach(function (a) {
+    var b = nextCard(a);
+    if (!b || !vis(a) || a.closest('[hidden], dialog')) { return; }
+    var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    if (rb.left > ra.right - 10 || ra.left > rb.right - 10 || rb.top < ra.bottom - 1) { return; }
+    var gap = Math.round(rb.top - ra.bottom), want = b.matches('.msg-card') ? spcol : spblock;
+    if (Math.abs(gap - want) > 1.5) { out.push('a message card is ' + gap + ' px from the block under it instead of ' + want + ': ' + ident(a) + ' / ' + ident(b)); }
   });
 
   /* the sub-windows of a card (docs/design.md, 4c): one under the other they stand --sp-sub apart, and each one is padded by --sp-sub-pad-y / --sp-sub-pad-x - the spacing is a measure, not a taste */

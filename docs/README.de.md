@@ -2,7 +2,16 @@
 
 [🇬🇧 English](README.md) · 🇩🇪 Deutsch
 
-Alle Seiten auf einen Blick. Zurück zum [Start](../README.de.md).
+Alle Seiten auf einen Blick - das ist die Seite, die der Link **Hilfe** in der App öffnet. Zurück zum [Start](../README.de.md).
+
+**Wo fange ich an?**
+
+| Ich möchte ... | Lesen |
+|---|---|
+| die App benutzen | das [Benutzerhandbuch](guide.de.md): alle Seiten eines Autos Schritt für Schritt |
+| sie installieren | [Installation](install.de.md): in Home Assistant, aus dem Repository oder als lokale App |
+| mein eigenes Auto, meine Wallbox oder meinen Dienst anbinden | [Hier anfangen](start-here.de.md) (in zehn Minuten am Laufen), dann die [Plugin-Anleitung](plugin-guide.de.md) |
+| bei der App mithelfen | [Mitmachen](community/contributing.de.md) und das [Design](design.de.md) |
 
 **Benutzen**
 
@@ -13,6 +22,7 @@ Alle Seiten auf einen Blick. Zurück zum [Start](../README.de.md).
 | [Installation](install.de.md) | in Home Assistant, aus dem Repository oder als lokale App |
 | [Sicherungen](backup.de.md) | ein Auto oder das ganze System sichern und wiederherstellen |
 | [MCP-Zugriff](mcp.de.md) | Claude Code Einträge lesen und korrigieren lassen (standardmäßig aus) |
+| [Handbuch-Paket](manual-package.de.md) | ein Handbuch mit Seitenbildern importieren |
 | [Fahrzeugdatei](vehicle-file.de.md) | ein Auto aus einem anderen Programm übernehmen |
 | [Roadmap](roadmap.de.md) | was fertig ist und was kommt |
 
@@ -21,9 +31,12 @@ Alle Seiten auf einen Blick. Zurück zum [Start](../README.de.md).
 | Seite | Worum es geht |
 |---|---|
 | [Architektur](architecture.de.md) | wie alles zusammenhängt, als Diagramme |
-| [Plugin-Anleitung](plugin-guide.de.md) | der schnellste Einstieg |
+| [Hier anfangen](start-here.de.md) | deine erste Integration oder dein erstes Plugin, in zehn Minuten am Laufen |
+| [Plugin-Anleitung](plugin-guide.de.md) | der ganze Weg auf einer Seite, zum Nachschlagen |
 | [Plugins](plugins.de.md) | Paketformat, Einstellungsseite, Dienste, Dateien, Kacheln |
 | [Home-Assistant-Plugin](home-assistant.de.md) | Entitäten aus Home Assistant als Werte eines Fahrzeugs (Wallbox, Tracker, Sensoren), live, je Fahrzeug |
+| [Spritpreis-Anbieter](fuel-providers.de.md) | eine offene JSON-Datei pro Land für Spritpreise |
+| [Ladesäulen-Anbieter](charge-providers.de.md) | Ladesäulensuche in der Nähe des Autos für E-Autos: OpenStreetMap, Open Charge Map, eine eigene JSON-Datei |
 | [Integrationen](integrations.de.md) | Seiten ohne Code, Erinnerungen, Pläne |
 | [Plugin-API](api.de.md) | alle Felder und Wege, Werte an die App zu schicken |
 | [Quellen und Pakete](sources.de.md) | ein Repository als Quelle anbieten |
@@ -38,3 +51,14 @@ Alle Seiten auf einen Blick. Zurück zum [Start](../README.de.md).
 | [Symbole](icons.de.md) | der Symbolsatz und wie man ihn nutzt |
 | [Pflege](maintaining.de.md) | von der Meldung zur Version: Labels, Meilensteine, Releases |
 | [Übersetzen](translating.de.md) | eine neue Sprache als Datei |
+
+**Weiteres**
+
+| Seite | Worum es geht |
+|---|---|
+| [Add-on-Seite in Home Assistant](../carassistant/DOCS.de.md) | der Reiter *Dokumentation* im Add-on |
+| [Sicherheit](community/security.de.md) | wie du eine Schwachstelle meldest und wie die App dich schützt |
+| [Mitmachen](community/contributing.de.md) | wie du hilfst: Regeln, Tests, Pull Requests |
+| [Änderungsprotokoll](../carassistant/CHANGELOG.de.md) | was sich in welcher Version geändert hat |
+
+*Zurechtfinden auf GitHub:* jede Seite hat eine Gliederung (der Listen-Knopf oben rechts auf der Seite), und mit der Taste `/` durchsuchst du alle Seiten des Projekts.

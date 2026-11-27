@@ -46,7 +46,10 @@
       {% if update_pending.app %}<a href="{{ base }}/settings/system#updates"><span class="u-k">{{ _('upd.system') }}</span><b>v{{ update_pending.app }}</b></a>{% endif %}
       {% if update_pending.plugins %}<a href="{{ base }}{{ ('/v/' ~ update_pending.plugins_car ~ '/plugins') if update_pending.plugins_car else '/settings/system#updates' }}" title="{{ update_pending.plugin_list }}"><span class="u-k">{{ _('upd.plugins') }}</span><b>{{ _('upd.n', n=update_pending.plugins) }}</b></a>{% endif %}
     </div>{% endif %}
-    <div class="sb-foot" {% if update_pending.app or update_pending.plugins %}{% set why = [] %}{% if update_pending.app %}{% set _w = why.append(_('upd.system') ~ ' v' ~ update_pending.app) %}{% endif %}{% if update_pending.plugins %}{% set _w = why.append(_('upd.plugins') ~ ': ' ~ _('upd.n', n=update_pending.plugins)) %}{% endif %}title="{{ _('upd.available') }}: {{ why|join(' · ') }}" aria-label="{{ _('upd.available') }}: {{ why|join(' · ') }}"{% endif %}><span class="dot {{ 'warn' if update_pending.app or update_pending.plugins }}"></span><span class="sb-ver">v{{ version }}</span></div>
+    <div class="sb-foot">
+      <span class="sb-state"{% if update_pending.app or update_pending.plugins %}{% set why = [] %}{% if update_pending.app %}{% set _w = why.append(_('upd.system') ~ ' v' ~ update_pending.app) %}{% endif %}{% if update_pending.plugins %}{% set _w = why.append(_('upd.plugins') ~ ': ' ~ _('upd.n', n=update_pending.plugins)) %}{% endif %} title="{{ _('upd.available') }}: {{ why|join(' · ') }}" aria-label="{{ _('upd.available') }}: {{ why|join(' · ') }}"{% endif %}><span class="dot {{ 'warn' if update_pending.app or update_pending.plugins }}"></span><span class="sb-ver">v{{ version }}</span></span>
+      <span class="sb-links"><a href="{{ docs_url }}" target="_blank" rel="noopener noreferrer" title="{{ _('nav.help_title') }}" aria-label="{{ _('nav.help_title') }}">{{ icon('book-open-page', 15) }}<span>{{ _('nav.help') }}</span></a><a href="{{ project_url }}" target="_blank" rel="noopener noreferrer" title="{{ _('nav.github_title') }}" aria-label="{{ _('nav.github_title') }}">{{ icon('open-in-new', 15) }}<span>GitHub</span></a></span>
+    </div>
     {% endif %}
   </aside>{% endif %}
   <div class="content">

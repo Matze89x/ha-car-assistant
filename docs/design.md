@@ -36,6 +36,8 @@ Nested radii: inner = outer − padding (a 32 px chip in a 16 px list row with 8
 
 **The space inside a card (standing rule).** The distance below the last thing in a card is the card's own padding and nothing more - the same as at its left. Whatever stands last adds no margin of its own, a line-separated row that is last ends with its content (`pc-core.css`, end of file); `python tools/check_ui.py` measures it on every page.
 
+**The space between blocks (standing rule).** Blocks of a page one under the other stand a distance the design knows and no other: `--sp-col` (14 px) between the cards of one stack, `--sp-head` (16 px) under the page header and the tab bar, `--sp-block` (20 px) between blocks and from the notice tile to the first block. A **message card** (4e) is a block of its own: it stands `--sp-block` from the block under it, as far as the notice tile stands above it - the same distance on both sides (only several message cards one under the other are one stack, `--sp-col`). No page writes a distance of its own (an 18, a 22, a 12): `tools/check_ui.py` measures every page and fails on a gap that is none of the three, and on a message card that is not `--sp-block` from what follows.
+
 **Light buttons, one line (standing rule).** Every secondary action - save inside a panel, delete, cancel, add, edit - is a *light* button (`.ghost-btn` / outlined, `.danger` is outlined red, never a filled block), and a row of buttons always stays on ONE line (`flex-wrap: nowrap`, labels short). Only the single main action of a page may be `.primary`.
 
 **The bar of a plugin tile (`.addon-bar`).** One line, bottom of the tile, always in the same order: *Uninstall* as a bin without text (`.ico-only`, the only button that is a symbol at every width), *Logs*, *Settings*, up to three buttons of the plugin itself (`buttons` in the manifest, [plugins.md](plugins.md#the-tile-of-a-plugin-and-its-buttons-buttons)), the one main button on the right. The bar is a size container (`container: abar`): the buttons lose their words by the width of the TILE (not the window; `fb0`-`fb3` = number of the plugin's own buttons), then they give way down to 32 px, and only with two or three own buttons on a tile narrower than 330 px does the main button become a symbol. Never wrap, never a second row, never a *More* menu.
@@ -158,7 +160,7 @@ What needs a person's attention and has one button that deals with it - a refuel
 2. **One sentence** with the info symbol (`.hint`) that says what happened and what is missing.
 3. **The button** bottom right (`.form-bar`): the one main action (`.primary`), or a plain button when the action is only a way back.
 
-All three are `--sp-card` (18 px) from the edges and 14 px apart; no card of this kind has a second look.
+All three are `--sp-card` (18 px) from the edges and 14 px apart; no card of this kind has a second look. The card itself stands `--sp-block` (20 px) from the block under it, as far as the notice tile stands above it.
 
 ## 5. Behaviour rules
 

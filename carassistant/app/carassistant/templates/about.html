@@ -14,7 +14,7 @@
   <div class="about-links">
     <span class="badge ok">v{{ about.version }}{% if about.stage %} {{ about.stage }}{% endif %}</span>
     <a class="badge" href="{{ about.project_url }}" target="_blank" rel="noopener noreferrer">{{ _('about.project') }}</a>
-    <a class="badge" href="{{ about.project_url }}/blob/main/docs/guide{{ '.de' if lang == 'de' else '' }}.md" target="_blank" rel="noopener noreferrer">{{ icon('info', 14) }} {{ _('about.help') }}</a>
+    <a class="badge" href="{{ docs_url }}" target="_blank" rel="noopener noreferrer">{{ icon('info', 14) }} {{ _('about.help') }}</a>
     <a class="badge" href="{{ about.author_url }}" target="_blank" rel="noopener noreferrer">{{ about.author }}</a>
   </div>
 </section>

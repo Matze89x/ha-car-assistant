@@ -541,3 +541,12 @@ def test_message_cards_come_from_one_macro():
     assert (
         ".fs-todo" not in css and css.count(".card-head {") == 1 and css.count(".msg-card {") == 1
     )  # one definition of the head, one of the card
+
+
+def test_the_message_card_stands_the_block_gap_from_what_follows():
+    """docs/design.md, "The space between blocks": the notice tile stands --sp-block above the message card, so the card stands --sp-block above
+    what follows - the same distance on both sides (the .card margin of 14 px would make it uneven). tools/check_ui.py measures it on every page."""
+    css = _css()
+    assert ".msg-card { display: grid; gap: 14px; margin: 0 0 var(--sp-block); }" in css
+    assert ".msg-card:has(+ .msg-card) { margin-bottom: var(--sp-col); }" in css  # several messages are one stack
+    assert ".notice-slot { display: grid; gap: 10px; margin: 0 0 var(--sp-block); }" in css  # the distance the card above it copies
