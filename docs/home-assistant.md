@@ -38,7 +38,7 @@ If the connection fails (Home Assistant restarts, the network blinks) the app bu
 - **Dates and times.** For *Charging time left* and *Days to service* an entity that holds a time or a date works too: the minutes or days until then are used.
 - **The time of the measurement.** Each value carries the time Home Assistant gives (`last_reported` / `last_updated`) as `measured_at`. When two sources deliver the same field, the **newer measurement wins**; an older one never replaces a newer one.
 - **Only what changed** is sent. An entity that is *unavailable* or *unknown* is skipped (the last value stays, with its age) - a car that sleeps is no error. A value the Plugin API would refuse (a tank level of 250 %) is refused for that row only; the others go on.
-- **The odometer** only ever grows, as everywhere in Car Assistant.
+- **The odometer** only ever grows, as everywhere in Car Assistant: a reading that is lower than the highest known one (a fill-up or service entry typed with a higher figure counts as known) is not taken and is noted once in the log of the plugin; it counts again as soon as it is higher. Nothing has to be triggered: as soon as an entity is chosen for the odometer, every change arrives by itself, and the dashboard shows the figure instead of asking for it.
 
 ### Yes and no
 
@@ -140,4 +140,4 @@ Any other plugin may take interfaces for itself with `"claims": ["fuel_level_pct
 
 ## Watching it
 
-The plugin's **Logs** page (switch the log on for a day) says what it reads and what is wrong - once for each trouble, not at every try: *the unit "l" does not fit*, *the entity does not exist*, *Home Assistant cannot be reached; trying again*, *Home Assistant can be reached again*. The page of its settings shows live whether the connection stands and what every entity delivers.
+The plugin's **Logs** page (switch the log on for a day) says what it reads and what is wrong - once for each trouble, not at every try: *the unit "l" does not fit*, *the entity does not exist*, *Home Assistant cannot be reached; trying again*, *Home Assistant can be reached again*, *Home Assistant reports less than the odometer Car Assistant already knows*. The page of its settings shows live whether the connection stands and what every entity delivers.

@@ -248,6 +248,28 @@ def test_a_run_fetches_the_address_with_the_settings_and_stores_what_the_map_fin
     assert _log(vid) == []  # a quiet success writes nothing (debug is off)
 
 
+def test_the_odometer_a_connector_reports_is_shown_not_typed(client, service):
+    """A connector has no key - the app runs it - and still reports the odometer: the dashboard shows the figure instead of asking for it, for as
+    long as the plugin is on and its map names the odometer."""
+    from carassistant import summary
+
+    vid, pk = _install(client)
+    with db.tx() as conn:
+        assert summary.odometer_from_car(conn, vid) is False  # typed at the start
+    assert connector.tick(now=1000.0) == 1
+    with db.tx() as conn:
+        assert summary.current_odometer(conn, vid) == 60000 and summary.odometer_from_car(conn, vid) is True
+        conn.execute("UPDATE vehicle_addons SET active = 0 WHERE id = ?", (pk,))
+        assert summary.odometer_from_car(conn, vid) is False  # switched off: the person has it back
+        conn.execute("UPDATE vehicle_addons SET active = 1 WHERE id = ?", (pk,))
+        assert summary.odometer_from_car(conn, vid) is True
+    vid2, _pk2 = _install(client, spec={**SPEC, "map": [m for m in SPEC["map"] if m["field"] != "odometer_km"]})
+    with db.tx() as conn:
+        # a reading of that name, but this plugin does not map the odometer: not its figure
+        summary.record_odometer(conn, vid2, 61_000, "api:Connector demo")
+        assert summary.odometer_from_car(conn, vid2) is False
+
+
 def test_a_failing_connector_says_why_slows_down_and_says_when_it_works_again(client, service):
     vid, pk = _install(client)
     service.answer = (500, b"oops")

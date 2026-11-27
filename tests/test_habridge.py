@@ -504,6 +504,76 @@ def test_saving_binds_the_entities_takes_the_interfaces_and_the_values_flow(clie
     assert stored(vid)["range_km"] == "250"
 
 
+def test_the_odometer_follows_home_assistant_by_itself_and_is_shown_not_typed(client, home):
+    """Nothing has to be triggered: a plugin that has an entity for the odometer reads it by itself (here: the next reading after the interval; in the
+    add-on at once through the live connection). The dashboard then shows the figure instead of asking for it - a plugin without a key is no exception."""
+    vid, pk = install(client)
+    with db.tx() as conn:
+        assert summary.odometer_from_car(conn, vid) is False  # typed at the start: a person's
+    assert save(client, vid, pk).status_code == 303
+    assert habridge.tick(1000.0) == 1
+    with db.tx() as conn:
+        assert summary.current_odometer(conn, vid) == 60210  # (the car started with 50000, typed)
+        assert summary.odometer_from_car(conn, vid) is True
+    home.states["sensor.car_odometer"] = state("sensor.car_odometer", "60300.2", "km", "distance", at="2026-11-26T09:00:00+00:00")
+    assert habridge.tick(1010.0) == 0  # (not due yet)
+    assert habridge.tick(1031.0) == 1
+    with db.tx() as conn:
+        assert summary.current_odometer(conn, vid) == 60300
+        rows = conn.execute("SELECT odometer_km FROM odometer WHERE vehicle_id = ? AND source = 'api:Home Assistant'", (vid,)).fetchall()
+        assert [r["odometer_km"] for r in rows] == [60300]  # one row for the day, not one per reading
+    # switched off, or no entity for the odometer any more: the person has it back (the last reading stays)
+    with db.tx() as conn:
+        conn.execute("UPDATE vehicle_addons SET active = 0 WHERE id = ?", (pk,))
+        assert summary.odometer_from_car(conn, vid) is False
+        conn.execute("UPDATE vehicle_addons SET active = 1 WHERE id = ?", (pk,))
+        assert summary.odometer_from_car(conn, vid) is True
+    assert save(client, vid, pk, **{"e.odometer_km": ""}).status_code == 303
+    with db.tx() as conn:
+        assert summary.odometer_from_car(conn, vid) is False and summary.current_odometer(conn, vid) == 60300
+
+
+def test_an_odometer_below_the_known_one_is_said_once_and_never_after_a_restart(client, home):
+    vid, pk = install(client)
+    assert save(client, vid, pk).status_code == 303
+    assert habridge.tick(1000.0) == 1
+
+    def drives(km, now, at):
+        home.states["sensor.car_odometer"] = state("sensor.car_odometer", km, "km", "distance", at=at)
+        assert habridge.tick(now) == 1
+
+    def lines():
+        return [m for lvl, m in log_of(vid) if lvl == "warn" and m.startswith("odometer_km")]
+
+    drives("60400", 1031.0, "2026-11-26T09:00:00+00:00")
+    assert lines() == []  # higher than 60210: taken
+    with db.tx() as conn:  # a fill-up typed with a higher figure: that is the known odometer now
+        conn.execute(
+            "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_total, full_tank) VALUES(?, '2026-11-26', 70000, 40, 70, 1)",
+            (vid,),
+        )
+    drives("60500", 1062.0, "2026-11-26T10:00:00+00:00")
+    with db.tx() as conn:
+        assert summary.current_odometer(conn, vid) == 70000  # not taken ...
+    assert lines() == [habridge.ODOMETER_LOW]  # ... and the log says why, so nobody has to guess
+    drives("60600", 1093.0, "2026-11-26T11:00:00+00:00")
+    drives("60700", 1124.0, "2026-11-26T12:00:00+00:00")
+    assert lines() == [habridge.ODOMETER_LOW]  # said once, not with every kilometre driven
+    drives("70100", 1155.0, "2026-11-26T13:00:00+00:00")  # it has caught up: taken, and the gap is forgotten
+    with db.tx() as conn:
+        assert summary.current_odometer(conn, vid) == 70100
+        conn.execute("UPDATE fuel SET odometer_km = 80000 WHERE odometer_km = 70000")  # a new gap is said again at once
+    drives("70200", 1186.0, "2026-11-26T14:00:00+00:00")
+    assert lines() == [habridge.ODOMETER_LOW] * 2
+    # the add-on restarts and reads the figure it stored itself again: equal is no gap, so no word
+    with db.tx() as conn:
+        conn.execute("UPDATE fuel SET odometer_km = 1000 WHERE odometer_km = 80000")
+        assert summary.current_odometer(conn, vid) == 70100
+    habridge._state.clear()
+    drives("70100", 2000.0, "2026-11-26T15:00:00+00:00")
+    assert lines() == [habridge.ODOMETER_LOW] * 2
+
+
 def test_what_is_wrong_is_said_once_in_the_log_and_never_stops_the_rest(client, home):
     vid, pk = install(client)
     assert save(client, vid, pk).status_code == 303

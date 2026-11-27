@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -102,6 +103,32 @@ def odometer_readings(conn: sqlite3.Connection, vehicle_id: int, limit: int = 80
     return list(reversed(rows))
 
 
+def _read_by_the_app(conn: sqlite3.Connection, vehicle_id: int, name: str) -> bool:
+    """Does a plugin the app runs itself - one that reads Home Assistant (``bridge``) or an address (``connector``) - report the odometer of this car?
+    Such a plugin has no key, so the key test cannot find it: it is the plugin of this car that carries that name, is on, and still delivers the
+    odometer (an entity is chosen for it / its map names ``odometer_km``)."""
+    for row in conn.execute(
+        "SELECT id, addon_id, manifest FROM vehicle_addons WHERE vehicle_id = ? AND active = 1 "
+        "AND (manifest LIKE '%\"bridge\"%' OR manifest LIKE '%\"connector\"%')",  # (the manifest of any other plugin is not even read)
+        (vehicle_id,),
+    ):
+        try:
+            manifest = json.loads(row["manifest"])
+        except ValueError:
+            continue
+        if not isinstance(manifest, dict) or str(manifest.get("name") or row["addon_id"])[:56] != name:
+            continue  # (the name is cut like the one in the reading: api: + 56 letters)
+        if (
+            manifest.get("bridge")
+            and conn.execute("SELECT 1 FROM ha_bindings WHERE addon_pk = ? AND slot = 'odometer_km'", (row["id"],)).fetchone()
+        ):
+            return True
+        spec = manifest.get("connector")
+        if isinstance(spec, dict) and any(isinstance(m, dict) and m.get("field") == "odometer_km" for m in spec.get("map") or ()):
+            return True
+    return False
+
+
 def odometer_from_car(conn: sqlite3.Connection, vehicle_id: int) -> bool:
     """True while the latest odometer reading came from the car (a plugin, a Home Assistant entity) and not from a person - **and that source still
     exists**: then the figure is shown, not edited, and the dashboard has no odometer of its own (the widget shows it). A plugin that is removed (its
@@ -111,13 +138,11 @@ def odometer_from_car(conn: sqlite3.Connection, vehicle_id: int) -> bool:
         return False
     source = row["source"]
     if source.startswith("api:"):  # the name of the key of the plugin, cut to the length the reading keeps (api: + 56)
-        return (
-            conn.execute(
-                "SELECT 1 FROM api_tokens WHERE substr(name, 1, 56) = ? AND (vehicle_id = ? OR vehicle_id IS NULL) LIMIT 1",
-                (source[4:], vehicle_id),
-            ).fetchone()
-            is not None
-        )
+        keyed = conn.execute(
+            "SELECT 1 FROM api_tokens WHERE substr(name, 1, 56) = ? AND (vehicle_id = ? OR vehicle_id IS NULL) LIMIT 1",
+            (source[4:], vehicle_id),
+        ).fetchone()
+        return keyed is not None or _read_by_the_app(conn, vehicle_id, source[4:])
     if source == "ha":
         bound = conn.execute("SELECT bind_odometer FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
         return bool(bound and bound["bind_odometer"])

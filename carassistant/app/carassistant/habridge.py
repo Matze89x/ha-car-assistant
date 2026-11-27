@@ -26,7 +26,7 @@ import time
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from . import addons, claims, config, connectors, db, events, ha, halive, i18n, linkmap
+from . import addons, claims, config, connectors, db, events, ha, halive, i18n, linkmap, summary
 from . import habridge_slots as cat
 from . import vin as vin_info
 
@@ -40,6 +40,10 @@ MAX_BACKOFF = 600  # when Home Assistant cannot be asked, or a round fails: the 
 MAX_YES = 12  # states a person may name as "yes"
 SCALE_LIMIT = 1e9
 SOURCE = "bridge"  # what the log lines of the plugin call their source
+ODOMETER_LOW = (
+    "odometer_km: Home Assistant reports less than the odometer Car Assistant already knows (the highest of all readings and entries - a fill-up, "
+    "a service, a trip). The odometer only grows, so this reading was not taken; it counts again as soon as it is higher."
+)  # (no figures: the same words are said once, not with every kilometre driven)
 
 
 # ------------------------------------------------------------------ units
@@ -558,6 +562,13 @@ def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None
                 if text.startswith("ignored (taken"):
                     retry.add(field)
                     _say(conn, addon, st, f"taken.{field}", "warn", f"{field}: {text}", now)
+                elif field == "odometer_km":
+                    known = summary.current_odometer(conn, addon["vehicle_id"])
+                    # lower than known: said (once). Equal is the plugin's own reading again after a restart: no word.
+                    if text.startswith("ignored") and known is not None and round(data["odometer_km"]) < known:
+                        _say(conn, addon, st, "odometer.low", "warn", ODOMETER_LOW, now)
+                    else:
+                        st["said"].pop("odometer.low", None)  # it counts again: a later gap is said again at once
             stored += sum(1 for text in done.values() if text.startswith("stored"))
         for key, reading in fresh.items():
             slot = split(key)[0]

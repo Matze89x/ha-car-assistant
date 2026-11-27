@@ -38,7 +38,7 @@ Fällt die Verbindung aus (Home Assistant startet neu, das Netz hakt), baut die 
 - **Datum und Uhrzeit.** Für *Restzeit Laden* und *Tage bis zum Service* geht auch eine Entität, die eine Zeit oder ein Datum enthält: Genommen werden die Minuten oder Tage bis dahin.
 - **Die Zeit der Messung.** Jeder Wert trägt die Zeit, die Home Assistant nennt (`last_reported` / `last_updated`), als `measured_at`. Liefern zwei Quellen dasselbe Feld, gewinnt die **neuere Messung**; eine ältere ersetzt nie eine neuere.
 - **Nur, was sich geändert hat**, wird gesendet. Eine Entität, die *nicht verfügbar* oder *unbekannt* ist, wird übersprungen (der letzte Wert bleibt, mit seinem Alter) - ein schlafendes Auto ist kein Fehler. Einen Wert, den die Plugin-API ablehnen würde (ein Tankstand von 250 %), lehnt sie nur für diese Zeile ab; die anderen laufen weiter.
-- **Der Kilometerstand** wächst nur, wie überall in Car Assistant.
+- **Der Kilometerstand** wächst nur, wie überall in Car Assistant: Ein Stand, der niedriger ist als der höchste bekannte (auch ein Tank- oder Serviceeintrag mit höherem Stand zählt als bekannt), wird nicht genommen und einmal im Protokoll des Plugins vermerkt; er zählt wieder, sobald er höher ist. Es muss nichts ausgelöst werden: Sobald eine Entität für den Kilometerstand gewählt ist, kommt jede Änderung von selbst, und das Dashboard zeigt den Stand an, statt ihn zur Eingabe anzubieten.
 
 ### Ja und Nein
 
@@ -140,4 +140,4 @@ Jedes andere Plugin kann mit `"claims": ["fuel_level_pct", "range_km"]` Schnitts
 
 ## Zusehen
 
-Die Seite **Protokoll** des Plugins (das Protokoll für einen Tag einschalten) sagt, was es liest und was nicht stimmt - einmal für jede Störung, nicht bei jedem Versuch: *die Einheit „l“ passt nicht*, *die Entität gibt es nicht*, *Home Assistant ist nicht erreichbar; neuer Versuch*, *Home Assistant ist wieder erreichbar*. Die Seite seiner Einstellungen zeigt live, ob die Verbindung steht und was jede Entität liefert.
+Die Seite **Protokoll** des Plugins (das Protokoll für einen Tag einschalten) sagt, was es liest und was nicht stimmt - einmal für jede Störung, nicht bei jedem Versuch: *die Einheit „l“ passt nicht*, *die Entität gibt es nicht*, *Home Assistant ist nicht erreichbar; neuer Versuch*, *Home Assistant ist wieder erreichbar*, *Home Assistant meldet weniger als den Kilometerstand, den Car Assistant schon kennt*. Die Seite seiner Einstellungen zeigt live, ob die Verbindung steht und was jede Entität liefert.
