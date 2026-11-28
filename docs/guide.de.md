@@ -57,6 +57,22 @@ Beide Fotos werden **auf deinem eigenen Server** gelesen (Texterkennung mit Tess
 ## Fahrzeugdaten
 *Weiteres → Fahrzeugdaten* zeigt alles zum Auto; der Stift öffnet das Formular. Das Formular ist in Kästen geteilt (*Dein Fahrzeug, Identifikation, Technik, Energie, Papiere*) und hat ein **Speichern** im Seitenkopf. Foto, Video, Design, Icon, Home-Assistant-Entitäten und Sicherung stehen nicht auf dieser Seite: Sie sind im Reiter **Auto** der Einstellungen.
 
+### Fahrzeugschein scannen
+Oben im Fahrzeugformular - beim Anlegen eines Autos und im Fahrzeugpass (*Weiteres → Fahrzeugdaten*, der Stift) - liest die Karte **Fahrzeugschein scannen** die *Zulassungsbescheinigung Teil I* eines deutschen Autos und trägt ein, was darin steht. *Scannen* nimmt ein Foto auf (das Handy öffnet die Kamera), *Datei laden* nimmt ein Foto aus der Mediathek oder ein PDF. Die Datei wird **auf deinem eigenen Server** gelesen (Texterkennung mit Tesseract, nichts geht ins Internet) und sofort weggeworfen; Name und Anschrift des Halters werden nie gelesen.
+
+![Das Fahrzeugformular nach dem Lesen eines Fahrzeugscheins: die Scan-Karte und die markierten Felder](screenshots/de/registration-scan.png)
+
+- **Was eingetragen wird:** Kennzeichen, Marke, Modell, Typ (Feld D.2), Erstzulassung, HSN, TSN, FIN, Aufbau, Kraftstoff (und Gas als zweiter Kraftstoff), Leistung, Hubraum, Sitzplätze, zulässige Gesamtmasse und Farbe.
+- **Nur leere Felder.** Was schon eingetragen ist, bleibt - der Kraftstoff eines neuen Autos gilt als leer, bis du einen wählst. Sagt der Fahrzeugschein etwas anderes, nennt die Karte diese Felder (*nicht geändert*), und *Werte aus dem Fahrzeugschein übernehmen* übernimmt sie, wenn du es möchtest.
+- **Markierte Felder.** Was aus dem Fahrzeugschein kommt, hat den Rahmen in der Akzentfarbe, und die Gruppen mit ausgefüllten Feldern öffnen sich. **Gelb** heißt: Nur eines von mehreren Lesungen hat es gefunden - bitte besonders genau prüfen. Gespeichert wird erst mit **Speichern**.
+- **Die nächste HU** (Feld X auf der linken Seite) wird als Termin angeboten: Bei eingeschaltetem Schalter kommt beim Speichern ein Termin *Hauptuntersuchung* für diesen Monat dazu - nur wenn das Auto noch keinen offenen HU-Termin hat. Ein Monat, der nur einmal gelesen wurde, wird mit ausgeschaltetem Schalter angeboten.
+
+Nimm alle drei Seiten in einem Bild auf, flach, bei gutem Licht und ohne Spiegelungen (ein Bild, das auf der Seite liegt oder auf dem Kopf steht, dreht die App selbst). Das Lesen ist eine Schätzung: Die Tabelle hat Linien, auf die der Text gedruckt ist, das Papier hat einen Sicherheitsdruck und ein Foto hat ungleichmäßiges Licht - darum wird jede der drei Seiten gerade gedreht, von Linien und Licht befreit, vergrößert und mehrmals gelesen; was die Lesungen gemeinsam sagen, zählt. Ein Feld kann leer bleiben oder eine Ziffer falsch haben, prüfe also immer die markierten Werte. Ohne die Texterkennung auf dem Server wird die Karte nicht gezeigt.
+
+Der Fahrzeugschein unten ist **ausgedacht** - jeder Wert ist erfunden, wie im Bild oben - und zeigt die Art Foto, für die das Lesen gemacht ist (`tools/practice_registration.py` schreibt solche Fahrzeugscheine, siehe [Pflege](maintaining.de.md)):
+
+![Ein ausgedachter Fahrzeugschein, fotografiert](screenshots/de/registration-sample.jpg)
+
 ## Einstellungen eines Autos
 *Einstellungen → Auto* (das Auto unter dem Titel):
 

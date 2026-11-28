@@ -34,6 +34,12 @@ Tap the odometer on the dashboard: it turns over to a box. Type the number or ta
 
 ![A fuel receipt read: the form is filled in](screenshots/en/fuel-scan.png)
 
+## The vehicle form: a registration certificate read
+
+*Vehicle data → pencil* (and when you add a car): the card *Scan registration certificate* reads a photo or a PDF of the certificate (the “Fahrzeugschein”) on your own server. Only the fields that are still empty are filled in and marked - what is written already stays; a yellow mark says the reading was not sure. The next inspection is offered as an appointment. Nothing is saved before *Save*. The certificate in the photo is made up.
+
+![A registration certificate read: the card and the marked fields of the form](screenshots/en/registration-scan.png)
+
 ## Import fill-ups from another app
 
 *Fuel → the arrows at the top right → Import CSV*: choose the CSV file of Fuelio (or another app), check which column is what - Car Assistant has guessed from the names and shows an example value beside every choice - and look at what will be written before you press *Import*.

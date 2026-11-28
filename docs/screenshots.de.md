@@ -34,6 +34,12 @@ Tippe auf den Kilometerstand im Dashboard: Er dreht sich zu einem Eingabefeld um
 
 ![Ein Tankbeleg wurde gelesen: das Formular ist ausgefüllt](screenshots/de/fuel-scan.png)
 
+## Das Fahrzeugformular: ein Fahrzeugschein gelesen
+
+*Fahrzeugdaten → Stift* (und beim Anlegen eines Autos): Die Karte *Fahrzeugschein scannen* liest ein Foto oder PDF des Fahrzeugscheins auf deinem eigenen Server. Nur die Felder, die noch leer sind, werden ausgefüllt und markiert - was schon eingetragen ist, bleibt; ein gelber Rahmen heißt, dass die Lesung nicht sicher war. Die nächste HU wird als Termin angeboten. Gespeichert wird erst mit *Speichern*. Der Fahrzeugschein auf dem Foto ist ausgedacht.
+
+![Ein Fahrzeugschein gelesen: die Karte und die markierten Felder des Formulars](screenshots/de/registration-scan.png)
+
 ## Tankungen aus einer anderen App importieren
 
 *Tanken → die Pfeile oben rechts → CSV importieren*: Wähle die CSV-Datei von Fuelio (oder einer anderen App), prüfe, welche Spalte was ist - Car Assistant hat an den Namen geraten und zeigt neben jeder Wahl einen Beispielwert - und sieh dir an, was geschrieben wird, bevor du *Importieren* drückst.

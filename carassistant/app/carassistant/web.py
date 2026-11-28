@@ -798,11 +798,32 @@ def _source_vehicles() -> tuple[list, bool]:
         return sources.available_vehicles(conn), sources.demo_offered(conn)
 
 
+def _open_inspection(conn: sqlite3.Connection, vid: int) -> bool:
+    """The car has an inspection appointment that is not done yet."""
+    return (
+        conn.execute("SELECT 1 FROM appointments WHERE vehicle_id = ? AND kind = 'inspection' AND done = 0 LIMIT 1", (vid,)).fetchone()
+        is not None
+    )
+
+
+def add_certificate_inspection(conn: sqlite3.Connection, vid: int, form: dict[str, str]) -> None:
+    """The month of the next inspection that a scanned registration certificate names (``reg_inspection``, "2027-06", sent only while the switch of the scan
+    card is on) becomes an appointment - when the car has no open inspection appointment yet: what is there stays."""
+    month = (form.get("reg_inspection") or "").strip()
+    if not re.fullmatch(r"(?:19|20)\d\d-(?:0[1-9]|1[0-2])", month) or _open_inspection(conn, vid):
+        return
+    title = i18n.translator(config.language())("kind.inspection")
+    values = entities.parse_form(entities.APPOINTMENTS, {"kind": "inspection", "title": title, "due_date": month})
+    entities.insert(conn, entities.APPOINTMENTS, vid, values)
+
+
 def vehicle_form_page(request: Request, vehicle: sqlite3.Row | None, form: dict | None = None, error=None, status: int = 200):
     odometer = None
+    has_inspection = False
     if vehicle is not None:
         with db.tx() as conn:
             odometer = summary.current_odometer(conn, vehicle["id"])
+            has_inspection = _open_inspection(conn, vehicle["id"])
     return render(
         request,
         "vehicle_form.html",
@@ -821,6 +842,8 @@ def vehicle_form_page(request: Request, vehicle: sqlite3.Row | None, form: dict 
         open_group=re.sub(r"[^a-z]", "", request.query_params.get("open", ""))[:12],
         source_vehicles=_source_vehicles()[0],
         demo_offered=_source_vehicles()[1],
+        reg_scan_on=receipt_available(),  # a photo of the registration certificate fills in the empty fields (needs text recognition on the server)
+        has_inspection=has_inspection,
     )
 
 
@@ -848,6 +871,7 @@ async def vehicle_create(request: Request):
             km = (form.get("odometer") or "").strip()
             if km:
                 summary.add_odometer(conn, vid, round(units.of().from_d(entities.parse_float(km, "f.odometer"))))
+            add_certificate_inspection(conn, vid, form)
     except FormError as exc:
         return vehicle_form_page(request, None, form, exc.args, 400)
     events.changed()
@@ -1143,6 +1167,7 @@ async def vehicle_update(request: Request, vid: int):
             new_slug = slugs.unique(conn, values["name"], vid)
             conn.execute("UPDATE vehicles SET slug = ? WHERE id = ?", (new_slug, vid))
             await save_photo(conn, vid, raw.get("photo"))
+            add_certificate_inspection(conn, vid, form)
         except FormError as exc:
             return vehicle_form_page(request, vehicle, form, exc.args, 400)
     if renamed:
@@ -3193,6 +3218,7 @@ from . import (  # noqa: E402,F401
     pagemods_web,
     push_web,
     receipt_web,
+    registration_web,
     setupflow_web,
     sources_web,
     tiles_web,

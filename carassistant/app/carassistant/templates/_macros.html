@@ -184,8 +184,8 @@
 {%- endmacro %}
 
 {# A setting as a switch row: text left, Yes / No, the round-cornered switch right. ONE place for every on/off setting (the look is in pc-core.css, .sw-row). #}
-{% macro switch_row(name, label, on, value='1', hint='', required=False) %}
-<label class="nm-row sw-row"><span class="nm-t">{{ label }}{% if hint %}<small class="muted">{{ hint }}</small>{% endif %}</span><span class="nm-state"><i class="y">{{ _('notify.yes') }}</i><i class="n">{{ _('notify.no') }}</i></span><span class="switch"><input type="checkbox" name="{{ name }}" value="{{ value }}" {{ 'checked' if on }}{{ ' required' if required }}><span></span></span></label>
+{% macro switch_row(name, label, on, value='1', hint='', required=False, form_id='') %}
+<label class="nm-row sw-row"><span class="nm-t">{{ label }}{% if hint %}<small class="muted">{{ hint }}</small>{% endif %}</span><span class="nm-state"><i class="y">{{ _('notify.yes') }}</i><i class="n">{{ _('notify.no') }}</i></span><span class="switch"><input type="checkbox" name="{{ name }}" value="{{ value }}" {{ 'checked' if on }}{{ ' required' if required }}{{ ' form="' ~ form_id ~ '"' if form_id }}><span></span></span></label>
 {% endmacro %}
 
 {# The count line at the very bottom of a page with many entries: faint, centred, one line ("6 entries · 838,90 €"). One building block for all data pages. #}

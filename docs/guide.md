@@ -57,6 +57,22 @@ Both photos are read **on your own server** (text recognition with Tesseract, no
 ## Vehicle data
 *More → Vehicle data* shows everything about the car; the pencil opens the form. The form is split into boxes (*Your vehicle, Identification, Technical, Energy, Papers*) and has one **Save** in the page header. Photo, video, design, icon, Home Assistant entities and backup are not on this page: they sit on the **Car** tab of the settings.
 
+### Scan the registration certificate
+At the top of the vehicle form - when you add a car and in the vehicle passport (*More → Vehicle data*, the pencil) - the card **Scan registration certificate** reads the *Zulassungsbescheinigung Teil I* (the “Fahrzeugschein”) of a German car and fills in what it says. *Scan* takes a photo (the phone opens its camera), *Load file* takes a photo from the library or a PDF. The file is read **on your own server** (text recognition with Tesseract, nothing goes online) and thrown away at once; the name and address of the holder are never read.
+
+![The vehicle form after a certificate was read: the scan card and the marked fields](screenshots/en/registration-scan.png)
+
+- **What it fills in:** licence plate, make, model, type (field D.2), first registration, HSN, TSN, VIN, body, fuel (and gas as the second fuel), power, displacement, seats, permitted gross weight and colour.
+- **Only empty fields.** What is written already stays - the fuel of a new car counts as empty until you choose one. Where the certificate says something else, the card names those fields (*not changed*), and *Use the values of the certificate* takes them over when you want.
+- **Marked fields.** What came from the certificate has the accent border, and the groups with filled fields open. A **yellow** mark says that only one of several readings found it - look at these twice. Nothing is saved before you press **Save**.
+- **The next inspection** (field X on the left page) is offered as an appointment: with the switch on, an *Inspection* appointment for that month is added when you save - only when the car has no open inspection appointment yet. A month that was read only once is offered with the switch off.
+
+Take all three pages in one picture, flat, in good light and without reflections (a picture that lies on its side or upside down is turned by the app). The reading is an estimate: the table has ruling lines the text is printed onto, the paper has a security print and a photo has uneven light - so each of the three pages is turned level, cleaned of lines and light, enlarged and read several times, and what the readings agree on counts. A field may stay empty or have a digit wrong, so always check the marked values. Without the text recognition on the server the card is not shown.
+
+The certificate below is **made up** - every value is invented, as is the one in the picture above - and shows the kind of photo the reading is made for (`tools/practice_registration.py` writes such certificates, see [Maintaining](maintaining.md)):
+
+![A made-up registration certificate, photographed](screenshots/en/registration-sample.jpg)
+
 ## Settings of a car
 *Settings → Car* (the car shown under the title):
 

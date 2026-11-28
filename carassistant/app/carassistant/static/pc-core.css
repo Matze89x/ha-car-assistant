@@ -3355,6 +3355,14 @@ form:has(> .sw-row:last-child) + .hint, form:has(> .sw-row:last-child) + p, form
 .fuel-scan .scan-note.ok { color: var(--ok); }
 .fuel-scan .scan-note.warn { color: var(--warn, #f59e0b); }
 .scan-hit { border-color: var(--accent) !important; box-shadow: 0 0 0 1px var(--accent) inset; }
+.scan-hit.scan-unsure { border-color: var(--warn, #f59e0b) !important; box-shadow: 0 0 0 1px var(--warn, #f59e0b) inset; }  /* a reading of a certificate that only one try found */
+
+/* the registration certificate scan in the form of the vehicle pass: the scan row of a fuel receipt, then the button that takes over values that differ and the switch for the next inspection, each over the whole width */
+.vf-scan { margin: 0 0 var(--sp-col); }
+.vf-scan > .hint { margin: 0 0 12px; }
+.vf-scan [hidden] { display: none !important; }  /* (a button or a row hidden by the script: the display of its class must not win) */
+.vf-scan .reg-apply, .vf-scan .reg-insp { grid-column: 1 / -1; }
+.vf-scan .reg-insp .nm-row { border-bottom: 0; padding-bottom: 0; }  /* no line after the last row */
 
 /* ===== Map page: one full-area map; back, search and tools float on it ===== */
 .map-stage { position: relative; height: calc(100dvh - 160px); min-height: 340px; border-radius: var(--r-l); overflow: hidden; border: 1px solid var(--glass-b); background: var(--card2); isolation: isolate; }

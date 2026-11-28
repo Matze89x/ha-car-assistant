@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, page_head, steps, form_bar, step_nav with context %}
-{% block scripts %}<script src="{{ base }}/static/media.js?v={{ asset_v }}" defer></script>{% if google_help %}<script src="{{ base }}/static/lookup.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
+{% from "_macros.html" import icon, page_head, steps, form_bar, step_nav, switch_row with context %}
+{% block scripts %}<script src="{{ base }}/static/media.js?v={{ asset_v }}" defer></script>{% if google_help %}<script src="{{ base }}/static/lookup.js?v={{ asset_v }}" defer></script>{% endif %}{% if reg_scan_on and not setup_flow %}<script src="{{ base }}/static/registration.js?v={{ asset_v }}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 {% set fuel_icon = {'petrol': 'gas-station', 'diesel': 'oil', 'lpg': 'water-percent', 'cng': 'fuel', 'hybrid': 'sync', 'electric': 'lightning-bolt'} %}
 {% macro fgroup(ic, chip, title, hint='', open=False, key='') %}
@@ -53,6 +53,21 @@
 
 
 <form method="post" enctype="multipart/form-data" action="{{ base }}{{ '/v/' ~ vehicle.id ~ '/edit' if vehicle else '/vehicles' }}" id="vform">{% if not vehicle %}<input type="hidden" name="recommended" value="1">{% endif %}</form>
+{% if reg_scan_on and not setup_flow %}
+<section class="card vf-scan" data-regscan="{{ base }}/registration/scan" data-new="{{ 0 if editing else 1 }}" data-has-inspection="{{ 1 if has_inspection else 0 }}" data-t-busy="{{ _('reg.busy') }}" data-t-ok="{{ _('reg.ok') }}" data-t-same="{{ _('reg.same') }}" data-t-diff="{{ _('reg.diff') }}" data-t-applied="{{ _('reg.applied') }}" data-t-none="{{ _('reg.none') }}" data-t-err="{{ _('reg.err') }}" data-t-unsure="{{ _('reg.unsure') }}" data-t-inspection="{{ _('reg.inspection') }}" data-t-inspection_unsure="{{ _('reg.inspection_unsure') }}" data-t-inspection_have="{{ _('reg.inspection_have') }}">
+  <div class="fg-head"><span class="mi-ic c6">{{ icon('card-text-outline', 17) }}</span><span class="fg-t">{{ _('reg.title') }}</span></div>
+  <p class="hint">{{ icon('info', 14) }} {{ _('reg.hint') }}</p>
+  <div class="fuel-scan">
+    <button type="button" class="button small" data-reg-btn="camera">{{ icon('camera', 16) }}<span>{{ _('reg.camera') }}</span></button>
+    <button type="button" class="button small" data-reg-btn="file">{{ icon('upload', 16) }}<span>{{ _('reg.file') }}</span></button>
+    <input type="file" accept="image/*" capture="environment" data-reg-file="camera" hidden>
+    <input type="file" accept="image/*,application/pdf" data-reg-file="file" hidden>
+    <p class="hint scan-note" data-reg-note role="status" hidden></p>
+    <button type="button" class="button small reg-apply" data-reg-apply hidden>{{ icon('check', 16) }}<span>{{ _('reg.apply') }}</span></button>
+    <div class="reg-insp" data-reg-insp hidden>{{ switch_row('reg_inspection', '', True, '', form_id='vform') }}</div>
+  </div>
+</section>
+{% endif %}
 <div class="vform">
   <section class="card fgroup basics">
     <div class="fg-head"><span class="mi-ic c1">{{ icon('car-side', 17) }}</span><span class="fg-t">{{ _('vf.basics') }}</span></div>

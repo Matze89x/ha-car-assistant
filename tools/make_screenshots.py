@@ -31,7 +31,16 @@ CHROME = os.environ.get("CHROME") or "/Applications/Google Chrome.app/Contents/M
 DIESEL, EV = "demo-diesel", "demo-electric"
 INVOICE_OPEN, INVOICE_BOOKED = 4, 5  # the two invoices of the first demo car (the documents come right after its three others)
 COMPACT = "demo-compact"  # a plain car with no data from the car: its dashboard shows the odometer plate you can turn over and type on
-SCENES = ("odometer-photo", "fuel-scan", "connections-map", "coding", "update-window", "wallbox", "mobile-wallbox")  # pictures that need a tap and a photo first (tools/cdp.py)
+SCENES = (
+    "odometer-photo",
+    "fuel-scan",
+    "registration-scan",
+    "connections-map",
+    "coding",
+    "update-window",
+    "wallbox",
+    "mobile-wallbox",
+)  # pictures that need a tap and a photo first (tools/cdp.py)
 
 # name, path, width, height (desktop pictures; the height cuts the page where it is still worth looking at)
 DESKTOP = (
@@ -499,7 +508,9 @@ def update_window(b, base: str, out: Path) -> None:
         x, y, w, h = b.run(
             "(function(){var r=document.querySelector('dialog.upd-dlg').getBoundingClientRect();return [r.left,r.top,r.width,r.height];})()"
         )
-        b.shot(out, clip=(max(0, x - 14), max(0, y - 14), min(500, w + 28), h + 28), scale=1)  # the window with a little of the dimmed page around it
+        b.shot(
+            out, clip=(max(0, x - 14), max(0, y - 14), min(500, w + 28), h + 28), scale=1
+        )  # the window with a little of the dimmed page around it
     finally:
         with db.tx() as conn:
             conn.execute("DELETE FROM vehicle_addons WHERE id = ?", (pk,))
@@ -670,6 +681,24 @@ def scenes(base: str, out_root: Path, lang: str, only: set[str]) -> None:
             b.shot(screen, clip=(max(0, x - 10), max(0, y - 10), min(520, w + 20), h + 20), scale=2)
             compose(photo, screen, out_root / lang / "fuel-scan.png", photo_height=None)
             print(lang, "fuel-scan", flush=True)
+        if not only or "registration-scan" in only:
+            # the form of a new car after a (made-up) registration certificate was read: the scan card, the basics and the first open group - and the certificate itself
+            import practice_registration
+
+            sample = practice_registration.samples()[0]  # the made-up diesel station wagon: every value of it is invented
+            sheet = out_root / lang / "registration-sample.jpg"
+            sheet.parent.mkdir(parents=True, exist_ok=True)
+            sheet.write_bytes(practice_registration.for_docs(sample.data))
+            b.open(f"{base}/vehicles/new", 1200, 2700, 1, settle=1.0)  # (tall: the picture reaches below the hero and the restore box of the page)
+            b.run(upload_script('[data-reg-file="file"]', sample.data, "certificate.jpg", "image/jpeg"))
+            b.wait_for(note % "[data-reg-note]")
+            time.sleep(0.8)
+            x, y, w, h = b.run(
+                "(function(){var c=document.querySelector('.vf-scan').getBoundingClientRect(),g=document.querySelector('input[name=vin]').closest('label').getBoundingClientRect();"
+                "return [c.left+scrollX,c.top+scrollY,c.width,g.bottom-c.top];})()"
+            )
+            b.shot(out_root / lang / "registration-scan.png", clip=(max(0, x - 10), max(0, y - 10), w + 20, h + 30), scale=1)  # (down to the VIN with its hint)
+            print(lang, "registration-scan", flush=True)
         if not only or "coding" in only:
             # the Coding page: the first control unit is opened and its first changed byte chosen (the window ends right below the list of the changes)
             b.open(f"{base}/v/{EV}/m/coding", 1200, 1470, 1, settle=1.0)
