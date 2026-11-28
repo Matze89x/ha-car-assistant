@@ -1050,7 +1050,7 @@ def test_the_page_script_asks_what_the_entities_deliver_and_for_entities_to_choo
         },
     ).json()
     rows = answer["rows"]
-    assert answer["ok"] and answer["ha"]
+    assert answer["ok"] and answer["ha"] and answer["trip"] is None  # (the option to record trips is off: no line about them)
     assert rows["e.range_km"] == {"level": "ok", "text": "281 km", "from": ""}
     assert rows["e.tyre_fl"] == {"level": "ok", "text": "2.4 bar", "from": "from 34.8 psi"}
     assert rows["e.locked"]["text"] == "Locked" and rows["e.locked"]["from"] == "state: locked"
@@ -1598,3 +1598,14 @@ def test_the_page_writes_numbers_the_way_the_language_does(client, home, monkeyp
     assert habridge.describe(cat.BY_KEY["locked"], one("locked", state("lock.car", "locked")), de)["text"] == "Verriegelt"
     bad = habridge.describe(slot, one("charge_power_kw", state("sensor.power", "7400", "bananas")), de)
     assert bad == {"level": "bad", "text": "Die Einheit „bananas“ passt nicht - wähle die Einheit in den Optionen", "from": ""}
+
+
+def test_the_line_about_the_trips_comes_with_the_readings_of_the_page(client, home):
+    """The script of the page asks every few seconds what the entities deliver; the line under the tracker row comes with the answer, so it follows the car."""
+    vid, pk = install(client)
+    assert save(client, vid, pk, **{"o.position.track": "1"}).status_code == 303
+    answer = client.post(f"/v/{vid}/integrations/{pk}/bridge/preview", data=dict(FORM, **{"o.position.track": "1"})).json()
+    assert answer["trip"]["level"] == "idle" and "waiting for the first report" in answer["trip"]["text"]
+    assert habridge.tick(1000.0) == 1
+    answer = client.post(f"/v/{vid}/integrations/{pk}/bridge/preview", data=FORM).json()
+    assert answer["trip"]["level"] == "ok" and answer["trip"]["text"].startswith("Trips: recording.")

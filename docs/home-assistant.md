@@ -38,7 +38,7 @@ If the connection fails (Home Assistant restarts, the network blinks) the app bu
 - **Dates and times.** For *Charging time left* and *Days to service* an entity that holds a time or a date works too: the minutes or days until then are used.
 - **The time of the measurement.** Each value carries the time Home Assistant gives (`last_reported` / `last_updated`) as `measured_at`. When two sources deliver the same field, the **newer measurement wins**; an older one never replaces a newer one.
 - **Only what changed** is sent. An entity that is *unavailable* or *unknown* is skipped (the last value stays, with its age) - a car that sleeps is no error. A value the Plugin API would refuse (a tank level of 250 %) is refused for that row only; the others go on.
-- **The odometer** only ever grows, as everywhere in Car Assistant: a reading that is lower than the highest known one (a fill-up or service entry typed with a higher figure counts as known) is not taken and is noted once in the log of the plugin; it counts again as soon as it is higher. Nothing has to be triggered: as soon as an entity is chosen for the odometer, every change arrives by itself, and the dashboard shows the figure instead of asking for it. **A helper for the odometer** (an `input_number`) needs a high enough *maximum* - Home Assistant makes one with 100 unless you set it, and refuses every higher value, so the helper never holds a real odometer - and the unit `km` (or `mi`; without a unit the figure counts as kilometres).
+- **The odometer** only ever grows, as everywhere in Car Assistant: a reading that is lower than the highest known one (a fill-up or service entry typed with a higher figure counts as known) is not taken and is noted once in the log of the plugin; it counts again as soon as it is higher - or as soon as the entry with the higher figure is corrected. Nothing has to be triggered: as soon as an entity is chosen for the odometer, every change arrives by itself, and the dashboard shows the figure instead of asking for it. **A helper for the odometer** (an `input_number`) needs a high enough *maximum* - Home Assistant makes one with 100 unless you set it, and refuses every higher value, so the helper never holds a real odometer - and the unit `km` (or `mi`; without a unit the figure counts as kilometres).
 
 ### Yes and no
 
@@ -49,7 +49,7 @@ Where the entity does not say it in words Car Assistant knows, the options of th
 ### Position, tyres, doors, warnings
 
 - **Position.** Choose a *tracker* or a *person* (or any entity with `latitude` and `longitude`), or - lower in the group - two sensors, one for each half. A position of 0, 0 (no fix) is not taken.
-- **Trips from a tracker.** Under *Options* of the position row, *Record trips from this tracker* keeps every move of the tracker as a point of the route, and a drive that is over becomes a trip in the trip log - with the route, the distance and the times, exactly like a drive that a plugin sends as a track. It is off until you switch it on (a route is more than the last position). A point is kept only when the car is at least 40 m from the last one (a parked tracker jitters by a few metres), not while an ignition entity is chosen and says off, and not for a fix that the tracker itself calls inexact (`gps_accuracy` above 100 m). A drive begins where the car stood at the last report before it moved - a report that comes after more than ten minutes of silence (the night, a restart of the app) is no start, the next one is compared with it. A drive ends when nothing new has come for ten minutes or the ignition goes off (choose the interface *Ignition*, an `input_boolean` or a `binary_sensor` that is on while the car drives, and the trip is over at once); one that is shorter than 300 m or has fewer than three points is dropped. **How fine the route is depends on how often the tracker reports:** a phone app that reports every minute or two makes good trips, a car integration that reports every ten minutes makes none. The route stays on this server.
+- **Trips from a tracker.** Under *Options* of the position row, *Record trips from this tracker* keeps every move of the tracker as a point of the route, and a drive that is over becomes a trip in the trip log - with the route, the distance and the times, exactly like a drive that a plugin sends as a track. It is off until you switch it on (a route is more than the last position). A point is kept only when the car is at least 40 m from the last one (a parked tracker jitters by a few metres), not while an ignition entity is chosen and says off, and not for a fix that the tracker itself calls inexact (`gps_accuracy` above 100 m). A drive begins where the car stood at the last report before it moved - a report that comes after more than ten minutes of silence (the night, a restart of the app) is no start, the next one is compared with it. A drive ends when nothing new has come for ten minutes or the ignition goes off (choose the interface *Ignition*, an `input_boolean` or a `binary_sensor` that is on while the car drives, and the trip is over at once); one that is shorter than 300 m or has fewer than three points is dropped. **How fine the route is depends on how often the tracker reports:** a phone app that reports every minute or two makes good trips, a car integration that reports every ten minutes makes none. The route stays on this server. What the app misses while it is off is read from the history of Home Assistant afterwards, and the page and the log say what is wrong when nothing is recorded - see [Getting the odometer and the trips right](#getting-the-odometer-and-the-trips-right).
 - **Tyres.** Four interfaces, one for each wheel; the pressure is converted to bar.
 - **Doors, windows, lights, warnings** are lists: one row for each door (`front_left`, `trunk` ...), with a name you choose and the entity. A warning shows its text (the name of the entity, or the text you type) while its entity is on, and goes away when it is off.
 
@@ -128,6 +128,118 @@ Every car, wallbox and integration is a little different. The options of a row c
 
 The plugin reads only what Home Assistant says is a value; it never evaluates templates itself, so a template can never run anything inside Car Assistant.
 
+## Getting the odometer and the trips right
+
+The two questions that come up most: *why does my mileage not arrive?* and *why are my drives not recorded?* Both come down to the same thing: **which entity has to say what, and how often.** Everything below was tried against a real Home Assistant (2026.11) with real helpers; the tests that do it are `tests/test_real_ha.py` (see [Contributing](https://github.com/Matze89x/ha-car-assistant/blob/main/CONTRIBUTING.md)).
+
+### The odometer
+
+**One entity that holds the total distance of the car as a number.** It can be
+
+- a **sensor** of the car's integration - best one with the device class *distance* and the state class *total_increasing* (Home Assistant's way of saying "this only goes up"; there is no device class called odometer). The list of entities puts such sensors first, and a trip meter or the "distance to the next service" after them;
+- a **helper** (*Settings → Devices & services → Helpers → Number*) that you keep up to date yourself or that an automation fills - set the **maximum** high (`1000000`; Home Assistant makes it 100 unless you set it and then refuses every higher value) and the unit to `km` (or `mi`);
+- a **template sensor** that takes the number from an attribute or cuts it out of a text.
+
+The unit may be `km`, `mi` or `m`; a figure without a unit counts as kilometres. Car Assistant keeps whole kilometres.
+
+![The odometer row of the Home Assistant plugin: the entity and what it delivers right now](screenshots/en/ha-odometer.png)
+
+**How it goes.** You choose the entity and save → the plugin reads it at once → every change arrives within about a second (live connection) → a figure is **taken only if it is higher** than everything Car Assistant knows (the highest of all readings, fill-ups, services and trips) → the dashboard shows the figure instead of asking for it.
+
+| What you see | The reason | What to do |
+|---|---|---|
+| *Not available right now* | the car sleeps, or the integration says `unavailable` / `unknown`: the last figure stays, that is no error | nothing - it arrives when the car wakes up |
+| The figure does not change | the entity itself does not change (look at *last updated* in Home Assistant, *Developer tools → States*) | fix it there: Car Assistant can only show what Home Assistant says |
+| The log says *Home Assistant reports less than the odometer Car Assistant already knows* | a fill-up, service or trip was typed with a **higher** figure (one digit too many is typical) | correct that entry - Home Assistant's figure counts at the next reading (within the time of *Look at least every*), nothing has to change in Home Assistant |
+| Home Assistant refuses the value you type into the helper | the maximum of the helper is 100 | set *Maximum* to `1000000` in the settings of the helper |
+| The figure is 1.6 times too big or too small | miles without a unit | give the helper or sensor the unit `mi`, or choose the unit in the *Options* of the row |
+| *Taken by ...* on the row | another plugin of this car already delivers the odometer | one source for each interface - see [One interface, one plugin](#one-interface-one-plugin) |
+| *This entity does not exist in Home Assistant* | a typo, or the entity was removed | choose it from the list |
+
+### The trips
+
+**What each entity has to say.**
+
+| Interface | Needed? | What it has to deliver |
+|---|---|---|
+| **Position** (a tracker or a person) with *Record trips* | yes | `latitude` and `longitude` as attributes (the `device_tracker` of a phone app or of the car maker's integration, or a `person`), and a new report **at least every one or two minutes while the car drives**; best also `gps_accuracy` |
+| **Ignition** | no, but recommended | `on` while the car drives, `off` when it stands: a `binary_sensor` (device class *running* or *power*), an `input_boolean`, anything that says on / off. It ends a drive **at once** and keeps nothing while it says off |
+| The module **Trips** | yes | switched on for this car (*Integrations & modules*) - the drives are recorded even before, but nothing shows them |
+
+A tracker that only knows whether the phone is near the router (`source_type` `router` or `bluetooth`) has no position and is no tracker for this.
+
+**What the app does with every report**, in this order: a fix the tracker calls inexact (`gps_accuracy` above 100 m) is left out → the first report after a start is only the place to compare with → a report that comes more than ten minutes after the one before is *no start of a drive* (nothing says how the car got there) → a place more than 540 km/h away from the last is a jump (a bad fix): the route is broken there instead of a line being drawn → while the ignition entity says off nothing is kept → a point is kept when the car is at least 40 m from the last one (the place where it *stood* comes first) → a drive ends when nothing new came for ten minutes or the ignition goes off → shorter than 300 m or fewer than three points is dropped, anything else is a trip in the trip log with its route, distance and times.
+
+**Drives the app missed.** The app can be off (an update, a restart), Home Assistant unreachable or the live connection away while the car drives. When the next report comes more than ten minutes after the last one the app saw, it reads what the **recorder** of Home Assistant kept of the tracker (and of the ignition entity) in between - up to 48 hours back - and puts it through the same rules; what is stored already is not stored twice, and the log says *caught up from the history of Home Assistant*. If the recorder cannot be asked yet (Home Assistant has just started) it is asked again for ten minutes. This works for a car whose drives were recorded before (binding a tracker for the first time never imports the past) and only as far as the recorder keeps the entity: Home Assistant keeps ten days of states by default, and an entity you excluded from the recorder has no history. A position given as two sensors (latitude, longitude) has none to read.
+
+**Where it goes wrong - and what the page and the log say.** A line under the position row says whether the drives are recorded; the log of the plugin names the usual troubles (once, after the same thing has happened several times in a row):
+
+| What you see | The reason | What to do |
+|---|---|---|
+| The line says *the Trips module is off* | the module is off for this car | switch it on under *Integrations & modules* |
+| *the car moves, but the ignition entity says off* | the entity chosen as ignition does not follow the car (a door sensor, a charger, a phone that is not in the car) | choose the right one - or clear the row |
+| *the tracker reports less often than every 10 min* | a car integration that polls every 15 minutes, or an iPhone (see below) | a tracker that reports every 1-2 minutes while the car drives |
+| *the tracker calls its fixes inexact* | a garage, or an app that may only use the approximate location | allow the exact location for the app |
+| Trips come out coarse | the reports come every 3-5 minutes: each is within the rules, but the points are far apart | the route is as fine as the reports - a faster tracker |
+
+The line while the drives are recorded, and when the car moves but the ignition entity says off:
+
+![The tracker row while the drives are recorded](screenshots/en/ha-trips-recording.png)
+
+![The tracker row when the car moves but the ignition entity says off](screenshots/en/ha-trips-warning.png)
+
+**A phone as the tracker.** *Android:* the Companion app reports in the background about every one to three minutes (every 30 seconds while navigating). For a fine route switch on **High accuracy mode** (*Companion app → Manage sensors*) and limit it to the Bluetooth connection of the car: then it reports every few seconds, only while it is connected to the car, and costs no battery otherwise. *iPhone:* iOS reports on *significant location change* - when it changes cell towers, in the worst case every few hours - which is far too rare for drives. Use the car maker's tracker, or ask the phone for its location while the car runs (the last recipe below).
+
+**Recipes** (for your `configuration.yaml`, or create the same in the interface; the names of the phone's entities differ - look them up in *Developer tools → States*):
+
+- **An odometer helper** for a car that tells Home Assistant nothing (you type the figure in, or an automation does):
+
+  ```yaml
+  input_number:
+    car_odometer:
+      name: "Car odometer"
+      min: 0
+      max: 1000000
+      step: 1
+      mode: box
+      unit_of_measurement: "km"
+  ```
+
+- **The ignition from the Bluetooth connection of the phone** (Android). The state of the app's *Bluetooth connection* sensor is a count; the names of the connected devices are in its attributes:
+
+  ```yaml
+  template:
+    - binary_sensor:
+        - name: "Car ignition"
+          unique_id: car_ignition
+          device_class: running
+          state: "{{ 'My Car' in (state_attr('sensor.my_phone_bluetooth_connection', 'connected_paired_devices') | default([], true)) }}"
+  ```
+
+  (`My Car` is the name of the car's Bluetooth device.) Without Bluetooth the **activity** sensor of the app does nearly the same, a minute later: `state: "{{ is_state('sensor.my_phone_activity', 'in_vehicle') }}"` on Android, `'Automotive'` on an iPhone.
+
+- **Ask the phone where it is every minute while the car runs** (an iPhone - or an Android phone in the background; the command is part of the Companion app):
+
+  ```yaml
+  automation:
+    - alias: "Ask the phone where the car is while it runs"
+      triggers:
+        - trigger: time_pattern
+          minutes: "/1"
+      conditions:
+        - condition: state
+          entity_id: binary_sensor.car_ignition
+          state: "on"
+      actions:
+        - action: notify.mobile_app_my_phone
+          data:
+            message: request_location_update
+  ```
+
+**What is not covered.** No trips from the time before a tracker was bound; no route from a tracker that does not report while the car drives (the recorder cannot keep what was never written); a `person` that switches between two phones shows jumps - choose the tracker of the car or of one phone instead; the position of a parked car is only as exact as its tracker.
+
+**Home Assistant 2026.11.** Entity ids do not change with the new naming rules of this release - only the names shown (a name that starts with the device name loses that part, others gain the device as context); the choices you saved in Car Assistant keep working, the list may read a little differently. Trackers of the network scanner kind (router, FRITZ!Box ...) are now off by default and have no position anyway. The attribute `battery_level` of a tracker is deprecated; the *Battery level* of Car Assistant reads a sensor with the device class *battery*, as before.
+
 ## One interface, one plugin
 
 An interface you choose here **belongs to this plugin** for that car: while it is on, no other source of the car fills it - another plugin, a connector, the older Home Assistant fields of the vehicle form. Whatever such a source sends is answered with `ignored (taken by Home Assistant)` and not stored, so a value of the car always has exactly **one origin**.
@@ -177,4 +289,4 @@ Any other plugin may take interfaces for itself with `"claims": ["fuel_level_pct
 
 ## Watching it
 
-The plugin's **Logs** page (switch the log on for a day) says what it reads and what is wrong - once for each trouble, not at every try: *the unit "l" does not fit*, *the entity does not exist*, *Home Assistant cannot be reached; trying again*, *Home Assistant can be reached again*, *Home Assistant reports less than the odometer Car Assistant already knows*. The page of its settings shows live whether the connection stands and what every entity delivers. The same lines are in the log of the add-on in Home Assistant (see [the logs](logs.md)).
+The plugin's **Logs** page (switch the log on for a day) says what it reads and what is wrong - once for each trouble, not at every try: *the unit "l" does not fit*, *the entity does not exist*, *Home Assistant cannot be reached; trying again*, *Home Assistant can be reached again*, *Home Assistant reports less than the odometer Car Assistant already knows*, and for the trips *the car moves, but the ignition entity says off*, *the tracker reports less often than every 10 min*, *caught up from the history of Home Assistant*. The page of its settings shows live whether the connection stands and what every entity delivers. The same lines are in the log of the add-on in Home Assistant (see [the logs](logs.md)).

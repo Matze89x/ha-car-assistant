@@ -74,8 +74,15 @@ async def bridge_preview(request: Request, vid: int, aid: int):
     rows = habridge.preview(form, addon["m"], states, t)
     with db.tx() as conn:
         held = habridge.claims.owners(conn, addon["vehicle_id"])
+        trip = habridge.trip_status(conn, addon, habridge.bindings(conn, addon["id"]), states, t)  # (about the plugin as it is saved)
     return JSONResponse(
-        {"ok": True, "ha": states is not None, "rows": rows, "taken": {f: h["name"] for f, h in held.items() if h["pk"] != addon["id"]}}
+        {
+            "ok": True,
+            "ha": states is not None,
+            "rows": rows,
+            "taken": {f: h["name"] for f, h in held.items() if h["pk"] != addon["id"]},
+            "trip": trip,
+        }
     )
 
 

@@ -221,12 +221,12 @@ def test_a_drive_with_a_tracker_and_the_ignition_becomes_a_trip_when_the_ignitio
     car.bind(position=("device_tracker.ca_car", {"track": "1"}), ignition="input_boolean.car_ignition")
     real_ha.call("input_boolean", "turn_on", entity_id="input_boolean.car_ignition")
     car.pump(lambda: False, 1.5)
-    drive(car, "device_tracker.ca_car", 10, 0.0012, 0.0008)  # about 1.5 km
+    drive(car, "device_tracker.ca_car", 10, 0.0010, 0.0006)  # about 1.5 km
     assert car.trips()[0] == [] and car.trips()[1] >= 8  # the points are kept, the drive is not over
     real_ha.call("input_boolean", "turn_off", entity_id="input_boolean.car_ignition")
     assert car.pump(lambda: car.trips()[0], 10)
     (distance,) = car.trips()[0]
-    assert 1.0 < distance < 2.0
+    assert 0.9 < distance < 1.6  # (10 steps of about 120 m)
 
 
 def test_a_person_entity_makes_trips_like_a_tracker(car):
@@ -234,7 +234,7 @@ def test_a_person_entity_makes_trips_like_a_tracker(car):
     car.bind(position=("person.ca_test", {"track": "1"}), ignition="input_boolean.car_ignition")
     real_ha.call("input_boolean", "turn_on", entity_id="input_boolean.car_ignition")
     car.pump(lambda: False, 1.5)
-    drive(car, "person.ca_test", 8, 0.0012, 0.0008)
+    drive(car, "person.ca_test", 8, 0.0010, 0.0006)
     real_ha.call("input_boolean", "turn_off", entity_id="input_boolean.car_ignition")
     assert car.pump(lambda: car.trips()[0], 10)
 
@@ -242,8 +242,8 @@ def test_a_person_entity_makes_trips_like_a_tracker(car):
 @pytest.mark.parametrize(
     ("options", "accuracy", "dlat", "why"),
     [
-        ({}, 8, 0.0012, "the option *Record trips* is off (the default)"),
-        ({"track": "1"}, 150, 0.0012, "the tracker calls its fix inexact (over 100 m)"),
+        ({}, 8, 0.0010, "the option *Record trips* is off (the default)"),
+        ({"track": "1"}, 150, 0.0010, "the tracker calls its fix inexact (over 100 m)"),
     ],
 )
 def test_no_route_is_kept_when(car, options, accuracy, dlat, why):
@@ -251,7 +251,7 @@ def test_no_route_is_kept_when(car, options, accuracy, dlat, why):
     car.bind(position=("device_tracker.ca_car", options), ignition="input_boolean.car_ignition")
     real_ha.call("input_boolean", "turn_on", entity_id="input_boolean.car_ignition")
     car.pump(lambda: False, 1.5)
-    drive(car, "device_tracker.ca_car", 6, dlat, 0.0008, accuracy=accuracy)
+    drive(car, "device_tracker.ca_car", 6, dlat, 0.0006, accuracy=accuracy)
     real_ha.call("input_boolean", "turn_off", entity_id="input_boolean.car_ignition")
     car.pump(lambda: False, 2)
     assert car.trips() == ([], 0), why
@@ -261,7 +261,7 @@ def test_a_tracker_that_only_jitters_keeps_no_points_and_the_ignition_off_keeps_
     park("device_tracker.ca_car", 52.9, 13.8)
     car.bind(position=("device_tracker.ca_car", {"track": "1"}), ignition="input_boolean.car_ignition")
     car.pump(lambda: False, 1.5)  # the ignition is off
-    drive(car, "device_tracker.ca_car", 6, 0.0012, 0.0008)  # it moves, but the ignition says the car is off: nothing is kept
+    drive(car, "device_tracker.ca_car", 6, 0.0010, 0.0006)  # it moves, but the ignition says the car is off: nothing is kept
     assert car.trips() == ([], 0)
     real_ha.call("input_boolean", "turn_on", entity_id="input_boolean.car_ignition")
     car.pump(lambda: False, 1.5)
@@ -302,8 +302,8 @@ def test_a_drive_the_app_did_not_see_is_read_from_the_history_of_home_assistant(
         real_ha.set_state(
             "device_tracker.ca_car",
             "not_home",
-            latitude=round(52.45 + i * 0.0012, 6),
-            longitude=round(13.45 + i * 0.0008, 6),
+            latitude=round(52.45 + i * 0.0010, 6),
+            longitude=round(13.45 + i * 0.0006, 6),
             gps_accuracy=8,
         )
         time.sleep(1.05)
@@ -312,5 +312,5 @@ def test_a_drive_the_app_did_not_see_is_read_from_the_history_of_home_assistant(
     assert car.trips() == ([], 1)  # (the point put there by hand, nothing else)
     assert car.pump(lambda: car.trips()[0], 20)
     (distance,) = car.trips()[0]
-    assert 0.9 < distance < 1.4
+    assert 0.7 < distance < 1.3  # (8 steps of about 120 m)
     assert any(line.startswith("caught up from the history of Home Assistant") for line in car.log())

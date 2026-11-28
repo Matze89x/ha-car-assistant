@@ -38,6 +38,21 @@
     if (info && info.from) { line.appendChild(document.createTextNode(" ")); line.appendChild(el("small", "", info.from)); }
   }
 
+  // ---- the line about the trips under the tracker row: about the plugin as it is saved, so it goes while another tracker is typed
+  function setTrip(info) {
+    var line = form.querySelector("[data-hb-trip]");
+    if (!line) { return; }
+    var input = form.querySelector('input[name="e.position"]');
+    line.hidden = !info || (input && input.value.trim() !== input.defaultValue.trim());
+    if (line.hidden) { return; }
+    line.setAttribute("data-level", info.level);
+    line.textContent = "";
+    var dot = el("i", "av-dot" + (info.level === "ok" || info.level === "warn" || info.level === "bad" ? " " + info.level : ""));
+    dot.setAttribute("aria-hidden", "true");
+    line.appendChild(dot);
+    line.appendChild(el("b", "", info.text));
+  }
+
   function check() {
     if (busy) { checking = true; return; }
     busy = true;
@@ -54,6 +69,7 @@
           var searching = input === active && !ENTITY.test(typed);  // (words for the list below, no entity yet: nothing to say about it)
           setStatus(input, typed && !searching ? (data.rows || {})[input.name] : null);
         });
+        setTrip(data.trip);
         if (checking) { checking = null; check(); }
       })
       .catch(function () { busy = false; });

@@ -38,7 +38,7 @@ Fällt die Verbindung aus (Home Assistant startet neu, das Netz hakt), baut die 
 - **Datum und Uhrzeit.** Für *Restzeit Laden* und *Tage bis zum Service* geht auch eine Entität, die eine Zeit oder ein Datum enthält: Genommen werden die Minuten oder Tage bis dahin.
 - **Die Zeit der Messung.** Jeder Wert trägt die Zeit, die Home Assistant nennt (`last_reported` / `last_updated`), als `measured_at`. Liefern zwei Quellen dasselbe Feld, gewinnt die **neuere Messung**; eine ältere ersetzt nie eine neuere.
 - **Nur, was sich geändert hat**, wird gesendet. Eine Entität, die *nicht verfügbar* oder *unbekannt* ist, wird übersprungen (der letzte Wert bleibt, mit seinem Alter) - ein schlafendes Auto ist kein Fehler. Einen Wert, den die Plugin-API ablehnen würde (ein Tankstand von 250 %), lehnt sie nur für diese Zeile ab; die anderen laufen weiter.
-- **Der Kilometerstand** wächst nur, wie überall in Car Assistant: Ein Stand, der niedriger ist als der höchste bekannte (auch ein Tank- oder Serviceeintrag mit höherem Stand zählt als bekannt), wird nicht genommen und einmal im Protokoll des Plugins vermerkt; er zählt wieder, sobald er höher ist. Es muss nichts ausgelöst werden: Sobald eine Entität für den Kilometerstand gewählt ist, kommt jede Änderung von selbst, und das Dashboard zeigt den Stand an, statt ihn zur Eingabe anzubieten. **Ein Helfer für den Kilometerstand** (ein `input_number`) braucht ein ausreichend hohes *Maximum* - Home Assistant legt ihn mit 100 an, wenn du nichts einstellst, und lehnt jeden höheren Wert ab, sodass der Helfer nie einen echten Kilometerstand hält - und die Einheit `km` (oder `mi`; ohne Einheit zählt die Zahl als Kilometer).
+- **Der Kilometerstand** wächst nur, wie überall in Car Assistant: Ein Stand, der niedriger ist als der höchste bekannte (auch ein Tank- oder Serviceeintrag mit höherem Stand zählt als bekannt), wird nicht genommen und einmal im Protokoll des Plugins vermerkt; er zählt wieder, sobald er höher ist - oder sobald der Eintrag mit dem höheren Stand korrigiert ist. Es muss nichts ausgelöst werden: Sobald eine Entität für den Kilometerstand gewählt ist, kommt jede Änderung von selbst, und das Dashboard zeigt den Stand an, statt ihn zur Eingabe anzubieten. **Ein Helfer für den Kilometerstand** (ein `input_number`) braucht ein ausreichend hohes *Maximum* - Home Assistant legt ihn mit 100 an, wenn du nichts einstellst, und lehnt jeden höheren Wert ab, sodass der Helfer nie einen echten Kilometerstand hält - und die Einheit `km` (oder `mi`; ohne Einheit zählt die Zahl als Kilometer).
 
 ### Ja und Nein
 
@@ -49,7 +49,7 @@ Wo die Entität es nicht in Worten sagt, die Car Assistant kennt, helfen die Opt
 ### Position, Reifen, Türen, Warnungen
 
 - **Position.** Wähle einen *Tracker* oder eine *Person* (oder irgendeine Entität mit `latitude` und `longitude`) oder - weiter unten in der Gruppe - zwei Sensoren, einen für jede Hälfte. Eine Position von 0, 0 (kein Fix) wird nicht genommen.
-- **Fahrten aus einem Tracker.** Unter *Optionen* der Positions-Zeile hält *Fahrten dieses Trackers aufzeichnen* jede Bewegung des Trackers als Punkt der Strecke fest, und eine beendete Fahrt wird zu einer Fahrt im Fahrtenbuch - mit Strecke, Entfernung und Zeiten, genau wie eine Fahrt, die ein Plugin als Track schickt. Es ist aus, bis du es einschaltest (eine Strecke ist mehr als die letzte Position). Ein Punkt wird nur gehalten, wenn das Auto mindestens 40 m vom letzten entfernt ist (ein parkender Tracker zittert um ein paar Meter), nicht, solange eine Zündungs-Entität gewählt ist und „aus“ sagt, und nicht bei einem Fix, den der Tracker selbst als ungenau meldet (`gps_accuracy` über 100 m). Eine Fahrt beginnt dort, wo das Auto bei der letzten Meldung vor der Bewegung stand - eine Meldung nach mehr als zehn Minuten Stille (die Nacht, ein Neustart der App) ist kein Anfang, die nächste wird mit ihr verglichen. Eine Fahrt endet, wenn zehn Minuten nichts Neues kam oder die Zündung ausgeht (wähle die Schnittstelle *Zündung*, einen `input_boolean` oder einen `binary_sensor`, der an ist, solange das Auto fährt, und die Fahrt ist sofort zu Ende); eine unter 300 m oder mit weniger als drei Punkten fällt weg. **Wie fein die Strecke ist, hängt davon ab, wie oft der Tracker meldet:** Eine Handy-App, die jede oder jede zweite Minute meldet, gibt gute Fahrten, eine Auto-Integration, die alle zehn Minuten meldet, gibt keine. Die Strecke bleibt auf diesem Server.
+- **Fahrten aus einem Tracker.** Unter *Optionen* der Positions-Zeile hält *Fahrten dieses Trackers aufzeichnen* jede Bewegung des Trackers als Punkt der Strecke fest, und eine beendete Fahrt wird zu einer Fahrt im Fahrtenbuch - mit Strecke, Entfernung und Zeiten, genau wie eine Fahrt, die ein Plugin als Track schickt. Es ist aus, bis du es einschaltest (eine Strecke ist mehr als die letzte Position). Ein Punkt wird nur gehalten, wenn das Auto mindestens 40 m vom letzten entfernt ist (ein parkender Tracker zittert um ein paar Meter), nicht, solange eine Zündungs-Entität gewählt ist und „aus“ sagt, und nicht bei einem Fix, den der Tracker selbst als ungenau meldet (`gps_accuracy` über 100 m). Eine Fahrt beginnt dort, wo das Auto bei der letzten Meldung vor der Bewegung stand - eine Meldung nach mehr als zehn Minuten Stille (die Nacht, ein Neustart der App) ist kein Anfang, die nächste wird mit ihr verglichen. Eine Fahrt endet, wenn zehn Minuten nichts Neues kam oder die Zündung ausgeht (wähle die Schnittstelle *Zündung*, einen `input_boolean` oder einen `binary_sensor`, der an ist, solange das Auto fährt, und die Fahrt ist sofort zu Ende); eine unter 300 m oder mit weniger als drei Punkten fällt weg. **Wie fein die Strecke ist, hängt davon ab, wie oft der Tracker meldet:** Eine Handy-App, die jede oder jede zweite Minute meldet, gibt gute Fahrten, eine Auto-Integration, die alle zehn Minuten meldet, gibt keine. Die Strecke bleibt auf diesem Server. Was die App verpasst, während sie aus ist, wird danach aus dem Verlauf von Home Assistant gelesen, und die Seite und das Protokoll sagen, was nicht stimmt, wenn nichts aufgezeichnet wird - siehe [Kilometerstand und Fahrten richtig einrichten](#kilometerstand-und-fahrten-richtig-einrichten).
 - **Reifen.** Vier Schnittstellen, eine je Rad; der Druck wird in bar umgerechnet.
 - **Türen, Fenster, Lichter, Warnungen** sind Listen: eine Zeile je Tür (`front_left`, `trunk` ...), mit einem Namen, den du wählst, und der Entität. Eine Warnung zeigt ihren Text (den Namen der Entität oder den Text, den du eintippst), solange ihre Entität an ist, und verschwindet, wenn sie aus ist.
 
@@ -128,6 +128,118 @@ Jedes Auto, jede Wallbox und jede Integration ist ein wenig anders. Die Optionen
 
 Das Plugin liest nur, was Home Assistant als Wert meldet; es wertet selbst nie Templates aus, ein Template kann also nichts in Car Assistant ausführen.
 
+## Kilometerstand und Fahrten richtig einrichten
+
+Die beiden Fragen, die am häufigsten kommen: *Warum kommt mein Kilometerstand nicht an?* und *Warum werden meine Fahrten nicht aufgezeichnet?* Beides läuft auf dasselbe hinaus: **Welche Entität muss was sagen, und wie oft.** Alles Folgende wurde gegen ein echtes Home Assistant (2026.11) mit echten Helfern ausprobiert; die Tests dafür sind `tests/test_real_ha.py` (siehe [Mitmachen](community/contributing.de.md)).
+
+### Der Kilometerstand
+
+**Eine Entität, die den Gesamtstand des Autos als Zahl hält.** Das kann sein
+
+- ein **Sensor** der Integration des Autos - am besten einer mit der Geräteklasse *distance* und der Zustandsklasse *total_increasing* (so sagt Home Assistant „das wächst nur“; eine Geräteklasse „Kilometerstand“ gibt es nicht). Die Liste der Entitäten setzt solche Sensoren nach vorn und einen Tageskilometerzähler oder die „Entfernung bis zum nächsten Service“ dahinter;
+- ein **Helfer** (*Einstellungen → Geräte & Dienste → Helfer → Zahl*), den du selbst pflegst oder den eine Automatisierung füllt - das **Maximum** hoch setzen (`1000000`; Home Assistant legt 100 an, wenn du nichts einstellst, und lehnt dann jeden höheren Wert ab) und die Einheit auf `km` (oder `mi`);
+- ein **Template-Sensor**, der die Zahl aus einem Attribut nimmt oder aus einem Text schneidet.
+
+Die Einheit darf `km`, `mi` oder `m` sein; eine Zahl ohne Einheit zählt als Kilometer. Car Assistant speichert ganze Kilometer.
+
+![Die Kilometerstand-Zeile des Home-Assistant-Plugins: die Entität und was sie gerade liefert](screenshots/de/ha-odometer.png)
+
+**So läuft es.** Du wählst die Entität und speicherst → das Plugin liest sie sofort → jede Änderung kommt innerhalb etwa einer Sekunde an (Live-Verbindung) → ein Stand wird **nur genommen, wenn er höher ist** als alles, was Car Assistant kennt (der höchste aller Stände, Tankungen, Services und Fahrten) → das Dashboard zeigt den Stand an, statt ihn zur Eingabe anzubieten.
+
+| Was du siehst | Der Grund | Was zu tun ist |
+|---|---|---|
+| *Gerade nicht verfügbar* | das Auto schläft, oder die Integration sagt `unavailable` / `unknown`: der letzte Stand bleibt, das ist kein Fehler | nichts - er kommt, sobald das Auto aufwacht |
+| Der Stand ändert sich nicht | die Entität selbst ändert sich nicht (siehe *Zuletzt aktualisiert* in Home Assistant, *Entwicklerwerkzeuge → Zustände*) | dort beheben: Car Assistant kann nur zeigen, was Home Assistant sagt |
+| Das Protokoll sagt *Home Assistant meldet weniger als den Kilometerstand, den Car Assistant schon kennt* | eine Tankung, ein Service oder eine Fahrt wurde mit einem **höheren** Stand eingetragen (eine Ziffer zu viel ist typisch) | den Eintrag korrigieren - der Stand von Home Assistant zählt bei der nächsten Lesung (innerhalb der Zeit von *Mindestens nachsehen alle*), in Home Assistant muss sich nichts ändern |
+| Home Assistant lehnt den Wert ab, den du in den Helfer tippst | das Maximum des Helfers ist 100 | in den Einstellungen des Helfers das *Maximum* auf `1000000` setzen |
+| Der Stand ist 1,6-mal zu groß oder zu klein | Meilen ohne Einheit | dem Helfer oder Sensor die Einheit `mi` geben, oder in den *Optionen* der Zeile die Einheit wählen |
+| *Belegt durch ...* an der Zeile | ein anderes Plugin dieses Autos liefert den Kilometerstand schon | eine Quelle je Schnittstelle - siehe [Eine Schnittstelle, ein Plugin](#eine-schnittstelle-ein-plugin) |
+| *Diese Entität gibt es in Home Assistant nicht* | ein Tippfehler, oder die Entität wurde entfernt | aus der Liste wählen |
+
+### Die Fahrten
+
+**Was jede Entität sagen muss.**
+
+| Schnittstelle | Nötig? | Was sie liefern muss |
+|---|---|---|
+| **Position** (ein Tracker oder eine Person) mit *Fahrten aufzeichnen* | ja | `latitude` und `longitude` als Attribute (der `device_tracker` einer Handy-App oder der Integration des Herstellers, oder eine `person`) und eine neue Meldung **mindestens jede oder jede zweite Minute, solange das Auto fährt**; am besten auch `gps_accuracy` |
+| **Zündung** | nein, aber empfohlen | `on`, solange das Auto fährt, `off`, wenn es steht: ein `binary_sensor` (Geräteklasse *running* oder *power*), ein `input_boolean`, alles, was an / aus sagt. Sie beendet eine Fahrt **sofort** und hält nichts fest, solange sie „aus“ sagt |
+| Das Modul **Fahrten** | ja | für dieses Fahrzeug eingeschaltet (*Integrationen & Module*) - die Fahrten werden auch vorher aufgezeichnet, aber nichts zeigt sie |
+
+Ein Tracker, der nur weiß, ob das Handy in der Nähe des Routers ist (`source_type` `router` oder `bluetooth`), hat keine Position und ist dafür kein Tracker.
+
+**Was die App mit jeder Meldung tut**, in dieser Reihenfolge: Ein Fix, den der Tracker ungenau nennt (`gps_accuracy` über 100 m), wird weggelassen → die erste Meldung nach einem Start ist nur der Ort zum Vergleichen → eine Meldung, die mehr als zehn Minuten nach der davor kommt, ist *kein Anfang einer Fahrt* (nichts sagt, wie das Auto dorthin kam) → ein Ort, der mehr als 540 km/h vom letzten entfernt ist, ist ein Sprung (ein falscher Fix): die Strecke wird dort unterbrochen, statt eine Linie zu ziehen → solange die Zündungs-Entität „aus“ sagt, wird nichts festgehalten → ein Punkt wird gehalten, wenn das Auto mindestens 40 m vom letzten entfernt ist (der Ort, an dem es *stand*, kommt zuerst) → eine Fahrt endet, wenn zehn Minuten nichts Neues kam oder die Zündung ausgeht → unter 300 m oder mit weniger als drei Punkten fällt sie weg, alles andere ist eine Fahrt im Fahrtenbuch mit Strecke, Entfernung und Zeiten.
+
+**Fahrten, die die App verpasst hat.** Die App kann aus sein (ein Update, ein Neustart), Home Assistant nicht erreichbar oder die Live-Verbindung weg, während das Auto fährt. Kommt die nächste Meldung mehr als zehn Minuten nach der letzten, die die App sah, liest sie, was der **Recorder** von Home Assistant dazwischen vom Tracker (und von der Zündungs-Entität) festgehalten hat - bis zu 48 Stunden zurück - und schickt es durch dieselben Regeln; was schon gespeichert ist, wird nicht noch einmal gespeichert, und das Protokoll sagt, dass *aus dem Verlauf von Home Assistant nachgeholt* wurde. Kann der Recorder noch nicht gefragt werden (Home Assistant ist gerade gestartet), wird zehn Minuten lang erneut gefragt. Das gilt für ein Fahrzeug, dessen Fahrten schon einmal aufgezeichnet wurden (wer zum ersten Mal einen Tracker wählt, holt nie die Vergangenheit herein) und nur so weit, wie der Recorder die Entität behält: Home Assistant hebt standardmäßig zehn Tage Zustände auf, und eine Entität, die du vom Recorder ausgenommen hast, hat keinen Verlauf. Eine Position aus zwei Sensoren (Breite, Länge) hat keinen, den man lesen könnte.
+
+**Wo es schiefgeht - und was die Seite und das Protokoll sagen.** Eine Zeile unter der Positions-Zeile sagt, ob die Fahrten aufgezeichnet werden; das Protokoll des Plugins nennt die üblichen Störungen (einmal, nachdem dasselbe mehrmals hintereinander geschehen ist):
+
+| Was du siehst | Der Grund | Was zu tun ist |
+|---|---|---|
+| Die Zeile sagt *das Modul „Fahrten“ ist aus* | das Modul ist für dieses Fahrzeug aus | unter *Integrationen & Module* einschalten |
+| *das Auto bewegt sich, aber die Zündungs-Entität sagt aus* | die als Zündung gewählte Entität folgt dem Auto nicht (ein Türsensor, ein Ladegerät, ein Handy, das nicht im Auto ist) | die richtige wählen - oder die Zeile leeren |
+| *der Tracker meldet seltener als alle 10 Min* | eine Auto-Integration, die alle 15 Minuten abfragt, oder ein iPhone (siehe unten) | ein Tracker, der alle 1-2 Minuten meldet, solange das Auto fährt |
+| *der Tracker nennt seine Positionen ungenau* | eine Garage, oder eine App, die nur den ungefähren Standort nutzen darf | der App den genauen Standort erlauben |
+| Die Fahrten werden grob | die Meldungen kommen alle 3-5 Minuten: jede ist im Rahmen der Regeln, aber die Punkte liegen weit auseinander | die Strecke ist so fein wie die Meldungen - ein schnellerer Tracker |
+
+Die Zeile, während die Fahrten aufgezeichnet werden, und wenn das Auto sich bewegt, die Zündungs-Entität aber „aus“ sagt:
+
+![Die Tracker-Zeile, während die Fahrten aufgezeichnet werden](screenshots/de/ha-trips-recording.png)
+
+![Die Tracker-Zeile, wenn das Auto sich bewegt, die Zündungs-Entität aber „aus“ sagt](screenshots/de/ha-trips-warning.png)
+
+**Ein Handy als Tracker.** *Android:* Die Companion-App meldet im Hintergrund etwa jede bis jede dritte Minute (bei Navigation alle 30 Sekunden). Für eine feine Strecke schalte den **High-Accuracy-Modus** der App ein (*Companion-App → Sensoren verwalten*) und beschränke ihn auf die Bluetooth-Verbindung des Autos: Dann meldet sie alle paar Sekunden, nur solange sie mit dem Auto verbunden ist, und kostet sonst keinen Akku. *iPhone:* iOS meldet bei *wesentlicher Standortänderung* - wenn es den Funkmast wechselt, im schlechtesten Fall alle paar Stunden - und das ist für Fahrten viel zu selten. Nimm den Tracker des Herstellers, oder frage das Handy nach seinem Standort, solange das Auto läuft (das letzte Rezept unten).
+
+**Rezepte** (für deine `configuration.yaml`, oder lege dasselbe in der Oberfläche an; die Namen der Entitäten des Handys sind verschieden - schau sie unter *Entwicklerwerkzeuge → Zustände* nach):
+
+- **Ein Kilometerstand-Helfer** für ein Auto, das Home Assistant nichts mitteilt (du tippst den Stand ein, oder eine Automatisierung tut es):
+
+  ```yaml
+  input_number:
+    car_odometer:
+      name: "Kilometerstand"
+      min: 0
+      max: 1000000
+      step: 1
+      mode: box
+      unit_of_measurement: "km"
+  ```
+
+- **Die Zündung aus der Bluetooth-Verbindung des Handys** (Android). Der Zustand des Sensors *Bluetooth-Verbindung* der App ist eine Zahl; die Namen der verbundenen Geräte stehen in seinen Attributen:
+
+  ```yaml
+  template:
+    - binary_sensor:
+        - name: "Auto Zündung"
+          unique_id: car_ignition
+          device_class: running
+          state: "{{ 'Mein Auto' in (state_attr('sensor.mein_handy_bluetooth_connection', 'connected_paired_devices') | default([], true)) }}"
+  ```
+
+  (`Mein Auto` ist der Name des Bluetooth-Geräts des Autos.) Ohne Bluetooth tut der **Aktivitäts**-Sensor der App fast dasselbe, eine Minute später: `state: "{{ is_state('sensor.mein_handy_activity', 'in_vehicle') }}"` bei Android, `'Automotive'` bei einem iPhone.
+
+- **Das Handy jede Minute nach seinem Standort fragen, solange das Auto läuft** (ein iPhone - oder ein Android-Handy im Hintergrund; der Befehl gehört zur Companion-App):
+
+  ```yaml
+  automation:
+    - alias: "Handy nach dem Standort fragen, solange das Auto läuft"
+      triggers:
+        - trigger: time_pattern
+          minutes: "/1"
+      conditions:
+        - condition: state
+          entity_id: binary_sensor.auto_zundung
+          state: "on"
+      actions:
+        - action: notify.mobile_app_mein_handy
+          data:
+            message: request_location_update
+  ```
+
+**Was nicht abgedeckt ist.** Keine Fahrten aus der Zeit, bevor ein Tracker gewählt wurde; keine Strecke von einem Tracker, der nicht meldet, solange das Auto fährt (der Recorder kann nicht aufheben, was nie geschrieben wurde); eine `person`, die zwischen zwei Handys wechselt, zeigt Sprünge - wähle stattdessen den Tracker des Autos oder eines Handys; die Position eines parkenden Autos ist nur so genau wie sein Tracker.
+
+**Home Assistant 2026.11.** Die Entitäts-IDs ändern sich mit den neuen Namensregeln dieser Version nicht - nur die angezeigten Namen (ein Name, der mit dem Gerätenamen beginnt, verliert diesen Teil, andere bekommen das Gerät als Zusammenhang dazu); deine in Car Assistant gespeicherte Auswahl funktioniert weiter, die Liste kann ein wenig anders aussehen. Tracker der Art Netzwerk-Scanner (Router, FRITZ!Box ...) sind jetzt standardmäßig aus und haben ohnehin keine Position. Das Attribut `battery_level` eines Trackers ist veraltet; der *Batteriestand* von Car Assistant liest wie bisher einen Sensor mit der Geräteklasse *battery*.
+
 ## Eine Schnittstelle, ein Plugin
 
 Eine Schnittstelle, die du hier wählst, **gehört diesem Plugin** für dieses Fahrzeug: Solange es an ist, füllt keine andere Quelle des Fahrzeugs sie - weder ein anderes Plugin noch ein Connector noch die älteren Home-Assistant-Felder des Fahrzeugformulars. Was eine solche Quelle sendet, wird mit `ignored (taken by Home Assistant)` beantwortet und nicht gespeichert; ein Wert des Fahrzeugs hat also immer genau **einen Ursprung**.
@@ -177,4 +289,4 @@ Jedes andere Plugin kann mit `"claims": ["fuel_level_pct", "range_km"]` Schnitts
 
 ## Zusehen
 
-Die Seite **Protokoll** des Plugins (das Protokoll für einen Tag einschalten) sagt, was es liest und was nicht stimmt - einmal für jede Störung, nicht bei jedem Versuch: *die Einheit „l“ passt nicht*, *die Entität gibt es nicht*, *Home Assistant ist nicht erreichbar; neuer Versuch*, *Home Assistant ist wieder erreichbar*, *Home Assistant meldet weniger als den Kilometerstand, den Car Assistant schon kennt*. Die Seite seiner Einstellungen zeigt live, ob die Verbindung steht und was jede Entität liefert. Dieselben Zeilen stehen auch im Protokoll des Add-ons in Home Assistant (siehe [die Protokolle](logs.de.md)).
+Die Seite **Protokoll** des Plugins (das Protokoll für einen Tag einschalten) sagt, was es liest und was nicht stimmt - einmal für jede Störung, nicht bei jedem Versuch: *die Einheit „l“ passt nicht*, *die Entität gibt es nicht*, *Home Assistant ist nicht erreichbar; neuer Versuch*, *Home Assistant ist wieder erreichbar*, *Home Assistant meldet weniger als den Kilometerstand, den Car Assistant schon kennt*, und bei den Fahrten *das Auto bewegt sich, aber die Zündungs-Entität sagt aus*, *der Tracker meldet seltener als alle 10 Min*, *aus dem Verlauf von Home Assistant nachgeholt*. Die Seite seiner Einstellungen zeigt live, ob die Verbindung steht und was jede Entität liefert. Dieselben Zeilen stehen auch im Protokoll des Add-ons in Home Assistant (siehe [die Protokolle](logs.de.md)).
