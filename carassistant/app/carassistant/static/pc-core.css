@@ -2302,10 +2302,19 @@ button.addon-status.upd:hover { background: rgba(var(--accent-rgb), .22); border
 .upd-news { margin-top: 0; }
 /* The window is at most as high as the screen allows (dialog.vsw: 86vh): the text of the changelog is what gives way, and it scrolls - the window itself does not */
 dialog.upd-dlg[open] { display: flex; flex-direction: column; }
+dialog.upd-dlg .vsw-head h2 { min-width: 0; flex: 1 1 auto; padding-right: 10px; overflow-wrap: anywhere; }
+dialog.upd-dlg .vsw-x { flex: none; }
 dialog.upd-dlg > .addon-dlg-body { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 dialog.upd-dlg > .addon-dlg-body > .upd-news { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 .upd-log { flex: 1 1 auto; min-height: 96px; max-height: 320px; overflow: auto; overscroll-behavior: contain; font-size: 14px; line-height: 1.5; }
-@media (max-width: 420px) { dialog.upd-dlg .form-bar { gap: 8px; } dialog.upd-dlg .form-bar button { padding-inline: 16px; } dialog.upd-dlg .form-bar .primary .ico { display: none; } }  /* the two buttons must stay on ONE line, in German too */
+/* a phone: the window takes what it can, so the two buttons stay on ONE line - in German too, and with the fonts of every system (a few pixels of difference in the width of a word must not push a button out) */
+@media (max-width: 420px) {
+  dialog.upd-dlg { width: calc(100% - 16px); padding-inline: 8px; }
+  dialog.upd-dlg .addon-dlg-body { padding-inline: 2px; }
+  dialog.upd-dlg .form-bar { gap: 8px; }
+  dialog.upd-dlg .form-bar button { padding-inline: 14px; }
+  dialog.upd-dlg .form-bar .primary .ico { display: none; }
+}
 @media (max-width: 340px) { dialog.upd-dlg .form-bar { flex-wrap: wrap; } dialog.upd-dlg .form-bar button { flex: 1 1 100%; } }  /* the narrowest phones: one under the other instead of cut off */
 @media (max-height: 480px) { dialog.upd-dlg[open] { display: block; } .upd-log { max-height: none; overflow: visible; } }  /* a phone on its side: the whole window scrolls, the text is not squeezed into a slit */
 .upd-log:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: var(--r-s); }

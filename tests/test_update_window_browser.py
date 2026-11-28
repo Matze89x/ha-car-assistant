@@ -63,8 +63,17 @@ def app():
         yield b, f"{base}/v/{slug}/plugins"
 
 
+FONTS = (
+    "Promise.all(['400 15px \"Space Grotesk\"', '600 15px \"Space Grotesk\"', '700 15px \"Space Grotesk\"', '400 12px \"Space Mono\"', '700 12px \"Space Mono\"']"
+    ".map(function (f) { return document.fonts.load(f).catch(function () { return null; }); })).then(function () { return document.fonts.ready; }).then(function () { return true; })"
+)
+
+
 def _open(b, url, width=1000, height=900):
     b.open(url, width, height, 1, settle=0.6)
+    b.run(
+        FONTS
+    )  # measuring with the stand-in font (font-display: swap) gives other widths than the real one: a slow machine must wait for it
 
 
 def _click(b, selector):
@@ -136,7 +145,14 @@ def test_the_window_fits_the_screen_and_its_two_buttons_stay_on_one_line(app, wi
     b.wait_for("document.querySelector('dialog.upd-dlg .upd-log[data-state=done]')")
     m = json.loads(b.run(MEASURE))
     assert m["left"] >= 0 and m["right"] <= m["w"] and not m["hscroll"], m  # nothing sticks out sideways
-    assert m["inside"] and m["titleClear"], m  # the buttons lie inside the window, the title does not run under the X
+    assert m["inside"], (
+        "a button lies outside the window",
+        width,
+        m["left"],
+        m["right"],
+        m["bar"],
+    )  # the buttons lie inside the window ...
+    assert m["titleClear"], ("the title runs under the close button", width)  # ... the title does not run under the X
     assert not m["dlgScrolls"] and m["logScrolls"], m  # the long text scrolls INSIDE the window; the window itself stays put
     assert [q["text"] for q in m["bar"]] == ["Cancel", "Update now"]
     if width > 340:
@@ -165,7 +181,14 @@ def test_in_german_the_window_fits_a_phone_too(app, width):
         b.wait_for("document.querySelector('dialog.upd-dlg .upd-log[data-state=done]')")
         m = json.loads(b.run(MEASURE))
         assert m["left"] >= 0 and m["right"] <= m["w"] and not m["hscroll"], m
-        assert m["inside"] and m["titleClear"], m  # the longest German label ("Jetzt aktualisieren") still lies inside the window
+        assert m["inside"], (
+            "a button lies outside the window",
+            width,
+            m["left"],
+            m["right"],
+            m["bar"],
+        )  # the longest German label still lies inside
+        assert m["titleClear"], ("the title runs under the close button", width)
         assert [q["text"] for q in m["bar"]] == ["Abbrechen", "Jetzt aktualisieren"]
         if width > 340:
             assert len({q["top"] for q in m["bar"]}) == 1, m  # one line, in German too
