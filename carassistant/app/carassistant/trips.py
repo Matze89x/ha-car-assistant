@@ -16,6 +16,8 @@ from pathlib import Path
 from defusedxml import ElementTree as ET  # a GPX file is untrusted input: no entity tricks
 from defusedxml.common import DefusedXmlException
 
+from . import csvtext
+
 MAX_GPX_BYTES = 10 * 1024 * 1024
 
 
@@ -235,13 +237,15 @@ def csv_bytes(rows: list[sqlite3.Row], labels: dict[str, str]) -> bytes:
                 r["date"],
                 r["start_time"] or "",
                 r["end_time"] or "",
-                r["start_place"] or "",
-                r["end_place"] or "",
+                csvtext.safe(
+                    r["start_place"]
+                ),  # (the places and the purpose may come from a file of another app or a plugin: never a formula)
+                csvtext.safe(r["end_place"]),
                 r["start_km"] if r["start_km"] is not None else "",
                 r["end_km"] if r["end_km"] is not None else "",
                 f"{d:.1f}".replace(".", ",") if d is not None else "",
-                labels.get("cat." + r["category"], r["category"]),
-                r["purpose"] or "",
+                csvtext.safe(labels.get("cat." + r["category"], r["category"])),
+                csvtext.safe(r["purpose"]),
             ]
         )
     return b"\xef\xbb\xbf" + out.getvalue().encode("utf-8")  # BOM so Excel detects UTF-8

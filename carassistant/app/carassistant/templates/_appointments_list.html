@@ -2,7 +2,7 @@
 {% set lead_f = entity.fields|selectattr('name', 'equalto', 'due_date')|first %}
 <div class="rec-grid ap-list">
   {% for head, r in items %}
-  {% if head %}<h3 class="rec-month ap-h"><span>{{ _(head.title) }}</span></h3>{% endif %}
+  {% if head %}<h2 class="rec-month ap-h"><span>{{ _(head.title) }}</span></h2>{% endif %}
   {% set ex = extras.get(r['id'], {}) %}
   <article class="rec ap-row {{ 'muted-row' if r['done'] }}{{ ' editing' if edit_id == r['id'] }}" data-rec-edit>
     <header class="ap-top">

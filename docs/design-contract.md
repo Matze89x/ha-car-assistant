@@ -34,8 +34,8 @@ Use `rgba(var(--fg-rgb), .07)` for a light layer instead of white or black - lig
 A design is one file in `static/themes/<name>.css` with the rule `:root[data-theme="<name>"] { ... }`; it sets only the variables that differ from the dark base (`default`). A light design also sets `color-scheme: light`, the surfaces, `--fg-rgb`, the glass values and the status colours. What every design must keep (tested for all of them):
 
 - the variables of section 2 are there (from the base or the theme),
-- text on the background and on cards: contrast at least **4.5 : 1**; `--muted` on cards **4.5 : 1**; `--dim` **3 : 1** on cards and on the background (the section labels stand on the page),
-- the accent, `--ok`, `--soon` and `--overdue` on a card: at least **3 : 1**; `--accent-text` on `--accent`: at least **3 : 1**.
+- text on the background and on cards: contrast at least **4.5 : 1**; the same for `--muted` and `--dim` (the section labels stand on the page, the hints and counts on cards) and for `--ok`, `--soon` and `--overdue` (they are the text of badges),
+- the accent on a card: at least **3 : 1** (it is an icon or a fill; the accent as *text* uses `--accent-ink`, which the design colour makes readable at 4.5 : 1); `--accent-text` on `--accent`: at least **3 : 1**.
 
 Available: *Classic red* (dark, the default) and *Light*, *Dark* and *Auto* (follows the device), each with a colour of your own - the colour is one value you pick on a colour wheel (see the design handbook). Setting a design per car overrides the server's. A theme file of your own in the data folder works the same way.
 

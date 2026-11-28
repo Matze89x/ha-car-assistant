@@ -13,9 +13,9 @@ Where it lives: tokens and base components in `static/app.css`, the glass layer 
 | What | Token | Value |
 |---|---|---|
 | Background | `--bg` | `#0d1016` |
-| Text / muted / dim | `--text` `--muted` `--dim` | `#f2f3f5` `#9ba1ac` `#6b7280` |
+| Text / muted / dim | `--text` `--muted` `--dim` | `#f2f3f5` `#9ba1ac` `#878e9b` |
 | Accent (red) | `--accent` | `#e2001a` – primary actions, active states, the logo |
-| OK / soon / overdue | `--ok` `--soon` `--overdue` | `#4ade80` `#fbbf24` `#f87171` – status only |
+| OK / soon / overdue | `--ok` `--soon` `--overdue` | `#4ade80` `#fbbf24` `#fa7a7a` – status only |
 | Glass | `--glass` `--glass2` `--glass-b` | transparent surfaces and their 1 px border |
 | Button highlight | `--btn-hi` (`--hi-rgb`) | the light top edge inside every glass button; a theme file may set it (optional, has a default) |
 | Overlays on glass | `--fg-rgb` `--panel-rgb` `--panel-deep-rgb` `--strong` | `rgba(var(--fg-rgb), .07)` instead of white/black; light themes flip them (a light theme starts with `/* scheme: light */`) |

@@ -34,8 +34,8 @@ Für eine helle Ebene `rgba(var(--fg-rgb), .07)` statt Weiß oder Schwarz – he
 Ein Design ist eine Datei `static/themes/<Name>.css` mit der Regel `:root[data-theme="<Name>"] { ... }`; sie setzt nur die Variablen, die vom dunklen Grund (`default`) abweichen. Ein helles Design setzt zusätzlich `color-scheme: light`, die Flächen, `--fg-rgb`, die Glas-Werte und die Statusfarben. Was jedes Design einhalten muss (für alle getestet):
 
 - die Variablen aus Abschnitt 2 sind da (aus dem Grund oder dem Design),
-- Text auf Hintergrund und auf Karten: Kontrast mindestens **4,5 : 1**; `--muted` auf Karten **4,5 : 1**; `--dim` **3 : 1** auf Karten und auf dem Hintergrund (die Abschnittsbeschriftungen stehen auf der Seite),
-- Akzent, `--ok`, `--soon` und `--overdue` auf einer Karte: mindestens **3 : 1**; `--accent-text` auf `--accent`: mindestens **3 : 1**.
+- Text auf Hintergrund und auf Karten: Kontrast mindestens **4,5 : 1**; ebenso für `--muted` und `--dim` (die Abschnittsbeschriftungen stehen auf der Seite, die Hinweise und Zähler auf Karten) und für `--ok`, `--soon` und `--overdue` (sie sind der Text von Plaketten),
+- der Akzent auf einer Karte: mindestens **3 : 1** (er ist ein Symbol oder eine Fläche; der Akzent als *Text* nimmt `--accent-ink`, das die Designfarbe auf 4,5 : 1 lesbar macht); `--accent-text` auf `--accent`: mindestens **3 : 1**.
 
 Vorhanden: *Klassisch rot* (dunkel, der Standard) sowie *Hell*, *Dunkel* und *Auto* (folgt dem Gerät), jeweils mit einer eigenen Farbe - die Farbe ist ein Wert, den du auf einem Farbkreis wählst (siehe Design-Handbuch). Ein Design je Auto überschreibt das des Servers. Eine eigene Theme-Datei im Datenordner funktioniert genauso.
 

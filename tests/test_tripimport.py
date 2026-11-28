@@ -180,3 +180,38 @@ def test_the_export_of_this_app_can_be_imported_again_in_either_language(client)
         assert after == before, lang
         assert sources == {"csv"}
     assert io.BytesIO(out).read(3) == b"\xef\xbb\xbf"  # (the export carries the mark Excel wants, and the reader takes it off)
+
+
+def test_a_text_for_a_spreadsheet_is_never_a_formula():
+    from carassistant import csvtext
+
+    assert [csvtext.safe(v) for v in (None, "", "Berlin", "=1+1", "+1", "-2", "@SUM(A1)", "\tx", "\rx", "a=b")] == [
+        "", "", "Berlin", "'=1+1", "'+1", "'-2", "'@SUM(A1)", "'\tx", "'\rx", "a=b",
+    ]  # fmt: skip
+
+
+def test_the_export_of_trips_never_writes_a_formula(client):
+    """The places and the purpose of a trip can come from a file of another app (the import above) or from a plugin: whatever they say, a spreadsheet must
+    not run it when the exported file is opened."""
+    import csv
+
+    vid = create_vehicle(client)
+    labels = {k: k for k in ("date", "start", "end", "from", "to", "start_km", "end_km", "distance", "category", "purpose")}
+    labels.update({"cat." + c: c for c in entities.TRIP_CATEGORIES})
+    with db.tx() as conn:
+        conn.executemany(
+            "INSERT INTO trips(vehicle_id, date, start_place, end_place, category, purpose, source, distance_km) VALUES(?,?,?,?, 'private', ?, 'csv', 5)",
+            [
+                (vid, "2026-11-20", '=HYPERLINK("http://example.com","x")', "+1+1", "@SUM(A1)"),
+                (vid, "2026-11-21", "-2+3", "Berlin", "Client; visit"),
+            ],
+        )
+        text = trips.csv_bytes(trips.trips_in_range(conn, vid, "2026-01-01", "2026-12-31"), labels).decode("utf-8-sig")
+    rows = list(csv.reader(io.StringIO(text), delimiter=";"))
+    assert len(rows) == 3 and all(len(r) == 10 for r in rows)
+    for row in rows[1:]:
+        assert not any(cell[:1] in ("=", "+", "-", "@") for cell in row if cell), row
+    assert rows[1][3] == '\'=HYPERLINK("http://example.com","x")' and rows[1][4] == "'+1+1" and rows[1][9] == "'@SUM(A1)"
+    assert (
+        rows[2][3] == "'-2+3" and rows[2][4] == "Berlin" and rows[2][9] == "Client; visit"
+    )  # (a text that is no formula is left as it is)

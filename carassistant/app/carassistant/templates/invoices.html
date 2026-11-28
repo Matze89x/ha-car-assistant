@@ -21,7 +21,7 @@
     {% set shown_date = ex.get('date') or d.doc_date or d.created_at[:10] %}
     <article class="rec doc-rec">
       <header class="doc-top"><span class="mi-ic c3">{{ icon('file-document-outline', 19) }}</span>
-        <div class="doc-main"><h3 class="rec-title">{{ d.title }}</h3>
+        <div class="doc-main"><h2 class="rec-title">{{ d.title }}</h2>
           <small class="doc-sub">{{ fdate(shown_date) }}{% if d.amount %} · {{ fnum(d.amount, 2) }} {{ money }}{% endif %}</small></div>
         {% if b %}<span class="badge ok">{{ _('inv.badge_booked') }}</span>{% else %}<span class="badge soon">{{ _('inv.badge_open') }}</span>{% endif %}</header>
       <dl class="rec-facts">

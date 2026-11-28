@@ -64,7 +64,7 @@
 {% if entity.key == 'appointments' %}{% include "_appointments_list.html" %}{% elif entity.key == 'parts' %}{% include "_parts_list.html" %}{% else %}
 <div class="rec-grid">
   {% for head, r in items %}
-  {% if head %}<h3 class="rec-month"><span>{{ head.title }}</span></h3>{% endif %}
+  {% if head %}<h2 class="rec-month"><span>{{ head.title }}</span></h2>{% endif %}
   {% set ex = extras.get(r['id'], {}) %}
   {% set is_off = (r['done'] if 'done' in r.keys() else false) or (r['muted'] if 'muted' in r.keys() else false) %}
   <article class="rec rec-tap {{ 'muted-row' if is_off }}{{ ' editing' if edit_id == r['id'] }}" tabindex="0" data-rec-edit>

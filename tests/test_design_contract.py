@@ -48,18 +48,18 @@ def test_every_design_has_the_variables_of_the_contract(theme):
     assert not missing, f"{theme}: {missing}"
 
 
-# (text, on, minimum contrast): readable text 4.5, secondary 3, status and accent colours as text or icon on a card 3
+# (text, on, minimum contrast): readable text 4.5 (the dim grey and the status colours too: they are the text of hints, labels and badges), the accent as an icon or a fill 3
 CHECKS = (
     ("--text", "--bg", 4.5),
     ("--text", "--card", 4.5),
     ("--muted", "--card", 4.5),
-    ("--dim", "--card", 3.0),
-    ("--dim", "--bg", 3.0),  # the section labels stand on the page, not on a card
+    ("--dim", "--card", 4.5),
+    ("--dim", "--bg", 4.5),  # the section labels stand on the page, not on a card
     ("--accent-text", "--accent", 3.0),
     ("--accent", "--card", 3.0),
-    ("--ok", "--card", 3.0),
-    ("--soon", "--card", 3.0),
-    ("--overdue", "--card", 3.0),
+    ("--ok", "--card", 4.5),
+    ("--soon", "--card", 4.5),
+    ("--overdue", "--card", 4.5),
 )
 
 

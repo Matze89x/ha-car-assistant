@@ -1,7 +1,7 @@
 {% from "_macros.html" import field_input, flabel, del_form, icon, switch_row, disp with context %}
 <div class="rec-grid">
   {% for head, r in items %}
-  {% if head %}<h3 class="rec-month"><span>{{ head.title }}</span></h3>{% endif %}
+  {% if head %}<h2 class="rec-month"><span>{{ head.title }}</span></h2>{% endif %}
   <article class="rec rcpt{{ ' editing' if edit_id == r['id'] }}" data-rec-edit>
     <div class="rcpt-head"><span>{{ fdate(r['date']) }}</span><span>{{ r['shop'] or '' }}</span></div>
     <div class="rcpt-line"><h3>{{ r['name'] }}</h3>{% if r['cost'] is not none %}<span class="rcpt-price">{{ fnum(r['cost'], 2) }} {{ units.cur }}</span>{% endif %}</div>

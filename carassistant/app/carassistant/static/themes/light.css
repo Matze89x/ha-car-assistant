@@ -2,12 +2,13 @@
 :root[data-theme="light"], :root[data-theme="auto"] {
   color-scheme: light;
   --bg: #eef0f4; --card: #ffffff; --card2: #f4f6f9; --line: #dfe3ea; --line2: #cbd1db;
-  --text: #151922; --muted: #566070; --dim: #7b8596; --strong: #0a0d13;
+  --text: #151922; --muted: #566070; --dim: #5c6472; --strong: #0a0d13;
   --fg-rgb: 21, 25, 34; --shade-rgb: 21, 25, 34; --panel-rgb: 255, 255, 255; --panel-deep-rgb: 244, 246, 249;
   --glass: rgba(255,255,255,.78); --glass2: rgba(21,25,34,.045); --btn-hi: rgba(var(--hi-rgb), .85); --glass-b: rgba(21,25,34,.095);
   --accent: #e2001a; --accent-rgb: 226, 0, 26; --accent-hi: #c40017; --accent-top: #f3213b; --accent-bot: #d4001b; --accent-top-h: #ff2f49; --accent-bot-h: #e0001d;
-  --ok: #15803d; --soon: #b45309; --overdue: #dc2626; --ok-rgb: 21, 128, 61; --soon-rgb: 180, 83, 9; --overdue-rgb: 220, 38, 38;
-  --ok-bg: rgba(21,128,61,.12); --soon-bg: rgba(180,83,9,.12); --overdue-bg: rgba(220,38,38,.1);
+  --ok: #106430; --soon: #a04a08; --overdue: #b11f1f; --ok-rgb: 16, 100, 48; --soon-rgb: 160, 74, 8; --overdue-rgb: 177, 31, 31;
+  --ok-bg: rgba(16,100,48,.12); --soon-bg: rgba(160,74,8,.12); --overdue-bg: rgba(177,31,31,.1);
 }
 :root[data-theme="light"] body::before, :root[data-theme="auto"] body::before { background: radial-gradient(85% 34% at 50% 0%, rgba(var(--accent-rgb), .09), transparent 72%); }
 :root[data-theme="light"] .card, :root[data-theme="light"] .ov, :root[data-theme="light"] .wd, :root[data-theme="light"] .mgroup, :root[data-theme="auto"] .card, :root[data-theme="auto"] .ov, :root[data-theme="auto"] .wd, :root[data-theme="auto"] .mgroup { box-shadow: 0 1px 2px rgba(21,25,34,.06), 0 8px 22px rgba(21,25,34,.06); }
+:root[data-theme="light"] .vin-engraved, :root[data-theme="auto"] .vin-engraved { color: rgba(var(--fg-rgb), .8); }  /* the engraved number on the grey plate of the light design: 5 : 1 (it is the VIN, not decoration) */

@@ -98,6 +98,16 @@ def test_a_missing_distance_column_is_said_on_the_page_of_the_columns(client):
     assert _count(vid) == 0
 
 
+def test_a_column_number_that_is_no_number_is_taken_for_no_column(client):
+    vid = _car(client)
+    token = _token(_upload(client, vid))
+    columns = client.get(f"/v/{vid}/trips-csv/{token}")
+    for odd in ("²", "①", "x", "-1", "99"):  # "²" is a digit for str.isdigit() but not for int(): it must not end in an error page
+        bad = client.post(f"/v/{vid}/trips-csv/{token}", data=_form(columns.text, col_date=odd))
+        assert bad.status_code == 400 and "needs a column" in bad.text, odd
+    assert _count(vid) == 0
+
+
 def test_a_file_that_is_no_table_is_refused_on_the_first_page(client):
     vid = _car(client)
     bad = _upload(client, vid, b"just one line", "x.csv")

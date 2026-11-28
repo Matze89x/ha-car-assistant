@@ -9,7 +9,7 @@ import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
 
-from . import trips
+from . import csvtext, trips
 
 RANGES = ("all", "7d", "30d", "month", "lastmonth", "year", "lastyear", "custom")
 COLUMNS = ("date", "odometer", "amount", "price_unit", "price_total", "full_tank", "station", "notes")
@@ -54,9 +54,8 @@ def columns(fuels: dict[str, str] | None = None) -> list[str]:
 
 
 def _text(value: str) -> str:
-    """A text for a spreadsheet: one that starts with ``=``, ``+``, ``-``, ``@`` or a tab would be read as a formula (and the text of an imported file or of
-    a plugin is not one the person typed) - a quote in front makes it a text."""
-    return "'" + value if value[:1] in ("=", "+", "-", "@", "\t", "\r") else value
+    """A text for a spreadsheet (csvtext.safe: one that starts with ``=``, ``+``, ``-``, ``@`` would be read as a formula)."""
+    return csvtext.safe(value)
 
 
 def _cells(row: sqlite3.Row, conv, fuels: dict[str, str] | None = None) -> list[str]:

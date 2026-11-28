@@ -38,7 +38,7 @@
   <article class="card tire-card tv-card s-{{ r['season'] }} {{ 'mounted' if r['mounted'] }}">
     <div class="tc-head">
       <span class="tc-ic s-{{ r['season'] }}">{{ icon(season_icon.get(r['season'], 'sync'), 22) }}</span>
-      <h3>{{ r['name'] }}</h3>
+      <h2>{{ r['name'] }}</h2>
       {% if r['mounted'] %}<span class="mounted-badge">{{ icon('shield-check', 16) }}<span>{{ _('tires.mounted') }}{% if r['mounted_date'] %} · {{ fdate(r['mounted_date']) }}{% endif %}</span></span>{% endif %}
     </div>
     {{ press_block(r['mounted'] or not any_mounted, r['size'], r['rear_size'] or r['size']) }}
@@ -47,7 +47,7 @@
     {% if r['notes'] %}<div class="tg tv-note"><i>{{ _('f.notes') }}</i><p>{{ r['notes'] }}</p></div>{% endif %}
   </article>
   {% else %}
-  {% if tp.set.get(cur) %}<section class="card tp-card tv-press"><div class="tc-head"><span class="tc-ic s-{{ cur }}">{{ icon(season_icon.get(cur, 'sync'), 22) }}</span><h3>{{ _('season.' ~ cur) }}</h3></div>{{ press_block(cur == tp.mounted_season or not any_mounted) }}</section>
+  {% if tp.set.get(cur) %}<section class="card tp-card tv-press"><div class="tc-head"><span class="tc-ic s-{{ cur }}">{{ icon(season_icon.get(cur, 'sync'), 22) }}</span><h2>{{ _('season.' ~ cur) }}</h2></div>{{ press_block(cur == tp.mounted_season or not any_mounted) }}</section>
   {% else %}<div class="card empty-state">{{ icon(module_icon.get('tires', 'car'), 36) }}<p>{{ _('tires.none_season') }}</p></div>{% endif %}
   {% endfor %}
 </div>

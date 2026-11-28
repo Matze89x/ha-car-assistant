@@ -31,7 +31,7 @@
   <template id="eq-edit-tpl">{{ modform(none, '', true) }}</template>
   <div class="rec-grid md-grid">
     {% for g in year_groups %}
-    <h3 class="rec-month md-year"><span>{{ g.year }}</span><small>{{ _('mods.year_sum', n=g.rows|length, sum=fnum(g.sums.cost, 2) ~ ' ' ~ units.cur) if g.sums.cost else g.rows|length }}</small></h3>
+    <h2 class="rec-month md-year"><span>{{ g.year }}</span><small>{{ _('mods.year_sum', n=g.rows|length, sum=fnum(g.sums.cost, 2) ~ ' ' ~ units.cur) if g.sums.cost else g.rows|length }}</small></h2>
     {% for r in g.rows %}
     <article class="rec md-card" data-q="{{ ((r['title'] or '') ~ ' ' ~ (r['notes'] or '') ~ ' ' ~ r['date'])|lower }}" data-action="{{ mu }}/{{ r['id'] }}" data-del-action="{{ mu }}/{{ r['id'] }}/delete" data-vals='{{ {"title": r["title"] or "", "date": r["date"], "odometer_km": (units.d(r["odometer_km"])|round|int if r["odometer_km"] is not none else ""), "cost": (r["cost"] if r["cost"] is not none else ""), "notes": r["notes"] or ""}|tojson }}'>
       <header class="md-top"><span class="mi-ic c3">{{ icon(module_icon.get('mods', 'wrench'), 19) }}</span>

@@ -123,7 +123,9 @@ async def trip_import_columns_save(request: Request, vid: int, token: str):
     mapping: dict[str, int | None] = {}
     for target in tripimport.TARGETS:
         raw = form.get(f"col_{target}", "")
-        mapping[target] = int(raw) if raw.isdigit() and int(raw) < len(table.columns) else None
+        mapping[target] = (
+            int(raw) if raw.isascii() and raw.isdigit() and int(raw) < len(table.columns) else None
+        )  # isascii: "²" is a digit for isdigit(), not for int()
     options = {
         "order": form.get("order") if form.get("order") in ("auto", *fuelimport.ORDERS) else "auto",
         "dist": "mi" if form.get("dist") == "mi" else "km",

@@ -13,9 +13,9 @@ Wo es liegt: Werte und Grundbausteine in `static/app.css`, die Glas-Schicht und 
 | Was | Token | Wert |
 |---|---|---|
 | Hintergrund | `--bg` | `#0d1016` |
-| Text / gedämpft / blass | `--text` `--muted` `--dim` | `#f2f3f5` `#9ba1ac` `#6b7280` |
+| Text / gedämpft / blass | `--text` `--muted` `--dim` | `#f2f3f5` `#9ba1ac` `#878e9b` |
 | Akzent (rot) | `--accent` | `#e2001a` – Hauptaktionen, aktive Zustände, das Logo |
-| OK / bald / überfällig | `--ok` `--soon` `--overdue` | `#4ade80` `#fbbf24` `#f87171` – nur für Status |
+| OK / bald / überfällig | `--ok` `--soon` `--overdue` | `#4ade80` `#fbbf24` `#fa7a7a` – nur für Status |
 | Glas | `--glass` `--glass2` `--glass-b` | durchscheinende Flächen und ihr 1-px-Rand |
 | Button-Lichtkante | `--btn-hi` (`--hi-rgb`) | die helle Oberkante in jedem Glas-Button; eine Theme-Datei darf sie setzen (optional, hat einen Standardwert) |
 | Überlagerungen auf Glas | `--fg-rgb` `--panel-rgb` `--panel-deep-rgb` `--strong` | `rgba(var(--fg-rgb), .07)` statt Weiß/Schwarz; helle Themes drehen sie um (ein helles Theme beginnt mit `/* scheme: light */`) |

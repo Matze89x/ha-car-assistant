@@ -115,7 +115,7 @@
   {% if fuel_items %}
   <div class="rec-grid fuel-grid">
     {% for head, r in fuel_items %}
-    {% if head %}<h3 class="rec-month"><span>{{ head.title }}</span></h3>{% endif %}
+    {% if head %}<h2 class="rec-month"><span>{{ head.title }}</span></h2>{% endif %}
     {% set ru = unit2 if (fuel2 and r['fuel_kind'] == 'second') else unit %}
     {% set draft = r['amount'] is none and r['auto_kind'] %}
     <article class="rec rcpt rec-tap{{ ' editing' if edit_id == r['id'] }}" id="fuel-{{ r['id'] }}" tabindex="0" data-rec-edit>

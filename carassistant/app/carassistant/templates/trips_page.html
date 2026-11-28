@@ -8,7 +8,7 @@
 {% set d = ' ' ~ units.dist_unit %}
 {% macro tripform(r, url, inline=false) %}
   <form class="eq-edit tp-form" method="post" action="{{ url }}" {{ 'hidden' if r and not inline else '' }}>
-    {% if not r %}<h3 class="tp-add-h">{{ icon('pencil', 16) }} {{ _('trips.add_manual') }}</h3>{% endif %}
+    {% if not r %}<h2 class="tp-add-h">{{ icon('pencil', 16) }} {{ _('trips.add_manual') }}</h2>{% endif %}
     {% if r %}<input type="hidden" name="start_time" value="{{ r['start_time'] or '' }}"><input type="hidden" name="end_time" value="{{ r['end_time'] or '' }}">{% endif %}
     <div class="eq-two"><label>{{ _('f.date') }}<input type="date" name="date" value="{{ (r['date'] if r else form.get('date')) or '' }}" required></label>
       <label>{{ _('f.category') }}<select name="category">{% for c in trip_categories %}<option value="{{ c }}" {{ 'selected' if ((r['category'] if r else form.get('category')) or 'private') == c }}>{{ _('category.' ~ c) }}</option>{% endfor %}</select></label></div>
@@ -24,7 +24,7 @@
 {% endmacro %}
 {% macro counterform(c, url, inline=false) %}
   <form class="eq-edit tp-form" method="post" action="{{ url }}" {{ 'hidden' if c and not inline else '' }}>
-    {% if not c %}<h3 class="tp-add-h">{{ icon('plus', 16) }} {{ _('tp.add_counter') }}</h3>{% endif %}
+    {% if not c %}<h2 class="tp-add-h">{{ icon('plus', 16) }} {{ _('tp.add_counter') }}</h2>{% endif %}
     {% if c %}<input type="hidden" name="notes" value="{{ c['notes'] or '' }}">{% endif %}
     <div class="eq-two"><label>{{ _('f.name') }}<input type="text" name="name" maxlength="200" required value="{{ c['name'] if c else (form.get('name') or '') }}"></label>
       <label>{{ _('f.kind') }}<select name="kind">{% for k in counter_kinds if k != 'tax' or (c and c['kind'] == 'tax') %}<option value="{{ k }}" {{ 'selected' if (c['kind'] if c else (form.get('kind') or 'private')) == k }}>{{ _('kind.' ~ k) }}</option>{% endfor %}</select></label></div>
@@ -80,17 +80,17 @@
     {% if ta.longest %}<div class="tg"><i>{{ _('ta.longest') }}</i><b>{{ fnum(units.d(ta.longest.km), 0) }} <small>{{ units.dist_unit }}</small></b><small class="ta-sub">{{ fdate(ta.longest.date) }}{% if ta.longest.to %} · {{ ta.longest.to }}{% endif %}</small></div>{% endif %}
   </div>
 
-  <h3 class="ta-h">{{ _('ta.cats') }}</h3>
+  <h2 class="ta-h">{{ _('ta.cats') }}</h2>
   <div class="rp-share" role="img" aria-label="{{ _('ta.cats') }}">{% for c in ta.cats %}<i class="b{{ [1, 3, 4][loop.index0] if loop.index0 < 3 else 4 }}" style="width: {{ c.pct|round(1) }}%"></i>{% endfor %}</div>
   <div class="rp-legend">{% for c in ta.cats %}<span><i class="b{{ [1, 3, 4][loop.index0] if loop.index0 < 3 else 4 }}"></i>{{ catn.get(c.key, c.key) }} <b>{{ fnum(units.d(c.km), 0) }} {{ units.dist_unit }}</b> · {{ c.n }}×</span>{% endfor %}</div>
 
-  <h3 class="ta-h">{{ _('ta.length') }} <small class="muted">{{ units.dist_unit }}</small></h3>
+  <h2 class="ta-h">{{ _('ta.length') }} <small class="muted">{{ units.dist_unit }}</small></h2>
   {% set top = ta.buckets|max %}
   <div class="ta-bars">{% for count in ta.buckets %}
     <div class="ta-bar"><span class="ta-l">{{ ta_labels[loop.index0] }}</span><span class="ta-t"><i style="width: {{ (count / top * 100)|round(1) if top else 0 }}%"></i></span><b>{{ count }}</b></div>{% endfor %}
   </div>
 
-  <h3 class="ta-h">{{ _('ta.when') }}</h3>
+  <h2 class="ta-h">{{ _('ta.when') }}</h2>
   <div class="ta-heat" role="img" aria-label="{{ _('ta.when') }}">
     <span></span>{% for b in blocks %}<span class="ta-hh">{{ b }}</span>{% endfor %}
     {% for row in ta.heat %}{% set w = loop.index0 %}
@@ -99,7 +99,7 @@
   </div>
   <p class="hint">{{ icon('info', 14) }} {{ _('ta.when_hint') }}{% if ta.untimed %} {{ _('ta.untimed', n=ta.untimed) }}{% endif %}</p>
 
-  <h3 class="ta-h">{{ _('ta.style') }}</h3>
+  <h2 class="ta-h">{{ _('ta.style') }}</h2>
   {% if ta.style %}
   <div class="trip-kpis ta-kpis">
     <div class="tg"><i>{{ _('ta.brakes', u=units.dist_unit) }}</i><b>{{ fnum(ta.style.hard_per_100 * (1.609344 if units.imperial else 1), 1) }}</b></div>
@@ -144,7 +144,7 @@
   {% if trip_items %}
   <div class="rec-grid" id="trip-list">
     {% for head, r in trip_items %}
-    {% if head %}<h3 class="rec-month"><span>{{ head.title }}</span></h3>{% endif %}
+    {% if head %}<h2 class="rec-month"><span>{{ head.title }}</span></h2>{% endif %}
     {% set dist = extras.get(r['id'], {}).get('distance') %}
     {% set mins = minutes(r['start_time'], r['end_time'])|trim %}
     <article class="rec trip-card">
