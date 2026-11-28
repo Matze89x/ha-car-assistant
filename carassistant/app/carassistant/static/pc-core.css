@@ -3775,3 +3775,89 @@ html.odo-settled .odo-drum i, html.odo-settled .odo-strip { animation: none; }
 label:is(.button, .cur-icon) { position: relative; }
 label:is(.button, .cur-icon) > input[type="file"][hidden] { display: block; position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
 label:is(.button, .cur-icon):has(> input[type="file"]:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* The wallbox card of the Charging page and its tile on Home (docs/design.md, 4b "Wallbox card"): the ring is the battery with the target as a mark and dots that run
+   around it while power flows; right of it the power, the figures of the charge, the curve. The colour of the state: green = charging, amber = waiting, grey = no car,
+   red = fault; only theme tokens. */
+.wb { --wb: var(--ok); --wb-rgb: var(--ok-rgb); }
+.wb[data-st="waiting"], .wb[data-st="plugged"], .wb[data-st="stale"] { --wb: var(--soon); --wb-rgb: var(--soon-rgb); }
+.wb[data-st="unplugged"] { --wb: var(--muted); --wb-rgb: var(--fg-rgb); }
+.wb[data-st="fault"] { --wb: var(--overdue); --wb-rgb: var(--overdue-rgb); }
+.wb-pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 13px; border-radius: 999px; font-size: 13px; font-weight: 700; background: rgba(var(--wb-rgb), .14); color: var(--wb); border: 1px solid rgba(var(--wb-rgb), .32); white-space: nowrap; }
+.wb-pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--wb); }
+.wb[data-st="charging"] .wb-pill i { animation: wb-pulse 1.6s ease-out infinite; }
+@keyframes wb-pulse { 0% { box-shadow: 0 0 0 0 rgba(var(--wb-rgb), .6); } 100% { box-shadow: 0 0 0 9px rgba(var(--wb-rgb), 0); } }
+.wb-main { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 24px; align-items: center; margin: 18px 0 4px; }
+.wb-ring { position: relative; width: 232px; height: 232px; margin: 0 auto; }
+.wb-ring svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.wb-ring circle { fill: none; }
+.wb-ring .trk { stroke: rgba(var(--fg-rgb), .08); stroke-width: 13; }
+.wb-ring .arc { stroke: var(--wb); stroke-width: 13; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dasharray .7s ease; filter: drop-shadow(0 0 7px rgba(var(--wb-rgb), .4)); }
+.wb-ring .flow { stroke: rgba(var(--wb-rgb), .7); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: .35 2.85; transform: rotate(-90deg); transform-origin: 50% 50%; opacity: 0; }
+.wb[data-st="charging"] .wb-ring .flow { opacity: 1; animation: wb-flow 20s linear infinite; }  /* the more power, the faster the dots: p1 ... p4 */
+.wb[data-st="charging"] .wb-ring.p2 .flow { animation-duration: 15s; }
+.wb[data-st="charging"] .wb-ring.p3 .flow { animation-duration: 11s; }
+.wb[data-st="charging"] .wb-ring.p4 .flow { animation-duration: 8s; }
+@keyframes wb-flow { to { stroke-dashoffset: -100; } }
+.wb-ring .tick { stroke: var(--text); stroke-width: 2.4; stroke-linecap: round; opacity: .85; }
+.wb-ring .c { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; gap: 3px; }
+.wb-ring .c b { font: 700 52px/1 "Space Mono", ui-monospace, monospace; letter-spacing: -.03em; display: block; }
+.wb-ring .c b small { font-size: 20px; color: var(--muted); margin-left: 3px; letter-spacing: 0; }
+.wb-ring .c b.nil { color: var(--dim); }
+.wb-ring .c > span { color: var(--muted); font-size: 13px; }
+.wb-ring .c em { font-style: normal; font-size: 13px; font-weight: 700; letter-spacing: .01em; color: var(--wb); margin-top: 7px; }
+.wb-live { display: grid; gap: 14px; min-width: 0; }
+.wb-kw { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.wb-kw b { font: 700 40px/1 "Space Mono", ui-monospace, monospace; letter-spacing: -.03em; }
+.wb:not([data-st="charging"]) .wb-kw b { color: var(--dim); }
+.wb-kw span { color: var(--muted); font-size: 18px; font-weight: 600; }
+.wb-kw small { margin-left: auto; color: var(--muted); font-size: 12px; text-align: right; }
+.wb-pwr .bar { margin: 0; height: 6px; }
+.wb-pwr .bar-fill { background: linear-gradient(90deg, rgba(var(--wb-rgb), .55), var(--wb)); transition: width .7s ease; }
+.wb-elec { display: flex; flex-wrap: wrap; gap: 6px; }
+.wb-elec .badge { background: rgba(var(--fg-rgb), .07); font-weight: 600; }
+.wb-sparkw { position: relative; }
+.wb-sparkw > small { position: absolute; left: 0; top: -2px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.wb-spark { width: 100%; height: 66px; display: block; }
+.wb-spark .a { fill: rgba(var(--wb-rgb), .16); stroke: none; }
+.wb-spark .l { fill: none; stroke: var(--wb); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.wb-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.wb-facts .tg small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+.wb-note { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--r-m); background: rgba(var(--wb-rgb), .1); border: 1px solid rgba(var(--wb-rgb), .28); font-size: 14px; }
+.wb-note .ico { flex: 0 0 auto; margin-top: 1px; color: var(--wb); }
+.wb-note small { display: block; color: var(--muted); margin-top: 2px; font-size: 13px; }
+.wb-ctl { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 22px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--glass-b); }
+.wb-ctl form { margin: 0; }
+.wb-grp { min-width: 0; }
+.wb-grp.grow { flex: 1 1 200px; }
+.wb-lbl { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+.wb-step { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px; border: 1px solid var(--glass-b); background: rgba(var(--fg-rgb), .06); }
+.wb-step output { min-width: 74px; text-align: center; font: 700 16px "Space Mono", ui-monospace, monospace; }
+.wb-ctl select { width: 100%; }
+.wb-src { margin-top: 14px; border-top: 1px solid var(--glass-b); padding-top: 10px; }
+.wb-src summary { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; }
+.wb-src summary::-webkit-details-marker { display: none; }
+.wb-src summary .ico { transition: transform .15s ease; }
+.wb-src[open] summary .ico { transform: rotate(180deg); }
+.wb-src ul { list-style: none; margin: 10px 0 0; padding: 0; display: grid; }
+.wb-src li { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(0, 1.7fr) auto; gap: 4px 12px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--glass-b); font-size: 13px; }
+.wb-src li:last-child { border: 0; }
+.wb-src code { font: 12px "Space Mono", ui-monospace, monospace; color: var(--muted); overflow-wrap: anywhere; }
+.wb-src li .badge { font-size: 11px; justify-self: end; }
+.wb-sig { display: flex; align-items: center; gap: 6px; margin: 12px 0 0; color: var(--muted); font-size: 13px; }  /* when the last signal came: a note, not an explanation */
+@media (max-width: 640px) {
+  .wb-main { grid-template-columns: 1fr; gap: 16px; }
+  .wb-ring { width: 212px; height: 212px; }
+  .wb-ring .c b { font-size: 40px; }
+  .wb-kw b { font-size: 32px; }
+  .wb-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wb-src li { grid-template-columns: 1fr auto; }
+  .wb-src li code { grid-column: 1 / -1; order: 3; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wb[data-st="charging"] .wb-ring .flow, .wb[data-st="charging"] .wb-pill i { animation: none; }
+  .wb-ring .arc, .wb-pwr .bar-fill { transition: none; }
+}
+/* the tile on Home */
+.wd.wb-tile .wd-v small { font-size: 15px; }
+.wd.wb-tile .wd-s b { font-weight: 700; }

@@ -64,6 +64,8 @@ from . import (
     tripstats,
     units,
     userprefs,
+    wallbox,
+    wallbox_control,
 )
 from . import addons as addons_mod
 from . import fuel_export as fuel_export_mod
@@ -941,6 +943,11 @@ def vehicle_overview(request: Request, vid: int):
         odo_wd = (
             _odometer_stats(conn, vid) if any(w.key == "odometer" and w.on for w in layout) else None
         )  # only worked out for a widget that is shown
+        wallbox_card = (
+            wallbox.page(conn, vid, vehicle_status.rows(conn, vid), i18n.translator(config.language(), charge=True))
+            if energy.mode(vehicle) == "charge" and any(w.key == "wallbox" and w.on for w in layout)
+            else None
+        )  # the tile of the wallbox: worked out only for a car that is charged and a Home that shows it
         week_rows, week_km = _week_km(conn, vid)
         week_bars = charts.mini_bars_svg([(label, units.of().d(km)) for label, km in week_rows])
         cons_delta = (stats["last_per_100"] - stats["avg_per_100"]) if stats.get("last_per_100") and stats.get("avg_per_100") else None
@@ -977,6 +984,7 @@ def vehicle_overview(request: Request, vid: int):
             hero_badges=vehicle_status.hero_badges(live_rows, t),
             widgets=layout,
             odo_wd=odo_wd,
+            wallbox=wallbox_card,
             hero_range=hero,
             odo_scan_on=receipt_available(),
             odo_from_car=summary.odometer_from_car(conn, vid),
@@ -1669,7 +1677,20 @@ def fuel_list_context(conn: sqlite3.Connection, vid: int, request: Request, edit
         wanted = conn.execute("SELECT * FROM fuel WHERE vehicle_id = ? AND id = ?", (vid, edit_id)).fetchone()
         if wanted is not None:
             items = [(None, wanted), *items]
+    vehicle = conn.execute("SELECT * FROM vehicles WHERE id = ?", (vid,)).fetchone()
+    card = (
+        wallbox.page(
+            conn,
+            vid,
+            vehicle_status.rows(conn, vid),
+            i18n.translator(config.language(), charge=True),
+            ha.all_states() if wallbox_control.wanted(conn, vid) else None,
+        )
+        if vehicle is not None and energy.mode(vehicle) == "charge"
+        else None
+    )  # the card of the wallbox: only for a car that is charged, and only when something says what the wallbox does
     return {
+        "wallbox": card,
         "charge_sessions": charge_detect.sessions(conn, vid),
         "charge_stats": charge_detect.stats(conn, vid),
         "fuel_items": items,
@@ -3177,5 +3198,6 @@ from . import (  # noqa: E402,F401
     tiles_web,
     tripimport_web,
     vehiclebackup_web,
+    wallbox_web,
     widgets_web,
 )  # register the login, account, plugin API, navigation and page-module routes

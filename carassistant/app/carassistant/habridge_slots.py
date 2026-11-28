@@ -17,7 +17,7 @@ class Slot:
     key: str  # what the form and the bindings call it: the field of the Plugin API, or "tyre_fl", "position", ...
     field: str  # the field of the Plugin API it fills
     group: str
-    kind: str  # number | bool | text | position | coord | tyre | closure | warning | state | label | fault
+    kind: str  # number | bool | text | position | coord | tyre | closure | warning | state | label | fault | command
     unit: str = ""  # the unit a number is stored in (km, %, kW, bar, °C, ...)
     domains: tuple[str, ...] = ()  # the kinds of entities of Home Assistant that fit
     classes: tuple[str, ...] = ()  # device classes (and units) that point to this slot: those entities are suggested first
@@ -78,6 +78,11 @@ SLOTS: tuple[Slot, ...] = (
     Slot("charge_temp_c", "charge_temp_c", "wallbox", "number", "°C", NUM, ("temperature",)),
     Slot("charge_mode", "charge_mode", "wallbox", "label", "", WORD, ()),
     Slot("charge_fault", "charge_fault", "wallbox", "fault", "", (*WORD, "binary_sensor", "switch", "input_boolean"), ("problem",)),
+    # --- what the wallbox card may do: nothing is read from these, a person presses a button (docs/home-assistant.md, "Controlling the wallbox")
+    Slot("wb_allow", "", "wallbox", "command", "", ("switch", "input_boolean"), ()),
+    Slot("wb_start", "", "wallbox", "command", "", ("button", "input_button", "script", "switch", "input_boolean"), ()),
+    Slot("wb_stop", "", "wallbox", "command", "", ("button", "input_button", "script", "switch", "input_boolean"), ()),
+    Slot("wb_ack", "", "wallbox", "command", "", ("button", "input_button", "script"), ()),
     # --- doors, windows, lock
     Slot("locked", "locked", "access", "bool", "", ("lock", *FLAG), ("lock",), "locked"),
     Slot("parking_brake", "parking_brake", "access", "bool", "", FLAG, ("parking_brake",), "on"),

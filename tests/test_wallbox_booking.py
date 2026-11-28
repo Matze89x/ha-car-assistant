@@ -177,3 +177,23 @@ def test_a_car_with_a_tank_notices_no_charge(client, fuel_type):
         connectors._store(conn, vid, "charge_session_kwh", "6")
         connectors._store(conn, vid, "charging", "no")
         assert _entry(conn, vid) == []
+
+
+def test_the_curve_goes_on_while_the_power_stays_the_same_because_the_energy_keeps_coming(client, monkeypatch):
+    """A wallbox reports 7.4 kW once and then nothing, but the energy of the charge grows: that is the pulse of the curve."""
+    vid = _car(client)
+    clock = {"now": datetime.now(UTC)}
+    monkeypatch.setattr(charge_detect, "_now", lambda: clock["now"])
+    with db.tx() as conn:
+        connectors._store(conn, vid, "charge_power_kw", "7.4")  # the power arrives before the word "charging"
+        connectors._store(conn, vid, "charging", "yes")
+        for n in range(1, 5):
+            clock["now"] += timedelta(seconds=60)
+            connectors._store(conn, vid, "charge_session_kwh", str(round(n * 0.123, 3)))
+        points = [r["kw"] for r in conn.execute("SELECT kw FROM charge_samples ORDER BY at")]
+        assert points == [7.4] * 5  # the first one at the start, then one a minute
+        clock["now"] += timedelta(seconds=60)
+        connectors._store(conn, vid, "charge_power_kw", "0")
+        clock["now"] += timedelta(seconds=60)
+        connectors._store(conn, vid, "charge_session_kwh", "0.7")
+        assert [r["kw"] for r in conn.execute("SELECT kw FROM charge_samples ORDER BY at")][-1] == 0.0

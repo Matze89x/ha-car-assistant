@@ -1,0 +1,14 @@
+{% from "_macros.html" import widget with context %}
+{# The tile of the wallbox on Home (carassistant/wallbox.py): the power while it charges, else what the wallbox does; the battery as a bar with the target as a mark. #}
+{% if wallbox %}
+{% set k = wallbox %}
+{% set st = 'stale' if k.stale else k.state %}
+{% call widget('plug', 'c6', _('wb.title'), '/e/fuel', w.size, 'st-ok' if st == 'charging' else ('st-warn' if st in ('fault', 'stale') else ''), id=none) %}
+  <div class="wd-v">{% if st == 'charging' and k.kw is not none %}{{ fnum(k.kw, 1) }} <small>kW</small>{% else %}{{ _('wb.st.' ~ st) }}{% endif %}</div>
+  <div class="wd-s">{% if st == 'charging' %}{% if k.soc is not none %}{{ fnum(k.soc) }} %{% if k.target is not none %} → {{ fnum(k.target) }} %{% endif %}{% endif %}{% if k.finish %}{{ ' · ' if k.soc is not none }}{{ _('wb.f.finish') }} <b>{{ ftime(k.finish) }}</b>{% endif %}
+    {% elif st == 'fault' %}{{ k.fault or _('wb.st.fault') }}
+    {% elif st in ('waiting', 'plugged', 'finished') and k.soc is not none %}{{ fnum(k.soc) }} %{% if k.target is not none %} → {{ fnum(k.target) }} %{% endif %}
+    {% elif k.last and k.last.kwh %}{{ _('wb.f.last') }}: {{ fnum(k.last.kwh, 1) }} kWh{% endif %}</div>
+  {% if k.soc is not none %}<div class="wd-bar" role="img" aria-label="{{ fnum(k.soc) }} %"><i style="width: {{ k.soc }}%"></i></div>{% endif %}
+{% endcall %}
+{% endif %}

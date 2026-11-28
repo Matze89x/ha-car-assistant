@@ -85,6 +85,10 @@ def seen(conn: sqlite3.Connection, vehicle_id: int, key: str, before, after) -> 
                     _live(conn, vehicle_id, "charge_total_kwh"),
                 ),
             )
+            started = _open(conn, vehicle_id)
+            kw = _live(conn, vehicle_id, "charge_power_kw")
+            if started is not None and kw is not None and kw > 0:
+                _sample(conn, started, kw)  # the first point of the curve (the power came in before the word "charging")
         elif str(after) == "no" and session is not None:
             return _close(conn, vehicle_id, session, vehicle["battery_kwh"])
         return False
@@ -102,6 +106,10 @@ def seen(conn: sqlite3.Connection, vehicle_id: int, key: str, before, after) -> 
         kwh = _num(after)  # the most the wallbox said for this charge: some of them count from 0 again as soon as the car is unplugged
         if kwh is not None and kwh > (session["energy_kwh"] or 0):
             conn.execute("UPDATE charge_sessions SET energy_kwh = ? WHERE id = ?", (kwh, session["id"]))
+    if key in ("charge_session_kwh", "battery_pct"):  # a power that stays the same is reported once: the energy and the level keep coming
+        kw = _live(conn, vehicle_id, "charge_power_kw")
+        if kw is not None and kw > 0:
+            _sample(conn, session, kw)
     return False
 
 
@@ -192,7 +200,7 @@ def _one(r, battery_kwh, price=None) -> dict:
     end = _parse(r["ended"]).astimezone()
     rise = (r["end_pct"] - r["start_pct"]) if r["end_pct"] is not None and r["start_pct"] is not None else None
     gained = battery_kwh * rise / 100 if battery_kwh and rise else None  # what reached the battery (an estimate)
-    bill = r["bill_kwh"]  # what the bill says (the person's entry), when completed
+    bill = r["bill_kwh"] or r["energy_kwh"]  # what the bill says (the person's entry), when completed - or what the wallbox counted
     cost = r["bill_cost"]
     fast = bool(r["max_kw"] and r["max_kw"] >= FAST_KW)
     est_cost = (

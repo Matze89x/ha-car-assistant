@@ -1,0 +1,124 @@
+{# The wallbox card of the Charging page (carassistant/wallbox.py, docs/design.md 4b "Wallbox card"): the ring is the battery with the target as a mark, the dots run
+   around it while power flows; right of it the power in kW against what the wallbox may give, the figures of this charge and - while it runs - the curve of the
+   power. What is not known is not drawn. The page reads it again when the values change (livepoll.js). #}
+{% from "_macros.html" import icon with context %}
+{% macro tg(label, value, sub='') -%}<div class="tg"><i>{{ label }}</i><b>{{ value }}</b>{% if sub %}<small>{{ sub }}</small>{% endif %}</div>{%- endmacro %}
+{% macro dur(m) -%}{% if m >= 60 %}{{ m // 60 }} h {{ '%02d'|format(m % 60) }} min{% else %}{{ m }} min{% endif %}{%- endmacro %}
+{% set w = wallbox %}
+{% set st = 'stale' if w.stale else w.state %}
+{% set cost_text = (fnum(w.cost, 2) ~ ' ' ~ units.cur) if w.cost is not none else '' %}
+{% set load = 4 if w.load_pct >= 75 else (3 if w.load_pct >= 50 else (2 if w.load_pct >= 25 else 1)) %}
+<section class="card wb" id="wb" data-st="{{ st }}">
+  <div class="card-head"><span class="mi-ic c6">{{ icon('plug', 19) }}</span><div class="card-ht"><h2>{{ _('wb.title') }}</h2>{% if w.mode %}<small>{{ _('wb.mode_line', mode=w.mode) }}</small>{% endif %}</div>
+    <span class="wb-pill"><i></i><span>{{ _('wb.st.' ~ st) }}</span></span></div>
+  <div class="wb-main">
+    <div class="wb-ring p{{ load }}" role="img" aria-label="{{ _('wb.st.' ~ st) }}{% if w.soc is not none %}, {{ fnum(w.soc) }} %{% endif %}">
+      <svg viewBox="0 0 232 232" aria-hidden="true">
+        <circle class="trk" cx="116" cy="116" r="96"/>
+        {% if w.soc is not none %}<circle class="arc" cx="116" cy="116" r="96" pathLength="100" stroke-dasharray="{{ w.soc }} 100"/>{% endif %}
+        {% if w.target is not none %}<g transform="rotate({{ w.target * 3.6 }} 116 116)"><line class="tick" x1="116" y1="7" x2="116" y2="27"/></g>{% endif %}
+        <circle class="flow" cx="116" cy="116" r="109" pathLength="100"/>
+      </svg>
+      <div class="c">
+        {% if w.soc is not none %}
+        <b>{{ fnum(w.soc) }}<small>%</small></b>
+        {% if w.target is not none %}<span>{{ _('wb.target', n=fnum(w.target)) }}</span>{% endif %}
+        {% if st == 'charging' and w.left_min %}<em>{{ _('wb.left', t=dur(w.left_min)) }}</em>
+        {% elif st == 'finished' and w.target is not none and w.soc >= w.target %}<em>{{ _('wb.reached') }}</em>
+        {% elif st == 'waiting' %}<em>{{ _('wb.is_waiting') }}</em>
+        {% elif st == 'fault' %}<em>{{ _('wb.stopped') }}</em>{% endif %}
+        {% else %}
+        <b class="nil">{{ icon('plug', 44) }}</b><span>{{ _('wb.ready') if st == 'unplugged' else _('wb.st.' ~ st) }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="wb-live">
+      <div class="wb-kw"><b>{{ fnum(w.kw, 1) if w.kw is not none else '–' }}</b><span>kW</span>{% if st == 'charging' and w.max_kw %}<small>{{ _('wb.of_max', kw=fnum(w.max_kw, 1)) }}</small>{% endif %}</div>
+      <div class="wb-pwr"><div class="bar"><i class="bar-fill" style="width: {{ w.load_pct }}%"></i></div></div>
+      {% if st == 'charging' and (w.amps is not none or w.volts is not none or w.phases) %}
+      <div class="wb-elec">
+        {% if w.amps is not none %}<span class="badge">{% if w.phases and w.phases > 1 %}{{ w.phases }} × {% endif %}{{ fnum(w.amps, 1) }} A</span>{% endif %}
+        {% if w.volts is not none %}<span class="badge">{{ fnum(w.volts) }} V</span>{% endif %}
+        {% if w.phases %}<span class="badge">{{ _('wb.b.phase') if w.phases == 1 else _('wb.b.phases', n=w.phases) }}</span>{% endif %}
+      </div>
+      {% endif %}
+      {% if st == 'charging' and w.curve_line %}
+      <div class="wb-sparkw"><small>{{ _('wb.curve', hm=ftime(w.since)) if w.since else _('wb.n.stale_text') }}</small>
+        <svg class="wb-spark" viewBox="0 0 300 66" preserveAspectRatio="none" aria-hidden="true"><path class="a" d="{{ w.curve_area }}"/><path class="l" d="{{ w.curve_line }}"/></svg></div>
+      {% endif %}
+      {% if st == 'stale' or w.stale %}
+      <div class="wb-note">{{ icon('alert', 20) }}<div>{{ _('wb.n.stale', ago=w.ago) }}<small>{{ _('wb.n.stale_text') }}</small></div></div>
+      {% elif st == 'waiting' %}
+      <div class="wb-note">{{ icon('clock', 20) }}<div>{{ _('wb.n.waiting') }}<small>{{ _('wb.n.waiting_mode', mode=w.mode) if w.mode else _('wb.n.waiting_plain') }}</small></div></div>
+      {% elif st == 'plugged' %}
+      <div class="wb-note">{{ icon('plug', 20) }}<div>{{ _('wb.n.plugged') }}<small>{{ _('wb.n.plugged_text') }}</small></div></div>
+      {% elif st == 'fault' %}
+      <div class="wb-note">{{ icon('alert', 20) }}<div>{{ w.fault or _('wb.st.fault') }}<small>{{ _('wb.n.fault_text') }}</small></div></div>
+      {% elif st == 'finished' %}
+      <div class="wb-note">{{ icon('check', 20) }}<div>{{ _('wb.n.finished') }}<small>{{ _('wb.n.finished_text') }}</small></div></div>
+      {% elif st == 'unplugged' %}
+      <div class="wb-note">{{ icon('plug', 20) }}<div>{{ _('wb.n.idle') }}{% if w.last and w.last.kwh %}<small>{{ _('wb.n.idle_last', date=fdate(w.last.date), kwh=fnum(w.last.kwh, 1)) }}</small>{% endif %}</div></div>
+      {% endif %}
+      {# the figures: only the ones that are known, six at the most #}
+      {% set F = [] %}
+      {% if st == 'charging' %}
+        {% if w.energy_kwh is not none %}{% set _x = F.append(tg(_('wb.f.energy'), fnum(w.energy_kwh, 1) ~ ' kWh', _('wb.f.in_battery', kwh=fnum(w.in_battery, 1)) if w.in_battery else '')) %}{% endif %}
+        {% if w.minutes is not none %}{% set _x = F.append(tg(_('wb.f.time'), dur(w.minutes), _('wb.f.since', hm=ftime(w.since)) if w.since else '')) %}{% endif %}
+        {% if cost_text %}{% set _x = F.append(tg(_('wb.f.cost'), cost_text, _('wb.f.price', price=fnum(w.price, 3) ~ ' ' ~ units.cur))) %}{% endif %}
+        {% if w.finish %}{% set _x = F.append(tg(_('wb.f.finish'), ftime(w.finish), _('wb.f.in', t=dur(w.left_min)))) %}{% endif %}
+        {% if w.range_km %}{% set _x = F.append(tg(_('wb.f.range'), '+' ~ fnum(units.d(w.range_km)) ~ ' ' ~ units.dist_unit)) %}{% endif %}
+        {% if w.loss_pct is not none %}{% set _x = F.append(tg(_('wb.f.loss'), '≈ ' ~ fnum(w.loss_pct) ~ ' %', _('wb.f.loss_sub'))) %}{% endif %}
+        {% if w.limit_a is not none %}{% set _x = F.append(tg(_('wb.f.limit'), fnum(w.limit_a) ~ ' A')) %}{% endif %}
+        {% if w.total_kwh is not none %}{% set _x = F.append(tg(_('wb.f.counter'), fnum(w.total_kwh, 1) ~ ' kWh', _('wb.f.lifetime'))) %}{% endif %}
+      {% elif st in ('waiting', 'plugged') %}
+        {% if w.soc is not none %}{% set _x = F.append(tg(_('wb.f.battery'), fnum(w.soc) ~ ' %', _('wb.target', n=fnum(w.target)) if w.target is not none else '')) %}{% endif %}
+        {% if w.need_kwh %}{% set _x = F.append(tg(_('wb.f.to_target'), fnum(w.need_kwh, 1) ~ ' kWh')) %}{% endif %}
+        {% if w.mode %}{% set _x = F.append(tg(_('wb.f.mode'), w.mode)) %}{% endif %}
+        {% if w.limit_a is not none %}{% set _x = F.append(tg(_('wb.f.limit'), fnum(w.limit_a) ~ ' A')) %}{% endif %}
+        {% if w.total_kwh is not none %}{% set _x = F.append(tg(_('wb.f.counter'), fnum(w.total_kwh, 1) ~ ' kWh', _('wb.f.lifetime'))) %}{% endif %}
+        {% if w.temp_c is not none %}{% set _x = F.append(tg(_('wb.f.temp'), fnum(w.temp_c) ~ ' °C')) %}{% endif %}
+      {% elif st == 'finished' %}
+        {% if w.energy_kwh is not none %}{% set _x = F.append(tg(_('wb.f.energy'), fnum(w.energy_kwh, 1) ~ ' kWh', _('wb.f.in_battery', kwh=fnum(w.in_battery, 1)) if w.in_battery else '')) %}{% endif %}
+        {% if w.minutes is not none %}{% set _x = F.append(tg(_('wb.f.time'), dur(w.minutes), _('wb.f.since', hm=ftime(w.since)) if w.since else '')) %}{% endif %}
+        {% if cost_text %}{% set _x = F.append(tg(_('wb.f.cost'), cost_text, _('wb.f.price', price=fnum(w.price, 3) ~ ' ' ~ units.cur))) %}{% endif %}
+        {% if w.loss_pct is not none %}{% set _x = F.append(tg(_('wb.f.loss'), '≈ ' ~ fnum(w.loss_pct) ~ ' %', _('wb.f.loss_sub'))) %}{% endif %}
+        {% if w.avg_kw %}{% set _x = F.append(tg(_('wb.f.avg'), fnum(w.avg_kw, 1) ~ ' kW', _('wb.f.peak', kw=fnum(w.peak_kw, 1)) if w.peak_kw else '')) %}{% endif %}
+        {% if w.total_kwh is not none %}{% set _x = F.append(tg(_('wb.f.counter'), fnum(w.total_kwh, 1) ~ ' kWh', _('wb.f.lifetime'))) %}{% endif %}
+      {% elif st == 'fault' %}
+        {% if w.energy_kwh is not none %}{% set _x = F.append(tg(_('wb.f.energy'), fnum(w.energy_kwh, 1) ~ ' kWh')) %}{% endif %}
+        {% if w.soc is not none %}{% set _x = F.append(tg(_('wb.f.battery'), fnum(w.soc) ~ ' %', _('wb.target', n=fnum(w.target)) if w.target is not none else '')) %}{% endif %}
+        {% if w.temp_c is not none %}{% set _x = F.append(tg(_('wb.f.temp'), fnum(w.temp_c) ~ ' °C')) %}{% endif %}
+        {% if w.total_kwh is not none %}{% set _x = F.append(tg(_('wb.f.counter'), fnum(w.total_kwh, 1) ~ ' kWh', _('wb.f.lifetime'))) %}{% endif %}
+      {% else %}
+        {% if w.last %}{% set _x = F.append(tg(_('wb.f.last'), fdate(w.last.date), _('wb.f.last_sub', min=dur(w.last.minutes), pct=w.last.end_pct) if w.last.end_pct is not none else dur(w.last.minutes))) %}
+        {% if w.last.kwh %}{% set _x = F.append(tg(_('wb.f.energy'), fnum(w.last.kwh, 1) ~ ' kWh', (fnum(w.last.cost, 2) ~ ' ' ~ units.cur) if w.last.cost else '')) %}{% endif %}{% endif %}
+        {% if w.total_kwh is not none %}{% set _x = F.append(tg(_('wb.f.counter'), fnum(w.total_kwh, 1) ~ ' kWh', _('wb.f.lifetime'))) %}{% endif %}
+        {% if w.temp_c is not none %}{% set _x = F.append(tg(_('wb.f.temp'), fnum(w.temp_c) ~ ' °C')) %}{% endif %}
+      {% endif %}
+      {% if F %}<div class="wb-facts">{% for f in F[:6] %}{{ f }}{% endfor %}</div>{% endif %}
+    </div>
+  </div>
+  {# what a person may do from here - only what the entities of this car can do right now (wallbox_control.py); each button is a form of its own #}
+  {% if w.controls %}{% set c = w.controls %}
+  <div class="wb-ctl">
+    {% if c.main %}<form method="post" action="{{ base }}/v/{{ v.slug }}/wallbox/{{ c.main.action }}"><button class="button{{ ' primary' if c.main.primary }}">{{ icon({'pause': 'pause-circle-outline', 'resume': 'play', 'start': 'lightning-bolt', 'ack': 'check'}[c.main.action], 18) }}<span>{{ _('wb.ctl.' ~ c.main.action) }}</span></button></form>{% endif %}
+    {% if c.limit and c.limit.value is not none %}
+    <div class="wb-grp"><span class="wb-lbl">{{ _('wb.ctl.limit') }}</span><span class="wb-step">
+      <form method="post" action="{{ base }}/v/{{ v.slug }}/wallbox/limit"><button class="icon-btn" name="delta" value="-1" aria-label="{{ _('wb.ctl.less') }}" title="{{ _('wb.ctl.less') }}">{{ icon('minus', 18) }}</button></form>
+      <output>{{ fnum(c.limit.value, 1 if c.limit.value != c.limit.value|int else 0) }} A</output>
+      <form method="post" action="{{ base }}/v/{{ v.slug }}/wallbox/limit"><button class="icon-btn" name="delta" value="1" aria-label="{{ _('wb.ctl.more') }}" title="{{ _('wb.ctl.more') }}">{{ icon('plus', 18) }}</button></form>
+    </span></div>
+    {% endif %}
+    {% if c.mode %}
+    <div class="wb-grp grow"><label class="wb-lbl" for="wb-mode">{{ _('wb.ctl.mode') }}</label>
+      <form method="post" action="{{ base }}/v/{{ v.slug }}/wallbox/mode" data-autosubmit><select id="wb-mode" name="option">{% for o in c.mode.options %}<option value="{{ o }}" {{ 'selected' if o == c.mode.value }}>{{ o }}</option>{% endfor %}</select></form></div>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% if w.sources %}
+  <details class="wb-src"><summary>{{ icon('chevron-down', 18) }}<span>{{ _('wb.src') }} · {{ _('wb.src_n', n=w.sources|length) }}</span></summary>
+    <ul>{% for r in w.sources %}<li><span>{{ r.label }}</span><code>{{ r.entity }}</code><span class="badge">{{ r.domain }}</span></li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+  {% if w.ago %}<p class="wb-sig">{{ icon('clock', 14) }}<span>{{ _('wb.signal', ago=w.ago) }}</span></p>{% endif %}
+</section>

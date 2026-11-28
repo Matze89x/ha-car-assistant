@@ -233,7 +233,10 @@ def test_a_vin_and_a_position():
 def test_every_slot_is_a_field_of_the_plugin_api_and_has_its_texts():
     en, de = i18n.translator("en"), i18n.translator("de")
     for slot in cat.SLOTS:
-        assert slot.field in connectors.KNOWN and slot.group in {g for g, _icon in cat.GROUPS}, slot
+        assert (slot.field in connectors.KNOWN or slot.kind == "command") and slot.group in {g for g, _icon in cat.GROUPS}, (
+            slot
+        )  # (a command fills no interface)
+        assert (slot.kind == "command") == (slot.field == ""), slot
         assert slot.kind in habridge.READERS, slot
         for t in (en, de):
             assert t.has(f"hab.slot.{slot.key}"), slot.key
@@ -250,7 +253,7 @@ def test_every_slot_is_a_field_of_the_plugin_api_and_has_its_texts():
         for name in names:
             assert en.has(f"hab.name.{name}") and de.has(f"hab.name.{name}")
     # every interface of the Plugin API a person could bind is offered (the ones that are no values of the car stay out)
-    offered = {s.field for s in cat.SLOTS}
+    offered = {s.field for s in cat.SLOTS if s.kind != "command"}
     assert set(connectors.KNOWN) - offered == {"measured_at"}, set(connectors.KNOWN) - offered - {"measured_at"}
     for truth in ("on", "locked", "open", "plugged", "charging", "climate", "any"):
         for n in (0, 1):

@@ -141,6 +141,13 @@ def sweep(
         try:
             base = f"http://127.0.0.1:{port}"
             ms.wait_for(base + "/healthz")
+            import sqlite3
+
+            import demo_data
+
+            with sqlite3.connect(data / "carassistant.db") as conn:  # the electric car stands at its wallbox: the card of the Charging page and its tile on Home are checked, too
+                conn.row_factory = sqlite3.Row
+                demo_data.wallbox_live(conn, conn.execute("SELECT id FROM vehicles WHERE slug = ?", (ms.EV,)).fetchone()["id"])
             with Browser() as b:
                 pages = (
                     check_alignment.page_list(b, base, ms)

@@ -75,6 +75,24 @@ The group **Wallbox** brings what a wallbox knows beyond its power. Everything i
 
 Helpers and templates are entities like any other: an `input_select` for the mode, an `input_number` for the limit, a template sensor or a `utility_meter` for the energy. Car Assistant reads what Home Assistant says is the state (or the attribute you choose); it evaluates nothing itself. A sensor that is *unavailable* or *unknown* leaves the last value in place.
 
+### Controlling the wallbox
+
+The card of the wallbox can also **do** something - when a person presses a button on it, never by itself. The last four rows of the group are for that; bind what your Home Assistant has, and the card offers exactly what it can do:
+
+| Interface | An entity of ... | The card offers |
+|---|---|---|
+| *Charging allowed (switch)* | `switch`, `input_boolean` | **Pause** and **Resume**: the switch is turned off or on |
+| *Start charging (button)* | `button`, `input_button`, `script`, `switch`, `input_boolean` | **Charge now**, while a car is plugged in and waits |
+| *Pause charging (button)* | the same | **Pause**, while it charges (without it the switch above is used) |
+| *Acknowledge a fault (button)* | `button`, `input_button`, `script` | **Acknowledge the fault**, while the wallbox reports one |
+
+The **current limit** and the **mode** need no row of their own: when *Current limit that is set* is a `number`, `input_number`, `select` or `input_select`, the card shows **− 16 A +** and changes it by one step (the `min`, `max` and `step` of the entity, or the next of its options); when *Mode* is a `select` or `input_select`, the card shows a list of its options.
+
+- **A fixed table, no free choice.** A request never names an entity or a service: it says *pause*, *limit* or *mode*, with a number or a word. Car Assistant takes the entity from the rows you bound for **this car** and the service from a fixed table (`switch.turn_on` / `turn_off`, `button.press`, `input_button.press`, `script.turn_on`, `number.set_value`, `select.select_option`); a value the entity does not take - a limit outside `min` and `max`, a mode that is not among its options - is refused.
+- **Only for administrators**, like everything that changes something.
+- **Every command leaves a line** in the log of the plugin (the service, the entity, the value), and a car takes at most 12 commands a minute.
+- **Not shown when it cannot work.** While Home Assistant cannot be reached, or the entity is not there, the card offers no button for it.
+
 ## Special cases: let Home Assistant do the thinking
 
 Every car, wallbox and integration is a little different. The options of a row cover what a single entity can say differently (unit, factor, attribute, yes-words); everything that needs **logic** is best done where it belongs, in Home Assistant itself: a template sensor or a helper is one entity more, and the plugin reads it like any other. Four recipes that come up again and again:
@@ -153,7 +171,7 @@ Any other plugin may take interfaces for itself with `"claims": ["fuel_level_pct
 
 ## Limits
 
-- It **reads**. Commands to the car (lock, charge, climate) through Home Assistant services are a later step.
+- It **reads** - and sends only what a person presses on the card of the wallbox (see *Controlling the wallbox*). Commands to the car itself (lock, climate) through Home Assistant services are a later step.
 - It needs the Home Assistant add-on; in a development setup Car Assistant answers *Home Assistant cannot be reached* and nothing is read.
 - A value of the car can come from entities of one Home Assistant only.
 

@@ -111,6 +111,8 @@ class FakeHA:
         self.refuse_trigger = False  # subscribe_trigger answers "not allowed" (subscribe_events still works)
         self.refuse_subscribe = False  # every kind of subscription is refused
         self.rest_down = False  # the REST API answers 503
+        self.refuse_services = False  # a service call answers 400
+        self.reactions: list = []  # called after every service: ``reaction(domain, service, body)`` (a device that does what it was told)
         self._lock = threading.RLock()
         self._conns: list[_Connection] = []
         self.server = ThreadingHTTPServer(("127.0.0.1", port), self._handler())
@@ -163,6 +165,42 @@ class FakeHA:
             self.states[entity_id] = new
             self._push(entity_id, before, new)
         return new
+
+    def apply(self, domain: str, service: str, body: dict) -> bool:
+        """What Home Assistant does with a service call for the simple kinds of entities: a switch or a helper changes its state, a number takes a value (within
+        its min and max), a select one of its options, a button remembers when it was pressed. False when the call is not valid (unknown entity, a value that does
+        not fit) - Home Assistant answers 400 then."""
+        entity = body.get("entity_id")
+        with self._lock:
+            old = self.states.get(entity) if isinstance(entity, str) else None
+            if old is None or not str(entity).startswith(domain + "."):
+                return False
+            attrs = dict(old["attributes"])
+            state = None
+            if domain in ("switch", "input_boolean") and service in ("turn_on", "turn_off", "toggle"):
+                state = {"turn_on": "on", "turn_off": "off"}.get(service) or ("off" if old["state"] == "on" else "on")
+            elif domain in ("number", "input_number") and service == "set_value":
+                try:
+                    value = float(body["value"])
+                except (KeyError, TypeError, ValueError):
+                    return False
+                if not float(attrs.get("min", -1e9)) <= value <= float(attrs.get("max", 1e9)):
+                    return False
+                state = f"{value:g}"
+            elif domain in ("select", "input_select") and service == "select_option":
+                if body.get("option") not in attrs.get("options", []):
+                    return False
+                state = str(body["option"])
+            elif domain in ("button", "input_button") and service == "press":
+                state = _now()
+            elif domain == "script" and service == "turn_on":
+                state = "off"
+            if state is not None:
+                unit, dclass = attrs.pop("unit_of_measurement", None), attrs.pop("device_class", None)
+                self.set(entity, state, unit, dclass, **attrs)
+        for reaction in list(self.reactions):
+            reaction(domain, service, body)
+        return True
 
     def remove(self, entity_id: str) -> None:
         with self._lock:
@@ -332,6 +370,8 @@ class FakeHA:
                     return
                 if len(parts) == 5 and parts[:3] == ["", "api", "services"]:
                     fake.calls.append((parts[3], parts[4], body))
+                    if fake.refuse_services or not fake.apply(parts[3], parts[4], body):
+                        return self._json(400, {"message": "Service call refused."})
                     self._json(200, [])
                 else:
                     self._json(404, {"message": "not found"})
@@ -361,6 +401,7 @@ class Wallbox:
         self.minutes = 0.0
         self.sessions = 0
         self.mode = "Solar"
+        self.allowed = True  # the switch "charging allowed"
         self.e = {
             "status": f"sensor.{prefix}_status",
             "cable": f"binary_sensor.{prefix}_cable",
@@ -386,10 +427,37 @@ class Wallbox:
             "ack": f"button.{prefix}_acknowledge",
             "count": f"counter.{prefix}_charges",
         }
+        fake.reactions.append(self._react)
         fake.areas = [*fake.areas, {"area_id": area, "name": area.title()}]
         fake.devices = [*fake.devices, {"id": f"dev_{prefix}", "name": "Wallbox", "name_by_user": None, "area_id": area, "manufacturer": "Example", "model": "Box 11"}]
         fake.entities = [*fake.entities, *({"entity_id": e, "device_id": f"dev_{prefix}", "area_id": None, "platform": "example"} for e in self.e.values())]
         self.unplug()
+
+    # ---- what it does when it is told something (a service of Home Assistant)
+
+    def _react(self, domain: str, service: str, body: dict) -> None:
+        e, entity = self.e, body.get("entity_id")
+        status = self.fake.states[e["status"]]["state"]
+        if entity == e["allowed"]:
+            self.allowed = service == "turn_on"
+            if not self.allowed and status == "Charging":
+                self.wait()
+            elif self.allowed and status == "SuspendedEVSE":
+                self.charge(7.4)
+            else:
+                self._publish(status, self.fake.states[e["fault"]]["state"])
+        elif entity == e["stop"] and status == "Charging":
+            self.wait()
+        elif entity == e["start"] and status in ("Preparing", "SuspendedEVSE"):
+            self.charge(7.4)
+        elif entity == e["ack"] and status == "Faulted":
+            self.plug_in()
+        elif entity == e["limit"]:
+            self.amps = int(float(body["value"]))
+            self._publish(status, self.fake.states[e["fault"]]["state"])
+        elif entity == e["mode"]:
+            self.mode = str(body["option"])
+            self._publish(status, self.fake.states[e["fault"]]["state"])
 
     # ---- the story
 
@@ -410,7 +478,7 @@ class Wallbox:
         set_(e["temperature"], str(round(24 + self.kw * 1.4, 1)), "°C", "temperature", friendly_name="Wallbox temperature")
         set_(e["phases"], str(self.PHASES), friendly_name="Wallbox phases", options=["1", "3"])
         set_(e["limit"], str(self.amps), "A", friendly_name="Wallbox max current", min=6, max=16, step=1, mode="slider")
-        set_(e["allowed"], "on", friendly_name="Wallbox charging allowed")
+        set_(e["allowed"], "on" if self.allowed else "off", friendly_name="Wallbox charging allowed")
         set_(e["mode"], self.mode, friendly_name="Wallbox mode", options=["Solar", "Fast", "Plan"])
         set_(e["surplus_on"], "on", friendly_name="Wallbox use surplus")
         set_(e["price"], "0.30", "€/kWh", friendly_name="Home price", min=0, max=2, step=0.001, mode="box")

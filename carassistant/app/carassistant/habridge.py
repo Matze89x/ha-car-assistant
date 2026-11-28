@@ -444,7 +444,16 @@ def read_fault(slot: cat.Slot, state: dict, opts: dict) -> Reading:
     return Reading(ok=True, value="" if key in NO_FAULT or not key else text[:limit], raw=text[:40])
 
 
+def read_command(slot: cat.Slot, state: dict, opts: dict) -> Reading:
+    """A row for a command reads nothing: it says that the entity is there and what it says now (the card shows the buttons only for entities that can do it)."""
+    domain = str(state.get("entity_id") or "").split(".")[0]
+    if domain not in slot.domains:
+        raise _Problem("domain", domain)
+    return Reading(ok=True, value=None, raw=str(state.get("state"))[:40])
+
+
 READERS = {
+    "command": read_command,
     "state": read_state,
     "label": read_label,
     "fault": read_fault,
@@ -511,7 +520,7 @@ def bindings(conn, addon_pk: int) -> dict[str, dict]:
 
 def fields_bound(bound: dict[str, dict]) -> set[str]:
     """The interfaces (fields of the Plugin API) these bindings fill. A wallbox state also makes *Charging* and *Plugged in* (unless they have rows of their own)."""
-    fields = {slot.field for key in bound if (slot := split(key)[0]) is not None}
+    fields = {slot.field for key in bound if (slot := split(key)[0]) is not None and slot.field}  # (a command fills no interface)
     if "charge_state" in bound:
         fields |= {"charging", "plugged"}
     return fields
@@ -735,7 +744,7 @@ def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None
     readings: dict[str, Reading] = {}
     for key, binding in bound.items():
         slot, name = split(key)
-        if slot is not None:
+        if slot is not None and slot.kind != "command":  # a command row is only looked at by the page; no value of it goes anywhere
             readings[key] = read(slot, binding["entity"], binding["options"], states, name)
     effective = _charge_of_state(_position_of_halves(readings), bound)
     fresh = {k: r for k, r in effective.items() if r.ok and st["sent"].get(k) != (r.value, r.at)}
@@ -970,6 +979,9 @@ def describe(slot: cat.Slot, reading: Reading | None, t) -> dict:
     elif slot.kind in ("bool", "closure", "warning"):
         text = t(f"hab.v.{slot.truth or 'on'}.{1 if reading.value else 0}")
         origin = t("hab.state", raw=reading.raw) if reading.raw else ""
+    elif slot.kind == "command":
+        text = t("hab.cmd_ready")
+        origin = t("hab.state", raw=reading.raw) if reading.raw else ""
     elif slot.kind == "state":
         text = t(f"hab.cs.{reading.value}")
         origin = t("hab.state", raw=reading.raw) if reading.raw else ""
@@ -995,6 +1007,8 @@ def _number_option(raw) -> float:
 def parse_options(form: dict, prefix: str, slot: cat.Slot) -> tuple[dict, str]:
     """The options of one row as the page sent them: ``(cleaned, "")`` or ``({}, i18n key of what is wrong)``."""
     opts: dict = {}
+    if slot.kind == "command":
+        return opts, ""  # nothing to set: the entity is the whole of it
     attribute = str(form.get(prefix + "attribute") or "").strip()
     if attribute:
         if not ATTRIBUTE.fullmatch(attribute):
@@ -1236,6 +1250,7 @@ def page_model(
                 "units": UNIT_CHOICES.get(slot.unit, ()),
                 "taken": owner["name"] if owner and owner["pk"] != addon["id"] else "",
                 "flag": slot.kind in ("bool", "closure", "warning"),
+                "command": slot.kind == "command",
                 "state": slot.kind == "state",
                 "states": connectors.CHARGE_STATES if slot.kind == "state" else (),
                 "fault": slot.kind == "fault",

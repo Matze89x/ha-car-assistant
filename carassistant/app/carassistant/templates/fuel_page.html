@@ -45,6 +45,7 @@
 {% for it in refuel_todo %}
 {% call msg_card('plug' if it.charge else 'gas-station', _('fuel.todo_charge_title' if it.charge else 'fuel.todo_title'), _('fuel.todo_charge_text' if it.charge else ('fuel.todo_text' if it.rise else 'fuel.todo_text_plain'), pct=it.rise or '', litres=(' (~' ~ it.litres ~ ' ' ~ it.unit ~ ')') if it.litres else ''), small=fdate(it.date)) %}<a class="button primary" href="{{ fu }}?edit={{ it.id }}#fuel-{{ it.id }}">{{ icon('pencil', 16) }}<span>{{ _('fuel.todo_btn') }}</span></a>{% endcall %}
 {% endfor %}
+{% if wallbox %}{% include "_wallbox_card.html" %}{% endif %}
 {% if charge_stats %}
 {% set cs = charge_stats %}
 <section class="tp-sec" id="charge-stats">

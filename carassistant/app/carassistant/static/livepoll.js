@@ -1,9 +1,9 @@
 // Demo car only: like a connected car, only the live values arrive. The page asks every few seconds whether they changed and
-// updates just the parts that differ (no reload, so nothing flashes and the navigation stays put). Home and Security.
+// updates just the parts that differ (no reload, so nothing flashes and the navigation stays put). Home and Security; on the Charging page the card of the wallbox.
 (function () {
   var url = document.body && document.body.getAttribute("data-live-poll");
   var path = location.pathname.replace(/\/+$/, "").replace(/^.*?(\/v\/)/, "/v/");
-  if (!url || !window.fetch || !window.DOMParser || !/^\/v\/[^/]+(\/security)?$/.test(path)) { return; }
+  if (!url || !window.fetch || !window.DOMParser || !/^\/v\/[^/]+(\/security|\/e\/fuel)?$/.test(path)) { return; }
   if (/[?&]msg=/.test(location.search) && history.replaceState) { history.replaceState(null, "", location.pathname); }
   var last = null, busy = false;
 
@@ -33,14 +33,48 @@
       return;
     }
     if (a.tagName === b.tagName && a.children.length === b.children.length && a.children.length > 0) {
-      for (var i = 0; i < a.children.length; i++) { sync(a.children[i], b.children[i]); }
+      if (a.classList && a.classList.contains("wd") && a.className !== b.className) { a.className = b.className; }  // a tile's state colour (charging -> fault)
+      // The parts are taken BEFORE anything is replaced: a part that is put into the page leaves the tree it came from, and with a live list the next one
+      // would be the wrong one (a card with the pill of one state and the note of another).
+      var pa = parts(a), pb = parts(b);
+      if (pa.length !== pb.length || pa.some(function (p, n) { return p.nodeType !== pb[n].nodeType; })) { a.replaceWith(b); return; }  // other words between the elements
+      for (var i = 0; i < pa.length; i++) {
+        if (pa[i].nodeType === 3) { if (pa[i].nodeValue !== pb[i].nodeValue) { pa[i].nodeValue = pb[i].nodeValue; } } else { sync(pa[i], pb[i]); }
+      }
       return;
     }
     a.replaceWith(b);
   }
 
+  // The elements of a node and the words that stand between them (an icon and its label), without the blanks of the markup.
+  function parts(n) {
+    return Array.prototype.filter.call(n.childNodes, function (c) { return c.nodeType === 1 || (c.nodeType === 3 && /\S/.test(c.nodeValue)); });
+  }
+
+  // The attributes of an element that stays (the state of the card, the class of the ring, the length of the arc, the width of a bar) are changed in place, so that
+  // what has a transition in the style sheet moves instead of jumping; an opened <details> stays open.
+  function attrs(a, b) {
+    if (a.nodeType !== 1 || b.nodeType !== 1 || a.tagName !== b.tagName) { return; }
+    Array.prototype.forEach.call(b.attributes, function (x) { if (a.getAttribute(x.name) !== x.value) { a.setAttribute(x.name, x.value); } });
+    Array.prototype.slice.call(a.attributes).forEach(function (x) { if (x.name !== "open" && !b.hasAttribute(x.name)) { a.removeAttribute(x.name); } });
+    if (a.children.length === b.children.length) { for (var i = 0; i < a.children.length; i++) { attrs(a.children[i], b.children[i]); } }
+  }
+
   function apply(html) {
     var doc = new DOMParser().parseFromString(html, "text/html");
+    if (/\/e\/fuel$/.test(path)) {  // the Charging page holds forms: only the card of the wallbox is read again, never what somebody is typing
+      var card = document.getElementById("wb"), fresh = doc.getElementById("wb");
+      if (card && fresh) {
+        try {
+          attrs(card, fresh);
+          sync(card, fresh);
+        } catch (e) {  // whatever went wrong: the card as the server says it, whole
+          if (window.console) { console.error("livepoll: " + e); }
+          card.replaceWith(new DOMParser().parseFromString(html, "text/html").getElementById("wb"));
+        }
+      }
+      return;
+    }
     var co = document.querySelector(".content"), cn = doc.querySelector(".content");
     if (!co || !cn) { return; }
     Array.prototype.forEach.call(co.querySelectorAll(".flash"), function (f) { f.parentNode.removeChild(f); });

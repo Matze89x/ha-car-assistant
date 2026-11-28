@@ -75,6 +75,24 @@ Die Gruppe **Wallbox** bringt, was eine Wallbox außer ihrer Leistung weiß. All
 
 Helfer und Vorlagen sind Entitäten wie alle anderen: ein `input_select` für den Modus, ein `input_number` für das Limit, ein Vorlagen-Sensor oder ein `utility_meter` für die Energie. Car Assistant liest, was Home Assistant als Zustand nennt (oder das Attribut, das du wählst); es wertet selbst nichts aus. Ein Sensor, der *nicht verfügbar* oder *unbekannt* ist, lässt den letzten Wert stehen.
 
+### Die Wallbox steuern
+
+Die Karte der Wallbox kann auch etwas **tun** - wenn ein Mensch einen Knopf darauf drückt, nie von selbst. Dafür sind die letzten vier Zeilen der Gruppe da; binde, was dein Home Assistant hat, und die Karte bietet genau das an, was er kann:
+
+| Schnittstelle | Eine Entität aus ... | Die Karte bietet |
+|---|---|---|
+| *Laden erlaubt (Schalter)* | `switch`, `input_boolean` | **Pausieren** und **Fortsetzen**: Der Schalter wird aus- oder eingeschaltet |
+| *Laden starten (Knopf)* | `button`, `input_button`, `script`, `switch`, `input_boolean` | **Jetzt laden**, solange ein Auto angesteckt ist und wartet |
+| *Laden pausieren (Knopf)* | dasselbe | **Pausieren**, solange geladen wird (ohne sie wird der Schalter oben benutzt) |
+| *Störung quittieren (Knopf)* | `button`, `input_button`, `script` | **Störung quittieren**, solange die Wallbox eine meldet |
+
+Der **Maximalstrom** und der **Modus** brauchen keine eigene Zeile: Ist *Eingestellter Maximalstrom* ein `number`, `input_number`, `select` oder `input_select`, zeigt die Karte **− 16 A +** und ändert ihn um einen Schritt (`min`, `max` und `step` der Entität oder die nächste ihrer Optionen); ist *Modus* ein `select` oder `input_select`, zeigt die Karte eine Liste seiner Optionen.
+
+- **Eine feste Tabelle, keine freie Wahl.** Eine Anfrage nennt nie eine Entität oder einen Dienst: Sie sagt *pausieren*, *Strom* oder *Modus*, mit einer Zahl oder einem Wort. Car Assistant nimmt die Entität aus den Zeilen, die du für **dieses Auto** gebunden hast, und den Dienst aus einer festen Tabelle (`switch.turn_on` / `turn_off`, `button.press`, `input_button.press`, `script.turn_on`, `number.set_value`, `select.select_option`); ein Wert, den die Entität nicht annimmt - ein Strom außerhalb von `min` und `max`, ein Modus, der nicht unter ihren Optionen ist -, wird abgelehnt.
+- **Nur für Administratoren**, wie alles, was etwas verändert.
+- **Jeder Befehl hinterlässt eine Zeile** im Protokoll des Plugins (der Dienst, die Entität, der Wert), und ein Auto nimmt höchstens 12 Befehle pro Minute an.
+- **Nicht gezeigt, wenn es nicht gehen kann.** Ist Home Assistant nicht erreichbar oder die Entität nicht da, bietet die Karte dafür keinen Knopf an.
+
 ## Sonderfälle: Home Assistant das Denken überlassen
 
 Jedes Auto, jede Wallbox und jede Integration ist ein wenig anders. Die Optionen einer Zeile decken ab, was eine einzelne Entität anders sagen kann (Einheit, Faktor, Attribut, Ja-Wörter); alles, was **Logik** braucht, gehört dorthin, wo es zu Hause ist: in Home Assistant selbst. Ein Template-Sensor oder ein Helfer ist eine Entität mehr, und das Plugin liest sie wie jede andere. Vier Rezepte, die immer wieder vorkommen:
@@ -153,7 +171,7 @@ Jedes andere Plugin kann mit `"claims": ["fuel_level_pct", "range_km"]` Schnitts
 
 ## Grenzen
 
-- Es **liest**. Befehle an das Auto (verriegeln, laden, Klima) über Dienste von Home Assistant sind ein späterer Schritt.
+- Es **liest** - und sendet nur, was ein Mensch auf der Karte der Wallbox drückt (siehe *Die Wallbox steuern*). Befehle an das Auto selbst (verriegeln, Klima) über Dienste von Home Assistant sind ein späterer Schritt.
 - Es braucht das Home-Assistant-Add-on; in einer Entwicklungsumgebung antwortet Car Assistant *Home Assistant ist nicht erreichbar*, und nichts wird gelesen.
 - Ein Wert des Fahrzeugs kann nur aus Entitäten eines einzigen Home Assistant kommen.
 

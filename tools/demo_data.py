@@ -64,6 +64,32 @@ def _store(conn: sqlite3.Connection, vid: int, key: str, value: str) -> None:
     )
 
 
+def wallbox_live(conn: sqlite3.Connection, vid: int) -> None:
+    """The electric demo car at its wallbox, two hours into a charge: what a wallbox integration of Home Assistant would bring (made up), an open charge with its
+    power curve. Not part of ``create``: the pictures and the checks that want a wallbox card ask for it (tools/make_screenshots.py, tools/pagecheck.py)."""
+    now = datetime.now(UTC)
+    values = {
+        "charge_state": "charging", "charging": "yes", "plugged": "yes", "charge_power_kw": "7.4", "battery_pct": "40", "charge_limit_pct": "80",
+        "charge_session_kwh": "14.8", "charge_session_minutes": "125", "charge_voltage_v": "231", "charge_current_a": "10.7", "charge_phases": "3",
+        "charge_current_limit_a": "16", "charge_total_kwh": "4225.2", "charge_temp_c": "31", "charge_mode": "Solar",
+    }  # fmt: skip
+    for key, value in values.items():
+        conn.execute(
+            "INSERT OR REPLACE INTO live(vehicle_id, key, value, updated) VALUES(?,?,?,?)",
+            (vid, key, value, (now - timedelta(seconds=40)).isoformat(timespec="seconds")),
+        )
+    conn.execute("DELETE FROM charge_sessions WHERE vehicle_id = ? AND ended IS NULL", (vid,))
+    started = now - timedelta(minutes=125)
+    sid = conn.execute(
+        "INSERT INTO charge_sessions(vehicle_id, started, start_pct, end_pct, max_kw, energy_kwh, counter_start) VALUES(?,?,?,?,?,?,?)",
+        (vid, started.isoformat(timespec="seconds"), 18, 40, 7.4, 14.8, 4210.4),
+    ).lastrowid
+    rnd = random.Random(3)  # noqa: S311 (a made-up curve, not a secret)
+    for n in range(13):
+        kw = (1.2, 3.4, 5.6, 7.1)[n] if n < 4 else round(7.3 + rnd.random() * 0.15, 2)
+        conn.execute("INSERT INTO charge_samples(session_id, at, kw) VALUES(?,?,?)", (sid, (started + timedelta(minutes=n * 10)).isoformat(timespec="seconds"), kw))
+
+
 def create(conn: sqlite3.Connection, electric: bool = False) -> int:
     """Insert the demo vehicle with data in every module and return its id."""
     rnd = random.Random(7)  # noqa: S311 (fixed seed: the demo looks the same every time, not a secret)

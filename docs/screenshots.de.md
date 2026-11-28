@@ -156,6 +156,14 @@ Tippe auf der Kachel einer Integration oder eines Plugins auf **Update verfügba
 
 <img src="screenshots/de/update-window.png" alt="Das Update-Fenster eines Pakets" width="320">
 
+## Die Wallbox-Karte
+
+Auf der Laden-Seite eines Elektroautos, sobald eine Wallbox Car Assistant sagt, was sie tut ([das Home-Assistant-Plugin](home-assistant.de.md#eine-wallbox) oder ein Plugin): der Akku als Ring mit dem Ziel als Marke, die Leistung gegen das, was die Wallbox geben darf, die Zahlen der Ladung und die Kurve der Leistung. Die Bilder zeigen erfundene Werte.
+
+![Die Wallbox-Karte der Laden-Seite](screenshots/de/wallbox.png)
+
+<img src="screenshots/de/mobile-wallbox.png" alt="Die Wallbox-Karte auf dem Handy" width="260">
+
 ## Einstellungen: Benutzer, Auto, System
 
 Die Einstellungen haben drei Reiter. **Auto** betrifft das Auto unter dem Titel (Icon, Foto und Video, Design, Home-Assistant-Entitäten, Sicherung); **Benutzer** betrifft dich (Login, deine Geräte und Benachrichtigungen, ein Startlink je Auto für eine Web-App); **System** betrifft die ganze App (Sprache, Einheiten, Design, Sensoren, MCP-Zugang, Quellen, Adresse, Sicherung).

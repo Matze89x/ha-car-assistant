@@ -156,6 +156,14 @@ Tap **Update available** on the tile of an integration or a plugin: the window n
 
 <img src="screenshots/en/update-window.png" alt="The update window of a package" width="320">
 
+## The wallbox card
+
+On the Charging page of an electric car, as soon as a wallbox tells Car Assistant what it does ([the Home Assistant plugin](home-assistant.md#a-wallbox) or a plugin): the battery as a ring with the target as a mark, the power against what the wallbox may give, the figures of the charge and the curve of the power. The pictures show made-up values.
+
+![The wallbox card of the Charging page](screenshots/en/wallbox.png)
+
+<img src="screenshots/en/mobile-wallbox.png" alt="The wallbox card on a phone" width="260">
+
 ## Settings: User, Car, System
 
 The settings have three tabs. **Car** is about the car shown under the title (icon, photo and video, design, Home Assistant entities, backup); **User** is about you (login, your devices and notifications, a start link per car for a web app); **System** is about the whole app (language, units, design, sensors, MCP access, sources, address, backup).

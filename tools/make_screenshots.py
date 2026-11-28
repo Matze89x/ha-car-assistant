@@ -31,7 +31,7 @@ CHROME = os.environ.get("CHROME") or "/Applications/Google Chrome.app/Contents/M
 DIESEL, EV = "demo-diesel", "demo-electric"
 INVOICE_OPEN, INVOICE_BOOKED = 4, 5  # the two invoices of the first demo car (the documents come right after its three others)
 COMPACT = "demo-compact"  # a plain car with no data from the car: its dashboard shows the odometer plate you can turn over and type on
-SCENES = ("odometer-photo", "fuel-scan", "connections-map", "coding", "update-window")  # pictures that need a tap and a photo first (tools/cdp.py)
+SCENES = ("odometer-photo", "fuel-scan", "connections-map", "coding", "update-window", "wallbox", "mobile-wallbox")  # pictures that need a tap and a photo first (tools/cdp.py)
 
 # name, path, width, height (desktop pictures; the height cuts the page where it is still worth looking at)
 DESKTOP = (
@@ -507,6 +507,36 @@ def update_window(b, base: str, out: Path) -> None:
             conn.execute("DELETE FROM source_cache WHERE source_id = ? AND path LIKE ?", (source, f"plugins/{pid}/%"))
 
 
+def wallbox_card(b, base: str, out_root: Path, lang: str, only: set[str]) -> None:
+    """The wallbox card of the Charging page: the electric demo car stands at its wallbox two hours into a charge (made-up values, tools/demo_data.py); what the
+    car said before comes back afterwards."""
+    import demo_data
+
+    from carassistant import db
+
+    with db.tx() as conn:
+        vid = conn.execute("SELECT id FROM vehicles WHERE slug = ?", (EV,)).fetchone()["id"]
+        before = [tuple(r) for r in conn.execute("SELECT key, value, updated FROM live WHERE vehicle_id = ?", (vid,))]
+        demo_data.wallbox_live(conn, vid)
+    try:
+        for name, width, height, scale in (("wallbox", 1000, 1300, 1), ("mobile-wallbox", 500, 1500, 2)):
+            if only and name not in only:
+                continue
+            b.open(f"{base}/v/{EV}/e/fuel", width, height, scale, settle=1.5)
+            x, y, w, h = b.run(
+                "(function(){var r=document.getElementById('wb').getBoundingClientRect();return [r.left+scrollX,r.top+scrollY,r.width,r.height];})()"
+            )
+            out = out_root / lang / f"{name}.png"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            b.shot(out, clip=(max(0, x - 8), max(0, y - 8), min(width, w + 16), h + 16), scale=1)
+            print(lang, name, flush=True)
+    finally:
+        with db.tx() as conn:
+            conn.execute("DELETE FROM live WHERE vehicle_id = ?", (vid,))
+            conn.executemany("INSERT INTO live(vehicle_id, key, value, updated) VALUES(?,?,?,?)", [(vid, *row) for row in before])
+            conn.execute("DELETE FROM charge_sessions WHERE vehicle_id = ? AND ended IS NULL", (vid,))
+
+
 def compose(photo: bytes, screen: Path, out: Path, photo_height: int | None = 760) -> None:
     """The photo on the left, an arrow, the picture of the app on the right: what the person holds up and what the app makes of it."""
     import io
@@ -656,6 +686,8 @@ def scenes(base: str, out_root: Path, lang: str, only: set[str]) -> None:
         if not only or "update-window" in only:
             update_window(b, base, out_root / lang / "update-window.png")
             print(lang, "update-window", flush=True)
+        if not only or only & {"wallbox", "mobile-wallbox"}:
+            wallbox_card(b, base, out_root, lang, only)
 
 
 def main() -> None:

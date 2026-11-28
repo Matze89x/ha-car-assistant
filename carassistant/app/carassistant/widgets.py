@@ -58,6 +58,9 @@ REGISTRY: tuple[Widget, ...] = (
     Widget("trips", "s", "route", "c7", "tile.last_trip", "trips"),
     Widget("fuel", "s", "fuel", "c1", "nav.fuel", "fuel"),
     Widget("fuel_avg", "s", "chart", "c5", "tile.avg", "fuel"),
+    Widget(
+        "wallbox", "s", "plug", "c6", "wb.title", "fuel"
+    ),  # a charging point and a car that charges (a card of the Charging page, a tile here); nothing without data
     Widget("attention", "m", "alert", "c6", "overview.attention", fixed=True, options=(("columns", ("auto", "one", "two")),)),
     Widget("car_data", "m", "gauge", "c5", "cd.title", fixed=True),
     Widget("location", "m", "map-marker-radius", "c7", "loc.title", fixed=True),
