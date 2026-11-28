@@ -69,6 +69,8 @@ A tile whose source offers a newer version says **Update available: v1.2.0**. Ta
 
 The changelog is read **when the window opens** (one small text file, kept for ten minutes like every file of a source) - never before and never in the background. A package without a changelog says *No changelog available for this package.* A changelog that has no entry for the new version says so, and when the source cannot be reached the window says that the changelog could not be loaded - the update stays possible. A package with a service says that the approval you gave when installing carries over to the new version; a package that still waits for its first approval is reviewed first (*Review and approve*) and has no update window. The window is the same on the Integrations and on the Plugins page.
 
+**While it updates.** *Update now* does not leave the page: the buttons give way to a **bar** that says how far the update is, with the step it is in - *Reading the new version*, *Loading the package* (with the megabytes that have come, for a package with files or a program), *Checking and unpacking the files*, *Saving*, *Starting the new version* - and then the page is read again, with the message. The bar shows what the update really does, not a timer: it never goes back and reaches 100 % only when the update is done. The window cannot be closed while it works. When an update fails, the bar stops where it was and turns red, and the page says why. Only people who may update can ask how far it is.
+
 ## The changelog of a package
 
 Put a `CHANGELOG.md` next to the `plugin.json` of a package; the update window shows it.

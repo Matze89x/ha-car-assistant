@@ -6,7 +6,7 @@ import contextlib
 import time
 
 from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from . import (
     addons,
@@ -30,11 +30,12 @@ from . import (
     regional,
     restoresetup,
     sources,
+    updprogress,
 )
 from . import icons as icon_set
 from . import nav_web as nav_chips
 from .connectors_web import _may_manage
-from .web import app, form_dict, go, render, templates, vehicle_ctx, vehicle_or_404
+from .web import app, fnum, form_dict, go, render, templates, vehicle_ctx, vehicle_or_404
 
 MAX_UPLOAD = addons.MAX_PACKAGE + 1
 
@@ -383,8 +384,19 @@ def package_install(request: Request, vid: int, source_id: int, kind: str, pkg_i
 
 @app.post("/v/{vid}/integrations/{aid}/update")
 def addons_update(request: Request, vid: int, aid: int):
-    if (denied := _guard(request, vid)) is not None:
-        return denied
+    answer = _guard(request, vid)
+    if answer is None:
+        answer = _update(request, vid, aid)
+    if request.headers.get("x-requested-with") == "fetch" and answer.status_code in (302, 303):
+        # the update window (static/app.js) stays on its page and shows a bar while this runs; it asks where to go and whether it worked
+        run = updprogress.read(aid, updprogress.token_of(request.headers.get("x-update-run")))
+        body = {"to": answer.headers["location"], "ok": bool(run and run["ok"])}
+        return JSONResponse(body, headers={"Cache-Control": "no-store"})
+    return answer
+
+
+def _update(request: Request, vid: int, aid: int) -> Response:
+    """The update of one package, as a redirect to the page that says what came of it. While it runs it tells ``updprogress`` how far it is."""
     with db.tx() as conn:
         addon = addons.get(conn, vid, aid)
         if addon is None:
@@ -395,24 +407,55 @@ def addons_update(request: Request, vid: int, aid: int):
             if offer is None or not sources.is_newer(offer["version"], addon["m"].get("version", "")):
                 return go(request, f"/v/{vid}/integrations", "addon.err_id")
             source_id = offer["source_id"]
+    token = updprogress.token_of(request.headers.get("x-update-run"))  # (the window marks its update, so that it hears about this one only)
+    run = updprogress.begin(aid, updprogress.plan_for(addons.needs_package(addon["m"]), bool(pluginsvc.service_of(addon))), token)
+    worked = False
     try:
-        with db.tx() as conn:
-            manifest = sources.fetch_manifest(conn, source_id, addon["kind"], addon["addon_id"])
-        sha = _fetch_service_package(manifest, source_id, addon["kind"], addon["addon_id"])
-        with db.tx() as conn:
-            was_approved = pluginsvc.approved(addon)
-            addons.update_manifest(conn, addon, manifest, sha, source_id)
-            if (
-                sha and was_approved
-            ):  # the administrator allowed this package when installing it and now pressed Update: the allowance carries over
-                pluginsvc.approve(conn, addons.get(conn, vid, aid))
-        if sha:
-            pluginsvc.restart(addon["id"])  # the new code runs only when the package is approved (pluginsvc.approved)
-            pluginsvc.kick()
+        with updprogress.tracking(run):
+            run.stage("read")
+            with db.tx() as conn:
+                manifest = sources.fetch_manifest(conn, source_id, addon["kind"], addon["addon_id"])
+            run.replan(
+                updprogress.plan_for(addons.needs_package(manifest), bool(manifest.get("service")))
+            )  # (the new version may bring other files)
+            run.stage("download")
+            sha = _fetch_service_package(manifest, source_id, addon["kind"], addon["addon_id"])
+            run.stage("save")
+            with db.tx() as conn:
+                was_approved = pluginsvc.approved(addon)
+                addons.update_manifest(conn, addon, manifest, sha, source_id)
+                if (
+                    sha and was_approved
+                ):  # the administrator allowed this package when installing it and now pressed Update: the allowance carries over
+                    pluginsvc.approve(conn, addons.get(conn, vid, aid))
+            if sha:
+                run.stage("restart")
+                pluginsvc.restart(addon["id"])  # the new code runs only when the package is approved (pluginsvc.approved)
+                pluginsvc.kick()
+        worked = True
     except sources.SourceError as exc:
         return go(request, _manage(addon["kind"], vid), str(exc))
+    finally:
+        run.finish(worked)
     events.changed()
     return go(request, _manage(addon["kind"], vid), "addon.updated")
+
+
+@app.get("/v/{vid}/integrations/{aid}/update-progress")
+def addons_update_progress(request: Request, vid: int, aid: int):
+    """How far the update of this package has come, for the bar of the update window (it asks every moment while the update runs): ``{"pct", "label",
+    "detail", "done", "ok"}`` in the language of the page, or ``{"state": "none"}`` while nothing is known (yet). Only for people who may update."""
+    if not _may_manage(request):
+        return Response(status_code=403)
+    with db.tx() as conn:
+        vehicle_or_404(conn, vid)
+        if addons.get(conn, vid, aid) is None:
+            raise HTTPException(404)
+    run = request.query_params.get("run")
+    answer = updprogress.describe(
+        updprogress.read(aid, updprogress.token_of(run) if run is not None else None), i18n.translator(config.language()), fnum
+    )
+    return JSONResponse(answer, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/v/{vid}/integrations/{aid}/changelog")

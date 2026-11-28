@@ -137,6 +137,54 @@ document.addEventListener("click", function (event) {
     .then(function () { box.removeAttribute("aria-busy"); });
 });
 
+// The update window: *Update now* stays on the page. The update runs in the request of the button; a bar says how far it is - what the update says about itself (the
+// stage it is in and the bytes that have come), asked of the server every moment - and when it is over the page is read again, with its message. Without fetch the form
+// posts as it always did.
+document.addEventListener("submit", function (event) {
+  var form = event.target, dlg = form.closest && form.closest("dialog.upd-dlg"), box = dlg && dlg.querySelector("[data-progress]");
+  if (!box || !window.fetch || !window.FormData) { return; }
+  event.preventDefault();
+  if (dlg.hasAttribute("data-busy")) { return; }
+  var mark = "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);  // this press only hears about its own update
+  var url = box.getAttribute("data-progress") + "?run=" + mark, meter = box.querySelector("[role=progressbar]"), fill = box.querySelector(".bar-fill");
+  var label = box.querySelector(".upd-prog-label"), pct = box.querySelector(".upd-prog-pct"), detail = box.querySelector(".upd-prog-detail");
+  var over = false;
+  function show(d) {
+    if (!d || typeof d.pct !== "number") { return; }
+    fill.style.width = d.pct + "%";
+    meter.setAttribute("aria-valuenow", String(d.pct));
+    pct.textContent = d.pct + " %";
+    if (d.label) { label.textContent = d.label; }
+    detail.textContent = d.detail || "";
+  }
+  function ask() {
+    return fetch(url, { credentials: "same-origin", cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (!over) { show(d); } return d; })
+      .catch(function () { return null; });  // the next time
+  }
+  dlg.setAttribute("data-busy", "1");
+  dlg.addEventListener("cancel", function (e) { e.preventDefault(); });  // Escape does not close the window while it works ...
+  dlg.addEventListener("close", function () { if (dlg.hasAttribute("data-busy") && !dlg.open && dlg.showModal) { dlg.showModal(); } });  // ... and where a browser does not let it be refused, the window comes back
+  box.hidden = false;
+  var timer = setInterval(ask, 400);
+  ask();
+  fetch(form.getAttribute("action"), { method: "POST", body: new FormData(form), credentials: "same-origin", headers: { "X-Requested-With": "fetch", "X-Update-Run": mark } })
+    .then(function (r) { return r.json(); })
+    .then(function (answer) {
+      clearInterval(timer);
+      over = true;
+      return fetch(url, { credentials: "same-origin", cache: "no-store" })  // the last word of the update: done (100 %) or not
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          show(d);
+          if (!answer.ok) { box.setAttribute("data-state", "failed"); }
+          setTimeout(function () { window.location.assign(answer.to); }, answer.ok ? 500 : 1200);
+        });
+    })
+    .catch(function () { clearInterval(timer); window.location.reload(); });
+});
+
 // First-start language page: choosing a language reloads the page in that language (inline handlers are blocked by the CSP).
 document.addEventListener("change", function (event) {
   var sel = event.target && event.target.getAttribute && event.target.getAttribute("data-lang-switch");

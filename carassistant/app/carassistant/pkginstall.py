@@ -4,7 +4,7 @@ The Install and Update buttons (addons_web) and the set-up of a restored car (re
 
 from __future__ import annotations
 
-from . import addons, db, pluginsvc, sources
+from . import addons, db, pluginsvc, sources, updprogress
 
 
 def fetch_files(manifest: dict, source_id: int, kind: str, pkg_id: str) -> str | None:
@@ -14,6 +14,7 @@ def fetch_files(manifest: dict, source_id: int, kind: str, pkg_id: str) -> str |
         return None
     with db.tx() as conn:
         raw, sha = sources.fetch_package(conn, source_id, kind, pkg_id, manifest.get("files"))
+    updprogress.report("check")  # (the bar of an update: what has come is checked and unpacked now)
     try:
         pluginsvc.store_package(
             pkg_id, raw, sha, (manifest.get("service") or {}).get("entry"), manifest.get("files"), manifest.get("bundles")

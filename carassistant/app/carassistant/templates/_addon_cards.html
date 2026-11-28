@@ -78,6 +78,12 @@
     <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/update">
       <div class="form-bar"><button type="button" class="button" data-close>{{ _('btn.cancel') }}</button><button class="primary">{{ icon('refresh', 18) }}<span>{{ _('updwin.now') }}</span></button></div>
     </form>
+    {# while the update runs (static/app.js): how far it is - the stage it is in and the bytes that have come, as the server says them #}
+    <div class="upd-prog" hidden data-progress="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/update-progress">
+      <div class="upd-prog-top"><span class="upd-prog-label" aria-live="polite">{{ _('updprog.start') }}</span><b class="upd-prog-pct">0 %</b></div>
+      <div class="bar" role="progressbar" aria-label="{{ _('updprog.aria') }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i class="bar-fill"></i></div>
+      <small class="upd-prog-detail"></small>
+    </div>
   </div>
 </dialog>
 {% endif %}

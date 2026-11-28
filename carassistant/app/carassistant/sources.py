@@ -31,7 +31,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 
-from . import addons, db, icons, vault
+from . import addons, db, icons, updprogress, vault
 
 log = logging.getLogger(__name__)
 
@@ -218,6 +218,30 @@ class Body(bytes):
     not_modified: bool = False
 
 
+CHUNK = 65536
+
+
+def _read_body(response, limit: int) -> bytes:
+    """The body of an answer, at most ``limit`` + 1 bytes (one more than allowed tells that it is too big). A BIG file - a package, more than a source's small
+    files may be - is read in pieces and says how many bytes have come to the update that asked for it (updprogress.py); a small one is read as before."""
+    if limit <= MAX_FILE:
+        return response.read(limit + 1)
+    try:
+        total = int(response.headers.get("Content-Length") or 0) or None
+    except ValueError:
+        total = None
+    pieces: list[bytes] = []
+    got = 0
+    while got <= limit:
+        piece = response.read(min(CHUNK, limit + 1 - got))
+        if not piece:
+            break
+        pieces.append(piece)
+        got += len(piece)
+        updprogress.report("download", got / total if total else 0.0, got, total)
+    return b"".join(pieces)
+
+
 def _http(url: str, headers: dict[str, str], check_host: bool, limit: int = MAX_FILE) -> bytes:
     """GET one file. With ``If-None-Match`` among the headers a file that did not change is answered "not modified" (it costs no quota). Raises
     SourceError(i18n key); a missing file is signalled with ``err.src_missing``."""
@@ -227,7 +251,7 @@ def _http(url: str, headers: dict[str, str], check_host: bool, limit: int = MAX_
     request = urllib.request.Request(url, headers={"User-Agent": "car-assistant", **headers})  # noqa: S310 - https only, see clean_url
     try:
         with urllib.request.build_opener(_NoRedirect).open(request, timeout=TIMEOUT) as response:
-            data = Body(response.read(limit + 1))
+            data = Body(_read_body(response, limit))
             data.etag = response.headers.get("ETag")
     except urllib.error.HTTPError as exc:
         if exc.code == 304:

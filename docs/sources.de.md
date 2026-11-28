@@ -69,6 +69,8 @@ Eine Kachel, deren Quelle eine neuere Version anbietet, sagt **Update verfügbar
 
 Der Changelog wird gelesen, **wenn das Fenster aufgeht** (eine kleine Textdatei, zehn Minuten behalten wie jede Datei einer Quelle) - nie vorher und nie im Hintergrund. Ein Paket ohne Changelog sagt *Für dieses Paket ist kein Changelog vorhanden.* Hat der Changelog keinen Eintrag zur neuen Version, sagt das Fenster es, und ist die Quelle nicht erreichbar, steht dort, dass der Changelog nicht geladen werden konnte - das Update bleibt möglich. Ein Paket mit Dienst sagt, dass die Freigabe vom Installieren auch für die neue Version gilt; ein Paket, das noch auf seine erste Freigabe wartet, wird zuerst geprüft (*Prüfen und freigeben*) und hat kein Update-Fenster. Das Fenster ist auf der Seite Integrationen und auf der Seite Plugins dasselbe.
 
+**Während es aktualisiert.** *Jetzt aktualisieren* verlässt die Seite nicht: Die Knöpfe weichen einem **Balken**, der sagt, wie weit das Update ist, mit dem Schritt, in dem es steckt - *Neue Version wird gelesen*, *Paket wird geladen* (mit den Megabyte, die schon da sind, bei einem Paket mit Dateien oder Programm), *Dateien werden geprüft und entpackt*, *Wird gespeichert*, *Neue Version wird gestartet* - danach wird die Seite neu gelesen, mit der Meldung. Der Balken zeigt, was das Update wirklich tut, keinen Zeitgeber: Er geht nie zurück und erreicht 100 % erst, wenn das Update fertig ist. Das Fenster lässt sich nicht schließen, solange es arbeitet. Schlägt ein Update fehl, bleibt der Balken stehen und wird rot, und die Seite sagt, warum. Wie weit es ist, kann nur fragen, wer aktualisieren darf.
+
 ## Der Changelog eines Pakets
 
 Lege eine `CHANGELOG.md` neben die `plugin.json` eines Pakets; das Update-Fenster zeigt sie.
