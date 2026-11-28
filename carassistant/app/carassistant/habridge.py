@@ -52,6 +52,9 @@ DRIVING_MS = 4.0  # metres per second between two reports (about 15 km/h): faste
 START_JOIN_M = (
     3000  # the first report after a long silence from within this distance of where the car stood is the start of a drive from there
 )
+# An ignition entity that goes off is believed only when it STAYS off (seconds): a Bluetooth connection that drops for a moment, or the engine of a car with a
+# start-stop system at a red light, must not end a drive and cut it into several trips.
+IGNITION_HOLD = 90.0
 MAX_SPEED_MS = 150.0  # faster than this between two reports (540 km/h) is no drive: the tracker jumped (a bad fix, another device of a person) - the route is broken there
 
 
@@ -962,6 +965,29 @@ def _catch_up(addon: dict, st: dict, bound: dict, readings: dict[str, Reading], 
             )
 
 
+def _hold_ignition(st: dict, readings: dict[str, Reading], now: float) -> tuple[dict[str, Reading], float | None]:
+    """The ignition entity says off while it said on before: for ``IGNITION_HOLD`` seconds the car is still told "on" (the drive goes on), and only an
+    ignition that is still off after that is believed - with the time it really went off. Returns ``(the readings, when to look again or None)``."""
+    ignition = readings.get("ignition")
+    if ignition is None or not ignition.ok:
+        return readings, None
+    if ignition.value:
+        st["ign_on"], st["ign_off_since"] = True, None
+        return readings, None
+    if not st.get("ign_on"):  # not seen on since the start (or off for long already): nothing to hold, it is as it says
+        st["ign_on"], st["ign_off_since"] = False, None
+        return readings, None
+    since = st.get("ign_off_since")
+    if since is None:
+        since = st["ign_off_since"] = now
+    if now - since >= IGNITION_HOLD:
+        st["ign_on"], st["ign_off_since"] = False, None  # it stayed off: believed
+        return readings, None
+    told = st["sent"].get("ignition")  # what the car was told last: on, at that time - nothing new while it is held
+    held = Reading(ok=True, value=True, raw=ignition.raw, at=told[1] if told else ignition.at)
+    return {**readings, "ignition": held}, since + IGNITION_HOLD
+
+
 def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None = None) -> str:
     """One reading of an install: read the entities, send what is new. Returns a sentence about it (for the log in debug mode)."""
     now = time.monotonic() if now is None else now
@@ -973,10 +999,11 @@ def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None
         if slot is not None and slot.kind != "command":  # a command row is only looked at by the page; no value of it goes anywhere
             readings[key] = read(slot, binding["entity"], binding["options"], states, name)
     effective = _charge_of_state(_position_of_halves(readings), bound)
+    effective, hold_until = _hold_ignition(st, effective, now)
     # (before anything is stored: it asks Home Assistant, which may take a while - no database is held meanwhile)
     _catch_up(addon, st, bound, effective, now)
     fresh = {k: r for k, r in effective.items() if r.ok and st["sent"].get(k) != (r.value, r.at)}
-    st["retry"] = None
+    st["retry"] = hold_until  # (an ignition that went off is looked at again when the hold is over)
     started = time.monotonic()
     stored = 0
     notes: list[str] = []
@@ -1016,8 +1043,8 @@ def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None
         if (
             retry
         ):  # something was held back (refused, taken by another plugin, lower than the known odometer): it may be let through at any moment
-            st["retry"] = now + interval(
-                addon
+            st["retry"] = min(
+                filter(None, (st["retry"], now + interval(addon)))
             )  # (a typo corrected, a claim given up) - offered again at the pace of the setting, with a live connection too
         for key, reading in fresh.items():
             slot = split(key)[0]

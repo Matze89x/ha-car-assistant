@@ -78,7 +78,7 @@ Everything exists in English and in German. Read it as a **[website](https://mat
 | [Screenshots](docs/screenshots.md) | the app in use |
 | [Install](docs/install.md) | in Home Assistant, from the repository or as a local app |
 | [Backups](docs/backup.md) | back up and restore one car or everything |
-| [Logs](docs/logs.md) | the log of the add-on in Home Assistant and the Logs page of a plugin: what each says, what is never in it |
+| [Logs](docs/logs.md) | the log of the app in Home Assistant and the Logs page of a plugin: what each says, what is never in it |
 | [MCP access](docs/mcp.md) | let Claude Code read and correct your records (off by default) |
 | [Manual package](docs/manual-package.md) | import a manual with page images |
 | [Vehicle file](docs/vehicle-file.md) | bring a car in from another program |
@@ -114,7 +114,7 @@ Everything exists in English and in German. Read it as a **[website](https://mat
 
 | Page | What it is about |
 |---|---|
-| [Add-on page in Home Assistant](carassistant/DOCS.md) | the *Documentation* tab of the add-on |
+| [App page in Home Assistant](carassistant/DOCS.md) | the *Documentation* tab of the app |
 | [Security](SECURITY.md) | how to report a vulnerability and how the app protects you |
 | [Contributing](CONTRIBUTING.md) | how to help: rules, tests, pull requests |
 | [Changelog](carassistant/CHANGELOG.md) | what changed in which version |

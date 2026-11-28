@@ -4,6 +4,8 @@
 
 Voraussetzung: Home Assistant OS oder Supervised (Apps). Eine reine „Home Assistant Container“-Installation kennt keine Apps.
 
+> Home Assistant nennt Add-ons jetzt **Apps**. Car Assistant läuft als eine davon; in dieser Dokumentation bedeuten *Add-on* und *App* in Bezug auf Home Assistant dasselbe (*die App* allein ist Car Assistant selbst).
+
 ## Aus dem Repository installieren
 [![Repository zu meinem Home Assistant hinzufügen](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FMatze89x%2Fha-car-assistant)
 

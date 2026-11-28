@@ -78,7 +78,7 @@ Alles gibt es auf Englisch und auf Deutsch. Lies es als **[Webseite](https://mat
 | [Screenshots](docs/screenshots.de.md) | die App im Einsatz |
 | [Installation](docs/install.de.md) | in Home Assistant, aus dem Repository oder als lokale App |
 | [Sicherungen](docs/backup.de.md) | ein Auto oder das ganze System sichern und wiederherstellen |
-| [Protokolle](docs/logs.de.md) | das Protokoll des Add-ons in Home Assistant und die Seite Protokoll eines Plugins: was jedes sagt, was nie darin steht |
+| [Protokolle](docs/logs.de.md) | das Protokoll der App in Home Assistant und die Seite Protokoll eines Plugins: was jedes sagt, was nie darin steht |
 | [MCP-Zugriff](docs/mcp.de.md) | Claude Code Einträge lesen und korrigieren lassen (standardmäßig aus) |
 | [Handbuch-Paket](docs/manual-package.de.md) | ein Handbuch mit Seitenbildern importieren |
 | [Fahrzeugdatei](docs/vehicle-file.de.md) | ein Auto aus einem anderen Programm übernehmen |
@@ -114,7 +114,7 @@ Alles gibt es auf Englisch und auf Deutsch. Lies es als **[Webseite](https://mat
 
 | Seite | Worum es geht |
 |---|---|
-| [Add-on-Seite in Home Assistant](carassistant/DOCS.de.md) | der Reiter *Dokumentation* im Add-on |
+| [App-Seite in Home Assistant](carassistant/DOCS.de.md) | der Reiter *Dokumentation* in der App |
 | [Sicherheit](docs/community/security.de.md) | wie du eine Schwachstelle meldest und wie die App dich schützt |
 | [Mitmachen](docs/community/contributing.de.md) | wie du hilfst: Regeln, Tests, Pull Requests |
 | [Änderungsprotokoll](carassistant/CHANGELOG.de.md) | was sich in welcher Version geändert hat |

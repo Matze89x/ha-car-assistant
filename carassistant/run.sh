@@ -5,11 +5,14 @@ set -e
 export CARASSISTANT_DATA="/data"
 export CARASSISTANT_LOG_LEVEL="$(bashio::config 'log_level')"
 
-if bashio::services.available "mqtt"; then
-    export MQTT_HOST="$(bashio::services mqtt 'host')"
-    export MQTT_PORT="$(bashio::services mqtt 'port')"
-    export MQTT_USER="$(bashio::services mqtt 'username')"
-    export MQTT_PASSWORD="$(bashio::services mqtt 'password')"
+# The MQTT service of the Supervisor (a broker app, when one is installed). Asked quietly with curl: bashio::services.available writes an ERROR line
+# ("Service not enabled") into the log at every start of an installation that has no broker, though that is no error at all.
+mqtt_json="$(curl -sf -m 5 -H "Authorization: Bearer ${SUPERVISOR_TOKEN:-}" http://supervisor/services/mqtt 2>/dev/null || true)"
+if [ -n "${mqtt_json:-}" ]; then
+    export MQTT_HOST="$(bashio::jq "${mqtt_json:-}" '.data.host // empty')"
+    export MQTT_PORT="$(bashio::jq "${mqtt_json:-}" '.data.port // empty')"
+    export MQTT_USER="$(bashio::jq "${mqtt_json:-}" '.data.username // empty')"
+    export MQTT_PASSWORD="$(bashio::jq "${mqtt_json:-}" '.data.password // empty')"
 fi
 
 # Add-on configuration (Settings -> Apps -> Car Assistant -> Configuration): the sensors in Home Assistant via MQTT, optionally an own broker

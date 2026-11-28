@@ -10,7 +10,7 @@
 </details>
 {% endmacro %}
 {% if setup_flow %}{{ steps(2) }}{% endif %}
-{% call page_head('edit' if vehicle else 'plus', _('vd.title') if vehicle else _('vehicle.add')) %}{% if vehicle %}<button class="button primary" form="vform" title="{{ _('btn.save') }}" aria-label="{{ _('btn.save') }}">{{ icon('check', 18) }}<span class="lbl">{{ _('btn.save') }}</span></button>{% endif %}{% endcall %}
+{% call page_head('edit' if vehicle else 'plus', _('vd.title') if vehicle else _('vehicle.add')) %}{% if vehicle %}<button class="button primary labelled" form="vform" title="{{ _('btn.save') }}">{{ icon('check', 18) }}<span class="lbl">{{ _('btn.save') }}</span></button>{% endif %}{% endcall %}
 {% if error %}<div class="flash err">{{ _(error[0]) }}{% if error|length > 1 %}: {{ _(error[1]) }}{% endif %}</div>{% endif %}
 {% set editing = vehicle is not none %}
 {% set keep_open = error is not none %}  {# groups stay closed; only a failed save opens them so the error is visible #}

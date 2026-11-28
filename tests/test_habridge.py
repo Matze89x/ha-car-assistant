@@ -800,7 +800,7 @@ def test_the_log_says_why_a_moving_tracker_makes_no_drives(client, home, monkeyp
     moves(52.5535, 13.4050, 27)  # a drive is recorded: all is well
     assert habridge._state[next(iter(habridge._state))]["notes"] == {} and len(_said(vid)) == 1
     home.states["binary_sensor.ignition"] = state("binary_sensor.ignition", "off")
-    for i, minute in enumerate(range(28, 33)):
+    for i, minute in enumerate(range(28, 37)):  # (an ignition that goes off is believed after 90 s: the first moves still count as driving)
         moves(52.5570 + 0.0035 * i, 13.4050, minute)
     assert len(_said(vid)) == 2  # the same trouble again: said again at once
 
@@ -868,6 +868,47 @@ def test_the_page_says_whether_the_drives_are_recorded_and_what_is_in_the_way(cl
     with db.tx() as conn:  # no tracker at all: no line
         conn.execute("DELETE FROM ha_bindings WHERE slot = 'position'")
     assert _trip_line(vid, home) is None
+
+
+def _ignition(home, value, at):
+    home.states["binary_sensor.ignition"] = state("binary_sensor.ignition", value, at=at)
+
+
+def test_an_ignition_that_flickers_does_not_cut_a_drive_in_two(client, home, monkeypatch):
+    """A Bluetooth connection that drops for a moment, the engine of a start-stop system at a red light: the ignition entity says off for less than 90 seconds
+    and on again. The drive goes on - only an ignition that STAYS off ends it."""
+    _ignition(home, "on", "2026-11-26T07:59:00+00:00")
+    vid, moves, _clock = _story(client, home, monkeypatch, **{"o.position.track": "on", "e.ignition": "binary_sensor.ignition"})
+    moves(52.5200, 13.4050, 0)
+    moves(52.5230, 13.4080, 1)
+    moves(52.5260, 13.4110, 2)
+    _ignition(home, "off", "2026-11-26T08:02:20+00:00")  # the connection drops ...
+    moves(52.5290, 13.4140, 3)  # ... the next two readings are 31 seconds apart: the car is still told "on", the point is kept
+    _ignition(home, "on", "2026-11-26T08:03:40+00:00")  # ... and it is back
+    moves(52.5320, 13.4170, 4)
+    moves(52.5350, 13.4200, 5)
+    _ignition(home, "off", "2026-11-26T08:05:10+00:00")  # now the car is parked
+    for minute in (6, 7, 8, 9):  # (a minute and a half of readings: believed only then)
+        moves(52.5350, 13.4200, minute)
+    points, made = _route(vid)
+    assert len(made) == 1  # ONE trip ...
+    assert "08:03" in [p["ts"][11:16] for p in points]  # ... with the point of the moment the connection was away in it
+
+
+def test_an_ignition_that_stays_off_ends_the_drive_when_the_hold_is_over(client, home, monkeypatch):
+    _ignition(home, "on", "2026-11-26T07:59:00+00:00")
+    vid, moves, _clock = _story(client, home, monkeypatch, **{"o.position.track": "on", "e.ignition": "binary_sensor.ignition"})
+    moves(52.5200, 13.4050, 0)
+    for lat, lon, minute in DRIVE:
+        moves(lat, lon, minute)
+    _ignition(home, "off", "2026-11-26T08:05:30+00:00")
+    moves(52.5290, 13.4140, 6)  # the ignition says off for the first time: held
+    assert _route(vid)[1] == []
+    moves(52.5290, 13.4140, 7)
+    assert _route(vid)[1] == []  # 31 seconds ... 62 seconds
+    moves(52.5290, 13.4140, 8)
+    moves(52.5290, 13.4140, 9)  # more than 90 seconds off: believed - the drive is over now, not ten minutes later
+    assert len(_route(vid)[1]) == 1
 
 
 def test_the_option_record_trips_belongs_to_the_tracker_row_only():
