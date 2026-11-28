@@ -1,0 +1,19 @@
+{# What the update window shows under "What's new": the changelog of a package, already cut into plain blocks (changelog.py). Every text is written escaped (autoescape), a link or any HTML of the source never gets here. #}
+{% from "_macros.html" import icon with context %}
+{% macro run(parts) %}{% for kind, text in parts %}{% if kind == 'b' %}<strong>{{ text }}</strong>{% elif kind == 'i' %}<em>{{ text }}</em>{% elif kind == 'c' %}<code>{{ text }}</code>{% else %}{{ text }}{% endif %}{% endfor %}{% endmacro %}
+{% if state == 'ok' %}
+<div class="upd-md">
+{% for b in log.blocks %}
+{% if b.kind == 'h' and b.level == 4 %}<h4 class="upd-h">{{ run(b.spans) }}</h4>
+{% elif b.kind == 'h' %}<h5 class="upd-h">{{ run(b.spans) }}</h5>
+{% elif b.kind == 'p' %}<p>{{ run(b.spans) }}</p>
+{% elif b.kind == 'ol' %}<ol>{% for it in b.rows %}<li class="d{{ it.depth }}">{{ run(it.spans) }}</li>{% endfor %}</ol>
+{% elif b.kind == 'ul' %}<ul>{% for it in b.rows %}<li class="d{{ it.depth }}">{{ run(it.spans) }}</li>{% endfor %}</ul>
+{% elif b.kind == 'code' %}<pre>{{ b.text }}</pre>
+{% endif %}
+{% endfor %}
+{% if log.cut %}<p class="hint">{{ icon('info', 14) }} {{ _('updwin.cut') }}</p>{% endif %}
+</div>
+{% else %}
+<p class="hint upd-none" data-state="{{ state }}">{{ icon('info', 14) }} {{ _('updwin.none') if state == 'none' else (_('updwin.nothing') if state == 'nothing' else _('updwin.error')) }}</p>
+{% endif %}

@@ -150,6 +150,12 @@ Der dritte Schritt des ersten Starts. Jede Funktion hat eine Erklärung in einem
 
 <img src="screenshots/de/mobile-functions.png" alt="Erster Start: Was braucht dieses Auto?" width="260">
 
+## Ein Paket aktualisieren
+
+Tippe auf der Kachel einer Integration oder eines Plugins auf **Update verfügbar**: Das Fenster nennt die installierte und die verfügbare Version, zeigt, was neu ist (der Changelog des Pakets, im Fenster scrollbar), und fragt *Jetzt aktualisieren* oder *Abbrechen*. Die Bilder zeigen ein erfundenes Paket.
+
+<img src="screenshots/de/update-window.png" alt="Das Update-Fenster eines Pakets" width="320">
+
 ## Einstellungen: Benutzer, Auto, System
 
 Die Einstellungen haben drei Reiter. **Auto** betrifft das Auto unter dem Titel (Icon, Foto und Video, Design, Home-Assistant-Entitäten, Sicherung); **Benutzer** betrifft dich (Login, deine Geräte und Benachrichtigungen, ein Startlink je Auto für eine Web-App); **System** betrifft die ganze App (Sprache, Einheiten, Design, Sensoren, MCP-Zugang, Quellen, Adresse, Sicherung).

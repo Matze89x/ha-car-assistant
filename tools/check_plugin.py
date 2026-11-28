@@ -54,6 +54,29 @@ def load(target: Path) -> tuple[bytes, Path | None]:
     return target.read_bytes(), None
 
 
+CHANGELOG = re.compile(r"CHANGELOG(\.[a-z]{2,3}(-[A-Za-z0-9]{2,8})?)?\.md")
+
+
+def changelog_notes(folder: Path, version: str) -> list[str]:
+    """What the window that opens on *Update available* will show of this package: its changelog (docs/sources.md, "The changelog of a package")."""
+    from carassistant import changelog
+    from carassistant.sources import is_newer
+
+    files = sorted(p for p in folder.iterdir() if p.is_file() and CHANGELOG.fullmatch(p.name))
+    if not files:
+        return ["No CHANGELOG.md: the update window says 'No changelog available for this package'. A file next to plugin.json is read when it opens."]
+    notes = []
+    if not any(p.name == "CHANGELOG.md" for p in files):
+        notes.append("CHANGELOG.md (the plain one) is missing: every language without a file of its own sees 'No changelog available'.")
+    for file in files:
+        found = changelog.versions(file.read_text(encoding="utf-8", errors="replace"))
+        if not found:
+            notes.append(f"{file.name}: no sections per version ('## 1.2.0 - 2026-11-20'): the app shows the text as a whole, not only what is new.")
+        elif version and not any(not is_newer(v, version) and not is_newer(version, v) for v in found):
+            notes.append(f"{file.name}: no section for version {version}: the update window has nothing to say about this version.")
+    return notes
+
+
 def check(target: Path) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     notes: list[str] = []
@@ -106,6 +129,8 @@ def check(target: Path) -> tuple[list[str], list[str]]:
         notes.append("No description: the tile shows nothing under the name.")
     if not data.get("version"):
         notes.append("No version: updates cannot be offered.")
+    if folder is not None:
+        notes += changelog_notes(folder, str(data.get("version", "")))
     if data.get("icon") and data["icon"] not in icons.ICONS:
         notes.append(f"Icon '{data['icon']}' is not in the icon set (docs/icons.md) - the default icon is shown.")
     if not data.get("icon"):

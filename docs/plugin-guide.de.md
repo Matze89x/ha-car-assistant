@@ -69,7 +69,7 @@ Ein Plugin mit Anbindungsdatei kann eine **Einrichtungsanleitung** (`setup`) mit
 2. Ordner, `package.zip` und `plugins/index.json` zusammen committen.
 3. In der App: *Plugins → Hinzufügen → Liste aktualisieren*, dein Plugin antippen, installieren. Mit Dienst: *Verwaltung → Prüfen und freigeben*.
 4. Beobachten: *Verwaltung → Debug* (nur dieses Plugin) und *Protokoll*: Protokollzeilen, was das Add-on mit dem Dienst tut, und der Verkehr. Protokolle bleiben 1, 7 oder 30 Tage.
-5. Neue Version: `version` in `plugin.json` und Index erhöhen, Zip neu bauen, committen; die Leute drücken *Nach Updates suchen*. Ein Update, das der Administrator drückt, behält die Freigabe vom Installieren.
+5. Neue Version: `version` in `plugin.json` und Index erhöhen, in `CHANGELOG.md` einen Abschnitt `## 1.2.0 - Datum` ergänzen ([was das Update-Fenster zeigt](sources.de.md#der-changelog-eines-pakets)), Zip neu bauen, committen; die Leute drücken *Nach Updates suchen* und lesen, was neu ist, bevor sie aktualisieren. Ein Update, das der Administrator drückt, behält die Freigabe vom Installieren.
 
 ## 9. Integrationen ohne Code: Seiten, Erinnerungen, Pläne
 Eine *Integration* hat kein Programm und keinen Token: sie beschreibt nur, was die App zeichnen soll. Seiten mit typisierten Feldern (auch der Byte-für-Byte-Vergleich für Codierungen), Erinnerungen nach Kilometern oder Tankungen, **Pläne** (ein Wechsel, der mit jeder Tankung weiterrückt), Wert-Kacheln für die Startseite und Widgets stehen alle in der `plugin.json` – siehe [integrations.de.md](integrations.de.md). Ein Plugin desselben Autos kann die Einträge einer Integrationsseite über die [Plugin-API](api.de.md) lesen und schreiben.

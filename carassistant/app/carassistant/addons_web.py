@@ -6,12 +6,13 @@ import contextlib
 import time
 
 from fastapi import HTTPException, Request
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from . import (
     addons,
     assets,
     auth_web,
+    changelog,
     config,
     connectors,
     db,
@@ -33,7 +34,7 @@ from . import (
 from . import icons as icon_set
 from . import nav_web as nav_chips
 from .connectors_web import _may_manage
-from .web import app, form_dict, go, render, vehicle_ctx, vehicle_or_404
+from .web import app, form_dict, go, render, templates, vehicle_ctx, vehicle_or_404
 
 MAX_UPLOAD = addons.MAX_PACKAGE + 1
 
@@ -412,6 +413,40 @@ def addons_update(request: Request, vid: int, aid: int):
         return go(request, _manage(addon["kind"], vid), str(exc))
     events.changed()
     return go(request, _manage(addon["kind"], vid), "addon.updated")
+
+
+@app.get("/v/{vid}/integrations/{aid}/changelog")
+def addons_changelog(request: Request, vid: int, aid: int):
+    """The news of an update, for the window that opens on *Update available*: the changelog of the package, read from its source now (and kept for ten
+    minutes, like every file of a source). Only for a package that HAS an update and only for people who may update it. The answer is a piece of a page
+    (``_update_log.html``) with every text escaped - never a whole page, never anything of the source as markup."""
+    if not _may_manage(request):
+        return Response(status_code=403)
+    text = None
+    state = "error"
+    with db.tx() as conn:
+        vehicle_or_404(conn, vid)
+        addon = addons.get(conn, vid, aid)
+        if addon is None or addon["missing"] or not addon["has_update"]:
+            raise HTTPException(404)
+        source_id = addon["source_id"]
+        if source_id is None:  # installed without a source: the update comes from the source that offers a newer version
+            offer = addons.unlinked_offer(conn, addon)
+            source_id = offer["source_id"] if offer else None
+        try:
+            text = sources.fetch_changelog(conn, source_id, addon["kind"], addon["addon_id"], config.language()) if source_id else None
+            state = "ok" if text and text.strip() else "none"
+        except sources.SourceError:  # no connection and nothing kept, or the file is too big to be a changelog
+            state = "error"
+    log: dict = {}
+    if state == "ok":
+        log = changelog.parse(text, addon["m"].get("version", ""))
+        if log["empty"]:
+            state = "nothing" if log["structured"] else "none"  # sections per version, but none of them is newer than the installed version
+    page = templates.get_template("_update_log.html").render(
+        state=state, log=log, _=i18n.translator(config.language()), icons=icon_set.ICONS
+    )
+    return HTMLResponse(page, headers={"Cache-Control": "no-store"})
 
 
 @app.post("/v/{vid}/integrations/{aid}/link")

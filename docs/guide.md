@@ -96,7 +96,7 @@ Both photos are read **on your own server** (text recognition with Tesseract, no
 **Buttons.** Secondary actions are light, outlined buttons and a row of buttons stays on one line; only the one main action of a page is a filled button.
 
 ## Navigation
-The side bar shows the name and slogan as one unit (same width, size follows the bar). The dot at its foot is green when everything is current and amber when Car Assistant or a package has an update (hover for the reason; on wide screens the lines *System vX* / *Plugins n updates* appear above it).
+The side bar shows the name and slogan as one unit (same width, size follows the bar). The dot at its foot is green when everything is current and amber when Car Assistant or a package has an update (hover for the reason; on wide screens the lines *System vX* / *Plugins n updates* appear above it). On a package tile (*Integrations* or *Plugins*) tap **Update available**: a window shows the installed and the new version and what is new, then *Update now* or *Cancel* ([details](sources.md#updating-a-package)).
 
 Inside a plugin or integration - its settings, log, set-up guide or its own page - *Back* in the header leads to the list the package belongs to (*Plugins* or *Integrations*), and on a tablet or computer that entry stays marked in the side bar on every page of the package. A page that has its own entry in *More* (such as *Coding*) keeps that entry marked and leads back to *More*.
 

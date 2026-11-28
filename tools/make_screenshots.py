@@ -31,7 +31,7 @@ CHROME = os.environ.get("CHROME") or "/Applications/Google Chrome.app/Contents/M
 DIESEL, EV = "demo-diesel", "demo-electric"
 INVOICE_OPEN, INVOICE_BOOKED = 4, 5  # the two invoices of the first demo car (the documents come right after its three others)
 COMPACT = "demo-compact"  # a plain car with no data from the car: its dashboard shows the odometer plate you can turn over and type on
-SCENES = ("odometer-photo", "fuel-scan", "connections-map", "coding")  # pictures that need a tap and a photo first (tools/cdp.py)
+SCENES = ("odometer-photo", "fuel-scan", "connections-map", "coding", "update-window")  # pictures that need a tap and a photo first (tools/cdp.py)
 
 # name, path, width, height (desktop pictures; the height cuts the page where it is still worth looking at)
 DESKTOP = (
@@ -419,6 +419,94 @@ def first_start_functions(base: str, data: Path, out: Path) -> None:
                 conn.execute("UPDATE settings SET value = ? WHERE key = ?", (before[0], key))
 
 
+UPDATE_PACKAGE = {  # a made-up package for the picture of the update window: installed in 1.0.0, offered in 1.2.0
+    "id": "example-weather",
+    "kind": "plugin",
+    "name": "Weather tile",
+    "version": "1.0.0",
+    "description": "A small weather tile for the dashboard.",
+    "author": "Example",
+    "settings": [],
+    "l10n": {"de": {"name": "Wetterkachel", "description": "Eine kleine Wetterkachel für die Startseite."}},
+}
+UPDATE_CHANGELOG = {
+    "": """# Changelog
+
+## 1.2.0 - 2026-11-27
+### Added
+- A forecast for the next **three days** on the tile
+- New setting `units`: show °C or °F
+
+### Fixed
+- The tile showed the wrong day around midnight
+
+## 1.1.0 - 2026-10-30
+- Wind speed on the tile
+- Fewer requests: the weather is read once an hour
+
+## 1.0.0 - 2026-09-14
+- First version
+""",
+    ".de": """# Änderungen
+
+## 1.2.0 - 2026-11-27
+### Neu
+- Eine Vorhersage für die **nächsten drei Tage** auf der Kachel
+- Neue Einstellung `units`: °C oder °F anzeigen
+
+### Behoben
+- Die Kachel zeigte um Mitternacht den falschen Tag
+
+## 1.1.0 - 2026-10-30
+- Windgeschwindigkeit auf der Kachel
+- Weniger Anfragen: das Wetter wird einmal pro Stunde gelesen
+
+## 1.0.0 - 2026-09-14
+- Erste Version
+""",
+}
+
+
+def update_window(b, base: str, out: Path) -> None:
+    """The window that opens on *Update available*: both versions and the changelog of the package. A made-up package is installed on the first demo car, its
+    source offers a newer version and keeps the changelog (as if it had been read a minute ago: nothing goes online); everything is taken away again."""
+    import json
+
+    from carassistant import addons, db
+
+    pid = UPDATE_PACKAGE["id"]
+    with db.tx() as conn:
+        vid = conn.execute("SELECT id FROM vehicles WHERE slug = ?", (DIESEL,)).fetchone()["id"]
+        source = conn.execute("SELECT id FROM sources ORDER BY id LIMIT 1").fetchone()["id"]
+        pk = addons.add(conn, vid, addons.parse_package(json.dumps(UPDATE_PACKAGE).encode()), source)
+        conn.execute("UPDATE vehicle_addons SET active = 1 WHERE id = ?", (pk,))
+        conn.execute(
+            "INSERT INTO source_packages(source_id, kind, pkg_id, name, description, version, icon) VALUES(?,?,?,?,?,?,?)",
+            (source, "plugin", pid, UPDATE_PACKAGE["name"], "", "1.2.0", ""),
+        )
+        now = datetime.now().astimezone().isoformat(timespec="seconds")
+        for suffix, text in UPDATE_CHANGELOG.items():
+            conn.execute(
+                "INSERT INTO source_cache(source_id, path, etag, body, checked_at) VALUES(?,?,?,?,?)",
+                (source, f"plugins/{pid}/CHANGELOG{suffix}.md", "demo", text.encode(), now),
+            )
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        b.open(f"{base}/v/{DIESEL}/plugins", 500, 900, 2, settle=1.0)
+        b.run("document.querySelector('button.addon-status.upd').click()")
+        b.wait_for("document.querySelector('dialog.upd-dlg .upd-log[data-state=done]')")
+        time.sleep(0.8)
+        x, y, w, h = b.run(
+            "(function(){var r=document.querySelector('dialog.upd-dlg').getBoundingClientRect();return [r.left,r.top,r.width,r.height];})()"
+        )
+        b.shot(out, clip=(max(0, x - 14), max(0, y - 14), min(500, w + 28), h + 28), scale=1)  # the window with a little of the dimmed page around it
+    finally:
+        with db.tx() as conn:
+            conn.execute("DELETE FROM vehicle_addons WHERE id = ?", (pk,))
+            conn.execute("DELETE FROM source_packages WHERE source_id = ? AND pkg_id = ?", (source, pid))
+            conn.execute("DELETE FROM source_cache WHERE source_id = ? AND path LIKE ?", (source, f"plugins/{pid}/%"))
+
+
 def compose(photo: bytes, screen: Path, out: Path, photo_height: int | None = 760) -> None:
     """The photo on the left, an arrow, the picture of the app on the right: what the person holds up and what the app makes of it."""
     import io
@@ -565,6 +653,9 @@ def scenes(base: str, out_root: Path, lang: str, only: set[str]) -> None:
             out = out_root / lang / "coding.png"
             b.shot(out)  # the window as it is
             print(lang, "coding", flush=True)
+        if not only or "update-window" in only:
+            update_window(b, base, out_root / lang / "update-window.png")
+            print(lang, "update-window", flush=True)
 
 
 def main() -> None:

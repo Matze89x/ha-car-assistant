@@ -543,6 +543,27 @@ def fetch_manifest(conn: sqlite3.Connection, source_id: int, kind: str, pkg_id: 
     return manifest
 
 
+LANG = re.compile(r"[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})?")
+
+
+def fetch_changelog(conn: sqlite3.Connection, source_id: int, kind: str, pkg_id: str, lang: str = "en") -> str | None:
+    """The changelog of one package - ``<folder>/<id>/CHANGELOG.<lang>.md`` in the language of the page when the source has it, else ``CHANGELOG.md`` - as
+    text, or None when the source has none. Read like every other file of a source (kept with its ETag, asked again only after ten minutes, the copy of the
+    app answers for the standard source); it is asked for only when a person opens the update window of a package. Raises SourceError when the source
+    cannot be reached and nothing was kept."""
+    source = get(conn, source_id)
+    if source is None or kind not in KINDS or not addons.ID.match(pkg_id):
+        raise SourceError("err.src_missing")
+    names = [f"CHANGELOG.{lang}.md"] if LANG.fullmatch(lang or "") and lang != "en" else []
+    for name in [*names, "CHANGELOG.md"]:
+        try:
+            return _read(conn, source, f"{FOLDER[kind]}/{pkg_id}/{name}").decode("utf-8", "replace")
+        except SourceError as exc:
+            if str(exc) != "err.src_missing":
+                raise
+    return None
+
+
 # ------------------------------------------------------------------ what a vehicle can add
 
 

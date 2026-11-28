@@ -542,6 +542,9 @@ def test_the_check_tool_finds_what_is_wrong(tmp_path):
     }
     (good / "plugin.json").write_text(json.dumps(manifest))
     errors, notes = check(good)
+    assert "No CHANGELOG.md" in " ".join(notes)  # the update window would say "No changelog available": a hint, never an error
+    (good / "CHANGELOG.md").write_text("## 1 - 2026-11-27\n- First version\n")
+    errors, notes = check(good)
     assert (errors == [] and notes == []) or all("package.zip" in n for n in notes)  # no index next to it: a zip is only a note
     manifest.update(
         icn="wrench", icon="not-an-icon", service={"entry": "service/missing.py", "routes": [{"prefix": "/api/", "public": True}]}

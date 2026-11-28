@@ -4,7 +4,7 @@
 
 Eine **Quelle** ist ein Ort, aus dem Pakete (Integrationen und Plugins) angeboten werden: ein GitHub-Repository oder eine beliebige https-Adresse, die dieselben Dateien liefert. Die Liste der Quellen ist **eine Liste für den ganzen Server** (*Integrationen / Plugins → Quellen*). *Hinzufügen* und *Verwalten* gelten je Fahrzeug.
 
-Von einer Quelle wird nichts von selbst abgerufen – nur wenn du sie hinzufügst, *Aktualisieren* tippst, ein Paket öffnest, installierst oder aktualisierst. Gelesen werden nur Beschreibungen, **aus einem Paket wird nichts ausgeführt** - außer dem Dienst eines Plugins, das du selbst freigegeben hast ([plugins.de.md](plugins.de.md#plugins-mit-dienst)). Ein solches Paket ist ein lesbarer Ordner plus `package.zip`, und der Index nennt seine `sha256`.
+Von einer Quelle wird nichts von selbst abgerufen – nur wenn du sie hinzufügst, *Aktualisieren* tippst, ein Paket öffnest, das Update-Fenster eines Pakets öffnest (sein Changelog), es installierst oder aktualisierst. Gelesen werden nur Beschreibungen, **aus einem Paket wird nichts ausgeführt** - außer dem Dienst eines Plugins, das du selbst freigegeben hast ([plugins.de.md](plugins.de.md#plugins-mit-dienst)). Ein solches Paket ist ein lesbarer Ordner plus `package.zip`, und der Index nennt seine `sha256`.
 
 ## Ordnerregel
 
@@ -49,13 +49,55 @@ Die Beschreibung eines Pakets, siehe [plugins.de.md](plugins.de.md) (id, name, v
 
 1. **Quellen** – Adresse eines Repositorys eintragen; ein privates Repository braucht einen *Zugangsschlüssel* (ein Token mit Leserecht), der auf dem Server bleibt.
 2. **Hinzufügen** (je Fahrzeug) – die Pakete aller Quellen, eines antippen zeigt die Beschreibung, dann *Installieren*.
-3. **Verwalten** (je Fahrzeug) – Einstellungen, *Nach Updates suchen* (liest die Quellen und markiert Kacheln mit neuerer Version) und *Update* auf so einer Kachel, *Start / Stopp* (nur Plugins; Integrationen haben kein An/Aus), *Deinstallieren*.
+3. **Verwalten** (je Fahrzeug) – Einstellungen, *Nach Updates suchen* (liest die Quellen und markiert Kacheln mit neuerer Version) und *Update* auf so einer Kachel (es öffnet [das Update-Fenster](#ein-paket-aktualisieren)), *Start / Stopp* (nur Plugins; Integrationen haben kein An/Aus), *Deinstallieren*.
 
 Ein Paket, das **ohne Quelle** installiert wurde (aus einer Datei), zeigt auf seiner Karte *ohne Quelle* und steht unter *Hinzufügen* als *Installiert · ohne Quelle* – es wird nicht ein zweites Mal angeboten. Bietet eine Quelle eine **neuere** Version davon an, bekommt es ein *Update* wie jedes andere und gehört danach zu dieser Quelle (Einstellungen, Token und Zustand bleiben). Bietet eine Quelle **genau dieselbe** Version an, zeigt die Karte einen hellen Knopf *Mit Quelle verknüpfen*: er verknüpft das Paket nur mit dieser Quelle (seine nächsten Updates kommen von dort) - sonst ändert sich nichts, es wird nichts geladen. Eine Quelle mit älterer Version ändert nichts.
 
 **GitHub und sein Limit.** Eine öffentliche GitHub-Quelle wird von `raw.githubusercontent.com` gelesen, das kein solches Kontingent hat. Die **API** von GitHub erlaubt nur 60 anonyme Anfragen pro Stunde und Internetadresse – für alle hinter dieser Adresse – und wird für eine Quelle mit Zugangsschlüssel benutzt (der Schlüssel hebt das Limit auf 5000) sowie von anderen Add-ons und Werkzeugen in deinem Netz. Car Assistant behält jede gelesene Datei samt dem ETag, den der Server nannte: noch einmal fragen kostet nichts (der Server antwortet „nicht verändert“), eine Datei, die vor weniger als zehn Minuten gelesen wurde, wird nicht erneut erfragt, und ist das Limit erreicht oder die Verbindung weg, zeigt die Liste, was vorher bekannt war, und sagt das (*die Quelle hat nicht geantwortet ... die Liste ist so, wie sie vorher bekannt war*) – am Zugangsschlüssel liegt es nicht; später noch einmal versuchen.
 
 Eine Quelle lässt sich nur löschen, wenn **kein daraus installiertes Paket** mehr vorhanden ist.
+
+## Ein Paket aktualisieren
+
+Eine Kachel, deren Quelle eine neuere Version anbietet, sagt **Update verfügbar: v1.2.0**. Tippe auf diese Zeile - oder auf *Aktualisieren* - und es öffnet sich ein Fenster, wie beim Update in Home Assistant:
+
+<img src="screenshots/de/update-window.png" alt="Das Update-Fenster eines Pakets" width="320">
+
+- die **installierte** und die **verfügbare** Version und die Quelle, aus der das Update kommt,
+- **Neuigkeiten**: der Changelog des Pakets, im Fenster scrollbar,
+- *Abbrechen* und *Jetzt aktualisieren*. Vor *Jetzt aktualisieren* wird nichts aktualisiert, und von allein nie.
+
+Der Changelog wird gelesen, **wenn das Fenster aufgeht** (eine kleine Textdatei, zehn Minuten behalten wie jede Datei einer Quelle) - nie vorher und nie im Hintergrund. Ein Paket ohne Changelog sagt *Für dieses Paket ist kein Changelog vorhanden.* Hat der Changelog keinen Eintrag zur neuen Version, sagt das Fenster es, und ist die Quelle nicht erreichbar, steht dort, dass der Changelog nicht geladen werden konnte - das Update bleibt möglich. Ein Paket mit Dienst sagt, dass die Freigabe vom Installieren auch für die neue Version gilt; ein Paket, das noch auf seine erste Freigabe wartet, wird zuerst geprüft (*Prüfen und freigeben*) und hat kein Update-Fenster. Das Fenster ist auf der Seite Integrationen und auf der Seite Plugins dasselbe.
+
+## Der Changelog eines Pakets
+
+Lege eine `CHANGELOG.md` neben die `plugin.json` eines Pakets; das Update-Fenster zeigt sie.
+
+```
+plugins/mein-plugin/
+  plugin.json
+  CHANGELOG.md          der Text (auch für jede Sprache ohne eigene Datei)
+  CHANGELOG.de.md       optional: eine Datei je Sprache, CHANGELOG.<code>.md - die der Sprache der Seite kommt zuerst
+```
+
+Schreibe ihn in Abschnitten je Version, die neueste zuerst:
+
+```markdown
+## 1.2.0 - 2026-11-27
+### Neu
+- Eine Vorhersage für die **nächsten drei Tage** auf der Kachel
+### Behoben
+- Die Kachel zeigte um Mitternacht den falschen Tag
+
+## 1.1.0 - 2026-10-30
+- Windgeschwindigkeit auf der Kachel
+```
+
+- Das Fenster zeigt nur, **was für die Person neu ist**: die Abschnitte, die neuer sind als die installierte Version (Zahlen werden als Zahlen verglichen: `1.10` ist neuer als `1.9`). Eine Überschrift nennt ihre Version mit der ersten Zahl - `1.2.0`, `v1.2`, `[1.2.0] - 2026-11-27`, `Version 1.2` -; ein Abschnitt ohne Version (*Unreleased*) wird nicht gezeigt. Ein Text, der nicht in Abschnitten je Version steht, wird als Ganzes gezeigt.
+- Es ist **Text**: Überschriften, Listen, Absätze, `Code`, **fett** und *kursiv*. Ein Link oder ein Bild zeigt nur seine Worte, und HTML wird als Text gezeigt - es läuft also nichts: Ein Changelog kommt aus einer Quelle - dem Ort eines anderen - und kann weder einen Link noch Code auf die Seite bringen. Sehr lange Texte werden gekürzt (etwa 24.000 Zeichen).
+- Die Datei wird gelesen wie jede andere Datei einer Quelle (ein öffentliches GitHub-Repository: `raw.githubusercontent.com`, kein Kontingent). Die Kopie der Standardquelle, die mit der App kommt, enthält die Changelogs auch; eine Datei, die der Kopie fehlt, wird beim Öffnen des Fensters aus der Quelle gelesen.
+- `python tools/check_plugin.py` und `python tools/check_source.py` geben Hinweise (keine Fehler), wenn ein Paket keinen Changelog hat, nur eine Datei einer Sprache, keine Abschnitte je Version oder keinen Abschnitt für seine aktuelle Version.
+- Ein Paket ohne Changelog (ein älteres) sagt das einfach im Fenster - nichts geht kaputt.
 
 ## Eine Quelle aktuell halten
 

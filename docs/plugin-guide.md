@@ -69,7 +69,7 @@ A plugin with a connection file can bring a **set-up guide** (`setup`): three fi
 2. Commit the folder, `package.zip` and `plugins/index.json` together.
 3. In the app: *Plugins → Add → Update list*, tap your plugin, install. With a service: *Manage → Review and approve*.
 4. Watch it: *Manage → Debug* (this plugin only) and *Logs*: log lines, what the add-on does with the service, and the traffic. Logs are kept 1, 7 or 30 days.
-5. New version: raise `version` in `plugin.json` and the index, rebuild the zip, commit; people press *Check for updates*. An update the administrator presses keeps the approval given when installing.
+5. New version: raise `version` in `plugin.json` and the index, add a section `## 1.2.0 - date` to `CHANGELOG.md` ([what the update window shows](sources.md#the-changelog-of-a-package)), rebuild the zip, commit; people press *Check for updates* and read what is new before they update. An update the administrator presses keeps the approval given when installing.
 
 ## 9. Integrations without code: pages, reminders, plans
 An *integration* has no program and no token: it only describes what the app should draw. Pages with typed fields (also the byte-by-byte comparison for codings), reminders after kilometres or refuels, **plans** (a rotation that moves on with every refuel), value tiles for Home and widgets are all described in `plugin.json` - see [integrations.md](integrations.md). A plugin of the same car can read and write the entries of an integration page through the [Plugin API](api.md).

@@ -112,6 +112,31 @@ document.addEventListener("click", function (event) {
   }
 });
 
+// The update window of a package (Integrations / Plugins): its changelog is read from the source of the package when the window opens - once; again the next
+// time only if it failed. The answer is a piece of a page the server wrote with every text escaped; it is put in element by element, never as one string.
+document.addEventListener("click", function (event) {
+  var opener = event.target.closest && event.target.closest("[data-open]");
+  var dlg = opener && document.getElementById(opener.getAttribute("data-open"));
+  var box = dlg && dlg.querySelector && dlg.querySelector("[data-changelog]");
+  if (!box || !window.fetch || !window.DOMParser || box.getAttribute("data-state")) { return; }
+  box.setAttribute("data-state", "loading");
+  box.setAttribute("aria-busy", "true");
+  fetch(box.getAttribute("data-changelog"), { credentials: "same-origin", cache: "no-store" })
+    .then(function (r) { if (!r.ok) { throw new Error("status " + r.status); } return r.text(); })
+    .then(function (html) {
+      var doc = new DOMParser().parseFromString(html, "text/html");
+      while (box.firstChild) { box.removeChild(box.firstChild); }
+      Array.prototype.forEach.call(doc.body.children, function (el) { box.appendChild(document.importNode(el, true)); });
+      if (box.querySelector(".upd-none[data-state=error]")) { box.removeAttribute("data-state"); } else { box.setAttribute("data-state", "done"); }
+    })
+    .catch(function () {
+      var line = box.querySelector("p"), text = line && line.lastChild;
+      if (text && text.nodeType === 3) { text.nodeValue = " " + box.getAttribute("data-error"); }
+      box.removeAttribute("data-state");
+    })
+    .then(function () { box.removeAttribute("aria-busy"); });
+});
+
 // First-start language page: choosing a language reloads the page in that language (inline handlers are blocked by the CSP).
 document.addEventListener("change", function (event) {
   var sel = event.target && event.target.getAttribute && event.target.getAttribute("data-lang-switch");

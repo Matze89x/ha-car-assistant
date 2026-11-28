@@ -96,7 +96,7 @@ Beide Fotos werden **auf deinem eigenen Server** gelesen (Texterkennung mit Tess
 **Knöpfe.** Nebenaktionen sind leichte, umrandete Knöpfe, eine Knopfreihe bleibt einzeilig; nur die eine Hauptaktion einer Seite ist ein gefüllter Knopf.
 
 ## Navigation
-Die Seitenleiste zeigt Name und Slogan als eine Einheit (gleich breit, die Größe folgt der Leiste). Der Punkt am Fuß ist grün, wenn alles aktuell ist, und gelb, wenn Car Assistant oder ein Paket ein Update hat (beim Darüberfahren steht der Grund; auf breiten Bildschirmen erscheinen darüber die Zeilen *System vX* / *Plugins n Updates*).
+Die Seitenleiste zeigt Name und Slogan als eine Einheit (gleich breit, die Größe folgt der Leiste). Der Punkt am Fuß ist grün, wenn alles aktuell ist, und gelb, wenn Car Assistant oder ein Paket ein Update hat (beim Darüberfahren steht der Grund; auf breiten Bildschirmen erscheinen darüber die Zeilen *System vX* / *Plugins n Updates*). Auf der Kachel eines Pakets (*Integrationen* oder *Plugins*) tippst du auf **Update verfügbar**: Ein Fenster zeigt die installierte und die neue Version und was neu ist, dann *Jetzt aktualisieren* oder *Abbrechen* ([Einzelheiten](sources.de.md#ein-paket-aktualisieren)).
 
 In einem Plugin oder einer Integration - ihren Einstellungen, dem Log, der Einrichtung oder ihrer eigenen Seite - führt *Zurück* im Kopf zur Liste, zu der das Paket gehört (*Plugins* oder *Integrationen*), und auf einem Tablet oder Computer bleibt dieser Eintrag in der Seitenleiste auf jeder Seite des Pakets markiert. Eine Seite mit eigenem Eintrag unter *Weiteres* (wie *Coding*) lässt diesen Eintrag markiert und führt zurück nach *Weiteres*.
 

@@ -121,7 +121,7 @@ Führ ihn aus: Der Aufruf erscheint im Werkzeug als `api ... POST /data -> 200`.
 2. Ein Plugin **mit Dienst** wird als `package.zip` ausgeliefert: `python tools/build_plugin_package.py my-source my-plugin` baut es (jedes Mal gleich) und schreibt seine Prüfsumme in die Liste der Quelle.
 3. `python tools/check_source.py my-source` - die ganze Quelle, so wie die App sie liest. Fehler enden mit Exit-Code 1; Hinweise nicht.
 4. Leg `my-source` in ein GitHub-Repository (öffentlich, oder privat mit Zugangsschlüssel). In der App: *Plugins* (oder *Integrationen*) *→ Quellen*: die Adresse des Repositorys eintragen. Dann *Hinzufügen → Liste aktualisieren*, dein Paket antippen, installieren. Ein Dienst wartet auf die Freigabe: *Verwaltung → Prüfen und freigeben*.
-5. Eine neue Version: `version` in `plugin.json` und in der Liste erhöhen, das Zip neu bauen, pushen. Die Leute drücken *Nach Updates suchen*.
+5. Eine neue Version: `version` in `plugin.json` und in der Liste erhöhen, in `CHANGELOG.md` einen Abschnitt `## 1.2.0 - Datum` ergänzen (die Leute lesen ihn im Update-Fenster, [so geht es](sources.de.md#der-changelog-eines-pakets)), das Zip neu bauen, pushen. Die Leute drücken *Nach Updates suchen*.
 
 Alles steht in [sources.de.md](sources.de.md); ein Repository kann sich auch jede Woche selbst prüfen ([docs/examples/source-ci.yml](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/source-ci.yml)).
 

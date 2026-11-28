@@ -1,6 +1,9 @@
-{% from "_macros.html" import icon, del_form with context %}
+{% from "_macros.html" import icon, del_form, sub_h with context %}
 {% for a in rows %}
 {% set plugin = a.kind == 'plugin' %}
+{% set need_review = (a.svc and not a.svc.approved) or (a.pkgfiles and not a.svc and not a.pkgfiles.approved) %}
+{# the update window (docs/design.md, "Update window") opens from the line "Update available" and from the Update button - not for a package that waits for its approval first #}
+{% set can_update = a.has_update and not a.missing and not need_review %}
 <section class="card addon {{ 'missing' if a.missing else ('run' if a.active else 'idle') }}{{ ' upd' if a.has_update and not a.missing }}">
   <div class="addon-head">
     <span class="mi-ic c4">{{ icon(a.m.icon or ('plug' if plugin else 'puzzle'), 20) }}</span>
@@ -11,11 +14,12 @@
     {% if a.missing %}<span class="run-pill need"><i></i>{{ _('addon.needs') }}</span>
     {% else %}<span class="addon-sw"><span class="addon-st{{ ' on' if a.active }}">{{ (_('addon.running') if a.active else _('addon.stopped')) if plugin else (_('addon.on') if a.active else _('addon.off')) }}</span><label class="switch" aria-label="{{ (_('addon.stop') if a.active else _('addon.start')) if plugin else (_('addon.switch_off') if a.active else _('addon.switch_on')) }}"><input type="checkbox" data-fn="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/active" {{ 'checked' if a.active }}><span></span></label></span>{% endif %}
   </div>
-  {% if a.has_update and not a.missing %}<p class="addon-status upd">{{ icon('refresh', 16) }}<span>{{ _('addon.update_to_from', v=a.latest, source=a.offer_source) if a.offer_source else _('addon.update_to', v=a.latest) }}</span></p>{% endif %}
+  {% if a.has_update and not a.missing %}{% set upd_text = _('addon.update_to_from', v=a.latest, source=a.offer_source) if a.offer_source else _('addon.update_to', v=a.latest) %}
+  {% if can_update %}<button type="button" class="addon-status upd" data-open="upd-{{ a.id }}" aria-haspopup="dialog">{{ icon('refresh', 16) }}<span>{{ upd_text }}</span>{{ icon('chevron', 16) }}</button>
+  {% else %}<p class="addon-status upd">{{ icon('refresh', 16) }}<span>{{ upd_text }}</span></p>{% endif %}{% endif %}
   {% if a.can_link and not a.has_update %}<p class="addon-status">{{ icon('info', 16) }}<span>{{ _('addon.link_hint', v=a.m.version, source=a.offer_source) }}</span></p>{% endif %}
   {% if a.login_needed and not a.missing %}<p class="addon-status err" role="alert">{{ icon('alert', 16) }}<span>{{ _('addon.login_needed') }} <a href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/guide?step={{ a.login_step }}">{{ _('addon.login_again') }}</a></span></p>{% endif %}
   {% if a.m.description %}<p class="addon-d">{{ a.m.description }}</p>{% endif %}
-  {% set need_review = (a.svc and not a.svc.approved) or (a.pkgfiles and not a.svc and not a.pkgfiles.approved) %}
   {% if a.pkgfiles and not a.svc and not a.pkgfiles.approved %}<p class="addon-status">{{ icon('info', 16) }}<span>{{ _('fil.state_wait') }}</span></p>{% endif %}
   {% if a.svc and a.svc.state not in ('running', 'stopped') %}{% set SV = {'waiting': _('svc.state_waiting'), 'installing': _('svc.state_installing'), 'starting': _('svc.state_starting'), 'restarting': _('svc.state_restarting'), 'error': _('svc.state_error')} %}<p class="addon-status{{ ' err' if a.svc.state == 'error' }}">{{ icon('alert' if a.svc.state == 'error' else 'info', 16) }}<span>{{ SV.get(a.svc.state, a.svc.state) }}{% if a.svc.error %} · {{ _(a.svc.error) }}{% endif %}</span></p>{% endif %}
   {% if a.missing %}
@@ -48,7 +52,7 @@
       {% if a.can_link %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/link"><button class="lite-lbl" aria-label="{{ _('addon.link') }}" title="{{ _('addon.link_tip', source=a.offer_source) }}">{{ icon('database', 18) }}<span class="lbl2">{{ _('addon.link') }}</span></button></form>{% endif %}
       {% for d in dls %}<a class="button lite-lbl" href="{{ base }}{{ d.path }}" download aria-label="{{ d.label }}" title="{{ d.note or d.label }}">{{ icon('download', 18) }}<span class="lbl2">{{ d.label }}</span></a>{% endfor %}
       {% if need_review %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/service">{{ icon('shield', 18) }}<span>{{ _('svc.review') }}</span></a>
-      {% elif a.has_update %}<form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/update"><button class="primary">{{ icon('refresh', 18) }}<span>{{ _('addon.update') }}</span></button></form>
+      {% elif a.has_update %}<button type="button" class="primary" data-open="upd-{{ a.id }}" aria-haspopup="dialog">{{ icon('refresh', 18) }}<span>{{ _('addon.update') }}</span></button>
       {% elif a.m.setup and a.setup_open %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/guide">{{ icon('play-circle-outline', 18) }}<span>{{ a.m.setup.title or _('addon.setup') }}</span></a>
       {% elif plugin and a.status != 'configured' %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/settings">{{ icon('play-circle-outline', 18) }}<span>{{ _('addon.setup') }}</span></a>
       {% elif a.active and a.m.pages %}<a class="button primary" href="{{ base }}/v/{{ v.slug }}/m/{{ a.addon_id }}">{{ icon('chevron', 18) }}<span>{{ _('addon.open') }}</span></a>{% endif %}
@@ -57,6 +61,26 @@
       {% endif %}
   {{ del_form('adel-' ~ a.id, base ~ '/v/' ~ v.slug ~ '/integrations/' ~ a.id ~ '/delete', 'addon.confirm_delete') }}
 </section>
+{% if can_update %}
+<dialog id="upd-{{ a.id }}" class="vsw addon-dlg upd-dlg" aria-labelledby="upd-t-{{ a.id }}">
+  <div class="vsw-head"><h2 id="upd-t-{{ a.id }}">{{ icon('refresh', 20) }} {{ _('updwin.title', name=a.m.name) }}</h2><button type="button" class="vsw-x" data-close aria-label="{{ _('btn.close') }}">{{ icon('close', 20) }}</button></div>
+  <div class="addon-dlg-body">
+    <div class="upd-vers">
+      <div class="tg"><i>{{ _('updwin.installed') }}</i><b>{{ ('v' ~ a.m.version) if a.m.version else '–' }}</b></div>
+      <div class="tg new"><i>{{ _('updwin.available') }}</i><b>v{{ a.latest }}</b></div>
+    </div>
+    {% if a.source_name or a.offer_source %}<p class="upd-src">{{ icon('database', 14) }}<span>{{ _('updwin.from', source=(a.source_name or a.offer_source)) }}</span></p>{% endif %}
+    <div class="sub-card upd-news">
+      {{ sub_h('file-document-outline', _('updwin.whats_new')) }}
+      <div class="upd-log" tabindex="0" role="region" aria-label="{{ _('updwin.whats_new') }}" data-changelog="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/changelog" data-error="{{ _('updwin.error') }}"><p class="hint">{{ icon('info', 14) }} {{ _('updwin.loading') }}</p></div>
+    </div>
+    {% if a.svc %}<p class="hint">{{ icon('info', 14) }} {{ _('updwin.service') }}</p>{% elif a.pkgfiles %}<p class="hint">{{ icon('info', 14) }} {{ _('updwin.files') }}</p>{% endif %}
+    <form method="post" action="{{ base }}/v/{{ v.slug }}/integrations/{{ a.id }}/update">
+      <div class="form-bar"><button type="button" class="button" data-close>{{ _('btn.cancel') }}</button><button class="primary">{{ icon('refresh', 18) }}<span>{{ _('updwin.now') }}</span></button></div>
+    </form>
+  </div>
+</dialog>
+{% endif %}
 {% else %}
 <section class="card"><p class="hint">{{ icon('info', 14) }} {{ empty }}</p></section>
 {% endfor %}
