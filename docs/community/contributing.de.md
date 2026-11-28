@@ -25,6 +25,15 @@ Vor jedem Pull Request (die CI macht dasselbe):
 ruff check . && ruff format --check . && pytest -q
 ```
 
+**Gegen ein echtes Home Assistant (freiwillig).** Die Tests des Home-Assistant-Plugins laufen gegen ein erfundenes (`tools/fake_ha.py`). Um den Kilometerstand und die Fahrten mit echten Helfern, einem echten Zustandsspeicher und dem echten WebSocket auszuprobieren, richte einmal ein Test-Home-Assistant ein (braucht Python 3.14 oder neuer; etwa fünf Minuten, außerhalb des Repositorys):
+
+```
+python tools/real_ha.py setup      # einmal
+python tools/real_ha.py start
+pytest tests/test_real_ha.py -q    # wird übersprungen, solange kein Test-Home-Assistant antwortet
+python tools/real_ha.py stop
+```
+
 ## Die Regeln
 
 - **Nichts Privates** in Code, Docs, Tests oder Bildern: keine Namen, Adressen, Tokens, Marken oder Fahrzeugdaten. Nimm neutrale Werte (`car.example.com`, `Example`, `AB-CD 123`).

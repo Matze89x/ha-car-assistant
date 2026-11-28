@@ -641,6 +641,24 @@ def test_the_drives_of_a_tracker_become_trips_when_the_option_is_on(client, home
     assert stored(vid)["position"] == "52.529000,13.414000"  # the position of the car is the newest point, as always
 
 
+def test_a_position_seen_hours_ago_is_not_the_place_where_a_drive_began(client, home, monkeypatch):
+    """Found with a real Home Assistant: the first report after a long silence (the night, a restart of the app, an entity that was away) was joined to the
+    position seen hours before - the trip got a line of many kilometres and began at the old time."""
+    vid, moves, _clock = _story(client, home, monkeypatch, **{"o.position.track": "on"})
+    moves(52.5200, 13.4050, 0)  # where the car stood in the evening
+    moves(52.6200, 13.5050, 300)  # five hours later the tracker reports from about 13 km away: nothing says where it was in between
+    assert _route(vid)[0] == []  # no line through the night
+    for lat, lon, minute in ((52.6230, 13.5080, 301), (52.6260, 13.5110, 302), (52.6290, 13.5140, 303)):
+        moves(lat, lon, minute)
+    points, _made = _route(vid)
+    assert [p["ts"][11:16] for p in points] == [
+        "13:00",
+        "13:01",
+        "13:02",
+        "13:03",
+    ]  # the drive begins where the car stood at its last report before the moves
+
+
 def test_nothing_of_the_route_is_kept_without_the_option(client, home, monkeypatch):
     vid, moves, _clock = _story(client, home, monkeypatch)  # the default: only the position of the car is kept
     moves(52.5200, 13.4050, 0)
@@ -1009,6 +1027,38 @@ def test_a_change_in_home_assistant_arrives_at_once_without_asking(client, live_
         habridge.tick(time.monotonic() + 4)
         time.sleep(0.02)
     assert stored(vid)["locked"] == "unlocked" and fake.reads == asked  # nobody asked Home Assistant for anything
+
+
+def test_a_change_that_comes_before_the_subscription_does_not_wait_for_the_safety_net(client, live_home, monkeypatch):
+    """The plugin is saved, the first reading is made, and a moment later (before the subscription of the live connection is made) the entity changes: no event
+    says so. The reading must come as soon as the subscription has looked at Home Assistant - not five minutes later (found with a real Home Assistant)."""
+    import threading
+
+    from carassistant import halive
+
+    fake, _link = live_home
+    gate = threading.Event()
+    real = halive.Link._subscribe
+
+    def late(self, ws, mode, entities, version):
+        gate.wait(5)  # the subscription is made only when the test says so
+        return real(self, ws, mode, entities, version)
+
+    monkeypatch.setattr(halive.Link, "_subscribe", late)
+    vid, pk = install(client)
+    assert save(client, vid, pk).status_code == 303
+    end = time.monotonic() + 5
+    while stored(vid).get("range_km") != "281" and time.monotonic() < end:
+        habridge.tick(time.monotonic())
+        time.sleep(0.02)
+    assert stored(vid)["range_km"] == "281"  # the first reading (the link has been told what to follow, but has not subscribed)
+    fake.set("sensor.car_range", "199", "km", "distance")  # the car drives on - before anything follows the entity
+    gate.set()  # now the subscription is made; it sees 199 only through its first look
+    end = time.monotonic() + 5
+    while stored(vid)["range_km"] != "199" and time.monotonic() < end:
+        habridge.tick(time.monotonic())
+        time.sleep(0.02)
+    assert stored(vid)["range_km"] == "199"
 
 
 def test_a_burst_of_changes_is_one_reading_after_the_pause(client, live_home):

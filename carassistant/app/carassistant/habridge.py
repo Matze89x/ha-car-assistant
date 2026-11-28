@@ -716,6 +716,9 @@ def _record_track(conn, addon: dict, st: dict, readings: dict[str, Reading], sta
     ignition = readings.get("ignition")
     if (ignition is not None and ignition.ok and not ignition.value) or seen is None or when <= seen["at"]:
         return 0  # parked, or the first reading since the start (nothing to compare with), or an old one
+    if when - seen["at"] > trips.TRIP_GAP:
+        return 0  # the reading before this one is long ago (the night, a restart, an entity that was away): nothing says where the car was meanwhile, so that
+        # place is no start of a drive - this reading is the one the next move is compared with (a line of many kilometres through the night would be a trip)
     if last is not None and when <= last["at"]:
         return 0
     new_drive = last is None or when - last["at"] > trips.TRIP_GAP

@@ -271,7 +271,14 @@ class Link:
                         self.mode = sub["mode"]
                         self._seed(sub["entities"])
                         self._active = sub["entities"]
+                        was_live = self._live
                         self._set_live(True)
+                        if was_live and self.on_state:
+                            # The connection was live already (nothing was followed, or the set that is followed changed) and a subscription has begun only now:
+                            # what changed before it began arrives as no event, only through the look of ``_seed``. Say it, as a connection that comes up does,
+                            # so that the readers look at everything afresh instead of waiting for the safety net.
+                            with contextlib.suppress(Exception):
+                                self.on_state(True)
                     elif mode == "trigger":  # the first way is refused: the second one does the same, with more traffic
                         log.info("Live connection to Home Assistant: subscribe_trigger refused, following state_changed instead")
                         mode = "events"

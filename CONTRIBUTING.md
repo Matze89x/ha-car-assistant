@@ -25,6 +25,15 @@ Before every pull request (the CI does the same):
 ruff check . && ruff format --check . && pytest -q
 ```
 
+**Against a real Home Assistant (optional).** The tests of the Home Assistant plugin run against a made-up one (`tools/fake_ha.py`). To try the odometer and the trips with real helpers, a real state machine and the real WebSocket, set up a test Home Assistant once (needs Python 3.14 or newer; about five minutes, outside the repository):
+
+```
+python tools/real_ha.py setup      # once
+python tools/real_ha.py start
+pytest tests/test_real_ha.py -q    # skipped while no test Home Assistant answers
+python tools/real_ha.py stop
+```
+
 ## The rules
 
 - **Nothing private** in code, docs, tests or pictures: no names, addresses, tokens, brands or car data. Use neutral values (`car.example.com`, `Example`, `AB-CD 123`).

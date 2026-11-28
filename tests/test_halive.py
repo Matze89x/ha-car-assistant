@@ -110,6 +110,23 @@ def test_what_is_followed_can_change_while_it_runs(fake, quick):
         link.stop()
 
 
+def test_a_subscription_that_begins_on_a_live_connection_says_so_because_what_came_before_it_is_no_event(fake, quick):
+    """The connection is live while nothing is followed; the first entity is followed later. What changed between the two arrives through no event, only
+    through the first look of the subscription: the readers must be told, as they are when a connection comes up (they once waited for the safety net)."""
+    link = link_to(fake)
+    link.start()
+    try:
+        assert wait_for(lambda: link.live) and link.changes == [True]  # live, nothing to follow
+        link.follow({"sensor.odo"})
+        assert wait_for(lambda: "sensor.odo" in link.following())
+        assert wait_for(lambda: link.changes == [True, True])  # the subscription begun: "look at everything afresh"
+        link.follow({"sensor.odo", "sensor.range"})  # another entity is bound: the subscription is made anew
+        assert wait_for(lambda: "sensor.range" in link.following())
+        assert wait_for(lambda: link.changes == [True, True, True])
+    finally:
+        link.stop()
+
+
 def test_an_entity_that_is_removed_leaves_the_memory(fake, quick):
     link = link_to(fake)
     link.follow({"sensor.range"})
