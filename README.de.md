@@ -14,7 +14,7 @@
 
 </div>
 
-**Das Logbuch und Dashboard für dein Auto.** Tankstopps, Servicebuch, Termine, Dokumente, Ersatzteile, Fahrten und Kosten – an einem Ort, für ein Auto oder für die ganze Familie, Verbrenner, Hybrid oder Elektro. Es läuft als App in Home Assistant, und deine Daten bleiben auf deinem eigenen Server.
+**Das Logbuch und Dashboard für dein Auto.** Tanken und Laden, Servicebuch, Termine, Dokumente, Ersatzteile, Fahrten und Kosten – an einem Ort, für ein Auto oder für die ganze Familie, Verbrenner, Hybrid oder Elektro. Es läuft als App in Home Assistant, und deine Daten bleiben auf deinem eigenen Server.
 
 <p align="center">
   <img src="docs/screenshots/de/mobile-dashboard.png" alt="Das Dashboard eines Autos" width="30%">
@@ -28,23 +28,23 @@ Car Assistant besteht aus kleinen **Funktionen**, und **jedes Auto wählt seine 
 
 | Du möchtest ... | Schalte ein ... |
 |---|---|
-| ⛽ **nur ein Tankbuch** | Tanken |
+| ⛽ **nur Tankungen oder Ladevorgänge festhalten** | Tanken / Laden |
 | 📅 **TÜV und Versicherung nie verpassen** | Termine |
-| 🔧 **das Servicebuch eines Autos, mit den Belegen** | Service · Dokumente · Kostensicht |
-| 🔌 **ein Elektroauto mit seinen Ladekosten** | Laden · Kostensicht |
+| 🔧 **das Servicebuch eines Autos, mit den Belegen** | Service · Dokumente |
+| 💰 **wissen, was ein Auto wirklich kostet** | Kostensicht · Tanken / Laden · Service |
 | 🗺️ **ein Fahrtenbuch mit der Route auf der Karte** | Fahrten · Km-Zähler |
 | 🚗 **alles zu einem Auto an einem Ort** | alles – und Plugins für Live-Daten |
 
-Die Einführung beim ersten Start fragt, was jedes Auto braucht, und erklärt jede Funktion in einem Satz. Ändern kannst du das jederzeit unter **Weiteres → Integrationen**: Eine ausgeschaltete Funktion wird nur ausgeblendet, deine Einträge bleiben erhalten. Die Seiten sprechen die Sprache des Autos – Tanken beim Verbrenner, Laden beim Elektroauto.
+Die Einführung beim ersten Start fragt, was jedes Auto braucht, und erklärt jede Funktion in einem Satz. Ändern kannst du das jederzeit unter **Weiteres → Integrationen**: Eine ausgeschaltete Funktion wird nur ausgeblendet, deine Einträge bleiben erhalten. *Tanken / Laden* ist eine Funktion, die die Sprache des Autos spricht: Sie heißt *Tanken* beim Verbrenner und *Laden* beim Elektroauto (beim Plug-in-Hybrid wählst du selbst).
 
 ## Was drinsteckt
 
-- ⛽ **Tanken und Laden** – jede Tankung und jeder Ladevorgang mit Verbrauch und Kosten; die günstigsten Tankstellen oder die Ladepunkte in der Nähe
+- ⛽ **Tanken und Laden** – jede Tankung und jeder Ladevorgang mit Verbrauch und Kosten; die günstigsten Tankstellen oder die Ladesäulen in der Nähe
 - 🔧 **Service und Termine** – ein Servicebuch, ein Wartungsplan mit Erinnerungen nach km und Zeit, TÜV- und Versicherungstermine mit Kalenderexport
 - 📄 **Dokumente** – Rechnungen, Versicherungs- und Zulassungspapiere, das Handbuch des Autos (PDF, EPUB); fotografiere eine Rechnung, und sie wird auf deinem eigenen Server gelesen – gebucht wird nie von selbst
 - 🛞 **Teile, Reifen und Umbauten** – was du gekauft hast, welcher Satz montiert ist, was du geändert hast
 - 🗺️ **Fahrten** – die Route auf einer nach Tempo eingefärbten Karte, GPX- und CSV-Import, PDF-Export, eigene Km-Zähler
-- 📊 **Kosten** – was jedes Auto kostet, nach Tanken, Service, Teilen, Umbauten und Fixkosten, und eine Auswertung deiner Fahrten
+- 📊 **Kosten** – was jedes Auto kostet, nach Tanken oder Laden, Service, Teilen, Umbauten und Fixkosten, und eine Auswertung deiner Fahrten
 - 📘 **Fahrzeugpass** – die wichtigen Fakten, die FIN mit einem Tipp kopieren, die Ausstattungsliste
 - 🔔 **Erinnerungen** aufs Handy je Auto · 📱 eine **Web-App je Auto** für den Home-Bildschirm · 🎨 hell, dunkel oder automatisch, mit eigener Farbe
 - 💾 **Deins** – Sicherungen für ein Auto oder für alles, Deutsch und Englisch (weitere Sprachen als Datei), metrisch oder imperial, ein Demo-Auto zum Ansehen

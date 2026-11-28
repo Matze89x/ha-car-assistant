@@ -14,7 +14,7 @@
 
 </div>
 
-**Your car's own logbook and dashboard.** Fuel stops, service book, appointments, documents, spare parts, trips and costs – in one place, for one car or for the whole family garage, combustion, hybrid or electric. It runs as an app inside Home Assistant, and your data stays on your own server.
+**Your car's own logbook and dashboard.** Fuel and charging, service book, appointments, documents, spare parts, trips and costs – in one place, for one car or for the whole family garage, combustion, hybrid or electric. It runs as an app inside Home Assistant, and your data stays on your own server.
 
 <p align="center">
   <img src="docs/screenshots/en/mobile-dashboard.png" alt="The dashboard of a car" width="30%">
@@ -28,14 +28,14 @@ Car Assistant is made of small **functions**, and **every car chooses its own**.
 
 | If you want ... | Switch on ... |
 |---|---|
-| ⛽ **just a fuel log** | Fuel |
+| ⛽ **just a log of fill-ups or charging sessions** | Fuel / Charging |
 | 📅 **never to miss the inspection or the insurance** | Appointments |
-| 🔧 **the service book of a car, with its receipts** | Service · Documents · Costs |
-| 🔌 **an electric car with its charging costs** | Charging · Costs |
+| 🔧 **the service book of a car, with its receipts** | Service · Documents |
+| 💰 **to know what a car really costs** | Costs · Fuel / Charging · Service |
 | 🗺️ **a logbook of your drives, on a map** | Trips · Km counters |
 | 🚗 **everything about a car in one place** | everything – and plugins for live data |
 
-The first start asks what each car needs and explains every function in one sentence. You can change it any time under **More → Integrations**: a function you switch off is only hidden, your entries stay. The pages speak the car's language – fuel for a combustion car, charging for an electric one.
+The first start asks what each car needs and explains every function in one sentence. You can change it any time under **More → Integrations**: a function you switch off is only hidden, your entries stay. *Fuel / Charging* is one function that speaks the car's language: it says *Fuel* for a combustion car and *Charging* for an electric one (for a plug-in hybrid you choose).
 
 ## What is inside
 
@@ -44,7 +44,7 @@ The first start asks what each car needs and explains every function in one sent
 - 📄 **Documents** – invoices, insurance and registration papers, the car's manual (PDF, EPUB); photograph an invoice and it is read on your own server – nothing is booked by itself
 - 🛞 **Parts, tyres and modifications** – what you bought, which set is mounted, what you changed
 - 🗺️ **Trips** – the route on a map coloured by speed, GPX and CSV import, PDF export, your own km counters
-- 📊 **Costs** – what each car costs, by fuel, service, parts, modifications and fixed costs, and an analysis of your trips
+- 📊 **Costs** – what each car costs, by fuel or charging, service, parts, modifications and fixed costs, and an analysis of your trips
 - 📘 **Vehicle passport** – the facts you need, the VIN at a tap, the list of equipment
 - 🔔 **Reminders** to your phone per car · 📱 a **web app per car** for the home screen · 🎨 light, dark or automatic, with a colour of your own
 - 💾 **Yours** – backups of one car or of everything, English and German (more languages as a file), metric or imperial, a demo car to just have a look
