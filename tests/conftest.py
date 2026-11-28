@@ -8,6 +8,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "carassistant" / "a
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))  # demo_data: the made-up car of the sources repository
 
 
+@pytest.fixture(autouse=True)
+def _forget_what_home_assistant_said():
+    """The answers of Home Assistant and of the Supervisor are remembered for a few seconds (ha._cache). A test must not see an answer that another test on the
+    same worker left behind: which tests share a worker changes whenever a test is added, and a test that asks for the published port failed on the CI that way."""
+    from carassistant import ha
+
+    ha._cache.clear()
+    yield
+    ha._cache.clear()
+
+
 @pytest.fixture()
 def env(tmp_path, monkeypatch):
     from carassistant import config, ha
