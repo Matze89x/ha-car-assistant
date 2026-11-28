@@ -109,6 +109,33 @@ def test_a_number_is_read_in_the_unit_of_the_slot():
     assert r.at == "2026-11-26T08:00:00+00:00"  # the time Home Assistant gives (the entity's last report)
 
 
+@pytest.mark.parametrize(
+    ("typed", "km"),
+    [
+        ("86010", 86010),
+        ("86.010", 86010),  # a person's thousands separator, German or English
+        ("86,010", 86010),
+        ("86 010", 86010),
+        ("1.086.010", 1086010),
+        ("86.010,5", 86010.5),
+        ("86,010.5", 86010.5),
+        ("86010,5", 86010.5),  # no group: a decimal comma
+        ("86.01", 86.01),  # two digits after the separator: a decimal part
+    ],
+)
+def test_an_odometer_typed_into_a_text_helper_may_carry_a_thousands_separator(typed, km):
+    """A text helper holds what a person typed: ``86.010`` means 86 010 kilometres. A number entity never says it that way - only text entities get this reading."""
+    assert one("odometer_km", state("input_text.odometer", typed)).value == pytest.approx(km)
+
+
+def test_only_the_text_of_a_person_is_read_with_a_thousands_separator():
+    assert one("odometer_km", state("sensor.odometer", "86.010")).value == pytest.approx(86.01)  # a number entity says what it says
+    assert one("odometer_km", state("input_number.odometer", "86.010")).value == pytest.approx(86.01)
+    assert one("range_km", state("input_text.range", "1.234")).value == pytest.approx(
+        1.234
+    )  # and only for the odometer: other figures are read as written
+
+
 def test_what_is_not_a_number_or_not_available_says_why_and_never_raises():
     assert one("range_km", state("sensor.r", "unavailable")).problem == "unavailable"
     assert one("range_km", state("sensor.r", "unknown")).problem == "unavailable"
@@ -688,6 +715,28 @@ def test_a_position_seen_hours_ago_is_not_the_place_where_a_drive_began(client, 
     ]  # the drive begins where the car stood at its last report before the moves
 
 
+def test_a_drive_after_a_long_stand_begins_where_the_car_stood(client, home, monkeypatch):
+    """A tracker that reports only when it moves says nothing for hours while the car stands. The first report of the next drive comes from near the place where
+    it stood: that place is the start (the time of the start is a guess from the distance) - not the first report, which is a minute into the drive."""
+    vid, moves, clock = _story(client, home, monkeypatch, **{"o.position.track": "on"})
+    moves(52.5200, 13.4050, 0)  # the evening: parked
+    moves(52.5260, 13.4080, 240)  # four hours later the first report of the drive, about 700 m away
+    moves(52.5290, 13.4110, 241)
+    moves(52.5320, 13.4140, 242)
+    points, _made = _route(vid)
+    assert [(p["ts"][11:16], round(p["lat"], 4)) for p in points] == [
+        ("11:58", 52.52),
+        ("12:00", 52.526),
+        ("12:01", 52.529),
+        ("12:02", 52.532),
+    ]
+    clock["now"] = datetime(2026, 11, 26, 12, 30, tzinfo=UTC)
+    with db.tx() as conn:
+        assert trips.from_track(conn, vid) == 1
+    (trip,) = _route(vid)[1]
+    assert 1.3 < trip["distance_km"] < 1.8 and trip["start_time"] != "08:00"  # from where the car stood, not from the evening
+
+
 def test_nothing_of_the_route_is_kept_without_the_option(client, home, monkeypatch):
     vid, moves, _clock = _story(client, home, monkeypatch)  # the default: only the position of the car is kept
     moves(52.5200, 13.4050, 0)
@@ -812,8 +861,12 @@ def test_the_page_says_whether_the_drives_are_recorded_and_what_is_in_the_way(cl
     assert line["level"] == "warn" and "ignition entity (binary_sensor.ignition) says off" in line["text"]
     page = client.get(f"/v/{vid}/integrations/{_plugin_pk(vid)}/settings")
     assert page.status_code == 200 and "data-hb-trip" in page.text and "ignition entity (binary_sensor.ignition) says off" in page.text
-    with db.tx() as conn:  # the option is off: no line at all
+    with db.tx() as conn:  # the option is off (the default): the line says so, and where to switch it on
         conn.execute("UPDATE ha_bindings SET options = '{}' WHERE slot = 'position'")
+    line = _trip_line(vid, home)
+    assert line["level"] == "idle" and "not recorded" in line["text"] and "Record trips from this tracker" in line["text"]
+    with db.tx() as conn:  # no tracker at all: no line
+        conn.execute("DELETE FROM ha_bindings WHERE slot = 'position'")
     assert _trip_line(vid, home) is None
 
 
@@ -1050,7 +1103,9 @@ def test_the_page_script_asks_what_the_entities_deliver_and_for_entities_to_choo
         },
     ).json()
     rows = answer["rows"]
-    assert answer["ok"] and answer["ha"] and answer["trip"] is None  # (the option to record trips is off: no line about them)
+    assert (
+        answer["ok"] and answer["ha"] and answer["trip"]["level"] == "idle" and "not recorded" in answer["trip"]["text"]
+    )  # (the option is off - the default)
     assert rows["e.range_km"] == {"level": "ok", "text": "281 km", "from": ""}
     assert rows["e.tyre_fl"] == {"level": "ok", "text": "2.4 bar", "from": "from 34.8 psi"}
     assert rows["e.locked"]["text"] == "Locked" and rows["e.locked"]["from"] == "state: locked"
@@ -1347,7 +1402,7 @@ def test_a_drive_that_was_missed_is_read_from_the_history_and_becomes_a_trip(cli
     assert _tick_until(lambda: _trips_of(vid))
     (distance,) = _trips_of(vid)
     assert distance == pytest.approx(8 * 0.389, abs=0.1)  # the whole drive, from the place the car stood
-    assert any(m.startswith("caught up from the history of Home Assistant") and "1 trip" in m for _lvl, m in log_of(vid))
+    assert any(m.startswith("caught up from the history of Home Assistant") and "position(s) of drives" in m for _lvl, m in log_of(vid))
     (call,) = fake.history_calls
     assert (
         call["filter_entity_id"] == "device_tracker.car"

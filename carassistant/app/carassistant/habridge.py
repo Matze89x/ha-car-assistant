@@ -49,6 +49,9 @@ TRACK_STEP_M = (
 )
 TRACK_ACCURACY_M = 100  # a fix the tracker itself calls less exact than this (``gps_accuracy``, metres) is left out
 DRIVING_MS = 4.0  # metres per second between two reports (about 15 km/h): faster than somebody walks - below it nothing is said about a car that "moves"
+START_JOIN_M = (
+    3000  # the first report after a long silence from within this distance of where the car stood is the start of a drive from there
+)
 MAX_SPEED_MS = 150.0  # faster than this between two reports (540 km/h) is no drive: the tracker jumped (a bad fix, another device of a person) - the route is broken there
 
 
@@ -169,6 +172,24 @@ def _number_of(value) -> float:
     return number
 
 
+TYPED_FIGURE = re.compile(
+    r"\s*\d{1,3}(?:[ .,'\u2019\u00a0\u202f]\d{3})+(?:[.,]\d{1,2}|[.,]\d{4,})?\s*"
+)  # 86.010   86,010   86 010   86.010,5   86,010.5
+
+
+def _typed_figure(text: str) -> str:
+    """A figure somebody TYPED into a text helper may carry a thousands separator (``86.010``, ``86,010``, ``86 010``, ``86.010,5``): what looks like
+    groups of three digits is one; a decimal part of one or two digits (or four and more) after the last separator stays a decimal part. A number
+    entity never says it that way - this is only for the text of a person."""
+    if not TYPED_FIGURE.fullmatch(text):
+        return text
+    text = text.strip()
+    found = re.search(r"[.,](\d{1,2}|\d{4,})$", text)
+    whole, decimals = (text[: found.start()], found.group(1)) if found else (text, "")
+    whole = re.sub(r"[ .,'\u2019\u00a0\u202f]", "", whole)
+    return f"{whole}.{decimals}" if decimals else whole
+
+
 def _until(text: str, unit: str) -> float | None:
     """A date or a time of an entity (device class date / timestamp) as days or minutes from now: for 'minutes left' and 'days until the service'."""
     if unit not in ("min", "d") or not re.match(r"\d{4}-\d{2}-\d{2}", text.strip()):
@@ -205,6 +226,8 @@ def _limits(slot: cat.Slot) -> tuple[float, float]:
 def read_number(slot: cat.Slot, state: dict, opts: dict) -> Reading:
     value, entity_unit = _source(state, opts)
     chosen = str(opts.get("unit") or "auto")
+    if slot.key == "odometer_km" and str(state.get("entity_id", "")).split(".")[0] in ("input_text", "text") and isinstance(value, str):
+        value = _typed_figure(value)  # (a person typed it: 86.010 is 86 010 kilometres, not 86 and a bit)
     number = _until(str(value), slot.unit)
     if number is None:
         number = _number_of(value)
@@ -738,8 +761,17 @@ def _track_step(st: dict, lat: float, lon: float, when: datetime, accuracy, park
     if seen is None or when <= seen["at"]:
         return [], None, ""  # the first report since the start (nothing to compare with), or an old one
     if when - seen["at"] > trips.TRIP_GAP:
-        # the report before is long ago: that place is no start of a drive (a line of many km through the night)
-        return [], None, "rare" if driving else ""
+        if parked or not TRACK_STEP_M <= metres <= START_JOIN_M:
+            # the report before is long ago and the car is elsewhere (or has not moved): nothing says how it got there - no line through the night
+            return [], None, "rare" if driving else ""
+        # A tracker that reports only when it moves says nothing while the car stands: the first report of the drive comes from near the place where it
+        # stood. That place is the start; the time of the start is a guess from the distance (10 m/s, at most two minutes before this report).
+        began = when - timedelta(seconds=min(120.0, max(5.0, metres / 10)))
+        points = [
+            {"ts": began.isoformat(timespec="seconds"), "lat": seen["lat"], "lon": seen["lon"]},
+            {"ts": when.isoformat(timespec="seconds"), "lat": lat, "lon": lon},
+        ]
+        return points, {"lat": lat, "lon": lon, "at": when}, ""
     if speed > MAX_SPEED_MS:
         st["track"] = None  # the report is where it is from now on, but no line leads there: the next points begin a drive of their own
         return [], None, "jump"
@@ -914,21 +946,19 @@ def _catch_up(addon: dict, st: dict, bound: dict, readings: dict[str, Reading], 
             )
         }
         new = [p for p in points if connectors._iso(p["ts"]) not in have]  # (the form the points are stored in)
-        before = conn.execute("SELECT COUNT(*) FROM trips WHERE vehicle_id = ?", (vid,)).fetchone()[0]
         for i in range(0, len(new), connectors.MAX_TRACK_POINTS):
             try:
                 connectors.ingest_track(conn, vid, {"points": new[i : i + connectors.MAX_TRACK_POINTS]})
             except connectors.ApiError as exc:
                 log.debug("catching up %s: %s", addon["addon_id"], exc.code)
                 break
-        made = conn.execute("SELECT COUNT(*) FROM trips WHERE vehicle_id = ?", (vid,)).fetchone()[0] - before
         if new:
             hours = max(1, round((end - begin).total_seconds() / 3600))
             _line(
                 conn,
                 addon,
                 "info",
-                f"caught up from the history of Home Assistant (the last {hours} h): {len(new)} position(s) of drives, {made} trip(s) made",
+                f"caught up from the history of Home Assistant (the last {hours} h): {len(new)} position(s) of drives",  # (a drive that is not over yet becomes a trip with the next reading)
             )
 
 
@@ -1545,11 +1575,13 @@ def page_model(
 
 
 def trip_status(conn, addon: dict, bound: dict, states: dict[str, dict] | None, t) -> dict | None:
-    """The line under the tracker row: are the drives of this car being recorded, and if not, what is in the way (the questions people ask: the page of the
-    trips is off, the ignition entity says off while the car moves, the tracker reports too rarely). None while the option *Record trips* is off."""
+    """The line under the tracker row: are the drives of this car being recorded, and if not, what is in the way (the questions people ask: the option is off - it is by
+    default -, the page of the trips is off, the ignition entity says off while the car moves, the tracker reports too rarely). None without a tracker."""
     position = bound.get("position")
-    if not position or not position["options"].get("track"):
+    if not position:
         return None
+    if not position["options"].get("track"):
+        return {"level": "idle", "text": t("hab.trip.off")}  # the default - and the reason most people find no trips
     if not modules.is_enabled(conn, "trips", addon["vehicle_id"]):
         return {"level": "warn", "text": t("hab.trip.module_off")}
     st = _state.get(addon["id"]) or {}
