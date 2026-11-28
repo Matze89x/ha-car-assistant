@@ -48,6 +48,12 @@ Alle Tankungen nach Monaten mit Verbrauch und Preisen - jede ist ein Kassenbon: 
 
 ![Tanken](screenshots/de/fuel.png)
 
+## Laden (Elektroautos)
+
+Bei einem Elektroauto ist die Tank-Seite die Seite **Laden**: die Ladevorgänge nach Monat und darüber die **Ladesäulensuche** – rund um das Auto oder rund um dich, mit Steckern und Leistung, sortiert nach Entfernung oder Leistung und gefiltert nach *mindestens 22 / 50 / 150 kW* und nach Stecker (CCS, Typ 2, CHAdeMO, NACS). Vor dem Suchen wird nichts abgefragt, und es geht nichts woandershin als zur gewählten Quelle ([Ladepunkt-Anbieter](charge-providers.de.md)). Ob eine Ladesäule *gerade jetzt* frei ist, weiß keine offene Quelle; deshalb sagt die Seite es nicht. Die Ladesäulen im Bild sind erfunden.
+
+![Laden: die Suche nach Ladesäulen](screenshots/de/charging.png)
+
 ## Alle Anbindungen der Plugins
 
 *Plugins → Anbindungen*: eine zoombare Karte mit den Plugins links, **jedem Kanal der Plugin-API** in der Mitte - auch den offenen (hohle Ringe) - und rechts, wo es ankommt. Mit dem Mausrad zoomen, ziehen zum Verschieben; ein Klick auf ein Plugin, einen Kanal, einen Ort oder eine Linie öffnet darunter die Erklärung, die Anbindungen, den Rohwert und die letzten Werte mit Datum und Uhrzeit.
@@ -131,6 +137,12 @@ Alles zum Auto in Gruppen, die FIN mit Kopierknopf und die Ausstattung.
 ![Plugins](screenshots/de/plugins.png)
 
 ![Über](screenshots/de/about.png)
+
+## Coding: die Steuergeräte
+
+*Weiteres → Coding* (die Integration *Coding*): eine Karte je Steuergerät mit Adresse, Name, Teilenummern und der Codierung als Bytes. Die Werks-Codierung wird einmal geschrieben; die aktuelle wird Byte für Byte verglichen, und ein geändertes Byte zeigt, was es war. Öffne ein Steuergerät, dann ist sein erstes Byte schon gewählt; tippe ein geändertes Byte an, und es öffnet sich als acht Bits (Werk und neu) mit einer Notiz je Bit – und Bits, die zusammengehören, lassen sich zu einer Gruppe mit einem Namen verbinden. Die Steuergeräte im Bild sind erfunden.
+
+![Die Coding-Seite: ein geändertes Byte als acht Bits](screenshots/de/coding.png)
 
 ## Einstellungen: Benutzer, Auto, System
 

@@ -48,6 +48,12 @@ All fill-ups by month with consumption and prices - each one is a till receipt: 
 
 ![Fuel](screenshots/en/fuel.png)
 
+## Charging (electric cars)
+
+For an electric car the fuel page is the **Charging** page: the charging sessions by month and, above them, the **charging point search** - around the car or around you, with the plugs and their power, sorted by distance or by power and filtered by *at least 22 / 50 / 150 kW* and by plug (CCS, Type 2, CHAdeMO, NACS). Nothing is asked before the search starts, and nothing goes anywhere but to the source you chose ([charging point providers](charge-providers.md)). Whether a point is free *right now* is not known to any open source, so the page does not say it. The charging points in the picture are made up.
+
+![Charging: the search for charging points](screenshots/en/charging.png)
+
 ## All connections of the plugins
 
 *Plugins → Connections*: a zoomable map with the plugins on the left, **every channel of the Plugin API** in the middle - the open ones (hollow rings) too - and where it lands on the right. Zoom with the mouse wheel, drag to move; a click on a plugin, a channel, a place or a line opens the explanation, the connections, the raw value and the last values with date and time below.
@@ -131,6 +137,12 @@ Everything about the car in groups, the VIN with a copy button and the equipment
 ![Plugins](screenshots/en/plugins.png)
 
 ![About](screenshots/en/about.png)
+
+## Coding: the control units
+
+*More → Coding* (the integration *Coding*): one card per control unit with its address, name, part numbers and its coding as bytes. The factory coding is written once; the current one is compared byte by byte, and a changed byte shows what it was. Open a unit and its first byte is chosen already; tap a changed byte and it opens as eight bits (factory and new) with a note for each bit - and bits that belong together can be joined into one group with one name. The control units in the picture are made up.
+
+![The Coding page: a changed byte open as eight bits](screenshots/en/coding.png)
 
 ## Settings: User, Car, System
 

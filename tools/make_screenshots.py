@@ -31,7 +31,7 @@ CHROME = os.environ.get("CHROME") or "/Applications/Google Chrome.app/Contents/M
 DIESEL, EV = "demo-diesel", "demo-electric"
 INVOICE_OPEN, INVOICE_BOOKED = 4, 5  # the two invoices of the first demo car (the documents come right after its three others)
 COMPACT = "demo-compact"  # a plain car with no data from the car: its dashboard shows the odometer plate you can turn over and type on
-SCENES = ("odometer-photo", "fuel-scan", "connections-map")  # pictures that need a tap and a photo first (tools/cdp.py)
+SCENES = ("odometer-photo", "fuel-scan", "connections-map", "coding")  # pictures that need a tap and a photo first (tools/cdp.py)
 
 # name, path, width, height (desktop pictures; the height cuts the page where it is still worth looking at)
 DESKTOP = (
@@ -39,6 +39,12 @@ DESKTOP = (
     ("dashboard-map", f"/v/{DIESEL}", 1200, 2100),
     ("dashboard-ev", f"/v/{EV}", 1200, 1250),
     ("fuel", f"/v/{DIESEL}/e/fuel", 1200, 1300),
+    (
+        "charging",
+        f"/v/{EV}/e/fuel?go=1",
+        1200,
+        1500,
+    ),  # the Charging page of the electric car with a search done (made-up charging points: tools/demo_server.py)
     ("trips", f"/v/{DIESEL}/e/trips?ap=all", 1200, 2300),
     (
         "trip-map",
@@ -211,6 +217,70 @@ def _demo_plugins(conn, vid: int) -> None:
     addons.add(conn, vid, addons.parse_package(json.dumps(cloud).encode()))
 
 
+# the made-up control units of the picture of the Coding page: address, component, software, hardware, revision, factory coding, current coding (the names
+# and the notes are in the language of the picture)
+CODING_UNITS = (
+    ("09", "EX-1001-SW", "EX-1001-HW", "H04", "00 14 20 41 08 8C 00 50 3C 01 00 22", "00 14 20 45 08 8C 00 58 3C 01 00 22"),
+    ("17", "EX-2002-SW", "EX-2002-HW", "H01", "0A 21 05 80 00 3F 12 04", "0A 21 05 80 00 3F 12 04"),
+    ("5F", "EX-3003-SW", "EX-3003-HW", "H12", "04 00 7F 10 22 01", "04 00 7F 10 22 01"),
+    ("A5", "EX-4004-SW", "EX-4004-HW", "H02", "01 03 00 FF 20 00 18", "01 03 00 FF 20 00 18"),
+)  # fmt: skip
+CODING_TEXT = {
+    "en": {
+        "units": (
+            ("Central electronics", "Body control module"),
+            ("Instrument cluster", "Display unit"),
+            ("Information electronics", "Head unit"),
+            ("Front sensors", "Driver assistance"),
+        ),
+        "notes": {"3.0": "Daytime running lights", "3.6": "Cornering light"},
+        "group": "Comfort blinking (number of flashes)",
+    },
+    "de": {
+        "units": (
+            ("Zentralelektrik", "Bordnetzsteuergerät"),
+            ("Kombiinstrument", "Anzeigeeinheit"),
+            ("Infotainment", "Bedieneinheit"),
+            ("Frontsensoren", "Fahrerassistenz"),
+        ),
+        "notes": {"3.0": "Tagfahrlicht", "3.6": "Abbiegelicht"},
+        "group": "Komfortblinken (Anzahl der Blinkzyklen)",
+    },
+}
+
+
+def _demo_coding(conn, vid: int, lang: str) -> None:
+    """The integration *Coding* (the one of the standard source) on the electric car, with made-up control units: a coding as plain bytes, one of them
+    changed in two bytes, a note on some bits and a group of two bits - what the picture of the Coding page shows."""
+    from carassistant import addons, pagemods
+
+    manifest = json.loads(
+        (ROOT / "carassistant" / "app" / "carassistant" / "stdsource" / "integrations" / "coding" / "plugin.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    source = conn.execute("SELECT id FROM sources ORDER BY id LIMIT 1").fetchone()[0]
+    pk = addons.add(conn, vid, addons.parse_package(json.dumps(manifest).encode()), source, "0" * 64)
+    conn.execute("UPDATE vehicle_addons SET active = 1 WHERE id = ?", (pk,))
+    page = pagemods.page_of(pagemods.module(conn, vid, "coding"), "units")
+    text = CODING_TEXT.get(lang, CODING_TEXT["en"])
+    for n, ((addr, sw, hw, revision, old, new), (name, component)) in enumerate(zip(CODING_UNITS, text["units"], strict=True)):
+        form = {
+            "addr": addr,
+            "name": name,
+            "component": component,
+            "sw": sw,
+            "hw": hw,
+            "revision": revision,
+            "coding_old": old,
+            "coding_new": new,
+        }
+        if n == 0:
+            form["bitnotes"] = json.dumps({"coding_new": text["notes"]})
+            form["bitgroups"] = json.dumps({"coding_new": {"3": [{"m": 12, "l": text["group"]}]}})
+        pagemods.add(conn, vid, "coding", page, pagemods.parse(page, form))
+
+
 def seed(data: Path, lang: str) -> None:
     """The demo cars, a user and an MCP key (so the settings pages show their full cards), in the language of the pictures."""
     os.environ["CARASSISTANT_DATA"] = str(data)
@@ -278,6 +348,7 @@ def seed(data: Path, lang: str) -> None:
             )
         accounts.create_user(conn, "demo", "correct horse battery staple", admin=True)
         _demo_plugins(conn, conn.execute("SELECT id FROM vehicles WHERE name = 'Demo Diesel'").fetchone()[0])
+        _demo_coding(conn, conn.execute("SELECT id FROM vehicles WHERE name = 'Demo Electric'").fetchone()[0], lang)
         db.set_setting(conn, "ext.url", "https://car.example.com")
         db.set_setting(conn, "map.tiles", "1")  # the maps of the trips and the position show real map tiles in the pictures
     config.forget_external()
@@ -458,6 +529,19 @@ def scenes(base: str, out_root: Path, lang: str, only: set[str]) -> None:
             b.shot(screen, clip=(max(0, x - 10), max(0, y - 10), min(520, w + 20), h + 20), scale=2)
             compose(photo, screen, out_root / lang / "fuel-scan.png", photo_height=None)
             print(lang, "fuel-scan", flush=True)
+        if not only or "coding" in only:
+            # the Coding page: the first control unit is opened and its first changed byte chosen (the window ends right below the list of the changes)
+            b.open(f"{base}/v/{EV}/m/coding", 1200, 1470, 1, settle=1.0)
+            b.wait_for("document.querySelector('.pm-unit .pm-byte')", seconds=15)
+            b.run("document.querySelector('.pm-unit').open = true")
+            time.sleep(0.6)  # opening a unit chooses its first byte (after the event) ...
+            b.run(
+                "(function(){var c=document.querySelector('.pm-unit').querySelectorAll('.pm-byte.ch');if(c.length){c[0].click();}})()"
+            )  # ... then the changed one
+            time.sleep(0.8)
+            out = out_root / lang / "coding.png"
+            b.shot(out)  # the window as it is
+            print(lang, "coding", flush=True)
 
 
 def main() -> None:
@@ -475,7 +559,9 @@ def main() -> None:
             port = free_port()
             env = {**os.environ, "CARASSISTANT_DATA": str(data), "CARASSISTANT_DEV": "1", "CARASSISTANT_PORT": str(port)}
             env["PYTHONPATH"] = str(ROOT / "carassistant" / "app")
-            server = subprocess.Popen([sys.executable, "-m", "carassistant"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            server = subprocess.Popen(  # the app as ``-m carassistant`` starts it, with a made-up list of charging points (no Overpass request, no real operator)
+                [sys.executable, str(ROOT / "tools" / "demo_server.py")], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
             try:
                 base = f"http://127.0.0.1:{port}"
                 wait_for(base + "/healthz")
