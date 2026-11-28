@@ -17,11 +17,9 @@
 **Your car's own logbook and dashboard.** Fuel stops, service book, appointments, documents, spare parts, trips and costs – in one place, for one car or for the whole family garage, combustion, hybrid or electric. It runs as an app inside Home Assistant, and your data stays on your own server.
 
 <p align="center">
-  <img src="docs/screenshots/en/mobile-dashboard.png" alt="The dashboard of a car" width="250">
-  &nbsp;
-  <img src="docs/screenshots/en/mobile-functions.png" alt="First start: what does this car need?" width="250">
-  &nbsp;
-  <img src="docs/screenshots/en/mobile-more.png" alt="More: the pages of a car" width="250">
+  <img src="docs/screenshots/en/mobile-dashboard.png" alt="The dashboard of a car" width="30%">
+  <img src="docs/screenshots/en/mobile-functions.png" alt="First start: what does this car need?" width="30%">
+  <img src="docs/screenshots/en/mobile-more.png" alt="More: the pages of a car" width="30%">
 </p>
 
 ## Use as much – or as little – as you need

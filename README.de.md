@@ -17,11 +17,9 @@
 **Das Logbuch und Dashboard für dein Auto.** Tankstopps, Servicebuch, Termine, Dokumente, Ersatzteile, Fahrten und Kosten – an einem Ort, für ein Auto oder für die ganze Familie, Verbrenner, Hybrid oder Elektro. Es läuft als App in Home Assistant, und deine Daten bleiben auf deinem eigenen Server.
 
 <p align="center">
-  <img src="docs/screenshots/de/mobile-dashboard.png" alt="Das Dashboard eines Autos" width="250">
-  &nbsp;
-  <img src="docs/screenshots/de/mobile-functions.png" alt="Erster Start: Was braucht dieses Auto?" width="250">
-  &nbsp;
-  <img src="docs/screenshots/de/mobile-more.png" alt="Weiteres: die Seiten eines Autos" width="250">
+  <img src="docs/screenshots/de/mobile-dashboard.png" alt="Das Dashboard eines Autos" width="30%">
+  <img src="docs/screenshots/de/mobile-functions.png" alt="Erster Start: Was braucht dieses Auto?" width="30%">
+  <img src="docs/screenshots/de/mobile-more.png" alt="Weiteres: die Seiten eines Autos" width="30%">
 </p>
 
 ## Nimm so viel – oder so wenig – wie du brauchst
