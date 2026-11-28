@@ -47,8 +47,14 @@ LOOK = """JSON.stringify((function () {
 class Server:
     """The app, as far as the window needs it: the page, the static files, the update that is played and the answers about how far it is."""
 
-    def __init__(self, page: str, slug: str, pk: int, ok: bool = True):
-        self.page, self.slug, self.pk, self.ok = page, slug, pk, ok
+    def __init__(self, page: str, slug: str, pk: int, ok: bool = True, hold: float = 0.0):
+        self.page, self.slug, self.pk, self.ok, self.hold = (
+            page,
+            slug,
+            pk,
+            ok,
+            hold,
+        )  # (hold: how long a failing update stands still in the middle of the download)
         self.done = threading.Event()
         owner = self
         t = i18n.translator("en")
@@ -98,6 +104,9 @@ class Server:
                     run.stage(name, fraction, got, total)
                     time.sleep(STEP)
                     if name == "download" and fraction == 0.5 and not owner.ok:
+                        time.sleep(
+                            owner.hold
+                        )  # the test looks at the window while it works: a loaded machine needs more than a third of a second
                         break
                 run.finish(owner.ok)
                 to = f"/v/{owner.slug}/plugins?m=" + ("addon.updated" if owner.ok else "err.src_net")
@@ -205,14 +214,14 @@ def test_the_window_stays_open_when_escape_is_pressed_while_it_works_and_a_failu
     if find_chrome() is None:
         pytest.skip("no Chrome / Chromium installed")
     page, slug, pk = window
-    server = Server(page, slug, pk, ok=False)
+    server = Server(page, slug, pk, ok=False, hold=2.5)
     try:
         with Browser() as b:
             b.open(f"{server.address}/v/{slug}/plugins", 390, 900, settle=0.6)
             b.run(f"document.querySelector('[data-open=\"upd-{pk}\"]').click()")
             b.wait_for("document.querySelector('dialog.upd-dlg').open", seconds=5)
             b.run("document.querySelector('dialog.upd-dlg .form-bar .primary').click()")
-            b.wait_for("document.querySelector('.upd-prog .upd-prog-detail').textContent", seconds=5)  # it works now
+            b.wait_for("document.querySelector('.upd-prog .upd-prog-detail').textContent", seconds=10)  # it works now
             b.call("Input.dispatchKeyEvent", type="keyDown", key="Escape", code="Escape", windowsVirtualKeyCode=27)
             b.call("Input.dispatchKeyEvent", type="keyUp", key="Escape", code="Escape", windowsVirtualKeyCode=27)
             time.sleep(0.1)
