@@ -95,6 +95,9 @@ MIGRATIONS: list[str] = [
     (SCHEMA_DIR / "migrations_65.sql").read_text(encoding="utf-8"),  # fixed costs of a car (tax, insurance, ...)
     (SCHEMA_DIR / "migrations_66.sql").read_text(encoding="utf-8"),  # invoices: read, and booked as a cost
     (SCHEMA_DIR / "migrations_67.sql").read_text(encoding="utf-8"),  # a noticed refuel / charge: its mark in columns, not in the notes
+    (SCHEMA_DIR / "migrations_68.sql").read_text(
+        encoding="utf-8"
+    ),  # a wallbox: the energy it counted for a charge, the power curve of a charge
 ]
 
 

@@ -1,12 +1,14 @@
 """Charging sessions noticed from the readings: when a car starts charging the app opens a session (time, battery level, odometer); the power seen
-and the level at the end are kept while it runs; when charging stops, the session is closed and an unfinished fuel-log entry is added (energy and
-price are missing - the energy is only estimated from the battery size, never stored as a fact). Only for cars with a battery."""
+and the level at the end are kept while it runs; when charging stops, the session is closed and a fuel-log entry is added. Without a wallbox that counts
+the energy, the entry is unfinished (energy and price are missing - the energy is only estimated from the battery size, never stored as a fact). When
+the wallbox says how much energy it gave (``charge_session_kwh``, or its counter ``charge_total_kwh``), that is a fact: the entry gets the exact kWh and,
+with the home price, the cost - nothing to type. Only for cars with a battery."""
 
 from __future__ import annotations
 
 import logging
 import sqlite3
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from . import db, refuel_detect, summary
 
@@ -14,6 +16,10 @@ log = logging.getLogger(__name__)
 MIN_MINUTES = 3  # shorter than this is a plug contact, not a session
 MAX_MINUTES = 36 * 60  # longer than this: the "stopped" message never came - not a real session, nothing is kept
 MIN_PCT = 2.0  # less than this is not worth an entry
+MIN_KWH = 0.2  # a wallbox that counted less than this gave nothing worth an entry
+SAMPLE_EVERY = 50  # seconds between two points of the power curve
+KEEP_SAMPLES_DAYS = 14  # the curve of a finished charge is kept this long
+MAX_SAMPLES = 1500  # points of one charge (a day of minutes)
 
 
 def _num(value) -> float | None:
@@ -39,8 +45,25 @@ def _open(conn: sqlite3.Connection, vehicle_id: int):
 
 
 def _level(conn: sqlite3.Connection, vehicle_id: int) -> float | None:
-    row = conn.execute("SELECT value FROM live WHERE vehicle_id = ? AND key = 'battery_pct'", (vehicle_id,)).fetchone()
+    return _live(conn, vehicle_id, "battery_pct")
+
+
+def _live(conn: sqlite3.Connection, vehicle_id: int, key: str) -> float | None:
+    row = conn.execute("SELECT value FROM live WHERE vehicle_id = ? AND key = ?", (vehicle_id, key)).fetchone()
     return _num(row["value"]) if row else None
+
+
+def _sample(conn: sqlite3.Connection, session, kw: float) -> None:
+    """One point of the power curve of the running charge - about one a minute, however often the power is reported."""
+    now = _now()
+    last = conn.execute("SELECT at FROM charge_samples WHERE session_id = ? ORDER BY at DESC LIMIT 1", (session["id"],)).fetchone()
+    if last and (now - _parse(last["at"])).total_seconds() < SAMPLE_EVERY:
+        return
+    count = conn.execute("SELECT COUNT(*) FROM charge_samples WHERE session_id = ?", (session["id"],)).fetchone()[0]
+    if count < MAX_SAMPLES:
+        conn.execute(
+            "INSERT OR IGNORE INTO charge_samples(session_id, at, kw) VALUES(?,?,?)", (session["id"], now.isoformat(timespec="seconds"), kw)
+        )
 
 
 def seen(conn: sqlite3.Connection, vehicle_id: int, key: str, before, after) -> bool:
@@ -52,13 +75,14 @@ def seen(conn: sqlite3.Connection, vehicle_id: int, key: str, before, after) -> 
     if key == "charging":
         if str(after) == "yes" and session is None:
             conn.execute(
-                "INSERT INTO charge_sessions(vehicle_id, started, start_pct, end_pct, odometer_km) VALUES(?,?,?,?,?)",
+                "INSERT INTO charge_sessions(vehicle_id, started, start_pct, end_pct, odometer_km, counter_start) VALUES(?,?,?,?,?,?)",
                 (
                     vehicle_id,
                     _now().isoformat(timespec="seconds"),
                     _level(conn, vehicle_id),
                     _level(conn, vehicle_id),
                     summary.current_odometer(conn, vehicle_id),
+                    _live(conn, vehicle_id, "charge_total_kwh"),
                 ),
             )
         elif str(after) == "no" and session is not None:
@@ -72,6 +96,12 @@ def seen(conn: sqlite3.Connection, vehicle_id: int, key: str, before, after) -> 
         kw = _num(after)
         if kw is not None and kw > (session["max_kw"] or 0):
             conn.execute("UPDATE charge_sessions SET max_kw = ? WHERE id = ?", (kw, session["id"]))
+        if kw is not None:
+            _sample(conn, session, kw)
+    elif key == "charge_session_kwh":
+        kwh = _num(after)  # the most the wallbox said for this charge: some of them count from 0 again as soon as the car is unplugged
+        if kwh is not None and kwh > (session["energy_kwh"] or 0):
+            conn.execute("UPDATE charge_sessions SET energy_kwh = ? WHERE id = ?", (kwh, session["id"]))
     return False
 
 
@@ -83,10 +113,20 @@ def _close(conn: sqlite3.Connection, vehicle_id: int, session, battery_kwh) -> b
     minutes = (ended - _parse(session["started"])).total_seconds() / 60
     start_pct = session["start_pct"]
     rise = (end_pct - start_pct) if end_pct is not None and start_pct is not None else None
+    energy = session["energy_kwh"]  # what the wallbox counted - else the difference of its counter since the charge began
+    total = _live(conn, vehicle_id, "charge_total_kwh")
+    if not energy and total is not None and session["counter_start"] is not None and total >= session["counter_start"]:
+        energy = round(total - session["counter_start"], 3)
+    counted = bool(energy and energy >= MIN_KWH)
     conn.execute(
-        "UPDATE charge_sessions SET ended = ?, end_pct = ? WHERE id = ?", (ended.isoformat(timespec="seconds"), end_pct, session["id"])
+        "UPDATE charge_sessions SET ended = ?, end_pct = ?, energy_kwh = ? WHERE id = ?",
+        (ended.isoformat(timespec="seconds"), end_pct, energy if counted else None, session["id"]),
     )
-    if minutes < MIN_MINUTES or minutes > MAX_MINUTES or rise is None or rise < MIN_PCT:
+    conn.execute(
+        "DELETE FROM charge_samples WHERE session_id IN (SELECT id FROM charge_sessions WHERE ended < ?)",
+        ((ended - timedelta(days=KEEP_SAMPLES_DAYS)).isoformat(timespec="seconds"),),
+    )
+    if minutes < MIN_MINUTES or minutes > MAX_MINUTES or (not counted and (rise is None or rise < MIN_PCT)):
         conn.execute("DELETE FROM charge_sessions WHERE id = ?", (session["id"],))  # a plug contact: not worth keeping
         return False
     day = ended.astimezone().date().isoformat()
@@ -95,19 +135,23 @@ def _close(conn: sqlite3.Connection, vehicle_id: int, session, battery_kwh) -> b
     for row in conn.execute("SELECT odometer_km FROM fuel WHERE vehicle_id = ? AND date = ?", (vehicle_id, day)):
         if (km is None or row["odometer_km"] is None or abs(row["odometer_km"] - km) <= 5) and own_entry is None:
             return False  # the person logged this charge already
+    price = home_price(conn, vehicle_id) if counted else None  # the wallbox knows the energy; the person's price at home makes it money
+    cost = round(energy * price, 2) if counted and price else None
     cur = conn.execute(
-        "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_total, full_tank, auto_kind, auto_rise, auto_at, auto_open) "
-        "VALUES(?,?,?,?,?,?,?,?,?,1)",
+        "INSERT INTO fuel(vehicle_id, date, odometer_km, amount, price_per_unit, price_total, full_tank, auto_kind, auto_rise, auto_at, auto_open) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
         (
             vehicle_id,
             day,
             session["odometer_km"],
-            None,
-            None,
-            1 if end_pct >= 95 else 0,
+            round(energy, 2) if counted else None,
+            price if cost else None,
+            cost,
+            1 if end_pct is not None and end_pct >= 95 else 0,
             "charge",
-            round(rise),
+            round(rise) if rise is not None else None,
             ended.astimezone().strftime(refuel_detect.STAMP),
+            0 if cost else 1,  # with the energy and the price nothing is left to type
         ),
     )
     conn.execute("UPDATE charge_sessions SET fuel_id = ? WHERE id = ?", (cur.lastrowid, session["id"]))
@@ -155,6 +199,8 @@ def _one(r, battery_kwh, price=None) -> dict:
         round(gained * price, 2) if price and gained and not bill and not fast else None
     )  # slow charging without a bill: at the home price
     loss = (1 - gained / bill) * 100 if gained and bill and bill >= gained * 0.8 else None  # the share that did not reach the battery
+    if loss is not None and loss < 0:
+        loss = None  # more reached the battery than the bill says: the battery size is only an estimate, no loss to show
     return {
         "id": r["id"],
         "date": start.date().isoformat(),

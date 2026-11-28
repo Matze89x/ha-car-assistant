@@ -177,7 +177,13 @@ def _text(data: dict, key: str, limit: int, words: tuple[str, ...] | None) -> st
 
 
 ENERGY_KEYS = ("fuel_level", "battery_pct", "fuel_amount", "range_km")  # readings that tell how full the tank or battery is
-WATCHED = ("fuel_level", "charging", "battery_pct", "charge_power_kw")  # readings whose change can mean a refuel or a charging session
+WATCHED = (
+    "fuel_level",
+    "charging",
+    "battery_pct",
+    "charge_power_kw",
+    "charge_session_kwh",
+)  # readings whose change can mean a refuel or a charging session (or tells how long and how much it went on)
 
 
 def moment(value) -> str | None:

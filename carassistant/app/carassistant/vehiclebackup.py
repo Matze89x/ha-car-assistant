@@ -98,6 +98,7 @@ SKIPPED_TABLES = {
     "vehicle_logs": "log lines of the plugins (kept for 7 days)",
     "vehicle_traffic": "the traffic view of a plugin while debug is on (kept for 7 days)",
     "oauth_pending": "a login with an account that has begun and is good for ten minutes",
+    "charge_samples": "the power curve of a running charge (a point a minute, kept for two weeks): the energy of a charge is in charge_sessions",
 }
 SYSTEM_TABLES = frozenset(  # people, devices and the packages' sources: part of the backup of the whole system only
     {
