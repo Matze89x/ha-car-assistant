@@ -47,6 +47,9 @@ http:
 frontend:
 api:
 websocket_api:
+recorder:  # what Home Assistant keeps of the states (10 days): the drives Car Assistant was not looking at are read from it
+  purge_keep_days: 10
+history:
 logger:
   default: warning
 
@@ -203,9 +206,11 @@ def setup() -> None:
 
 
 def answers() -> bool:
-    """Does a Home Assistant answer on the port (whoever made it)?"""
+    """Does a Home Assistant answer on the port (whoever made it)? Any answer counts - once the onboarding is done the address answers 404."""
     try:
-        return urllib.request.urlopen(url() + "/api/onboarding", timeout=2).status == 200  # noqa: S310 - 127.0.0.1
+        return urllib.request.urlopen(url() + "/api/onboarding", timeout=2).status > 0  # noqa: S310 - 127.0.0.1
+    except urllib.error.HTTPError:
+        return True
     except (OSError, ValueError):
         return False
 

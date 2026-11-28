@@ -581,6 +581,35 @@ def test_an_odometer_below_the_known_one_is_said_once_and_never_after_a_restart(
     assert lines() == [habridge.ODOMETER_LOW] * 2
 
 
+def test_a_reading_held_back_by_a_typo_counts_again_when_the_typo_is_corrected(client, home, monkeypatch):
+    """A figure typed with one digit too many holds back every reading of Home Assistant. Found with a real Home Assistant: after the correction the
+    reading that was waiting was never looked at again (it had been 'sent'), the odometer stayed where it was until the car drove on - a parked car's
+    odometer does not change. It is offered again at every reading until it counts."""
+    vid, pk = install(client)
+    assert save(client, vid, pk).status_code == 303
+    assert habridge.tick(1000.0) == 1
+    with db.tx() as conn:
+        summary.add_odometer(conn, vid, 602100, summary.today().isoformat())  # one digit too many
+    home.states["sensor.car_odometer"] = state("sensor.car_odometer", "60300", "km", "distance", at="2026-11-26T09:00:00+00:00")
+    offered = []
+    real = habridge.deliver
+    monkeypatch.setattr(
+        habridge, "deliver", lambda conn, addon, at, data: offered.append(data.get("odometer_km")) or real(conn, addon, at, data)
+    )
+    assert habridge.tick(1031.0) == 1
+    assert habridge.tick(1062.0) == 1  # nothing changed in Home Assistant ... but the reading that is held back is offered again
+    assert offered == [60300, 60300]
+    with db.tx() as conn:
+        assert summary.current_odometer(conn, vid) == 602100
+        assert [m for lvl, m in log_of(vid) if m.startswith("odometer_km")] == [habridge.ODOMETER_LOW]  # said once, not at every look
+        conn.execute("DELETE FROM odometer WHERE odometer_km = 602100")  # the typo is found and removed
+    assert habridge.tick(1093.0) == 1
+    with db.tx() as conn:
+        assert summary.current_odometer(conn, vid) == 60300  # it counts at the very next reading, without a change in Home Assistant
+    assert habridge.tick(1124.0) == 1
+    assert offered == [60300, 60300, 60300]  # and is not offered again once it is taken
+
+
 # ------------------------------------------------------------------ the drives of a tracker (option "Record trips" of the position row)
 
 DRIVE = [(52.5230, 13.4080, 3), (52.5260, 13.4110, 4), (52.5290, 13.4140, 5)]  # about 390 m between two reports
@@ -681,6 +710,111 @@ def test_a_car_that_is_off_and_a_fix_that_is_inexact_leave_no_points(client, hom
     moves(52.5270, 13.4120, 3)
     moves(52.5300, 13.4150, 4)
     assert [p["ts"][11:16] for p in _route(vid)[0]] == ["08:01", "08:03", "08:04"]  # from where it stood, never through the inexact fix
+
+
+def test_a_fix_that_jumps_is_no_part_of_the_route(client, home, monkeypatch):
+    """A bad fix (a position twelve kilometres away half a minute after the car was here) would add twice that to the trip: no line leads to such a place."""
+    vid, moves, clock = _story(client, home, monkeypatch, **{"o.position.track": "on"})
+    moves(52.5200, 13.4050, 0)
+    moves(52.5230, 13.4080, 1)
+    moves(52.5260, 13.4110, 2)
+    moves(52.6200, 13.5000, 2.5)  # the jump
+    moves(52.5290, 13.4140, 3)  # the car is where it was going
+    moves(52.5320, 13.4170, 4)
+    moves(52.5350, 13.4200, 5)
+    clock["now"] = datetime(2026, 11, 26, 8, 30, tzinfo=UTC)
+    with db.tx() as conn:
+        assert trips.from_track(conn, vid) == 1
+    points, made = _route(vid)
+    assert [round(p["lat"], 4) for p in points] == [52.52, 52.523, 52.526, 52.529, 52.532, 52.535]  # (the jump is not among them)
+    assert len(made) == 1 and 1.5 < made[0]["distance_km"] < 2.5
+
+
+def _said(vid, start="position ("):
+    return [m for lvl, m in log_of(vid) if lvl == "warn" and m.startswith(start)]
+
+
+def test_the_log_says_why_a_moving_tracker_makes_no_drives(client, home, monkeypatch):
+    """The questions people ask in a forum: the car moves, nothing is recorded. After the same cause three times in a row the log of the plugin names it
+    (once, not with every report), a walker with a phone is not taken for a car, and it is forgotten as soon as a drive is recorded."""
+    home.states["binary_sensor.ignition"] = state("binary_sensor.ignition", "off")
+    vid, moves, _clock = _story(client, home, monkeypatch, **{"o.position.track": "on", "e.ignition": "binary_sensor.ignition"})
+    for minute in range(3):  # a walk with the phone while the car is off: 3 km/h
+        moves(52.5200 + 0.00004 * minute * 5, 13.4050, minute * 5)
+    assert _said(vid) == []
+    for i, minute in enumerate(range(20, 26)):  # the car moves (6 m/s) while the entity says off
+        moves(52.5300 + 0.0035 * i, 13.4050, minute)
+    (line,) = _said(vid)
+    assert "the ignition entity (binary_sensor.ignition) says off" in line and "device_tracker.car" in line
+    home.states["binary_sensor.ignition"] = state("binary_sensor.ignition", "on")
+    moves(52.5500, 13.4050, 26)
+    moves(52.5535, 13.4050, 27)  # a drive is recorded: all is well
+    assert habridge._state[next(iter(habridge._state))]["notes"] == {} and len(_said(vid)) == 1
+    home.states["binary_sensor.ignition"] = state("binary_sensor.ignition", "off")
+    for i, minute in enumerate(range(28, 33)):
+        moves(52.5570 + 0.0035 * i, 13.4050, minute)
+    assert len(_said(vid)) == 2  # the same trouble again: said again at once
+
+
+def test_the_log_says_when_the_fixes_are_inexact(client, home, monkeypatch):
+    vid, moves, _clock = _story(client, home, monkeypatch, **{"o.position.track": "on"})
+    moves(52.5200, 13.4050, 0)
+    for i in range(1, 7):  # it moves, and every fix is called 400 m wrong
+        moves(52.5200 + 0.0035 * i, 13.4050, i, gps_accuracy=400)
+    (line,) = [m for m in _said(vid) if "inexact" in m]
+    assert "more than 100 m" in line
+
+
+def test_the_log_says_when_the_reports_are_too_far_apart_for_a_drive(client, home, monkeypatch):
+    vid, moves, _clock = _story(client, home, monkeypatch, **{"o.position.track": "on"})
+    for i in range(5):  # it reports every quarter of an hour, six kilometres further each time
+        moves(52.5200 + 0.054 * i, 13.4050, i * 15)
+    (line,) = [m for m in _said(vid) if "less often" in m]
+    assert "every 10 min" in line and "every 1-2 minutes" in line
+
+
+def _plugin_pk(vid):
+    with db.tx() as conn:
+        return conn.execute("SELECT id FROM vehicle_addons WHERE vehicle_id = ?", (vid,)).fetchone()["id"]
+
+
+def _trip_line(vid, home):
+    with db.tx() as conn:
+        addon = addons.get(conn, vid, _plugin_pk(vid))
+        return habridge.trip_status(conn, addon, habridge.bindings(conn, addon["id"]), home.states, i18n.translator("en"))
+
+
+def test_the_page_says_whether_the_drives_are_recorded_and_what_is_in_the_way(client, home, monkeypatch):
+    """The line under the tracker row: the questions of a forum answered on the page itself."""
+    home.states["binary_sensor.ignition"] = state("binary_sensor.ignition", "on")
+    vid, moves, _clock = _story(client, home, monkeypatch, **{"o.position.track": "on", "e.ignition": "binary_sensor.ignition"})
+    assert client.post(f"/v/{vid}/modules/trips", data={"enabled": "0"}).status_code in (200, 303)
+    line = _trip_line(vid, home)
+    assert line["level"] == "warn" and "Trips module is off" in line["text"]  # (a car made for few things has the module off)
+    assert client.post(f"/v/{vid}/modules/trips", data={"enabled": "1"}).status_code in (200, 303)
+    line = _trip_line(vid, home)
+    assert line["level"] == "idle" and "waiting for the first report" in line["text"]
+    moves(52.5200, 13.4050, 0)
+    for lat, lon, minute in DRIVE:
+        moves(lat, lon, minute)
+    with db.tx() as conn:  # (the story is told for a day two days ago: a point of today is what the count of the last 24 hours shows)
+        conn.execute(
+            "INSERT INTO vehicle_track(vehicle_id, ts, lat, lon, trip_id) VALUES(?, ?, 52.5, 13.4, 0)", (vid, datetime.now(UTC).isoformat())
+        )
+    line = _trip_line(vid, home)
+    assert line["level"] == "ok" and line["text"].startswith("Trips: recording. Last report") and "1 point(s)" in line["text"]
+    home.states["binary_sensor.ignition"] = state("binary_sensor.ignition", "off")
+    line = _trip_line(vid, home)
+    assert line["level"] == "idle" and "waiting for the ignition (binary_sensor.ignition says off)" in line["text"]
+    for i, minute in enumerate(range(30, 36)):  # it moves with the ignition off: the page says what the log says
+        moves(52.5600 + 0.0035 * i, 13.4050, minute)
+    line = _trip_line(vid, home)
+    assert line["level"] == "warn" and "ignition entity (binary_sensor.ignition) says off" in line["text"]
+    page = client.get(f"/v/{vid}/integrations/{_plugin_pk(vid)}/settings")
+    assert page.status_code == 200 and "data-hb-trip" in page.text and "ignition entity (binary_sensor.ignition) says off" in page.text
+    with db.tx() as conn:  # the option is off: no line at all
+        conn.execute("UPDATE ha_bindings SET options = '{}' WHERE slot = 'position'")
+    assert _trip_line(vid, home) is None
 
 
 def test_the_option_record_trips_belongs_to_the_tracker_row_only():
@@ -949,6 +1083,34 @@ def test_the_page_script_asks_what_the_entities_deliver_and_for_entities_to_choo
     }
 
 
+def test_the_entities_to_choose_from_are_ranked_by_what_they_say_about_themselves():
+    """An odometer is a distance that only grows (``total_increasing``), a range goes up and down; a trip meter and the distance to the next service are
+    distances too - the picker puts the likeliest first so that nobody has to know the names an integration chose."""
+    states = world(
+        state("sensor.car_range", "412", "km", "distance", state_class="measurement", friendly_name="Range"),
+        state("sensor.car_service_distance", "8200", "km", "distance", state_class="measurement", friendly_name="Distance to service"),
+        state("sensor.car_trip_distance", "31.4", "km", "distance", state_class="total_increasing", friendly_name="Trip distance"),
+        state("sensor.car_kilometerstand", "86010", "km", "distance", state_class="total_increasing", friendly_name="Kilometerstand"),
+        state("sensor.zz_distance", "5", "km", "distance", state_class="total_increasing", friendly_name="Anything"),
+    )
+    ids = [e["id"] for e in habridge.suggest(cat.BY_KEY["odometer_km"], "", False, states)]
+    assert (
+        ids[:2] == ["sensor.car_kilometerstand", "sensor.zz_distance"] and ids[-1] == "sensor.car_service_distance"
+    )  # the one that says it, the one that only grows
+    assert ids.index("sensor.car_trip_distance") > ids.index("sensor.zz_distance")  # a trip meter is no odometer
+    assert next(e["id"] for e in habridge.suggest(cat.BY_KEY["range_km"], "", False, states)) == "sensor.car_range"
+    trackers = world(
+        state("device_tracker.router_phone", "home", source_type="router"),
+        state("device_tracker.zz_car", "not_home", source_type="gps", latitude=52.5, longitude=13.4),
+        state("device_tracker.aa_phone", "not_home", source_type="gps"),
+    )
+    assert [e["id"] for e in habridge.suggest(cat.BY_KEY["position"], "", False, trackers)] == [
+        "device_tracker.zz_car",  # a position it can say
+        "device_tracker.aa_phone",  # knows where it is, nothing yet
+        "device_tracker.router_phone",  # a router only knows that the phone is near
+    ]
+
+
 def test_the_entities_are_for_administrators_only(client, home, monkeypatch):
     from carassistant import habridge_web
 
@@ -1078,6 +1240,37 @@ def test_a_burst_of_changes_is_one_reading_after_the_pause(client, live_home):
     assert stored(vid)["range_km"] == "11"
 
 
+def test_a_reading_that_is_held_back_is_offered_again_with_the_live_connection_without_asking(client, live_home):
+    """What a typo holds back must not wait for the safety net (minutes away): it is offered again at the pace of the setting, from what the live
+    connection knows - Home Assistant is not asked."""
+    fake, link = live_home
+    vid, pk = install(client)
+    assert save(client, vid, pk).status_code == 303
+    assert settle(link, {"sensor.car_odometer"})
+    with db.tx() as conn:
+        assert summary.current_odometer(conn, vid) == 60210
+        summary.add_odometer(conn, vid, 602100, summary.today().isoformat())  # one digit too many
+    st = habridge._state[pk]
+    fake.set("sensor.car_odometer", "60300", "km", "distance")
+    assert wait_for_dirty(st)
+    base = time.monotonic() + 10
+    assert habridge.tick(base) == 1  # the change: held back by the typed figure
+    assert st["retry"] == base + habridge.interval(habridge_addon(vid, pk))
+    asked = fake.reads
+    with db.tx() as conn:
+        conn.execute("DELETE FROM odometer WHERE odometer_km = 602100")  # the typo is found and removed
+    assert habridge.tick(base + 5) == 0  # not yet
+    assert habridge.tick(base + 31) == 1  # offered again
+    with db.tx() as conn:
+        assert summary.current_odometer(conn, vid) == 60300
+    assert fake.reads == asked and st["retry"] is None  # (nobody asked Home Assistant) and nothing is held back any more
+
+
+def habridge_addon(vid, pk):
+    with db.tx() as conn:
+        return addons.get(conn, vid, pk)
+
+
 def wait_for_dirty(st, seconds=5.0):
     end = time.monotonic() + seconds
     while time.monotonic() < end:
@@ -1085,6 +1278,180 @@ def wait_for_dirty(st, seconds=5.0):
             return True
         time.sleep(0.01)
     return False
+
+
+# ------------------------------------------------------------------ drives that were missed: read from the history of Home Assistant
+
+LAP = 0.0035  # degrees of latitude: about 390 m
+
+
+def _past(minutes=0.0, base=[]):  # noqa: B006 - one base for the whole test run: five hours ago, to the second
+    if not base:
+        base.append(datetime.now(UTC).replace(microsecond=0) - timedelta(hours=5))
+    return (base[0] + timedelta(minutes=minutes)).isoformat()
+
+
+def _no_past(fake):
+    """The tracker of the world starts again at a time long ago (a state older than the one the live connection knows is not taken over)."""
+    fake.history.clear()
+    fake.remove("device_tracker.car")
+
+
+def _trips_of(vid):
+    with db.tx() as conn:
+        return [r["distance_km"] for r in conn.execute("SELECT distance_km FROM trips WHERE vehicle_id = ? ORDER BY id", (vid,))]
+
+
+def _track_count(vid):
+    with db.tx() as conn:
+        return conn.execute("SELECT COUNT(*) FROM vehicle_track WHERE vehicle_id = ?", (vid,)).fetchone()[0]
+
+
+def _tick_until(check, seconds=10.0, ahead=2.0):
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        habridge.tick(time.monotonic() + ahead)  # (the clock of the tick is ahead: the pause between two readings is over)
+        if check():
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def _at_home(fake, minutes, lat=52.5, **more):
+    fake.set("device_tracker.car", "home", at_time=_past(minutes), latitude=lat, longitude=13.4, gps_accuracy=8, **more)
+
+
+def _missed_drive(fake, first, steps=8, lat=52.5, accuracy=8):
+    """A drive the app did not see: the tracker moved ``steps`` times, a minute apart, and only the history knows."""
+    for k in range(1, steps + 1):
+        fake.record("device_tracker.car", "not_home", _past(first + k), latitude=lat + LAP * k, longitude=13.4, gps_accuracy=accuracy)
+    return lat + LAP * steps
+
+
+def test_a_drive_that_was_missed_is_read_from_the_history_and_becomes_a_trip(client, live_home):
+    """The app was away while the car drove (an update, a restart of Home Assistant, a network that failed): the tracker is somewhere else when the app
+    looks again. The drive is in the history Home Assistant keeps - it is read from there and treated like a live one."""
+    fake, link = live_home
+    _no_past(fake)
+    _at_home(fake, 0)
+    vid, pk = install(client)
+    assert save(client, vid, pk, **{"o.position.track": "1"}).status_code == 303
+    assert settle(link, {"device_tracker.car"})
+    assert (
+        _trips_of(vid) == [] and fake.history_calls == []
+    )  # nothing was missed yet - and a first binding does not bring in what was before it
+    with db.tx() as conn:  # (a car whose drives were recorded before: here by hand)
+        conn.execute("INSERT INTO vehicle_track(vehicle_id, ts, lat, lon, trip_id) VALUES(?, ?, 52.5, 13.4, 0)", (vid, _past(-30)))
+    end = _missed_drive(fake, 2)
+    _at_home(fake, 12, lat=end)  # the car stands at its destination when the app looks
+    assert _tick_until(lambda: _trips_of(vid))
+    (distance,) = _trips_of(vid)
+    assert distance == pytest.approx(8 * 0.389, abs=0.1)  # the whole drive, from the place the car stood
+    assert any(m.startswith("caught up from the history of Home Assistant") and "1 trip" in m for _lvl, m in log_of(vid))
+    (call,) = fake.history_calls
+    assert (
+        call["filter_entity_id"] == "device_tracker.car"
+    )  # only the tracker (no ignition is chosen): nothing else of Home Assistant is asked for
+    assert habridge._state[pk]["catchup_again"] is None
+
+
+def test_a_drive_read_from_the_history_twice_is_one_trip(client, live_home):
+    fake, link = live_home
+    _no_past(fake)
+    _at_home(fake, 0)
+    vid, pk = install(client)
+    assert save(client, vid, pk, **{"o.position.track": "1"}).status_code == 303
+    assert settle(link, {"device_tracker.car"})
+    with db.tx() as conn:
+        conn.execute("INSERT INTO vehicle_track(vehicle_id, ts, lat, lon, trip_id) VALUES(?, ?, 52.5, 13.4, 0)", (vid, _past(-30)))
+    _at_home(fake, 12, lat=_missed_drive(fake, 2))
+    assert _tick_until(lambda: _trips_of(vid))
+    points, st = _track_count(vid), habridge._state[pk]
+    st["seen"], st["track"], st["catchup"] = (
+        {"lat": 52.5, "lon": 13.4, "at": datetime.fromisoformat(_past(0))},
+        None,
+        None,
+    )  # as if it had missed it again
+    st["next"] = 0.0
+    habridge.tick(time.monotonic() + 100)
+    assert len(fake.history_calls) == 2  # it looked again ...
+    assert len(_trips_of(vid)) == 1 and _track_count(vid) == points  # ... and found nothing new
+
+
+def test_after_a_restart_the_app_finds_the_drive_it_missed_by_the_position_it_stored(client, live_home):
+    fake, link = live_home
+    _no_past(fake)
+    _at_home(fake, 0)
+    vid, pk = install(client)
+    assert save(client, vid, pk, **{"o.position.track": "1"}).status_code == 303
+    assert settle(link, {"device_tracker.car"})
+    _at_home(fake, 12, lat=_missed_drive(fake, 2))
+    habridge._state.clear()  # the app was away: it remembers nothing but what it stored
+    with db.tx() as conn:  # (it had recorded drives before)
+        conn.execute("INSERT INTO vehicle_track(vehicle_id, ts, lat, lon, trip_id) VALUES(?, ?, 52.5, 13.4, 0)", (vid, _past(-30)))
+        conn.execute("UPDATE live SET updated = ? WHERE vehicle_id = ? AND key = 'position'", (_past(0), vid))
+    assert _tick_until(lambda: _trips_of(vid))
+    assert len(_trips_of(vid)) == 1
+
+
+def test_a_history_that_is_not_there_yet_is_asked_for_again(client, live_home):
+    """Home Assistant has just started: its recorder does not answer yet. The drive is not lost - the app asks again for a while."""
+    fake, link = live_home
+    _no_past(fake)
+    _at_home(fake, 0)
+    vid, pk = install(client)
+    assert save(client, vid, pk, **{"o.position.track": "1"}).status_code == 303
+    assert settle(link, {"device_tracker.car"})
+    with db.tx() as conn:
+        conn.execute("INSERT INTO vehicle_track(vehicle_id, ts, lat, lon, trip_id) VALUES(?, ?, 52.5, 13.4, 0)", (vid, _past(-30)))
+    fake.history_status = 503
+    _at_home(fake, 12, lat=_missed_drive(fake, 2))
+    assert _tick_until(lambda: fake.history_calls)
+    time.sleep(0.3)
+    assert _trips_of(vid) == [] and habridge._state[pk]["catchup_again"] is not None
+    fake.history_status = 200  # the recorder is up
+    st = habridge._state[pk]
+    st["next"] = 0.0
+    habridge.tick(time.monotonic() + habridge.CATCHUP_PAUSE + 5)  # (a minute later)
+    assert len(_trips_of(vid)) == 1 and st["catchup_again"] is None
+
+
+def test_the_ignition_of_the_history_decides_which_moves_are_drives(client, live_home):
+    fake, link = live_home
+    _no_past(fake)
+    _at_home(fake, 0)
+    fake.set("binary_sensor.ignition", "off", dclass="running", at_time=_past(-60))
+    vid, pk = install(client)
+    assert save(client, vid, pk, **{"o.position.track": "1", "e.ignition": "binary_sensor.ignition"}).status_code == 303
+    assert settle(link, {"device_tracker.car", "binary_sensor.ignition"})
+    with db.tx() as conn:
+        conn.execute("INSERT INTO vehicle_track(vehicle_id, ts, lat, lon, trip_id) VALUES(?, ?, 52.5, 13.4, 0)", (vid, _past(-30)))
+    fake.record("binary_sensor.ignition", "on", _past(2), dclass="running")
+    end = _missed_drive(fake, 2)  # a drive, ignition on
+    fake.record("binary_sensor.ignition", "off", _past(11), dclass="running")
+    for k in range(1, 7):  # and a move with the ignition off (the car on a ferry, a tow truck): no drive
+        fake.record("device_tracker.car", "not_home", _past(20 + k), latitude=end + LAP * k, longitude=13.4, gps_accuracy=8)
+    _at_home(fake, 40, lat=end + LAP * 6)
+    assert _tick_until(lambda: _trips_of(vid))
+    time.sleep(0.5)
+    assert len(_trips_of(vid)) == 1 and _trips_of(vid)[0] == pytest.approx(8 * 0.389, abs=0.1)
+    assert fake.history_calls[0]["filter_entity_id"] == "device_tracker.car,binary_sensor.ignition"
+
+
+def test_a_tracker_without_a_recorder_loses_what_it_always_lost(client, live_home):
+    fake, link = live_home
+    _no_past(fake)
+    _at_home(fake, 0)
+    fake.history_status = 404
+    vid, pk = install(client)
+    assert save(client, vid, pk, **{"o.position.track": "1"}).status_code == 303
+    assert settle(link, {"device_tracker.car"})
+    with db.tx() as conn:
+        conn.execute("INSERT INTO vehicle_track(vehicle_id, ts, lat, lon, trip_id) VALUES(?, ?, 52.5, 13.4, 0)", (vid, _past(-30)))
+    _at_home(fake, 12, lat=_missed_drive(fake, 2))
+    assert _tick_until(lambda: fake.history_calls)
+    time.sleep(0.3)
+    assert _trips_of(vid) == [] and not any("caught up" in m for _lvl, m in log_of(vid))  # nothing breaks, nothing is made up
 
 
 def test_without_the_live_connection_the_plugin_asks_as_it_always_did(client, live_home):

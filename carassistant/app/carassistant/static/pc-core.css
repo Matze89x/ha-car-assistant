@@ -3734,6 +3734,11 @@ html.odo-settled .odo-drum i, html.odo-settled .odo-strip { animation: none; }
 .hb-st[data-level="warn"] b { color: var(--soon); }
 .hb-st[data-level="bad"] b { color: var(--overdue); }
 .hb-st .av-dot { margin: 0 2px 0 0; }
+.hb-trip { margin: 6px 0 0; display: flex; align-items: center; flex-wrap: wrap; gap: 0 6px; min-height: 18px; font-size: 13px; }
+.hb-trip b { font-weight: 600; }
+.hb-trip[data-level="warn"] b { color: var(--soon); }
+.hb-trip[data-level="idle"] b { font-weight: 400; color: var(--muted); }
+.hb-trip .av-dot { margin: 0 2px 0 0; }
 .hb-opts[hidden] { display: none; }
 .hb-opts > summary { display: inline-flex; align-items: center; gap: 6px; list-style: none; cursor: pointer; color: var(--muted); font-size: 12px; }
 .hb-opts > summary::-webkit-details-marker { display: none; }

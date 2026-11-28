@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import re
 import time
+from datetime import UTC, datetime
 
 try:
     import requests
@@ -15,6 +18,9 @@ from . import config
 
 log = logging.getLogger(__name__)
 TIMEOUT = 8
+HISTORY_TIMEOUT = 30  # the recorder reads a database: a day of a tracker that reports every few seconds takes a while on a small machine
+HISTORY_MAX_BYTES = 16 * 1024 * 1024
+ENTITY_ID = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+")
 _cache: dict[str, tuple[float, object]] = {}
 
 
@@ -97,6 +103,44 @@ def all_states(seconds: float = 4.0) -> dict[str, dict] | None:
         )
 
     return _cached("all_states", seconds, fetch)
+
+
+def history(entity_ids: list[str], start: datetime, end: datetime) -> dict[str, list[dict]] | None:
+    """What the recorder of Home Assistant kept of these entities between two moments: ``{entity id: [state, ...]}`` oldest first, every state with ALL its
+    attributes (also those that changed only an attribute - a tracker that moves keeps its state ``not_home``). The first one is the state the entity had at
+    ``start`` (Home Assistant gives it that time). The recorder commits every few seconds, so the newest seconds may be missing. None when it cannot be had:
+    not the add-on, no recorder (404), an answer that is too large, no answer."""
+    if not available() or not entity_ids or not all(ENTITY_ID.fullmatch(e) for e in entity_ids):
+        return None
+    try:
+        resp = requests.get(
+            f"{config.ha_api_base()}/history/period/{start.astimezone(UTC).isoformat()}",
+            params={"filter_entity_id": ",".join(entity_ids), "end_time": end.astimezone(UTC).isoformat(), "significant_changes_only": "0"},
+            headers=_headers(),
+            timeout=HISTORY_TIMEOUT,
+            stream=True,
+        )
+        if resp.status_code >= 400:
+            log.debug("HA history for %s: HTTP %s", entity_ids, resp.status_code)
+            return None
+        parts: list[bytes] = []
+        size = 0
+        for chunk in resp.iter_content(65536):
+            size += len(chunk)
+            if size > HISTORY_MAX_BYTES:
+                log.debug("HA history for %s: more than %d bytes - not taken", entity_ids, HISTORY_MAX_BYTES)
+                return None
+            parts.append(chunk)
+        data = json.loads(b"".join(parts))
+    except (requests.RequestException, ValueError) as exc:
+        log.debug("HA history for %s failed: %s", entity_ids, exc)
+        return None
+    out: dict[str, list[dict]] = {}
+    for rows in data if isinstance(data, list) else ():
+        rows = [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
+        if rows and isinstance(rows[0].get("entity_id"), str):
+            out[rows[0]["entity_id"]] = [{**r, "entity_id": rows[0]["entity_id"]} for r in rows]
+    return out
 
 
 def get_config() -> dict:

@@ -24,9 +24,9 @@ import re
 import threading
 import time
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
-from . import addons, claims, config, connectors, db, events, ha, halive, i18n, linkmap, summary, trips
+from . import addons, claims, config, connectors, db, events, ha, halive, i18n, linkmap, modules, summary, trips
 from . import habridge_slots as cat
 from . import vin as vin_info
 
@@ -48,6 +48,8 @@ TRACK_STEP_M = (
     40  # a point of the route is kept only when the car moved this far from the last one: a parked tracker jitters by a few metres
 )
 TRACK_ACCURACY_M = 100  # a fix the tracker itself calls less exact than this (``gps_accuracy``, metres) is left out
+DRIVING_MS = 4.0  # metres per second between two reports (about 15 km/h): faster than somebody walks - below it nothing is said about a car that "moves"
+MAX_SPEED_MS = 150.0  # faster than this between two reports (540 km/h) is no drive: the tracker jumped (a bad fix, another device of a person) - the route is broken there
 
 
 # ------------------------------------------------------------------ units
@@ -649,7 +651,7 @@ LOG_AGAIN = 3600  # a problem that stays is said again after this many seconds
 
 
 def _fresh_state() -> dict:
-    return {"next": 0.0, "sent": {}, "said": {}, "fails": 0, "ha_down": False, "started": False, "dirty": False, "gap": 0.0}
+    return {"next": 0.0, "sent": {}, "said": {}, "fails": 0, "ha_down": False, "started": False, "dirty": False, "gap": 0.0, "retry": None}
 
 
 def _line(conn, addon: dict, level: str, text: str) -> None:
@@ -692,14 +694,101 @@ def _moment(text) -> datetime | None:
     return when if when.tzinfo else when.replace(tzinfo=UTC)
 
 
-def _record_track(conn, addon: dict, st: dict, readings: dict[str, Reading], states: dict[str, dict] | None, bound: dict) -> int:
+def _accuracy_of(state: dict | None):
+    """What the tracker says about how exact its fix is, metres (``gps_accuracy``; ``location_accuracy`` is what the developer documentation calls it)."""
+    attrs = (state or {}).get("attributes") or {}
+    return attrs.get("gps_accuracy", attrs.get("location_accuracy"))
+
+
+TRIP_NOTES = {  # what is noticed about a tracker that makes no drives: (how many times in a row before it is said, the sentence - ``{}`` is filled in)
+    "parked": (
+        3,
+        "position ({position}): the car moves, but the ignition entity ({ignition}) says off - no drive is recorded while it does. It should be on while the "
+        "car runs; if it is not the right entity, choose another one or clear the row.",
+    ),
+    "inexact": (
+        5,
+        "position ({position}): the tracker calls its fixes inexact (more than {metres} m) - they are left out, so no drive is recorded from them.",
+    ),
+    "rare": (
+        3,
+        "position ({position}): the car is somewhere else every time, but the tracker reports less often than every {minutes} min while it moves - no drive can "
+        "be recorded from that. Trips need a report at least every few minutes (every 1-2 minutes is good).",
+    ),
+}  # fmt: skip
+
+
+def _track_step(st: dict, lat: float, lon: float, when: datetime, accuracy, parked: bool) -> tuple[list[dict], dict | None, str]:
+    """The rules of a drive for ONE report of the tracker - the same for a report that has just come and for one read from the history of Home Assistant
+    afterwards: ``(the points to keep, the place the route has reached, what was noticed)``. ``st`` remembers the last report (``seen``) and the last point
+    kept (``track``). Noticed: ``""``, ``parked`` (the car moved while the ignition entity says off), ``inexact`` (a fix the tracker calls less exact than
+    ``TRACK_ACCURACY_M``), ``rare`` (the car is elsewhere, but the report before is longer ago than ``TRIP_GAP``: nothing says how it got there) or ``jump``
+    (faster than ``MAX_SPEED_MS``: a bad fix, or another device - no line is drawn to such a place)."""
+    seen, last = st.get("seen"), st.get("track")
+    metres, speed = 0.0, 0.0  # from the last report: how far, how fast (metres per second)
+    if seen is not None and when > seen["at"]:
+        metres = trips.haversine_km(seen["lat"], seen["lon"], lat, lon) * 1000
+        speed = metres / max(1.0, (when - seen["at"]).total_seconds())
+    driving = (
+        metres >= TRACK_STEP_M and speed >= DRIVING_MS
+    )  # (does it look as if the car drives: far enough, and faster than somebody walks)
+    if isinstance(accuracy, int | float) and not isinstance(accuracy, bool) and accuracy > TRACK_ACCURACY_M:
+        return [], None, "inexact" if driving else ""
+    st["seen"] = {"lat": lat, "lon": lon, "at": when}
+    if seen is None or when <= seen["at"]:
+        return [], None, ""  # the first report since the start (nothing to compare with), or an old one
+    if when - seen["at"] > trips.TRIP_GAP:
+        # the report before is long ago: that place is no start of a drive (a line of many km through the night)
+        return [], None, "rare" if driving else ""
+    if speed > MAX_SPEED_MS:
+        st["track"] = None  # the report is where it is from now on, but no line leads there: the next points begin a drive of their own
+        return [], None, "jump"
+    if parked:
+        return [], None, "parked" if driving else ""
+    if last is not None and when <= last["at"]:
+        return [], None, ""
+    new_drive = last is None or when - last["at"] > trips.TRIP_GAP
+    origin = seen if new_drive else last
+    if trips.haversine_km(origin["lat"], origin["lon"], lat, lon) * 1000 < TRACK_STEP_M:
+        return [], None, ""
+    points = [{"ts": when.isoformat(timespec="seconds"), "lat": lat, "lon": lon}]
+    if new_drive:
+        points.insert(0, {"ts": seen["at"].isoformat(timespec="seconds"), "lat": seen["lat"], "lon": seen["lon"]})
+    return points, {"lat": lat, "lon": lon, "at": when}, ""
+
+
+def _trip_notes(conn, addon: dict, st: dict, bound: dict, note: str, kept: bool, now: float) -> None:
+    """A tracker that moves but makes no drives: after the same thing several times in a row the log of the plugin says what the reason may be."""
+    counts = st.setdefault("notes", {})
+    if kept:
+        counts.clear()
+        for key in TRIP_NOTES:
+            st["said"].pop(f"trip.{key}", None)  # all is well again: a later problem is said again at once
+        return
+    if note not in TRIP_NOTES:
+        return
+    counts[note] = counts.get(note, 0) + 1
+    if counts[note] >= TRIP_NOTES[note][0]:
+        words = {
+            "position": (bound.get("position") or {}).get("entity", "?"),
+            "ignition": (bound.get("ignition") or {}).get("entity", "?"),
+            "metres": TRACK_ACCURACY_M,
+            "minutes": int(trips.TRIP_GAP.total_seconds() // 60),
+        }
+        _say(conn, addon, st, f"trip.{note}", "warn", TRIP_NOTES[note][1].format(**words), now)
+
+
+def _record_track(
+    conn, addon: dict, st: dict, readings: dict[str, Reading], states: dict[str, dict] | None, bound: dict, now: float | None = None
+) -> int:
     """The option *Record trips* of the position row: every move of the tracker becomes a point of the route (``connectors.ingest_track``, the same
     place a plugin's track goes), and ``trips.from_track`` makes a trip of a drive that is over. Returns how many points were kept.
 
     A tracker in a parked car jitters by a few metres, and one of those points every few minutes would keep a drive "running" for ever: a point is
     kept only when the car is at least ``TRACK_STEP_M`` from the last one. A drive starts at the place the car STOOD (the last position seen before it
     moved), not at the first reading after it set off. While an ignition entity is chosen and says off nothing is kept, and a fix the tracker calls
-    inexact is ignored. How fine the route is depends on how often the tracker reports - a car that reports every ten minutes makes no trips."""
+    inexact is ignored. How fine the route is depends on how often the tracker reports - a car that reports every ten minutes makes no trips.
+    What was missed while the app could not look is fetched from the history of Home Assistant first (``_catch_up``)."""
     reading = readings.get("position")
     if reading is None or not reading.ok:
         return 0
@@ -708,35 +797,139 @@ def _record_track(conn, addon: dict, st: dict, readings: dict[str, Reading], sta
     if when is None:
         return 0
     entity = (bound.get("position") or {}).get("entity", "")
-    accuracy = (((states or {}).get(entity) or {}).get("attributes") or {}).get("gps_accuracy")
-    if isinstance(accuracy, int | float) and not isinstance(accuracy, bool) and accuracy > TRACK_ACCURACY_M:
-        return 0
-    seen, last = st.get("seen"), st.get("track")
-    st["seen"] = {"lat": lat, "lon": lon, "at": when}
     ignition = readings.get("ignition")
-    if (ignition is not None and ignition.ok and not ignition.value) or seen is None or when <= seen["at"]:
-        return 0  # parked, or the first reading since the start (nothing to compare with), or an old one
-    if when - seen["at"] > trips.TRIP_GAP:
-        return 0  # the reading before this one is long ago (the night, a restart, an entity that was away): nothing says where the car was meanwhile, so that
-        # place is no start of a drive - this reading is the one the next move is compared with (a line of many kilometres through the night would be a trip)
-    if last is not None and when <= last["at"]:
+    parked = ignition is not None and ignition.ok and not ignition.value
+    points, track, note = _track_step(st, lat, lon, when, _accuracy_of((states or {}).get(entity)), parked)
+    _trip_notes(conn, addon, st, bound, note, bool(points), time.monotonic() if now is None else now)
+    if not points:
         return 0
-    new_drive = last is None or when - last["at"] > trips.TRIP_GAP
-    origin = seen if new_drive else last
-    if trips.haversine_km(origin["lat"], origin["lon"], lat, lon) * 1000 < TRACK_STEP_M:
-        return 0
-    points = [{"ts": when.isoformat(timespec="seconds"), "lat": lat, "lon": lon}]
-    if new_drive:
-        points.insert(0, {"ts": seen["at"].isoformat(timespec="seconds"), "lat": seen["lat"], "lon": seen["lon"]})
     try:
         connectors.ingest_track(conn, addon["vehicle_id"], {"points": points})
     except connectors.ApiError as exc:
         log.debug("track of %s for vehicle %s refused: %s", addon["addon_id"], addon["vehicle_id"], exc.code)
         return 0
-    st["track"] = {"lat": lat, "lon": lon, "at": when}
+    st["track"] = track
     connectors.note_usage(conn, addon["vehicle_id"], addon["addon_id"], "POST", "/api/v1/vehicles/{id}/track", "points")
     log.debug("track of %s for vehicle %s: %d point(s)", addon["addon_id"], addon["vehicle_id"], len(points))
     return len(points)
+
+
+# ---- drives that were missed: read from the history Home Assistant keeps
+
+CATCHUP_MAX = timedelta(hours=48)  # how far back the history is looked at
+CATCHUP_CHUNK = timedelta(
+    hours=12
+)  # and asked for in pieces of this size (a tracker that reports every few seconds is a lot for a small machine)
+CATCHUP_BUDGET = 25.0  # seconds one reading may spend on it; what is left is taken up at the next one
+CATCHUP_PAUSE = 60.0  # seconds between two tries
+CATCHUP_PATIENCE = 600.0  # a history that is not there (yet - Home Assistant has just started) is asked for again for this long
+
+
+def _last_known_position(vehicle_id: int) -> datetime | None:
+    """When the car's position was last stored, for a car whose drives were recorded before - binding a tracker for the first time must not bring in
+    what happened before it."""
+    with db.tx() as conn:
+        if conn.execute("SELECT 1 FROM vehicle_track WHERE vehicle_id = ? LIMIT 1", (vehicle_id,)).fetchone() is None:
+            return None
+        row = conn.execute("SELECT updated FROM live WHERE vehicle_id = ? AND key = 'position'", (vehicle_id,)).fetchone()
+    return _moment(row["updated"]) if row and row["updated"] else None
+
+
+def _replay(st: dict, bound: dict, history: dict[str, list[dict]], ignition_on: bool | None) -> tuple[list[dict], bool | None]:
+    """The points of the drives in a piece of history: every report of the tracker goes through the rules of a live one (``_track_step``), with the
+    ignition as it was at that moment. Returns ``(points, the ignition at the end)``."""
+    position, ignition = bound["position"], bound.get("ignition")
+    slot_position, slot_ignition = cat.BY_KEY["position"], cat.BY_KEY["ignition"]
+    events: list[tuple[datetime, int, dict]] = []
+    for row in history.get(position["entity"], ()):
+        found = read(slot_position, position["entity"], position["options"], {position["entity"]: row})
+        if found.ok and (when := _moment(found.at)) is not None:
+            events.append((when, 1, {"lat": found.value[0], "lon": found.value[1], "accuracy": _accuracy_of(row)}))
+    for row in history.get(ignition["entity"], ()) if ignition else ():
+        found = read(slot_ignition, ignition["entity"], ignition["options"], {ignition["entity"]: row})
+        if found.ok and (when := _moment(found.at)) is not None:
+            events.append((when, 0, {"on": bool(found.value)}))
+    events.sort(key=lambda event: (event[0], event[1]))  # (an ignition that turns on in the same second as a report counts for it)
+    points: list[dict] = []
+    for when, kind, data in events:
+        if kind == 0:
+            ignition_on = data["on"]
+            continue
+        kept, track, _note = _track_step(st, data["lat"], data["lon"], when, data["accuracy"], ignition_on is False)
+        if kept:
+            points.extend(kept)
+            st["track"] = track
+    return points, ignition_on
+
+
+def _catch_up(addon: dict, st: dict, bound: dict, readings: dict[str, Reading], now: float) -> None:
+    """Drives that were missed - the app was off or being updated, Home Assistant could not be reached for a while, the live connection was away - are
+    read from the history Home Assistant keeps (the recorder) and put through the same rules as a report that comes live. It is tried when the tracker's
+    report is more than ``TRIP_GAP`` later than the last one the app saw (after a start: than the car's position the app stored), and only for a car
+    that records drives. Points that are there already are not stored again. A history that cannot be had (Home Assistant has just started, no recorder)
+    is asked for again for a few minutes; what cannot be had at all is lost, as it was before."""
+    position = bound.get("position")
+    reading = readings.get("position")
+    if not position or not position["options"].get("track") or reading is None or not reading.ok or not reading.at:
+        return
+    newest = _moment(reading.at)
+    again = st.get("catchup_again")
+    if newest is None or now - (st.get("catchup") or -1e9) < CATCHUP_PAUSE or (again is not None and now > again["until"]):
+        if again is not None and now > again["until"]:
+            st["catchup_again"] = None  # (no more patience)
+        return
+    seen = st.get("seen")
+    since = again["since"] if again is not None else (seen["at"] if seen is not None else _last_known_position(addon["vehicle_id"]))
+    if since is None or newest - since <= trips.TRIP_GAP:
+        return
+    st["catchup"] = now
+    entities = [position["entity"], *([bound["ignition"]["entity"]] if bound.get("ignition") else [])]
+    begin, end = max(since, newest - CATCHUP_MAX), datetime.now(UTC)
+    deadline = time.monotonic() + CATCHUP_BUDGET
+    points: list[dict] = []
+    ignition_on: bool | None = None
+    reached, failed = begin, False
+    while reached < end and time.monotonic() < deadline:
+        upto = min(reached + CATCHUP_CHUNK, end)
+        got = ha.history(entities, reached, upto)
+        if got is None:
+            failed = True
+            break
+        kept, ignition_on = _replay(st, bound, got, ignition_on)
+        points += kept
+        reached = upto
+    unfinished = reached < end
+    st["catchup_again"] = (
+        {"since": reached, "until": (again["until"] if again else now + CATCHUP_PATIENCE)} if (failed or unfinished) else None
+    )
+    if not points:
+        log.debug("catching up %s: nothing found in the history since %s", addon["addon_id"], begin.isoformat(timespec="seconds"))
+        return
+    vid = addon["vehicle_id"]
+    with db.tx() as conn:
+        have = {
+            r["ts"]
+            for r in conn.execute(
+                "SELECT ts FROM vehicle_track WHERE vehicle_id = ? AND ts >= ?", (vid, begin.isoformat(timespec="seconds"))
+            )
+        }
+        new = [p for p in points if connectors._iso(p["ts"]) not in have]  # (the form the points are stored in)
+        before = conn.execute("SELECT COUNT(*) FROM trips WHERE vehicle_id = ?", (vid,)).fetchone()[0]
+        for i in range(0, len(new), connectors.MAX_TRACK_POINTS):
+            try:
+                connectors.ingest_track(conn, vid, {"points": new[i : i + connectors.MAX_TRACK_POINTS]})
+            except connectors.ApiError as exc:
+                log.debug("catching up %s: %s", addon["addon_id"], exc.code)
+                break
+        made = conn.execute("SELECT COUNT(*) FROM trips WHERE vehicle_id = ?", (vid,)).fetchone()[0] - before
+        if new:
+            hours = max(1, round((end - begin).total_seconds() / 3600))
+            _line(
+                conn,
+                addon,
+                "info",
+                f"caught up from the history of Home Assistant (the last {hours} h): {len(new)} position(s) of drives, {made} trip(s) made",
+            )
 
 
 def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None = None) -> str:
@@ -750,7 +943,10 @@ def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None
         if slot is not None and slot.kind != "command":  # a command row is only looked at by the page; no value of it goes anywhere
             readings[key] = read(slot, binding["entity"], binding["options"], states, name)
     effective = _charge_of_state(_position_of_halves(readings), bound)
+    # (before anything is stored: it asks Home Assistant, which may take a while - no database is held meanwhile)
+    _catch_up(addon, st, bound, effective, now)
     fresh = {k: r for k, r in effective.items() if r.ok and st["sent"].get(k) != (r.value, r.at)}
+    st["retry"] = None
     started = time.monotonic()
     stored = 0
     notes: list[str] = []
@@ -780,16 +976,25 @@ def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None
                     known = summary.current_odometer(conn, addon["vehicle_id"])
                     # lower than known: said (once). Equal is the plugin's own reading again after a restart: no word.
                     if text.startswith("ignored") and known is not None and round(data["odometer_km"]) < known:
+                        retry.add(
+                            field
+                        )  # not "sent": somebody may correct the higher figure (a typo) - then Home Assistant's counts at the next reading
                         _say(conn, addon, st, "odometer.low", "warn", ODOMETER_LOW, now)
                     else:
                         st["said"].pop("odometer.low", None)  # it counts again: a later gap is said again at once
             stored += sum(1 for text in done.values() if text.startswith("stored"))
+        if (
+            retry
+        ):  # something was held back (refused, taken by another plugin, lower than the known odometer): it may be let through at any moment
+            st["retry"] = now + interval(
+                addon
+            )  # (a typo corrected, a claim given up) - offered again at the pace of the setting, with a live connection too
         for key, reading in fresh.items():
             slot = split(key)[0]
             if slot is not None and slot.field not in retry:
                 st["sent"][key] = (reading.value, reading.at)
         if "position" in landed and (bound.get("position") or {}).get("options", {}).get("track"):
-            _record_track(conn, addon, st, effective, states, bound)
+            _record_track(conn, addon, st, effective, states, bound, now)
         names = sorted(fields)
         connectors.note_usage(conn, addon["vehicle_id"], addon["addon_id"], "POST", "/api/v1/vehicles/{id}/data", ", ".join(names))
         merged: dict = {}
@@ -888,7 +1093,10 @@ def tick(now: float | None = None) -> int:
     for row in rows:
         st = _state.setdefault(row["id"], _fresh_state())
         scheduled = now >= st["next"]
-        event = bool(st["dirty"]) and follows is not None and entities.get(row["id"], set()) <= known
+        again = (
+            st["retry"] is not None and now >= st["retry"]
+        )  # (what was held back is offered again - from what the live connection knows, nobody asks)
+        event = (bool(st["dirty"]) or again) and follows is not None and entities.get(row["id"], set()) <= known
         if event and now < st["gap"]:
             _pause = min(_pause, max(0.05, st["gap"] - now))  # the next change waits for its turn: come back then
             event = False
@@ -1153,6 +1361,31 @@ def save(conn, addon: dict, form: dict, states: dict[str, dict] | None) -> tuple
 # ------------------------------------------------------------------ the entities to choose from
 
 
+# What an entity says about itself decides which interface it fits (Home Assistant's own words: an odometer is a ``distance`` that only grows, a
+# ``total_increasing``; a range goes up and down, a ``measurement``): points for the slot, and against it. The names are what people call such things.
+STATE_CLASS_HINT = {
+    ("odometer_km", "total_increasing"): 3,
+    ("odometer_km", "total"): 2,
+    ("odometer_km", "measurement"): -2,
+    ("range_km", "total_increasing"): -3,
+    ("range_km", "total"): -2,
+    ("range_km", "measurement"): 1,
+}
+NAME_HINT = {  # slot: (words that point to it, words that speak against it)
+    "odometer_km": (
+        ("odometer", "mileage", "kilometerstand", "laufleistung", "gesamtstrecke"),
+        ("trip", "service", "range", "remaining", "reichweite", "until", "inspection", "last", "average", "avg", "fahrt"),
+    ),
+    "range_km": (("range", "reichweite", "remaining"), ("trip", "odometer", "mileage", "service", "adblue", "kilometerstand")),
+}
+TRACKER_SOURCES = {
+    "gps": 1,
+    "router": -3,
+    "bluetooth": -3,
+    "bluetooth_le": -3,
+}  # a tracker that knows where it is, or only that it is connected
+
+
 def suggest(
     slot: cat.Slot, query: str, show_all: bool, states: dict[str, dict], limit: int = 40, context: dict[str, dict] | None = None
 ) -> list[dict]:
@@ -1177,6 +1410,12 @@ def suggest(
         score += 3 if slot.kind == "position" and "latitude" in attrs and "longitude" in attrs else 0
         score += 1 if domain in slot.domains else 0
         score += sum(1 for part in slot.key.split("_") if len(part) > 2 and part in haystack)
+        score += STATE_CLASS_HINT.get((slot.key, str(attrs.get("state_class") or "")), 0)
+        if slot.key in NAME_HINT:
+            pointing, against = NAME_HINT[slot.key]
+            score += (2 if any(w in haystack for w in pointing) else 0) - (3 if any(w in haystack for w in against) else 0)
+        if slot.key == "position" and domain == "device_tracker":
+            score += TRACKER_SOURCES.get(str(attrs.get("source_type") or "").lower(), 0)
         shown = {
             "id": entity_id,
             "name": name,
@@ -1274,6 +1513,8 @@ def page_model(
             else:
                 binding = bound.get(slot.key)
                 entry["row"] = _row(slot, "", binding, states, t, typed is None) if binding else _empty_row()
+                if slot.key == "position" and binding and typed is None:
+                    entry["row"]["trip"] = trip_status(conn, addon, bound, states, t)
                 entry["count"] = 1 if binding and binding["entity"] else 0
             slots.append(entry)
         count = sum(s["count"] for s in slots)
@@ -1300,6 +1541,41 @@ def page_model(
         "bound": sum(g["bound"] for g in groups),
         "live": live(),
         "seconds": interval(addon),
+    }
+
+
+def trip_status(conn, addon: dict, bound: dict, states: dict[str, dict] | None, t) -> dict | None:
+    """The line under the tracker row: are the drives of this car being recorded, and if not, what is in the way (the questions people ask: the page of the
+    trips is off, the ignition entity says off while the car moves, the tracker reports too rarely). None while the option *Record trips* is off."""
+    position = bound.get("position")
+    if not position or not position["options"].get("track"):
+        return None
+    if not modules.is_enabled(conn, "trips", addon["vehicle_id"]):
+        return {"level": "warn", "text": t("hab.trip.module_off")}
+    st = _state.get(addon["id"]) or {}
+    notes = st.get("notes") or {}
+    words = {
+        "ignition": (bound.get("ignition") or {}).get("entity", ""),
+        "metres": TRACK_ACCURACY_M,
+        "minutes": int(trips.TRIP_GAP.total_seconds() // 60),
+    }
+    for key, (count, _sentence) in TRIP_NOTES.items():
+        if notes.get(key, 0) >= count:
+            return {"level": "warn", "text": t(f"hab.trip.{key}", **words)}
+    seen = st.get("seen")
+    if seen is None:
+        return {"level": "idle", "text": t("hab.trip.wait")}
+    ignition = bound.get("ignition")
+    if ignition and (now := read(cat.BY_KEY["ignition"], ignition["entity"], ignition["options"], states)).ok and not now.value:
+        return {"level": "idle", "text": t("hab.trip.parked_now", ignition=words["ignition"])}
+    from . import linkmap_ui  # (a page helper; not needed anywhere else here)
+
+    since = (datetime.now(UTC) - timedelta(hours=24)).isoformat(timespec="seconds")
+    points = conn.execute("SELECT COUNT(*) FROM vehicle_track WHERE vehicle_id = ? AND ts >= ?", (addon["vehicle_id"], since)).fetchone()[0]
+    made = conn.execute("SELECT COUNT(*) FROM trips WHERE vehicle_id = ? AND source = 'track'", (addon["vehicle_id"],)).fetchone()[0]
+    return {
+        "level": "ok",
+        "text": t("hab.trip.ok", ago=linkmap_ui.ago(seen["at"].isoformat(timespec="seconds"), t), points=points, trips=made),
     }
 
 

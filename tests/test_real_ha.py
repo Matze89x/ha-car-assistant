@@ -9,12 +9,13 @@ import fcntl
 import sys
 import time
 import urllib.error
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 from tests.test_habridge import install
 
-from carassistant import db, ha, habridge, halive, summary
+from carassistant import db, ha, habridge, halive, summary, trips
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -39,9 +40,9 @@ class Car:
     def __init__(self, client, vid, pk):
         self.client, self.vid, self.pk = client, vid, pk
 
-    def bind(self, **rows):
-        """``slot=entity`` or ``slot=(entity, {option: value})`` - the form of the plugin; the plugin reads at once."""
-        form = {}
+    def bind(self, every=None, **rows):
+        """``slot=entity`` or ``slot=(entity, {option: value})`` - the form of the plugin; the plugin reads at once. ``every``: the interval in seconds."""
+        form = {} if every is None else {"every": str(every)}
         for slot, spec in rows.items():
             entity, options = (spec, {}) if isinstance(spec, str) else spec
             form[f"e.{slot}"] = entity
@@ -65,6 +66,11 @@ class Car:
     def typed(self, km):
         with db.tx() as conn:
             summary.add_odometer(conn, self.vid, km, summary.today().isoformat(), "typed")
+
+    def untyped(self):
+        """The figure somebody typed is taken away again (a typo found)."""
+        with db.tx() as conn:
+            conn.execute("DELETE FROM odometer WHERE vehicle_id = ? AND source = 'typed'", (self.vid,))
 
     def log(self):
         with db.tx() as conn:
@@ -134,6 +140,19 @@ def test_a_figure_that_was_typed_higher_holds_back_the_reading_and_the_log_says_
     assert sum("less than the odometer" in line for line in car.log()) == 1 and car.odometer() == 87000  # said once, not at every change
     set_helper("car_odometer", 87100)
     assert car.pump(lambda: car.odometer() == 87100, 8)  # it counts again as soon as it is higher
+
+
+def test_a_typo_that_is_corrected_lets_the_reading_that_was_held_back_count_again(car):
+    """Found with a real Home Assistant: after the correction the odometer stayed where it was until the car drove on (a parked car's helper does not change)."""
+    car.bind(odometer_km="input_number.car_odometer", every=10)
+    assert car.pump(lambda: car.odometer() == 86000)
+    time.sleep(1.5)
+    car.typed(186000)  # one digit too many
+    set_helper("car_odometer", 86010)
+    car.pump(lambda: False, 2.5)
+    assert car.odometer() == 186000  # held back
+    car.untyped()
+    assert car.pump(lambda: car.odometer() == 86010, 25)  # Home Assistant changed nothing: the figure that was held back is offered again
 
 
 def test_miles_are_turned_into_kilometres_and_a_helper_without_a_unit_counts_as_kilometres(car):
@@ -248,3 +267,50 @@ def test_a_tracker_that_only_jitters_keeps_no_points_and_the_ignition_off_keeps_
     car.pump(lambda: False, 1.5)
     drive(car, "device_tracker.ca_car", 6, 0.0000, 0.00002)  # from where it stands now: a few metres of jitter
     assert car.trips() == ([], 0)
+
+
+def has_a_recorder():
+    """Does this test Home Assistant keep a history (the ``recorder:`` and ``history:`` of the configuration of tools/real_ha.py)?"""
+    start = (datetime.now(UTC) - timedelta(minutes=1)).isoformat().replace("+", "%2B")
+    try:
+        real_ha.api("GET", f"/api/history/period/{start}?filter_entity_id=input_boolean.car_ignition")
+    except urllib.error.HTTPError:
+        return False
+    return True
+
+
+@pytest.mark.skipif(
+    not real_ha.running() or not has_a_recorder(),
+    reason="this test Home Assistant keeps no history (restart it: python tools/real_ha.py stop; start)",
+)
+def test_a_drive_the_app_did_not_see_is_read_from_the_history_of_home_assistant(car, monkeypatch):
+    """The app looks away (an update, a restart): the car drives, the ignition goes on and off, and when the app looks again the tracker stands somewhere else
+    and nothing was seen on the way. Home Assistant's recorder has all of it - the drive becomes a trip."""
+    monkeypatch.setattr(trips, "TRIP_GAP", timedelta(seconds=6))  # (a test cannot wait ten minutes for a silence in the reports)
+    park("device_tracker.ca_car", 52.45, 13.45)
+    car.bind(position=("device_tracker.ca_car", {"track": "1"}), ignition="input_boolean.car_ignition")
+    assert car.pump(lambda: habridge._state[car.pk].get("seen"))
+    with db.tx() as conn:  # (a car whose drives were recorded before)
+        conn.execute(
+            "INSERT INTO vehicle_track(vehicle_id, ts, lat, lon, trip_id) VALUES(?, ?, 52.45, 13.45, 0)",
+            (car.vid, "2020-01-01T00:00:00+00:00"),
+        )
+    # the app does not look from here on: nothing is pumped
+    real_ha.call("input_boolean", "turn_on", entity_id="input_boolean.car_ignition")
+    time.sleep(1.1)
+    for i in range(1, 9):
+        real_ha.set_state(
+            "device_tracker.ca_car",
+            "not_home",
+            latitude=round(52.45 + i * 0.0012, 6),
+            longitude=round(13.45 + i * 0.0008, 6),
+            gps_accuracy=8,
+        )
+        time.sleep(1.05)
+    real_ha.call("input_boolean", "turn_off", entity_id="input_boolean.car_ignition")
+    time.sleep(6.5)  # the recorder writes to its database every five seconds
+    assert car.trips() == ([], 1)  # (the point put there by hand, nothing else)
+    assert car.pump(lambda: car.trips()[0], 20)
+    (distance,) = car.trips()[0]
+    assert 0.9 < distance < 1.4
+    assert any(line.startswith("caught up from the history of Home Assistant") for line in car.log())

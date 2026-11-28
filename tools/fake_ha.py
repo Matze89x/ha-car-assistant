@@ -22,6 +22,7 @@ import threading
 import time
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, unquote, urlsplit
 
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
@@ -113,6 +114,9 @@ class FakeHA:
         self.rest_down = False  # the REST API answers 503
         self.refuse_services = False  # a service call answers 400
         self.reactions: list = []  # called after every service: ``reaction(domain, service, body)`` (a device that does what it was told)
+        self.history: dict[str, list[dict]] = {}  # what the recorder kept: every state that was written, oldest first
+        self.history_calls: list[dict] = []  # the requests for the history that were made (their query)
+        self.history_status = 200  # what the history answers (404: no recorder, 500: it fails)
         self._lock = threading.RLock()
         self._conns: list[_Connection] = []
         self.server = ThreadingHTTPServer(("127.0.0.1", port), self._handler())
@@ -143,8 +147,8 @@ class FakeHA:
 
     # ---- the world
 
-    def set(self, entity_id: str, state, unit: str | None = None, dclass: str | None = None, **attrs) -> dict:
-        """Create or change an entity - and tell everybody who follows it."""
+    def set(self, entity_id: str, state, unit: str | None = None, dclass: str | None = None, at_time: str | None = None, **attrs) -> dict:
+        """Create or change an entity - and tell everybody who follows it. ``at_time``: the moment of the state (ISO, UTC) when it is not now."""
         with self._lock:
             before = self.states.get(entity_id)
             attributes = {k: v for k, v in attrs.items() if v is not None}
@@ -152,7 +156,7 @@ class FakeHA:
                 attributes["unit_of_measurement"] = unit
             if dclass:
                 attributes["device_class"] = dclass
-            stamp = _now()
+            stamp = at_time or _now()
             new = {
                 "entity_id": entity_id,
                 "state": str(state),
@@ -163,8 +167,50 @@ class FakeHA:
                 "context": {"id": "x", "parent_id": None, "user_id": None},
             }
             self.states[entity_id] = new
+            self.history.setdefault(entity_id, []).append(new)
+            self.history[entity_id].sort(key=lambda row: row["last_updated"])
             self._push(entity_id, before, new)
         return new
+
+    def record(self, entity_id: str, state, at_time: str, unit: str | None = None, dclass: str | None = None, **attrs) -> None:
+        """Put a state into the HISTORY only (a drive Car Assistant did not see): nothing changes now, nobody is told. Oldest first."""
+        attributes = {k: v for k, v in attrs.items() if v is not None}
+        if unit:
+            attributes["unit_of_measurement"] = unit
+        if dclass:
+            attributes["device_class"] = dclass
+        new = {
+            "entity_id": entity_id,
+            "state": str(state),
+            "attributes": attributes,
+            "last_changed": at_time,
+            "last_reported": at_time,
+            "last_updated": at_time,
+            "context": {"id": "x", "parent_id": None, "user_id": None},
+        }
+        with self._lock:
+            rows = self.history.setdefault(entity_id, [])
+            rows.append(new)
+            rows.sort(key=lambda row: row["last_updated"])
+
+    def _history_answer(self, start: str, query: dict) -> list[list[dict]]:
+        """What ``GET /api/history/period/<start>`` answers: for every asked entity the state it had at ``start`` (its time is ``start``) and every state
+        written after that up to ``end_time``, with all attributes (as with ``significant_changes_only=0``)."""
+
+        def moment(text: str) -> datetime:
+            return datetime.fromisoformat(text.replace("Z", "+00:00"))
+
+        begin, end = moment(start), moment(query["end_time"][0]) if "end_time" in query else datetime.max.replace(tzinfo=UTC)
+        answer = []
+        with self._lock:
+            for entity_id in [e for e in query.get("filter_entity_id", [""])[0].split(",") if e]:
+                rows = self.history.get(entity_id, [])
+                before = [r for r in rows if moment(r["last_updated"]) <= begin]
+                inside = [r for r in rows if begin < moment(r["last_updated"]) <= end]
+                stamp = begin.isoformat()
+                out = [{**before[-1], "last_changed": stamp, "last_updated": stamp, "last_reported": stamp}] if before else []
+                answer.append(out + inside)
+        return [rows for rows in answer if rows]
 
     def apply(self, domain: str, service: str, body: dict) -> bool:
         """What Home Assistant does with a service call for the simple kinds of entities: a switch or a helper changes its state, a number takes a value (within
@@ -355,6 +401,14 @@ class FakeHA:
                     self._json(200, state) if state else self._json(404, {"message": "Entity not found."})
                 elif path == "/api/config":
                     self._json(200, {"country": "DE", "currency": "EUR", "version": "2026.11.0", "latitude": 52.5, "longitude": 13.4})
+                elif path.startswith("/api/history/period/"):
+                    query = parse_qs(urlsplit(self.path).query)
+                    fake.history_calls.append(
+                        {"start": unquote(path[len("/api/history/period/") :]), **{k: v[0] for k, v in query.items()}}
+                    )
+                    if fake.history_status != 200:
+                        return self._json(fake.history_status, {"message": "no history"})
+                    self._json(200, fake._history_answer(unquote(path[len("/api/history/period/") :]), query))
                 else:
                     self._json(404, {"message": "not found"})
 
@@ -362,7 +416,9 @@ class FakeHA:
                 length = int(self.headers.get("Content-Length") or 0)
                 body = json.loads(self.rfile.read(length) or b"{}")
                 parts = self.path.split("?")[0].split("/")
-                if self.path.split("?")[0] == "/fake/set":  # (only here, not in Home Assistant) change an entity from outside: curl -d '{"entity_id": ..., "state": ...}'
+                if (
+                    self.path.split("?")[0] == "/fake/set"
+                ):  # (only here, not in Home Assistant) change an entity from outside: curl -d '{"entity_id": ..., "state": ...}'
                     attrs = body.get("attributes") or {}
                     fake.set(body["entity_id"], body.get("state", ""), body.get("unit"), body.get("device_class"), **attrs)
                     return self._json(200, {"ok": True})
@@ -429,8 +485,14 @@ class Wallbox:
         }
         fake.reactions.append(self._react)
         fake.areas = [*fake.areas, {"area_id": area, "name": area.title()}]
-        fake.devices = [*fake.devices, {"id": f"dev_{prefix}", "name": "Wallbox", "name_by_user": None, "area_id": area, "manufacturer": "Example", "model": "Box 11"}]
-        fake.entities = [*fake.entities, *({"entity_id": e, "device_id": f"dev_{prefix}", "area_id": None, "platform": "example"} for e in self.e.values())]
+        fake.devices = [
+            *fake.devices,
+            {"id": f"dev_{prefix}", "name": "Wallbox", "name_by_user": None, "area_id": area, "manufacturer": "Example", "model": "Box 11"},
+        ]
+        fake.entities = [
+            *fake.entities,
+            *({"entity_id": e, "device_id": f"dev_{prefix}", "area_id": None, "platform": "example"} for e in self.e.values()),
+        ]
         self.unplug()
 
     # ---- what it does when it is told something (a service of Home Assistant)
@@ -466,7 +528,13 @@ class Wallbox:
         plugged = status != "Available"
         charging = status == "Charging"
         amps = round(self.kw * 1000 / (self.PHASES * self.VOLTS), 1) if charging else 0.0
-        set_(e["status"], status, friendly_name="Wallbox status", device_class="enum", options=["Available", "Preparing", "Charging", "SuspendedEV", "SuspendedEVSE", "Finishing", "Faulted"])
+        set_(
+            e["status"],
+            status,
+            friendly_name="Wallbox status",
+            device_class="enum",
+            options=["Available", "Preparing", "Charging", "SuspendedEV", "SuspendedEVSE", "Finishing", "Faulted"],
+        )
         set_(e["cable"], "on" if plugged else "off", None, "plug", friendly_name="Wallbox cable")
         set_(e["charging"], "on" if charging else "off", None, "battery_charging", friendly_name="Wallbox charging")
         set_(e["power"], str(round(self.kw * 1000)), "W", "power", friendly_name="Wallbox power", state_class="measurement")

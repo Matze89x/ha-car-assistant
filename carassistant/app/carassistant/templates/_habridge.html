@@ -41,6 +41,7 @@
   {% else %}<div class="hb-in">
     {{ entity_field(field, row, s.key, s.label) }}
     {{ status(row) }}
+    {% if row.trip %}<p class="hb-trip" data-level="{{ row.trip.level }}" data-hb-trip><i class="av-dot {{ row.trip.level if row.trip.level in ('ok', 'warn', 'bad') }}" aria-hidden="true"></i><b>{{ row.trip.text }}</b></p>{% endif %}
     {% if hb_errors.get(field) %}<p class="field-err">{{ icon('alert', 14) }} {{ hb_errors[field] }}</p>{% endif %}
     {% if not s.command %}{{ options(s, row, 'o.' ~ s.key ~ '.') }}{% endif %}
   </div>{% endif %}
