@@ -88,6 +88,9 @@ class Car:
 def car(client, monkeypatch):
     monkeypatch.setenv("CARASSISTANT_HA_API", real_ha.url() + "/api")
     monkeypatch.setenv("SUPERVISOR_TOKEN", real_ha.token())
+    monkeypatch.setattr(
+        habridge, "IGNITION_HOLD", 2.0
+    )  # (an ignition that goes off is believed after 90 seconds: a test cannot wait that long)
     ha._cache.clear()
     habridge._state.clear()
     real_ha.api(
@@ -230,6 +233,24 @@ def test_a_drive_with_a_tracker_and_the_ignition_becomes_a_trip_when_the_ignitio
     assert car.pump(lambda: car.trips()[0], 10)
     (distance,) = car.trips()[0]
     assert 0.9 < distance < 1.6  # (10 steps of about 120 m)
+
+
+def test_an_ignition_that_drops_for_a_moment_does_not_cut_the_drive(car):
+    """A Bluetooth connection that drops and comes back is no end of the drive: the ignition has to stay off for the hold time (2 s here, 90 s in the app)."""
+    park("device_tracker.ca_car", 52.5, 13.4)
+    car.bind(position=("device_tracker.ca_car", {"track": "1"}), ignition="input_boolean.car_ignition")
+    real_ha.call("input_boolean", "turn_on", entity_id="input_boolean.car_ignition")
+    car.pump(lambda: False, 1.5)
+    drive(car, "device_tracker.ca_car", 5, 0.0010, 0.0006)
+    real_ha.call("input_boolean", "turn_off", entity_id="input_boolean.car_ignition")
+    car.pump(lambda: False, 0.6)  # a moment ...
+    real_ha.call("input_boolean", "turn_on", entity_id="input_boolean.car_ignition")  # ... and it is back
+    assert not car.pump(lambda: car.trips()[0], 4)  # more than the hold passes: the drive goes on
+    drive(car, "device_tracker.ca_car", 5, 0.0010, 0.0006)
+    real_ha.call("input_boolean", "turn_off", entity_id="input_boolean.car_ignition")
+    assert car.pump(lambda: car.trips()[0], 12)  # it stayed off: now the drive is over
+    (distance,) = car.trips()[0]  # ONE trip, not two
+    assert 0.9 < distance < 1.6
 
 
 def test_a_person_entity_makes_trips_like_a_tracker(car):
