@@ -62,7 +62,7 @@ def test_the_page_fits_the_screen_and_says_the_connection_is_live(page, width):
     b.open(address, width, 900, 1, settle=1.0)
     b.wait_for("document.querySelector('[data-hb-form]')", seconds=15)
     got = json.loads(b.run(STATE))
-    assert got["groups"] == 8 and not got["sideScroll"] and got["outside"] == 0, got
+    assert got["groups"] == 9 and not got["sideScroll"] and got["outside"] == 0, got
     assert b.run("document.querySelector('.hb-live').getAttribute('data-live')") == "1"  # the live connection stands
 
 

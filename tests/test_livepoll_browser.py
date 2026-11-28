@@ -11,6 +11,7 @@ import mimetypes
 import re
 import sys
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -144,6 +145,17 @@ def where(a: str, b: str) -> str:
     return f"at {n}: ...{a[max(0, n - 60) : n + 90]!r} / ...{b[max(0, n - 60) : n + 90]!r}"
 
 
+def settled(b, server, seconds: float = 6.0) -> dict:
+    """What the card says once it is the one the server hands out now. The number that says "something changed" is raised again and again while it waits, so that
+    a first look of the page that came late (the page takes its first look at the number only as the one to compare with) cannot make the test depend on timing."""
+    end = time.time() + seconds
+    while True:
+        server.version += 1
+        seen = b.run(SAME.replace("MS", "200"))
+        if seen["ok"] or time.time() > end:
+            return seen
+
+
 @pytest.fixture()
 def wallbox_car(client, monkeypatch):
     """An electric car with the Home Assistant plugin bound to a wallbox; ``current`` is what Home Assistant says (the test changes it)."""
@@ -192,7 +204,7 @@ def test_the_card_follows_the_server_through_every_state_and_moves_in_place_when
                         "window.__dash = window.__arc.getAttribute('stroke-dasharray'); document.querySelector('#wb .wb-src').open = true"
                     )
                 server.show(render(data, entity))
-                seen = b.run(SAME.replace("MS", "5000"))
+                seen = settled(b, server)
                 assert seen["ok"], (
                     f"step {n} ({state}): the card is not the one the server says: {where(seen.get('live', ''), seen.get('fresh', ''))}"
                 )
