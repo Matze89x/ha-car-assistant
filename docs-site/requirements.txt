@@ -1,5 +1,4 @@
-# What builds the documentation site (mkdocs.yml, .github/workflows/docs.yml). Exact versions: the site looks the same tomorrow as today.
-mkdocs==1.6.1
-mkdocs-material==9.8.2
-mkdocs-static-i18n==1.3.1
-pymdown-extensions==13.1.2
+# What builds the documentation site (docs-site/build_site.py, .github/workflows/docs.yml). Exact versions: the site looks the same tomorrow as today.
+# Zensical is in beta (0.1.x) until about February 2027: a new version is tried on a copy of the site before it is written here.
+zensical==0.1.4
+PyYAML==6.0.4

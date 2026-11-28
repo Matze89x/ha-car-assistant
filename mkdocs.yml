@@ -1,8 +1,12 @@
 # The documentation as a website (GitHub Pages): the pages in docs/ - the same files GitHub shows in the repository - made into a site with a menu, a search
 # and a language switch (English / German). Nothing is copied: the pages are written once, in docs/.
 #
-#   pip install -r docs-site/requirements.txt && mkdocs serve        look at it on your computer (http://127.0.0.1:8000/ha-car-assistant/)
-#   mkdocs build --strict                                             what the workflow .github/workflows/docs.yml does on every change of the pages
+#   pip install -r docs-site/requirements.txt && python docs-site/build_site.py --serve    look at it on your computer (http://127.0.0.1:8000/ha-car-assistant/)
+#   python docs-site/build_site.py --strict                                                  what the workflow .github/workflows/docs.yml does on every change of the pages
+#
+# The site is built by Zensical (the successor of Material for MkDocs), which reads this format; docs-site/build_site.py makes one small project per language out of
+# docs/ (Zensical builds one language at a time) and reads the menu, the German names of the menu (plugins -> i18n -> nav_translations), the theme and the address
+# from this file. The i18n block is therefore the one place of the German names; Zensical itself ignores it.
 #
 # English pages are docs/<page>.md, German ones docs/<page>.de.md (docs/translating.md). Every page must appear in the nav below (tests/test_docs_site.py).
 site_name: Car Assistant
@@ -10,8 +14,6 @@ site_description: A vehicle logbook and dashboard for the cars of a family - the
 site_url: https://matze89x.github.io/ha-car-assistant/
 docs_dir: docs
 site_dir: site
-hooks:
-  - docs-site/hooks.py  # the language line at the top of a page goes: the site has a language selector
 use_directory_urls: false  # a page stays <name>.html, so the relative picture paths of the pages (screenshots/...) keep working
 
 theme:

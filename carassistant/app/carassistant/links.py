@@ -1,6 +1,6 @@
 """Where the project and its documentation live. The app only LINKS there (a plain link somebody has to click) - it never fetches anything from there.
 
-The documentation is a website (GitHub Pages, built from the pages in ``docs/`` with ``mkdocs.yml``, see docs/maintaining.md) in two languages: the English
+The documentation is a website (GitHub Pages, built from the pages in ``docs/`` with Zensical, see docs-site/build_site.py and docs/maintaining.md) in two languages: the English
 start page is the address of the site, the German one lies under ``de/``. The language of the app decides which one a link opens, and every language
 without pages of its own reads the English ones.
 """

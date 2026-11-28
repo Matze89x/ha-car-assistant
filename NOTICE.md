@@ -37,7 +37,7 @@ Notes: *MPL-2.0* (pywebpush, py-vapid) and *LGPL-3.0* (fpdf2) apply to those lib
 
 ## Documentation website (built from `docs/`, not part of the app)
 
-The website <https://matze89x.github.io/ha-car-assistant/> is built with **MkDocs** (BSD-2-Clause), **Material for MkDocs** (MIT), **mkdocs-static-i18n** (MIT) and **PyMdown Extensions** (MIT) - installed from `docs-site/requirements.txt` when the site is built, not copied into this repository. The diagrams of the architecture page are drawn by **Mermaid** (MIT), which that page loads from unpkg.com.
+The website <https://matze89x.github.io/ha-car-assistant/> is built with **Zensical** (MIT), **Python-Markdown** (BSD-3-Clause), **PyMdown Extensions** (MIT) and **PyYAML** (MIT) - installed from `docs-site/requirements.txt` when the site is built, not copied into this repository. The diagrams of the architecture page are drawn by **Mermaid** (MIT), which comes with the Zensical theme: the site asks no other server for anything.
 
 ## Thanks
 

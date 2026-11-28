@@ -1,5 +1,5 @@
 name: Docs site
-# The documentation as a website (GitHub Pages): built from docs/ with mkdocs.yml - see docs/maintaining.md. On main it is published, a pull request only builds
+# The documentation as a website (GitHub Pages): built from docs/ with Zensical (docs-site/build_site.py, mkdocs.yml) - see docs/maintaining.md. On main it is published, a pull request only builds
 # (a broken link is found before the merge). One-time setting by the owner: Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
 on:
   push:
@@ -25,9 +25,7 @@ jobs:
           cache: pip
           cache-dependency-path: docs-site/requirements.txt
       - run: pip install -r docs-site/requirements.txt
-      - run: mkdocs build --strict
-        env:
-          NO_MKDOCS_2_WARNING: "1"
+      - run: python docs-site/build_site.py --strict
       - uses: actions/upload-pages-artifact@v5
         if: github.event_name != 'pull_request'
         with:

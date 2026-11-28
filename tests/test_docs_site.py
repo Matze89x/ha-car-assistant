@@ -1,11 +1,13 @@
-"""The documentation website (GitHub Pages, built from docs/ with mkdocs.yml - docs/maintaining.md): the menu lists every page, the German menu has a name for
-every entry, every link either goes to a page of the site or is a full address, the Markdown reads the same in the site's reader as on GitHub, and the
-workflow publishes it. None of this needs MkDocs: the site itself is built (strictly) by .github/workflows/docs.yml."""
+"""The documentation website (GitHub Pages, built from docs/ with Zensical: docs-site/build_site.py, mkdocs.yml - docs/maintaining.md): the menu lists every
+page, the German menu has a name for every entry, every link either goes to a page of the site or is a full address, the Markdown reads the same in the site's
+reader as on GitHub, the script makes an English and a German project out of the pages, and the workflow publishes it. None of this needs Zensical: the site
+itself is built (strictly) by .github/workflows/docs.yml."""
 
 import importlib.util
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -119,25 +121,110 @@ def test_the_markdown_reads_the_same_on_github_and_on_the_site():
                 assert not LIST.match(before), f"{where}: a list in a list is indented by four spaces"
 
 
-def test_the_hooks_take_the_language_line_and_the_repository_lines_off_the_site():
-    spec = importlib.util.spec_from_file_location("docs_site_hooks", ROOT / "docs-site" / "hooks.py")
-    hooks = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(hooks)
+def _script():
+    spec = importlib.util.spec_from_file_location("docs_site_build", ROOT / "docs-site" / "build_site.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_language_line_and_the_repository_lines_stay_off_the_site():
+    tidy = _script().tidy
     english = "# Guide\n\n🇬🇧 English · [🇩🇪 Deutsch](guide.de.md)\n\nText\n"
-    assert hooks.on_page_markdown(english, None, None, None) == "# Guide\n\nText\n"
+    assert tidy(english, "en") == "# Guide\n\nText\n"
     german = "# Handbuch\n\n[🇬🇧 English](guide.md) · 🇩🇪 Deutsch\n\nText\n"
-    assert hooks.on_page_markdown(german, None, None, None) == "# Handbuch\n\nText\n"
+    assert tidy(german, "de") == "# Handbuch\n\nText\n"
     only_german = (
         "# Mitmachen\n\n[🇬🇧 English](https://example.org/CONTRIBUTING.md) · 🇩🇪 Deutsch\n"  # the English file is on GitHub: the line stays
     )
-    assert hooks.on_page_markdown(only_german, None, None, None) == only_german
+    assert tidy(only_german, "de") == only_german
     marked = "Intro\n\n<!-- repo-only:start -->\nAlso as a website.\n<!-- repo-only:end -->\n\nMore\n"
-    assert hooks.on_page_markdown(marked, None, None, None) == "Intro\n\nMore\n"
+    assert tidy(marked, "en") == "Intro\n\nMore\n"
+    # in the German project the files lose their .de: the links between German pages follow (a full address is left alone)
+    assert tidy('Siehe [Anleitung](guide.de.md#start) und [Plugins](plugins.de.md) und <a href="api.de.md">API</a>.', "de") == (
+        'Siehe [Anleitung](guide.md#start) und [Plugins](plugins.md) und <a href="api.md">API</a>.'
+    )
+    assert tidy("[Guide](guide.md)", "en") == "[Guide](guide.md)"
+
+
+def test_the_script_makes_an_english_and_a_german_project_out_of_the_pages(tmp_path):
+    script = _script()
+    config = script.read_config()
+    base = "https://matze89x.github.io/ha-car-assistant/"
+    english = script.prepare("en", tmp_path, base, config)
+    german = script.prepare("de", tmp_path, base, config)
+    pages = {p.name for p in DOCS.glob("*.md") if not p.name.endswith(".de.md")}
+    assert {p.name for p in (english / "docs").glob("*.md")} == pages
+    assert {p.name for p in (german / "docs").glob("*.md")} == pages  # the same names: page.de.md became page.md
+    assert not list((english / "docs").rglob("*.de.md")) and not list((german / "docs").rglob("*.de.md"))
+    for page in (german / "docs").rglob(
+        "*.md"
+    ):  # no link to a file that does not exist (the text of a link, or a file name in the prose, may still say .de.md)
+        targets = re.findall(r"\]\((?!https?:)([^)\s]*)", page.read_text(encoding="utf-8")) + re.findall(
+            r'href="(?!https?:)([^"]*)"', page.read_text(encoding="utf-8")
+        )
+        assert not [t for t in targets if t.split("#")[0].endswith(".de.md")], page.name
+    for folder in (english, german):
+        assert (folder / "docs" / "stylesheets" / "site.css").is_file() and (folder / "docs" / "assets" / "logo.svg").is_file()
+        assert (folder / "docs" / "screenshots").is_dir() and (folder / "docs" / "examples" / "README.md").is_file()
+        assert not [
+            p for p in (folder / "docs" / "examples").rglob("*") if p.is_file() and p.name != "README.md"
+        ]  # the example packages are code
+    for lang, folder in (("en", english), ("de", german)):
+        project = yaml.safe_load((folder / "mkdocs.yml").read_text(encoding="utf-8"))
+        assert project["theme"]["language"] == lang and project["theme"]["variant"] == "classic"
+        assert project["use_directory_urls"] is False and project["plugins"] == ["search"]
+        assert project["site_url"] == base + ("de/" if lang == "de" else "")
+        assert [a["link"] for a in project["extra"]["alternate"]] == [base, base + "de/"]
+        assert "hooks" not in project
+        toc = next(e["toc"] for e in project["markdown_extensions"] if isinstance(e, dict) and "toc" in e)
+        assert toc["slugify"] == {"object": "pymdownx.slugs.slugify", "kwds": {"case": "lower"}}  # the anchors of GitHub: the umlauts stay
+    english_menu = yaml.safe_load((english / "mkdocs.yml").read_text(encoding="utf-8"))["nav"]
+    german_menu = yaml.safe_load((german / "mkdocs.yml").read_text(encoding="utf-8"))["nav"]
+    assert next(iter(english_menu[1])) == "Use it" and next(iter(german_menu[1])) == "Benutzen"  # the menu has the German names
+    assert [f for _, f in _nav_items(german_menu) if f] == [f for _, f in _nav_items(english_menu) if f]  # ... for the same pages
+
+
+def test_the_language_selector_names_the_same_page_in_the_other_language(tmp_path):
+    script = _script()
+    (tmp_path / "de" / "examples").mkdir(parents=True)
+    (tmp_path / "examples").mkdir()
+    selector = '<a href="BASE" hreflang="en" class="md-select__link"><a href="BASE" hreflang="de" class="md-select__link"><link rel="alternate" href="BASE" hreflang="de">'
+    for name in (
+        "guide.html",
+        "de/guide.html",
+        "examples/index.html",
+        "de/examples/index.html",
+        "only-english.html",
+        "de/only-german.html",
+        "404.html",
+    ):
+        (tmp_path / name).write_text(selector, encoding="utf-8")
+    script.point_the_selector(tmp_path, "https://example.org/docs/")
+
+    def links(name):
+        return re.findall(r'href="([^"]*)" hreflang="(en|de)"', (tmp_path / name).read_text(encoding="utf-8"))
+
+    assert links("guide.html") == [("guide.html", "en"), ("de/guide.html", "de"), ("https://example.org/docs/de/guide.html", "de")]
+    assert links("de/guide.html")[:2] == [("../guide.html", "en"), ("../de/guide.html", "de")]
+    assert links("examples/index.html")[:2] == [("../examples/index.html", "en"), ("../de/examples/index.html", "de")]
+    assert links("de/examples/index.html")[:2] == [("../../examples/index.html", "en"), ("../../de/examples/index.html", "de")]
+    assert links("only-english.html")[1] == ("de/", "de")  # no German page of that name: the start page of the other language
+    assert links("de/only-german.html")[0] == ("../", "en")
+    assert links("404.html") == [("BASE", "en"), ("BASE", "de"), ("BASE", "de")]  # shown at any address: left alone
+
+
+def test_zensical_builds_both_languages_strictly_when_it_is_installed(tmp_path):
+    pytest.importorskip("zensical")
+    out = _script().make_site(tmp_path / "site", True, "https://matze89x.github.io/ha-car-assistant/")
+    for name in ("index.html", "guide.html", "de/index.html", "de/guide.html", "examples/index.html", "de/examples/index.html"):
+        assert (out / name).is_file(), name
+    assert 'hreflang="de" class="md-select__link"' in (out / "guide.html").read_text(encoding="utf-8")
 
 
 def test_the_workflow_publishes_the_site_and_the_tools_are_pinned():
     workflow = (ROOT / ".github" / "workflows" / "docs.yml").read_text(encoding="utf-8")
-    assert "mkdocs build --strict" in workflow and "actions/deploy-pages@" in workflow and "pages: write" in workflow
+    assert "python docs-site/build_site.py --strict" in workflow and "actions/deploy-pages@" in workflow and "pages: write" in workflow
     assert "if: github.event_name != 'pull_request'" in workflow  # a pull request builds, only main publishes
     for line in (ROOT / "docs-site" / "requirements.txt").read_text(encoding="utf-8").splitlines():
         if line.strip() and not line.startswith("#"):
