@@ -7,7 +7,7 @@
 [![CI](https://github.com/Matze89x/ha-car-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/Matze89x/ha-car-assistant/actions/workflows/ci.yml) [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 
 <!-- release:start -->
-[![Release](https://img.shields.io/badge/release-0.5.45%20Beta-orange.svg)](carassistant/CHANGELOG.md) The public test version. Please try it and report what you find.
+[![Release](https://img.shields.io/badge/release-0.5.46%20Beta-orange.svg)](carassistant/CHANGELOG.md) The public test version. Please try it and report what you find.
 <!-- release:end -->
 
 📷 **[Screenshots](docs/screenshots.md)** · 📖 **[Documentation website](https://matze89x.github.io/ha-car-assistant/)** · 🧭 **[Architecture](docs/architecture.md)** · 🇬🇧 English · [🇩🇪 Deutsch](README.de.md)
