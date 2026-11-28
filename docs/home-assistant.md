@@ -178,6 +178,7 @@ A tracker that only knows whether the phone is near the router (`source_type` `r
 | What you see | The reason | What to do |
 |---|---|---|
 | The line says *not recorded* | the option *Record trips from this tracker* is off - it is, until you switch it on | switch it on under *Options* of the position row |
+| The position row says *No usable coordinates in this entity* | the phone app sends only the **zone name** (the setting *Location sent* set to *Zone name only*), or the entity is a router or Bluetooth tracker | let the app send the **exact** location (the name of the setting differs a little between Android and iOS) - or choose another tracker |
 | The line says *the Trips module is off* | the module is off for this car | switch it on under *Integrations & modules* |
 | *the car moves, but the ignition entity says off* | the entity chosen as ignition does not follow the car (a door sensor, a charger, a phone that is not in the car) | choose the right one - or clear the row |
 | *the tracker reports less often than every 10 min* | a car integration that polls every 15 minutes, or an iPhone (see below) | a tracker that reports every 1-2 minutes while the car drives |

@@ -178,6 +178,7 @@ Ein Tracker, der nur weiß, ob das Handy in der Nähe des Routers ist (`source_t
 | Was du siehst | Der Grund | Was zu tun ist |
 |---|---|---|
 | Die Zeile sagt *werden nicht aufgezeichnet* | die Option *Fahrten dieses Trackers aufzeichnen* ist aus - sie ist es, bis du sie einschaltest | unter *Optionen* der Positions-Zeile einschalten |
+| Die Positions-Zeile sagt *Keine brauchbaren Koordinaten in dieser Entität* | die Handy-App sendet nur den **Zonennamen** (die Einstellung *Standort senden* steht auf *Nur Zonenname*), oder die Entität ist ein Router- oder Bluetooth-Tracker | die App den **genauen** Standort senden lassen (der Name der Einstellung weicht zwischen Android und iOS etwas ab) - oder einen anderen Tracker wählen |
 | Die Zeile sagt *das Modul „Fahrten“ ist aus* | das Modul ist für dieses Fahrzeug aus | unter *Integrationen & Module* einschalten |
 | *das Auto bewegt sich, aber die Zündungs-Entität sagt aus* | die als Zündung gewählte Entität folgt dem Auto nicht (ein Türsensor, ein Ladegerät, ein Handy, das nicht im Auto ist) | die richtige wählen - oder die Zeile leeren |
 | *der Tracker meldet seltener als alle 10 Min* | eine Auto-Integration, die alle 15 Minuten abfragt, oder ein iPhone (siehe unten) | ein Tracker, der alle 1-2 Minuten meldet, solange das Auto fährt |
