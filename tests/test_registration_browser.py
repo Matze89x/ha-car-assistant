@@ -68,14 +68,18 @@ def test_a_new_car_is_filled_in_marked_and_nothing_else_is_touched(card):
     b.wait_for("document.querySelector('[data-regscan]')", seconds=15)
     got = _scan(b, sample.data)
     for name, want in sample.truth.items():
-        if name in ("fuel_type",):
+        if name in ("fuel_type", "seats"):
             continue
         assert got["values"][name] == want, name
+    assert got["values"]["seats"] in (
+        "",
+        sample.truth["seats"],
+    )  # (the lone digit of the seats is the weakest field: empty is allowed, wrong is not)
     assert (
         got["values"]["fuel_type"] == "diesel" and got["values"]["fuel2_type"] == ""
     )  # the preset petrol of a new car counts as empty until somebody chooses
     assert got["values"]["name"] == "" and got["values"]["year"] == ""  # nothing the certificate does not say
-    assert len(got["marked"]) >= len(sample.truth) - 1  # every filled field (and the fuel tile) carries the mark
+    assert len(got["marked"]) >= len(sample.truth) - 2  # every filled field (and the fuel tile) carries the mark
     assert "Identification" in got["opened"] and "Technical" in got["opened"]  # the groups with filled fields are open
     assert got["insp"] is not None and "06/2027" in got["insp"]["text"] and got["insp"]["value"] == "2027-06"
     assert got["tone"].split()[-1] in ("ok", "warn") and "Filled in from the certificate" in got["note"]

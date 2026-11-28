@@ -44,6 +44,9 @@ VARIANTS = (
 )  # (enlargement, page layout of Tesseract, strength of the ink threshold): the readings differ, what several of them agree on counts
 ENOUGH = 12  # fields: from here on (and after three readings) a certificate is read well enough
 TEXT_FIELDS = ("make", "model", "model_type", "color")  # words: a reading that lost a letter still counts for the others
+TWICE = (
+    "seats",
+)  # a lone digit next to a small box is more often the code of a box than the seats: read once among three or more readings, it is not offered
 
 FIELDS = (
     "plate",
@@ -691,10 +694,13 @@ def merge(readings: list[dict]) -> dict:
             for value, weight in zip(values, weights, strict=True):
                 votes[value] = votes.get(value, 0) + weight
             winner = max(votes, key=votes.get)
-        out[field] = winner
         agreeing = [e for e in evidence if e[0] == winner or (field in TEXT_FIELDS and _same(e[0], winner, 0.75))]
         own = sum(1 for e in agreeing if e[2])
-        if own + (len(agreeing) - own if own else 0) < 2 and len(readings) >= 2:
+        once = own + (len(agreeing) - own if own else 0) < 2 and len(readings) >= 2
+        if once and field in TWICE and len(readings) >= 3:
+            continue  # (not even as a guess)
+        out[field] = winner
+        if once:
             unsure.append(field)
     months: dict[str, int] = {}
     for reading in readings:

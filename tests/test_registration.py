@@ -317,6 +317,17 @@ def test_a_field_that_only_one_reading_found_is_unsure():
     )  # one lost letter: the same word twice
 
 
+def test_the_seats_must_be_found_twice_or_they_are_not_offered():
+    once = registration.merge([_reading({"seats": "5", "hsn": "1111"}), _reading({"hsn": "1111"}), _reading({"hsn": "1111"})])
+    assert "seats" not in once["fields"] and once["unsure"] == []  # a lone digit among three readings: no seats rather than a wrong one
+    twice = registration.merge([_reading({"seats": "5"}), _reading({"seats": "5"}), _reading({})])
+    assert twice["fields"]["seats"] == "5" and twice["unsure"] == []
+    assert (
+        registration.merge([_reading({"seats": "5"}), _reading({})])["fields"]["seats"] == "5"
+    )  # two readings only: as every other field, offered but unsure
+    assert registration.merge([_reading({"seats": "5"}), _reading({})])["unsure"] == ["seats"]
+
+
 def test_the_date_of_the_emission_class_is_a_second_reading_of_the_first_registration():
     def reading(b=None, alt=None):
         return {"fields": {"first_reg": b} if b else {}, "inspection": "", "alt": {"first_reg": alt} if alt else {}}
