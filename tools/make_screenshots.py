@@ -396,6 +396,29 @@ def shot(base: str, path: str, out: Path, width: int, height: int, scale: int, c
             pass
 
 
+def first_start_functions(base: str, data: Path, out: Path) -> None:
+    """Step 3 of the first start - *What does this car need?* - the way a NEW car sees it: the recommended functions on, the others off. The demo cars have
+    everything on (the other pictures need every page), so for this one picture the first car hides the functions that are on request, then gets them back."""
+    from carassistant import modules
+
+    with sqlite3.connect(data / "carassistant.db") as conn:
+        first = conn.execute("SELECT id FROM vehicles WHERE archived = 0 ORDER BY id LIMIT 1").fetchone()[0]
+        key = f"modules.off.{first}"
+        before = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+        conn.execute(
+            "INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, ",".join(sorted(modules.ON_REQUEST))),
+        )
+    try:
+        shot(base, "/setup/functions", out, 500, 844, 2)
+    finally:
+        with sqlite3.connect(data / "carassistant.db") as conn:
+            if before is None:
+                conn.execute("DELETE FROM settings WHERE key = ?", (key,))
+            else:
+                conn.execute("UPDATE settings SET value = ? WHERE key = ?", (before[0], key))
+
+
 def compose(photo: bytes, screen: Path, out: Path, photo_height: int | None = 760) -> None:
     """The photo on the left, an arrow, the picture of the app on the right: what the person holds up and what the app makes of it."""
     import io
@@ -573,6 +596,9 @@ def main() -> None:
                     if not only or name in only:
                         shot(base, path, out_root / lang / f"{name}.png", w, h, 2, *crop)
                         print(lang, name, flush=True)
+                if not only or "mobile-functions" in only:
+                    first_start_functions(base, data, out_root / lang / "mobile-functions.png")
+                    print(lang, "mobile-functions", flush=True)
                 if not only or only & {
                     "import-columns",
                     "import-check",

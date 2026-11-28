@@ -2,38 +2,62 @@
 
 ![Car Assistant](docs/banner.png)
 
+<div align="center">
+
 [![CI](https://github.com/Matze89x/ha-car-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/Matze89x/ha-car-assistant/actions/workflows/ci.yml) [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
-
-📷 **[Screenshots](docs/screenshots.md)** – the app in use · 🧭 **[Architecture](docs/architecture.md)** – how everything fits together, for plugins and integrations too
-
-🇬🇧 English · [🇩🇪 Deutsch](README.de.md)
 
 <!-- release:start -->
 [![Release](https://img.shields.io/badge/release-0.5.44%20Beta-orange.svg)](carassistant/CHANGELOG.md) The public test version. Please try it and report what you find.
 <!-- release:end -->
 
-**Your car's own logbook and dashboard.** Car Assistant keeps **every document and all the data of your vehicles in one place** – papers, invoices and manuals stored digitally, plus the data of the car itself as soon as a plugin delivers it (it runs as an app inside Home Assistant) – one or many cars, combustion, hybrid or electric:
+📷 **[Screenshots](docs/screenshots.md)** · 📖 **[Documentation website](https://matze89x.github.io/ha-car-assistant/)** · 🧭 **[Architecture](docs/architecture.md)** · 🇬🇧 English · [🇩🇪 Deutsch](README.de.md)
 
-- ⛽ fuel stops and charging sessions with consumption and cost statistics, the cheapest **fuel stations nearby** in one line each
-- 🔧 service book, extra work (maintenance schedule) with reminders, appointments (MOT/TÜV, insurance) and calendar export
-- 📦 spare parts you bought (part number, shop, price, installed where)
-- 📄 all documents: manuals, invoices, insurance and registration papers
-- 🛞 tyre sets with recommended pressures per season, modifications, trips with the **route on a map coloured by speed** (GPX/CSV, PDF export)
-- 🧮 your own km counters, e.g. for the tax year
-- 📘 the **vehicle passport** with the facts you need, a VIN copy button and a list of equipment; the car's **manual** (import a PDF / EPUB / text, chapters, search, EPUB export)
-- 📍 status and location on Home (ignition, doors, tyre pressures, position with map) as soon as a plugin delivers the data
-- 🔌 **plugins connect the outside world** – a car, a manufacturer's cloud, a web service you log in to, a device: the plugin talks to the outside, Car Assistant only offers the [Plugin API](docs/api.md)
-- 🔔 reminders to your phone **per car** (web push or the Home Assistant notify service), optional sensors and the car's GPS position in Home Assistant via MQTT (off by default)
-- 📊 a **cost page** (what every car costs, by fuel, service, modifications and parts, with every entry listed) and a **trip analysis** (lengths, weekday and time of day, driving style)
-- 🤖 **MCP access for Claude**: let Claude read your records - and, if you allow it, complete or correct them - from the web chat, the desktop app or your phone; off by default, one switch, one key ([MCP access](docs/mcp.md))
-- 📱 a **web app per car** for the home screen: it opens straight on that car and shows only that car
-- 💾 backups of one car or of everything, a demo car to just have a look, language and units (metric / imperial) as you like
-- 🔐 login for access from outside (password, passkeys) – none needed inside Home Assistant; the port is off until you set it, and direct access always needs a user
-- 🎨 a design in light, dark or automatic with a colour of your own - for the whole app or for one car - and an icon per car (logo or photo in the coloured frame; favicon, iPhone and web-app icons are made for you)
+</div>
 
-Everything is modular: switch modules and integrations on or off under **Integrations**, like in Home Assistant. Data stays local, nothing goes online unless you switch it on.
+**Your car's own logbook and dashboard.** Fuel stops, service book, appointments, documents, spare parts, trips and costs – in one place, for one car or for the whole family garage, combustion, hybrid or electric. It runs as an app inside Home Assistant, and your data stays on your own server.
 
-**Built for a community.** Anyone can write a plugin and dock it on with one HTTP request – start with [Start here](docs/start-here.md). Plugins come from *sources* (a repository with an index) and can offer settings, files, pages and even a small service of their own. A service runs inside the app only after an administrator approved it – it is foreign code, so use sources you trust. New things are meant to be added without touching the core.
+<p align="center">
+  <img src="docs/screenshots/en/mobile-dashboard.png" alt="The dashboard of a car" width="250">
+  &nbsp;
+  <img src="docs/screenshots/en/mobile-functions.png" alt="First start: what does this car need?" width="250">
+  &nbsp;
+  <img src="docs/screenshots/en/mobile-more.png" alt="More: the pages of a car" width="250">
+</p>
+
+## Use as much – or as little – as you need
+
+Car Assistant is made of small **functions**, and **every car chooses its own**. Take one, a few or all of them:
+
+| If you want ... | Switch on ... |
+|---|---|
+| ⛽ **just a fuel log** | Fuel |
+| 📅 **never to miss the inspection or the insurance** | Appointments |
+| 🔧 **the service book of a car, with its receipts** | Service · Documents · Costs |
+| 🔌 **an electric car with its charging costs** | Charging · Costs |
+| 🗺️ **a logbook of your drives, on a map** | Trips · Km counters |
+| 🚗 **everything about a car in one place** | everything – and plugins for live data |
+
+The first start asks what each car needs and explains every function in one sentence. You can change it any time under **More → Integrations**: a function you switch off is only hidden, your entries stay. The pages speak the car's language – fuel for a combustion car, charging for an electric one.
+
+## What is inside
+
+- ⛽ **Fuel and charging** – every fill-up or charging session with consumption and cost; the cheapest fuel stations or the charging points nearby
+- 🔧 **Service and dates** – a service book, a maintenance plan with reminders by km and time, inspection and insurance dates with calendar export
+- 📄 **Documents** – invoices, insurance and registration papers, the car's manual (PDF, EPUB); photograph an invoice and it is read on your own server – nothing is booked by itself
+- 🛞 **Parts, tyres and modifications** – what you bought, which set is mounted, what you changed
+- 🗺️ **Trips** – the route on a map coloured by speed, GPX and CSV import, PDF export, your own km counters
+- 📊 **Costs** – what each car costs, by fuel, service, parts, modifications and fixed costs, and an analysis of your trips
+- 📘 **Vehicle passport** – the facts you need, the VIN at a tap, the list of equipment
+- 🔔 **Reminders** to your phone per car · 📱 a **web app per car** for the home screen · 🎨 light, dark or automatic, with a colour of your own
+- 💾 **Yours** – backups of one car or of everything, English and German (more languages as a file), metric or imperial, a demo car to just have a look
+
+## Connect the outside world – if you want to
+
+Car Assistant never talks to a car by itself. **Plugins** do: a car, a manufacturer's cloud, a web service you log in to, a wallbox. What they deliver (odometer, fuel level, position, doors, ...) shows up on the dashboard like data you typed in. Entities of **Home Assistant**, sensors out through **MQTT** and **MCP access for Claude** ([how](docs/mcp.md)) work the same way: optional, and off until you switch them on.
+
+Anyone can write a plugin and dock it on with one HTTP request – start with [Start here](docs/start-here.md) and the [Plugin API](docs/api.md). Plugins come from *sources* (a repository with an index). One with a small service of its own runs only after an administrator approved it – it is foreign code, so use sources you trust.
+
+**Private by default.** Your data stays local and nothing goes online unless you switch it on. Inside Home Assistant no login is needed; the port is off until you set it, and direct access always needs a user (password or passkey).
 
 ## Installation
 [![Add the repository to my Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FMatze89x%2Fha-car-assistant)
@@ -42,7 +66,11 @@ The button adds the repository to your Home Assistant; install *Car Assistant* f
 
 ## Documentation
 
-Everything exists in English and in German; switch the language at the top of any page. Read it as a **[website](https://matze89x.github.io/ha-car-assistant/)** with a menu, a search and a language switch.
+Everything exists in English and in German. Read it as a **[website](https://matze89x.github.io/ha-car-assistant/)** with a menu, a search and a language switch, or start here:
+**[User guide](docs/guide.md)** · **[Install](docs/install.md)** · **[Backups](docs/backup.md)** · **[Start here: your first plugin](docs/start-here.md)** · **[Roadmap](docs/roadmap.md)** · **[Changelog](carassistant/CHANGELOG.md)**
+
+<details>
+<summary><b>All documentation pages</b></summary>
 
 **Use it**
 
@@ -92,6 +120,8 @@ Everything exists in English and in German; switch the language at the top of an
 | [Security](SECURITY.md) | how to report a vulnerability and how the app protects you |
 | [Contributing](CONTRIBUTING.md) | how to help: rules, tests, pull requests |
 | [Changelog](carassistant/CHANGELOG.md) | what changed in which version |
+
+</details>
 
 ## Development
 ```

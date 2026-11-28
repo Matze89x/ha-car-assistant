@@ -144,6 +144,12 @@ Alles zum Auto in Gruppen, die FIN mit Kopierknopf und die Ausstattung.
 
 ![Die Coding-Seite: ein geändertes Byte als acht Bits](screenshots/de/coding.png)
 
+## Erster Start: Was braucht dieses Auto?
+
+Der dritte Schritt des ersten Starts. Jede Funktion hat eine Erklärung in einem Satz, die empfohlenen sind an und den Rest schaltest du bei Bedarf dazu. Nimm eine Funktion oder alle: Ändern kannst du das jederzeit unter *Weiteres → Integrationen*, und eine ausgeschaltete Funktion wird nur ausgeblendet - deine Einträge bleiben erhalten.
+
+<img src="screenshots/de/mobile-functions.png" alt="Erster Start: Was braucht dieses Auto?" width="260">
+
 ## Einstellungen: Benutzer, Auto, System
 
 Die Einstellungen haben drei Reiter. **Auto** betrifft das Auto unter dem Titel (Icon, Foto und Video, Design, Home-Assistant-Entitäten, Sicherung); **Benutzer** betrifft dich (Login, deine Geräte und Benachrichtigungen, ein Startlink je Auto für eine Web-App); **System** betrifft die ganze App (Sprache, Einheiten, Design, Sensoren, MCP-Zugang, Quellen, Adresse, Sicherung).

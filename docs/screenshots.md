@@ -144,6 +144,12 @@ Everything about the car in groups, the VIN with a copy button and the equipment
 
 ![The Coding page: a changed byte open as eight bits](screenshots/en/coding.png)
 
+## First start: what does this car need?
+
+The third step of the first start. Every function has a one-line explanation, the recommended ones are on and the rest is one switch away. Take one function or all of them: you can change it any time under *More → Integrations*, and a function you switch off is only hidden - your entries stay.
+
+<img src="screenshots/en/mobile-functions.png" alt="First start: what does this car need?" width="260">
+
 ## Settings: User, Car, System
 
 The settings have three tabs. **Car** is about the car shown under the title (icon, photo and video, design, Home Assistant entities, backup); **User** is about you (login, your devices and notifications, a start link per car for a web app); **System** is about the whole app (language, units, design, sensors, MCP access, sources, address, backup).

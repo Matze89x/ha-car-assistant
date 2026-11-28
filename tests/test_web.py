@@ -1007,6 +1007,29 @@ def test_setup_step_three_lists_the_recommended_first_and_the_rest_off(client):
     assert 'value="tires" checked' not in page and 'value="tires"' in page
 
 
+def test_every_function_of_the_first_start_says_in_one_short_sentence_what_it_is_for(client):
+    """Step 3 and More -> Integrations show the same line under every function: what it is and what you get, in one short sentence - in both languages and
+    in the wording of a combustion car and of an electric one."""
+    from carassistant import i18n, modules
+
+    for lang in ("en", "de"):
+        for charge in (False, True):
+            t = i18n.translator(lang, charge=charge)
+            for module in (m for m in modules.MODULES if m.scope == "vehicle"):
+                name, desc = t(f"mod.{module.key}.name"), t(f"mod.{module.key}.desc")
+                assert desc.endswith(".") and 25 <= len(desc) <= 125, (lang, charge, module.key, desc)
+                assert name.lower() not in (desc.lower().rstrip("."),), (lang, charge, module.key)  # more than the name said again
+    for lang, word in (("en", "Integrations"), ("de", "Integrationen")):
+        intro = i18n.translator(lang)("setup.fn_intro")
+        assert word in intro and ("hides" in intro or "blendet" in intro), (lang, intro)  # where to change it, and that nothing is lost
+
+
+def test_the_first_start_of_an_electric_car_uses_the_charging_words_under_its_functions(client):
+    client.post("/vehicles", data={"name": "Plug", "fuel_type": "electric", "recommended": "1"})
+    page = client.get("/setup/functions").text
+    assert "Every charging session" in page and "Every fill-up" not in page
+
+
 def test_trips_are_cards_under_period_headings_with_search_and_export_periods(client):
     from datetime import date, timedelta
 

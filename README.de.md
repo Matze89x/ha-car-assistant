@@ -2,38 +2,62 @@
 
 ![Car Assistant](docs/banner.png)
 
+<div align="center">
+
 [![CI](https://github.com/Matze89x/ha-car-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/Matze89x/ha-car-assistant/actions/workflows/ci.yml) [![Lizenz: GPL v3](https://img.shields.io/badge/Lizenz-GPLv3-blue.svg)](LICENSE)
-
-📷 **[Screenshots](docs/screenshots.de.md)** – die App im Einsatz · 🧭 **[Architektur](docs/architecture.de.md)** – wie alles zusammenhängt, auch für Plugins und Integrationen
-
-[🇬🇧 English](README.md) · 🇩🇪 Deutsch
 
 <!-- release:start -->
 [![Release](https://img.shields.io/badge/release-0.5.44%20Beta-orange.svg)](carassistant/CHANGELOG.de.md) Die öffentliche Testversion. Bitte ausprobieren und melden, was dir auffällt.
 <!-- release:end -->
 
-**Das Logbuch und Dashboard für dein Auto.** Car Assistant bewahrt **alle Dokumente und Daten deiner Fahrzeuge an einem Ort** auf – Unterlagen, Rechnungen und Handbücher digital abgelegt, dazu die Daten des Autos selbst, sobald ein Plugin sie liefert (es läuft als App in Home Assistant) – ein Auto oder mehrere, Verbrenner, Hybrid oder Elektro:
+📷 **[Screenshots](docs/screenshots.de.md)** · 📖 **[Doku-Webseite](https://matze89x.github.io/ha-car-assistant/de/)** · 🧭 **[Architektur](docs/architecture.de.md)** · [🇬🇧 English](README.md) · 🇩🇪 Deutsch
 
-- ⛽ Tankstopps und Ladevorgänge mit Verbrauchs- und Kostenstatistik, die günstigsten **Tankstellen in der Nähe** je in einer Zeile
-- 🔧 Servicebuch, Zusatzarbeiten (Wartungsplan) mit Erinnerungen, Termine (TÜV, Versicherung) und Kalenderexport
-- 📦 gekaufte Ersatzteile (Teilenummer, Shop, Preis, wo verbaut)
-- 📄 alle Dokumente: Handbücher, Rechnungen, Versicherungs- und Zulassungspapiere
-- 🛞 Reifensätze mit empfohlenem Reifendruck je Saison, Umbauten, Fahrten mit der **Route auf einer nach Tempo eingefärbten Karte** (GPX/CSV, PDF-Export)
-- 🧮 eigene Km-Zähler, z. B. für das Steuerjahr
-- 📘 der **Fahrzeugpass** mit den wichtigen Fakten, FIN-Kopierknopf und der Ausstattungsliste; das **Handbuch** des Autos (PDF / EPUB / Text importieren, Kapitel, Suche, EPUB-Export)
-- 📍 Status und Standort auf Home (Zündung, Türen, Reifendruck, Position mit Karte), sobald ein Plugin die Daten liefert
-- 🔌 **Plugins binden die Außenwelt an** – ein Auto, die Cloud eines Herstellers, einen Webdienst mit Anmeldung, ein Gerät: Das Plugin spricht mit der Außenwelt, Car Assistant bietet nur die [Plugin-API](docs/api.de.md)
-- 🔔 Erinnerungen aufs Handy **je Auto** (Web-Push oder der Home-Assistant-Benachrichtigungsdienst), auf Wunsch Sensoren und die GPS-Position des Autos in Home Assistant per MQTT (standardmäßig aus)
-- 📊 eine **Kostenseite** (was jedes Auto kostet, nach Tanken, Service, Umbauten und Teilen, mit jedem Eintrag in der Liste) und eine **Fahrten-Auswertung** (Längen, Wochentag und Tageszeit, Fahrstil)
-- 🤖 **MCP-Zugriff für Claude**: lass Claude deine Einträge lesen - und, wenn du es erlaubst, vervollständigen oder korrigieren - im Web-Chat, in der Desktop-App oder auf dem Handy; standardmäßig aus, ein Schalter, ein Schlüssel ([MCP-Zugriff](docs/mcp.de.md))
-- 📱 eine **Web-App je Auto** für den Home-Bildschirm: Sie öffnet direkt dieses Auto und zeigt nur dieses
-- 💾 Sicherungen für ein Auto oder für alles, ein Demo-Auto zum Ansehen, Sprache und Einheiten (metrisch / imperial) nach Wunsch
-- 🔐 Login für den Zugriff von außen (Passwort, Passkeys) – innerhalb von Home Assistant keiner nötig; der Port ist aus, bis du ihn setzt, und der Direktzugriff braucht immer einen Benutzer
-- 🎨 ein Design in Hell, Dunkel oder Auto mit eigener Farbe - für die ganze App oder für ein Auto - und ein Icon je Auto (Logo oder Foto im farbigen Rahmen; Favicon, iPhone- und Web-App-Icons entstehen von selbst)
+</div>
 
-Alles ist modular: Module und Integrationen schaltest du unter **Integrationen** ein oder aus, wie in Home Assistant. Die Daten bleiben lokal, nichts geht online, solange du es nicht einschaltest.
+**Das Logbuch und Dashboard für dein Auto.** Tankstopps, Servicebuch, Termine, Dokumente, Ersatzteile, Fahrten und Kosten – an einem Ort, für ein Auto oder für die ganze Familie, Verbrenner, Hybrid oder Elektro. Es läuft als App in Home Assistant, und deine Daten bleiben auf deinem eigenen Server.
 
-**Für eine Community gebaut.** Jeder kann ein Plugin schreiben und mit einer einzigen HTTP-Anfrage andocken – fang mit [Hier anfangen](docs/start-here.de.md) an. Plugins kommen aus *Quellen* (ein Repository mit Index) und können Einstellungen, Dateien, Seiten und sogar einen kleinen eigenen Dienst mitbringen. Ein Dienst läuft in der App erst, nachdem ein Administrator ihn freigegeben hat – es ist fremder Code, nimm also nur Quellen, denen du vertraust. Neues soll ohne Änderung am Kern hinzukommen.
+<p align="center">
+  <img src="docs/screenshots/de/mobile-dashboard.png" alt="Das Dashboard eines Autos" width="250">
+  &nbsp;
+  <img src="docs/screenshots/de/mobile-functions.png" alt="Erster Start: Was braucht dieses Auto?" width="250">
+  &nbsp;
+  <img src="docs/screenshots/de/mobile-more.png" alt="Weiteres: die Seiten eines Autos" width="250">
+</p>
+
+## Nimm so viel – oder so wenig – wie du brauchst
+
+Car Assistant besteht aus kleinen **Funktionen**, und **jedes Auto wählt seine eigenen**. Nimm eine, ein paar oder alle:
+
+| Du möchtest ... | Schalte ein ... |
+|---|---|
+| ⛽ **nur ein Tankbuch** | Tanken |
+| 📅 **TÜV und Versicherung nie verpassen** | Termine |
+| 🔧 **das Servicebuch eines Autos, mit den Belegen** | Service · Dokumente · Kostensicht |
+| 🔌 **ein Elektroauto mit seinen Ladekosten** | Laden · Kostensicht |
+| 🗺️ **ein Fahrtenbuch mit der Route auf der Karte** | Fahrten · Km-Zähler |
+| 🚗 **alles zu einem Auto an einem Ort** | alles – und Plugins für Live-Daten |
+
+Die Einführung beim ersten Start fragt, was jedes Auto braucht, und erklärt jede Funktion in einem Satz. Ändern kannst du das jederzeit unter **Weiteres → Integrationen**: Eine ausgeschaltete Funktion wird nur ausgeblendet, deine Einträge bleiben erhalten. Die Seiten sprechen die Sprache des Autos – Tanken beim Verbrenner, Laden beim Elektroauto.
+
+## Was drinsteckt
+
+- ⛽ **Tanken und Laden** – jede Tankung und jeder Ladevorgang mit Verbrauch und Kosten; die günstigsten Tankstellen oder die Ladepunkte in der Nähe
+- 🔧 **Service und Termine** – ein Servicebuch, ein Wartungsplan mit Erinnerungen nach km und Zeit, TÜV- und Versicherungstermine mit Kalenderexport
+- 📄 **Dokumente** – Rechnungen, Versicherungs- und Zulassungspapiere, das Handbuch des Autos (PDF, EPUB); fotografiere eine Rechnung, und sie wird auf deinem eigenen Server gelesen – gebucht wird nie von selbst
+- 🛞 **Teile, Reifen und Umbauten** – was du gekauft hast, welcher Satz montiert ist, was du geändert hast
+- 🗺️ **Fahrten** – die Route auf einer nach Tempo eingefärbten Karte, GPX- und CSV-Import, PDF-Export, eigene Km-Zähler
+- 📊 **Kosten** – was jedes Auto kostet, nach Tanken, Service, Teilen, Umbauten und Fixkosten, und eine Auswertung deiner Fahrten
+- 📘 **Fahrzeugpass** – die wichtigen Fakten, die FIN mit einem Tipp kopieren, die Ausstattungsliste
+- 🔔 **Erinnerungen** aufs Handy je Auto · 📱 eine **Web-App je Auto** für den Home-Bildschirm · 🎨 hell, dunkel oder automatisch, mit eigener Farbe
+- 💾 **Deins** – Sicherungen für ein Auto oder für alles, Deutsch und Englisch (weitere Sprachen als Datei), metrisch oder imperial, ein Demo-Auto zum Ansehen
+
+## Die Außenwelt anbinden – wenn du willst
+
+Car Assistant spricht nie von sich aus mit einem Auto. Das tun **Plugins**: ein Auto, die Cloud eines Herstellers, ein Webdienst mit Anmeldung, eine Wallbox. Was sie liefern (Kilometerstand, Tankfüllung, Position, Türen, ...), erscheint auf dem Dashboard wie Daten, die du selbst eingetippt hast. Entitäten aus **Home Assistant**, Sensoren nach draußen über **MQTT** und der **MCP-Zugriff für Claude** ([so geht's](docs/mcp.de.md)) funktionieren genauso: optional, und aus, bis du sie einschaltest.
+
+Jeder kann ein Plugin schreiben und mit einer einzigen HTTP-Anfrage andocken – fang mit [Hier anfangen](docs/start-here.de.md) und der [Plugin-API](docs/api.de.md) an. Plugins kommen aus *Quellen* (ein Repository mit Index). Eines mit einem kleinen eigenen Dienst läuft erst, nachdem ein Administrator es freigegeben hat – es ist fremder Code, nimm also nur Quellen, denen du vertraust.
+
+**Standardmäßig privat.** Deine Daten bleiben lokal, und nichts geht online, solange du es nicht einschaltest. Innerhalb von Home Assistant ist kein Login nötig; der Port ist aus, bis du ihn setzt, und der Direktzugriff braucht immer einen Benutzer (Passwort oder Passkey).
 
 ## Installation
 [![Repository zu meinem Home Assistant hinzufügen](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FMatze89x%2Fha-car-assistant)
@@ -42,7 +66,11 @@ Der Button fügt das Repository in dein Home Assistant ein; installiere dann *Ca
 
 ## Dokumentation
 
-Alles gibt es auf Englisch und auf Deutsch; oben in jeder Seite wechselst du die Sprache. Lies sie als **[Webseite](https://matze89x.github.io/ha-car-assistant/de/)** mit Menü, Suche und Sprachumschalter.
+Alles gibt es auf Englisch und auf Deutsch. Lies es als **[Webseite](https://matze89x.github.io/ha-car-assistant/de/)** mit Menü, Suche und Sprachumschalter, oder fang hier an:
+**[Benutzerhandbuch](docs/guide.de.md)** · **[Installation](docs/install.de.md)** · **[Sicherungen](docs/backup.de.md)** · **[Hier anfangen: dein erstes Plugin](docs/start-here.de.md)** · **[Roadmap](docs/roadmap.de.md)** · **[Änderungsprotokoll](carassistant/CHANGELOG.de.md)**
+
+<details>
+<summary><b>Alle Dokumentationsseiten</b></summary>
 
 **Benutzen**
 
@@ -92,6 +120,8 @@ Alles gibt es auf Englisch und auf Deutsch; oben in jeder Seite wechselst du die
 | [Sicherheit](docs/community/security.de.md) | wie du eine Schwachstelle meldest und wie die App dich schützt |
 | [Mitmachen](docs/community/contributing.de.md) | wie du hilfst: Regeln, Tests, Pull Requests |
 | [Änderungsprotokoll](carassistant/CHANGELOG.de.md) | was sich in welcher Version geändert hat |
+
+</details>
 
 ## Entwicklung
 ```

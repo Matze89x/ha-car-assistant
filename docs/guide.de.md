@@ -15,7 +15,7 @@ Jede Einstellung liegt auf genau einer Ebene, du weißt also immer, wo du suchen
 Jede Seite beginnt mit demselben Kopf: Symbol und Name der Seite, darunter der Name des Autos, rechts runde Symbolknöpfe (Hinzufügen, Bearbeiten, Export ...; fahre mit dem Zeiger darüber, um den Namen zu lesen). Direkt darunter, an **einer festen Stelle**, steht die *Hinweis-Kachel*: die kurze Einleitung der Seite mit einem ⓘ und – wenn nötig – die Meldungen: *Gespeichert* (grün, blendet aus), Warnungen (gelb) und Fehler (rot). Alles Weitere folgt auf jeder Seite in derselben Reihenfolge mit demselben Abstand.
 
 ## Erster Start
-Eine kurze Einführung fragt nach der Sprache, dann nach deinem ersten Auto (oder einem Demo-Auto) und danach, welche Funktionen du möchtest. Alles lässt sich später ändern.
+Eine kurze Einführung fragt nach der Sprache, dann nach deinem ersten Auto (oder einem Demo-Auto) und danach, was dieses Auto braucht: Jede Funktion hat eine Erklärung in einem Satz, die empfohlenen sind an, und du kannst eine Funktion oder alle nehmen. Alles lässt sich später unter *Weiteres → Integrationen* ändern; eine ausgeschaltete Funktion wird nur ausgeblendet, deine Einträge bleiben erhalten.
 
 ## Dashboard
 *Dashboard anpassen* lässt dich Widgets verschieben, ausblenden und in der Größe ändern (der Stift eines Widgets öffnet seine Einstellungen: das Aussehen des Kilometerstands, die Spalten von *Fahrzeugmeldungen* und *Braucht Aufmerksamkeit*), *Video oder Foto bearbeiten* öffnet das Bild-Fenster. Jede Änderung wird sofort gespeichert: ein Tipp auf die Seite neben den Widgets (oder Escape) beendet das Bearbeiten - es gibt nichts zu bestätigen.

@@ -36,6 +36,23 @@ def test_the_screenshot_pages_point_to_existing_pictures():
             assert (ROOT / "docs" / pic).is_file(), (page, pic)
 
 
+def test_the_start_pages_show_pictures_of_their_own_language_and_every_link_leads_somewhere():
+    """The first page on GitHub: the banner and three phone pictures - from the folder of its own language (no English picture on the German page) - each with
+    a description for screen readers, and every link to a file of the repository finds its file."""
+    for readme, lang in (("README.md", "en"), ("README.de.md", "de")):
+        text = (ROOT / readme).read_text(encoding="utf-8")
+        pictures = re.findall(r'(?:\]\(|src=")(docs/[^)"\s]+\.png)', text)
+        assert len(pictures) >= 4, readme
+        for pic in pictures:
+            assert (ROOT / pic).is_file(), (readme, pic)
+            if pic.startswith("docs/screenshots/"):
+                assert pic.startswith(f"docs/screenshots/{lang}/"), (readme, pic)
+        assert not re.findall(r"<img(?![^>]*\balt=\"[^\"]+\")", text), f"{readme}: a picture without a description"
+        for link in re.findall(r"\]\(([^)\s]+)\)", text) + re.findall(r'href="([^"]+)"', text):
+            if not link.startswith(("https://", "http://", "#", "mailto:")):
+                assert (ROOT / link.split("#")[0]).exists(), (readme, link)
+
+
 def test_relative_links_in_the_docs_point_to_existing_files():
     for page in sorted((ROOT / "docs").rglob("*.md")):
         text = page.read_text(encoding="utf-8")

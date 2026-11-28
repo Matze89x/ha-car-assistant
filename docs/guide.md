@@ -15,7 +15,7 @@ Every setting lives on exactly one level, so you always know where to look. *Set
 Each page starts with the same header: the page's symbol and name, the car's name below it, and at the right round icon buttons (add, edit, export ...; hold the pointer over one to read its name). Directly under it, in **one fixed place**, sits the *notice tile*: the short introduction of the page with an ⓘ, and - when needed - the messages: *Saved* (green, fades away), warnings (yellow) and errors (red). Everything else follows in the same order on every page, with the same spacing.
 
 ## First start
-A short guide asks for a language, then your first car (or a demo car), then which functions you want. You can change all of it later.
+A short guide asks for a language, then your first car (or a demo car), then what that car needs: every function has a one-line explanation, the recommended ones are on, and you can take one function or all of them. You can change all of it later under *More → Integrations*; a function you switch off is only hidden, your entries stay.
 
 ## Dashboard
 *Customise dashboard* lets you move, hide and resize the widgets (the pencil of a widget opens its settings: the look of the odometer, the columns of *Vehicle messages* and *Needs attention*), and *Edit video or photo* opens the picture window. Every change is saved at once: tap on the page beside the widgets (or press Escape) and the editing is finished - there is nothing to confirm.
