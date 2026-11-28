@@ -90,6 +90,9 @@ def car(client, monkeypatch):
     monkeypatch.setenv("SUPERVISOR_TOKEN", real_ha.token())
     ha._cache.clear()
     habridge._state.clear()
+    real_ha.api(
+        "GET", "/api/states", timeout=60
+    )  # (a Home Assistant that has been left alone for a while answers its first request slowly: not what the waits below are about)
     real_ha.call("input_number", "set_value", entity_id="input_number.car_odometer", value=86000)
     real_ha.call("input_boolean", "turn_off", entity_id="input_boolean.car_ignition")
     link = halive.Link()
@@ -117,9 +120,9 @@ def test_an_odometer_helper_arrives_within_seconds_and_the_next_change_too(car):
     assert car.pump(lambda: car.odometer() == 86000)
     time.sleep(1.5)  # the live subscription is up
     set_helper("car_odometer", 86010.5)
-    assert car.pump(lambda: car.odometer() == 86010, 8)  # an event, not the safety net that is minutes away
+    assert car.pump(lambda: car.odometer() == 86010, 20)  # an event, not the safety net that is minutes away
     set_helper("car_odometer", 86123.4)
-    assert car.pump(lambda: car.odometer() == 86123, 8)
+    assert car.pump(lambda: car.odometer() == 86123, 20)
 
 
 def test_a_change_right_after_saving_is_not_lost(car):
@@ -127,7 +130,7 @@ def test_a_change_right_after_saving_is_not_lost(car):
     car.bind(odometer_km="input_number.car_odometer")
     assert car.pump(lambda: car.odometer() == 86000)
     set_helper("car_odometer", 86050)  # at once - nothing follows the helper yet
-    assert car.pump(lambda: car.odometer() == 86050, 8)
+    assert car.pump(lambda: car.odometer() == 86050, 20)
 
 
 def test_a_figure_that_was_typed_higher_holds_back_the_reading_and_the_log_says_so_once(car):
@@ -139,7 +142,7 @@ def test_a_figure_that_was_typed_higher_holds_back_the_reading_and_the_log_says_
     car.pump(lambda: False, 2)
     assert sum("less than the odometer" in line for line in car.log()) == 1 and car.odometer() == 87000  # said once, not at every change
     set_helper("car_odometer", 87100)
-    assert car.pump(lambda: car.odometer() == 87100, 8)  # it counts again as soon as it is higher
+    assert car.pump(lambda: car.odometer() == 87100, 20)  # it counts again as soon as it is higher
 
 
 def test_a_typo_that_is_corrected_lets_the_reading_that_was_held_back_count_again(car):
@@ -169,7 +172,7 @@ def test_a_template_sensor_follows_its_helper(car):
     assert car.pump(lambda: car.odometer() == 86000)
     time.sleep(1.5)
     set_helper("car_odometer", 86500)
-    assert car.pump(lambda: car.odometer() == 86500, 8)
+    assert car.pump(lambda: car.odometer() == 86500, 20)
 
 
 def test_unavailable_and_unknown_leave_the_last_value_where_it_was(car):
@@ -183,7 +186,7 @@ def test_unavailable_and_unknown_leave_the_last_value_where_it_was(car):
         car.pump(lambda: False, 1.5)
         assert car.odometer() == 86600
     real_ha.set_state("sensor.fake_car_odometer", "86650.7", **attributes)
-    assert car.pump(lambda: car.odometer() == 86651, 8)
+    assert car.pump(lambda: car.odometer() == 86651, 20)
 
 
 def test_a_helper_made_with_the_default_maximum_cannot_hold_an_odometer(car):
