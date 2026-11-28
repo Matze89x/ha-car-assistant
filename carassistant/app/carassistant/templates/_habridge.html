@@ -21,11 +21,16 @@
     <label>{{ _('hab.opt.above') }}<input type="text" inputmode="decimal" name="{{ prefix }}above" value="{{ row.opts.above if row.opts.above is defined else '' }}" maxlength="14" autocomplete="off" placeholder="0"></label>
     {% if s.kind == 'warning' %}<label class="hb-wide">{{ _('hab.opt.text') }}<input type="text" name="{{ prefix }}text" value="{{ row.opts.text if row.opts.text is defined else '' }}" maxlength="120" autocomplete="off" placeholder="{{ _('hab.opt.text_ph') }}"></label>{% endif %}
     {{ switch_row(prefix ~ 'invert', _('hab.opt.invert'), row.opts.invert) }}
+    {% elif s.state %}
+    {% for st in s.states %}<label class="hb-wide">{{ _('hab.opt.words_' ~ st) }}<input type="text" name="{{ prefix }}w_{{ st }}" value="{{ row.words.get(st, '') }}" maxlength="200" autocomplete="off" spellcheck="false"></label>{% endfor %}
+    {% elif s.fault %}
+    {{ switch_row(prefix ~ 'invert', _('hab.opt.invert'), row.opts.invert) }}
     {% elif s.kind == 'position' and s.key == 'position' %}
     {{ switch_row(prefix ~ 'track', _('hab.opt.track'), row.opts.track) }}
     {% endif %}
   </div>
-  <p class="hint">{{ icon('info', 14) }} {{ _('hab.opt.hint_number' if s.number else ('hab.opt.hint_track' if s.kind == 'position' and s.key == 'position' else 'hab.opt.hint_flag')) }}</p>
+  {% set hint = 'hab.opt.hint_number' if s.number else ('hab.opt.hint_track' if s.kind == 'position' and s.key == 'position' else ('hab.opt.hint_state' if s.state else ('hab.opt.hint_fault' if s.fault else ('hab.opt.hint_label' if s.kind == 'label' else 'hab.opt.hint_flag')))) %}
+  <p class="hint">{{ icon('info', 14) }} {{ _(hint) }}</p>
 </details>
 {%- endmacro %}
 {% macro value_row(s) %}

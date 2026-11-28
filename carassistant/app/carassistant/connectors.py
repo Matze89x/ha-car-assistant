@@ -160,6 +160,22 @@ def _num(data: dict, key: str, low: float, high: float) -> float | None:
     return float(value)
 
 
+def _text(data: dict, key: str, limit: int, words: tuple[str, ...] | None) -> str | None:
+    """A short text of the body: control characters and double blanks are dropped, the length is limited; with ``words`` only those are allowed.
+    None = not sent; an empty text is a text (it empties the value)."""
+    if key not in data or data[key] is None:
+        return None
+    value = data[key]
+    if not isinstance(value, str):
+        raise ApiError("invalid_value", f"'{key}' must be text.", 422)
+    value = " ".join(word for word in ("".join(c for c in w if c.isprintable()) for w in value.split()) if word)
+    if len(value) > limit:
+        raise ApiError("invalid_value", f"'{key}' may be at most {limit} characters long.", 422)
+    if words is not None and value not in words:
+        raise ApiError("invalid_value", f"'{key}' must be one of: {', '.join(words)}.", 422)
+    return value
+
+
 ENERGY_KEYS = ("fuel_level", "battery_pct", "fuel_amount", "range_km")  # readings that tell how full the tank or battery is
 WATCHED = ("fuel_level", "charging", "battery_pct", "charge_power_kw")  # readings whose change can mean a refuel or a charging session
 
@@ -256,8 +272,24 @@ NUMBERS = {
     "adblue_range_km": ("adblue_range_km", 0, 50000),
     "oil_level_pct": ("oil_level_pct", 0, 100),
     "speed_limit_kmh": ("speed_limit_kmh", 0, 250),  # the limit the car currently reads from signs / navigation
+    # what a wallbox knows beyond the power (all optional: a wallbox integration of Home Assistant brings some of them)
+    "charge_session_kwh": ("charge_session_kwh", 0, 5000),  # energy of the current (or the last) session, as the wallbox counts it
+    "charge_session_minutes": ("charge_session_minutes", 0, 100000),  # how long that session has run
+    "charge_voltage_v": ("charge_voltage_v", 0, 1000),
+    "charge_current_a": ("charge_current_a", 0, 1000),  # the current that flows (one phase, or the mean of the phases)
+    "charge_phases": ("charge_phases", 0, 3),  # phases in use
+    "charge_current_limit_a": ("charge_current_limit_a", 0, 1000),  # the limit that is set on the wallbox
+    "charge_total_kwh": ("charge_total_kwh", 0, 1e9),  # the counter of the wallbox over its whole life: it only grows
+    "charge_temp_c": ("charge_temp_c", -60, 200),  # the temperature of the wallbox
 }
 BOOLS = ("charging", "plugged", "climate_on", "parking_brake", "oil_warning")  # stored as yes / no
+CHARGE_STATES = ("unplugged", "plugged", "waiting", "charging", "finished", "fault")  # the words of a wallbox, in one vocabulary
+# short texts: api key -> (live key, longest, the only words allowed or None)
+TEXTS = {
+    "charge_state": ("charge_state", 12, CHARGE_STATES),
+    "charge_mode": ("charge_mode", 40, None),  # the mode the wallbox is in, in its own word (Solar, Fast, Plan ...)
+    "charge_fault": ("charge_fault", 120, None),  # what is wrong, in the wallbox's own words; empty = nothing
+}
 TYRES = ("fl", "fr", "rl", "rr")  # front left, front right, rear left, rear right
 KNOWN = {
     "measured_at",
@@ -273,6 +305,7 @@ KNOWN = {
     "tyre_pressure_bar",
     *BOOLS,
     *NUMBERS,
+    *TEXTS,
 }
 LOG_LEVELS = ("debug", "info", "warn", "error")
 MAX_LOG_LINES = 50  # per request
@@ -857,6 +890,9 @@ def snapshot(conn: sqlite3.Connection, vehicle_id: int) -> dict:
     for key in BOOLS:
         if rows.get(key, (None,))[0] in ("yes", "no"):
             data[key], updated[key] = rows[key][0] == "yes", rows[key][1]
+    for api_key, (live_key, _limit, _words) in TEXTS.items():
+        if rows.get(live_key, (None,))[0]:
+            data[api_key], updated[api_key] = rows[live_key][0], rows[live_key][1]
     tyres = status.parse_numbers(rows["tyre_pressure_bar"][0]) if "tyre_pressure_bar" in rows else {}
     if tyres:
         data["tyre_pressure_bar"], updated["tyre_pressure_bar"] = tyres, rows["tyre_pressure_bar"][1]
@@ -933,6 +969,7 @@ def _ingest(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str) 
     for key, value in bools.items():
         if value is not None and not isinstance(value, bool):
             raise ApiError("invalid_value", f"'{key}' must be true or false.", 422)
+    texts = {key: _text(data, key, limit, words) for key, (_live, limit, words) in TEXTS.items()}
     tyres = _merged_tyres(conn, vehicle_id, data)
     ign = data.get("ignition")
     if ign is not None and not isinstance(ign, bool):
@@ -981,6 +1018,10 @@ def _ingest(conn: sqlite3.Connection, vehicle_id: int, data: dict, source: str) 
     for key, value in bools.items():
         if value is not None:
             _store(conn, vehicle_id, key, "yes" if value else "no", at)
+            result[key] = "stored"
+    for key, text in texts.items():
+        if text is not None:
+            _store(conn, vehicle_id, TEXTS[key][0], text, at)
             result[key] = "stored"
     if tyres is not None:
         _store(conn, vehicle_id, "tyre_pressure_bar", json.dumps(tyres, sort_keys=True), at)

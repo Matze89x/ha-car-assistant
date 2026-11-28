@@ -66,6 +66,8 @@ UNITS: dict[str, dict[str, tuple]] = {
     | {"mwh": (1000, 0)},
     "°C": {"°c": (1, 0), "°f": (5 / 9, -160 / 9), "k": (1, -273.15)},
     "V": {"v": (1, 0), "mv": (0.001, 0), "kv": (1000, 0)},
+    "A": {"a": (1, 0), "ma": (0.001, 0)},
+    "kWh": {"kwh": (1, 0), "wh": (0.001, 0), "mwh": (1000, 0)},
     "min": {"min": (1, 0), "s": (1 / 60, 0), "ms": (1 / 60000, 0), "h": (60, 0), "d": (1440, 0)},
     "d": {"d": (1, 0), "h": (1 / 24, 0), "min": (1 / 1440, 0), "s": (1 / 86400, 0)},
     "%": {"%": (1, 0)},
@@ -83,6 +85,8 @@ UNIT_CHOICES: dict[str, tuple[str, ...]] = {
     "l": ("l", "ml", "gal", "kWh", "Wh"),
     "°C": ("°C", "°F", "K"),
     "V": ("V", "mV"),
+    "A": ("A", "mA"),
+    "kWh": ("kWh", "Wh", "MWh"),
     "min": ("min", "s", "h", "d"),
     "d": ("d", "h", "min"),
     "l/100km": ("l/100km", "kWh/100km", "Wh/km", "km/l", "mpg", "mi/kWh"),
@@ -324,7 +328,126 @@ def read_position(slot: cat.Slot, state: dict, opts: dict) -> Reading:
     return Reading(ok=True, value=(round(lat, 6), round(lon, 6)), raw=f"{lat:.5f}, {lon:.5f}")
 
 
+# what the word of a wallbox says (the six states of ``charge_state``): the words of the integrations people use - OCPP (Available, Preparing, Charging,
+# SuspendedEV, SuspendedEVSE, Finishing, Faulted), go-e (Idle, Charging, WaitCar, Complete, Error), Easee (disconnected, awaiting_start, charging,
+# completed, error), the states A to F of IEC 61851 (A no car, B plugged in, C charging, E / F fault) and plain words, a few of them German.
+# Compared in lower case with blanks, dashes and dots turned into _. What is not here is named by the person (the options of the row).
+STATE_WORDS: dict[str, tuple[str, ...]] = {
+    "unplugged": (
+        *(
+            "unplugged",
+            "not_plugged",
+            "disconnected",
+            "not_connected",
+            "cable_disconnected",
+            "no_vehicle",
+            "no_car",
+            "vehicle_not_connected",
+        ),
+        *("available", "idle", "free", "standby", "a", "a1", "a2", "state_a", "getrennt", "nicht_verbunden", "kein_auto", "frei"),
+    ),
+    "plugged": (
+        *("plugged", "plugged_in", "connected", "cable_connected", "vehicle_connected", "car_connected", "vehicle_detected", "preparing"),
+        *("ready", "ready_to_charge", "b", "b1", "b2", "state_b", "angesteckt", "verbunden", "bereit"),
+    ),
+    "waiting": (
+        *("waiting", "waiting_for_car", "waiting_for_car_demand", "wait_car", "waitcar", "waiting_for_vehicle", "awaiting_start"),
+        *("awaiting_authorization", "waiting_for_authorization", "authorization_required", "authorizing", "waiting_for_next_schedule"),
+        *("scheduled", "delayed", "paused", "pause", "suspended", "suspended_ev", "suspendedev", "suspended_evse", "suspendedevse"),
+        *("charging_paused", "pending", "waiting_for_sun", "waiting_for_surplus", "locked", "stopped", "blocked", "wartet", "pausiert"),
+    ),
+    "charging": (
+        *("charging", "charge", "in_charge", "charging_active", "c", "c1", "c2", "d", "state_c", "state_d", "fast_charging", "ev_charging"),
+        *("supplying_energy", "l\u00e4dt", "laden", "ladevorgang"),
+    ),
+    "finished": (
+        *("finished", "finishing", "complete", "completed", "charge_complete", "charging_complete", "charged", "fully_charged", "full"),
+        *("done", "charging_finished", "end_of_charge", "fertig", "abgeschlossen", "voll"),
+    ),
+    "fault": (
+        *("fault", "faulted", "error", "failure", "failed", "alarm", "e", "f", "state_e", "state_f", "emergency", "malfunction", "problem"),
+        *("fehler", "st\u00f6rung"),
+    ),
+}
+STATE_OF_WORD = {word: state for state, words in STATE_WORDS.items() for word in words}
+# a text that says "nothing is wrong"
+NO_FAULT = {
+    "none",
+    "no_error",
+    "no_errors",
+    "no_fault",
+    "no_faults",
+    "ok",
+    "normal",
+    "off",
+    "false",
+    "no",
+    "0",
+    "clear",
+    "idle",
+    "ready",
+    "kein_fehler",
+}
+# a wallbox that says what it does also says whether the car is plugged in (a fault says nothing about the cable)
+PLUGGED_BY_STATE = {"unplugged": False, "plugged": True, "waiting": True, "charging": True, "finished": True}
+
+
+def _word(text: object) -> str:
+    return re.sub(r"[\s\-./:]+", "_", str(text).strip().lower()).strip("_")
+
+
+def read_state(slot: cat.Slot, state: dict, opts: dict) -> Reading:
+    """The word of a wallbox as one of the six states (``connectors.CHARGE_STATES``): the person's own words first, then the usual ones."""
+    value, _unit = _source(state, opts)
+    text = str(value).strip()
+    key = _word(text)
+    for name, words in (opts.get("words") or {}).items():
+        if key in {_word(w) for w in words}:
+            return Reading(ok=True, value=name, raw=text[:40])
+    found = STATE_OF_WORD.get(key)
+    if found is None:
+        raise _Problem("words", text[:30])
+    return Reading(ok=True, value=found, raw=text[:40])
+
+
+def read_label(slot: cat.Slot, state: dict, opts: dict) -> Reading:
+    """A short word as it is: the mode a wallbox is in."""
+    value, _unit = _source(state, opts)
+    text = " ".join(str(value).split())[:40]
+    if not text:
+        raise _Problem("unavailable")
+    return Reading(ok=True, value=text, raw=text)
+
+
+def read_fault(slot: cat.Slot, state: dict, opts: dict) -> Reading:
+    """What is wrong with the wallbox: a text sensor (its words, or ``none``) or a yes / no of the class *problem* (the name of the entity then). The value is
+    the text - empty while nothing is wrong, which is a reading, too: it takes the old fault away. (``none`` and an empty state say that nothing is wrong;
+    only ``unavailable`` and ``unknown`` say that nothing is known.)"""
+    attrs = state.get("attributes") or {}
+    if opts.get("attribute"):
+        if opts["attribute"] not in attrs:
+            raise _Problem("attribute", opts["attribute"])
+        value = attrs[opts["attribute"]]
+    else:
+        value = state.get("state")
+    text = " ".join(str(value if value is not None else "").split())
+    key = _word(text)
+    if key in ("unavailable", "unknown", "nan", "null"):
+        raise _Problem("unavailable")
+    limit = connectors.TEXTS["charge_fault"][1]
+    if str(state.get("entity_id") or "").split(".")[0] in ("binary_sensor", "switch", "input_boolean") or key in ("on", "true", "yes"):
+        on = key in ("on", "true", "yes", "1", "problem", "detected")
+        if opts.get("invert"):
+            on = not on
+        name = " ".join(str(attrs.get("friendly_name") or "").split())
+        return Reading(ok=True, value=(name or "Fault")[:limit] if on else "", raw=text[:40])
+    return Reading(ok=True, value="" if key in NO_FAULT or not key else text[:limit], raw=text[:40])
+
+
 READERS = {
+    "state": read_state,
+    "label": read_label,
+    "fault": read_fault,
     "number": read_number,
     "tyre": read_number,
     "coord": read_number,
@@ -387,8 +510,11 @@ def bindings(conn, addon_pk: int) -> dict[str, dict]:
 
 
 def fields_bound(bound: dict[str, dict]) -> set[str]:
-    """The interfaces (fields of the Plugin API) these bindings fill."""
-    return {slot.field for key in bound if (slot := split(key)[0]) is not None}
+    """The interfaces (fields of the Plugin API) these bindings fill. A wallbox state also makes *Charging* and *Plugged in* (unless they have rows of their own)."""
+    fields = {slot.field for key in bound if (slot := split(key)[0]) is not None}
+    if "charge_state" in bound:
+        fields |= {"charging", "plugged"}
+    return fields
 
 
 def clean_stored(slot_key, entity, options) -> dict | None:
@@ -406,8 +532,12 @@ def clean_stored(slot_key, entity, options) -> dict | None:
     form = {
         f"x.{k}": (", ".join(map(str, v)) if isinstance(v, list) else ("1" if v is True else str(v)))
         for k, v in raw.items()
-        if v is not False
+        if v is not False and k != "words"
     }
+    if isinstance(raw.get("words"), dict):
+        for name, words in raw["words"].items():
+            if name in connectors.CHARGE_STATES and isinstance(words, list):
+                form[f"x.w_{name}"] = ", ".join(str(w) for w in words)
     cleaned, why = parse_options(form, "x.", slot)
     return {"entity": entity, "options": {} if why else cleaned}
 
@@ -441,6 +571,20 @@ def _position_of_halves(readings: dict[str, Reading]) -> dict[str, Reading]:
         )
     else:
         out["position"] = lat if not lat.ok else lon  # what is wrong with one half is what the page shows
+    return out
+
+
+def _charge_of_state(readings: dict[str, Reading], bound: dict[str, dict]) -> dict[str, Reading]:
+    """A wallbox that says one word for what it does (*State of the wallbox*) also tells whether the car is charging and whether it is plugged in - for
+    the interfaces the person did not bind to an entity of their own."""
+    state = readings.get("charge_state")
+    if state is None or not state.ok:
+        return readings
+    out = dict(readings)
+    if "charging" not in bound:
+        out["charging"] = Reading(ok=True, value=state.value == "charging", raw=state.raw, at=state.at)
+    if "plugged" not in bound and state.value in PLUGGED_BY_STATE:
+        out["plugged"] = Reading(ok=True, value=PLUGGED_BY_STATE[state.value], raw=state.raw, at=state.at)
     return out
 
 
@@ -593,7 +737,7 @@ def run(addon: dict, states: dict[str, dict] | None, st: dict, now: float | None
         slot, name = split(key)
         if slot is not None:
             readings[key] = read(slot, binding["entity"], binding["options"], states, name)
-    effective = _position_of_halves(readings)
+    effective = _charge_of_state(_position_of_halves(readings), bound)
     fresh = {k: r for k, r in effective.items() if r.ok and st["sent"].get(k) != (r.value, r.at)}
     started = time.monotonic()
     stored = 0
@@ -826,6 +970,12 @@ def describe(slot: cat.Slot, reading: Reading | None, t) -> dict:
     elif slot.kind in ("bool", "closure", "warning"):
         text = t(f"hab.v.{slot.truth or 'on'}.{1 if reading.value else 0}")
         origin = t("hab.state", raw=reading.raw) if reading.raw else ""
+    elif slot.kind == "state":
+        text = t(f"hab.cs.{reading.value}")
+        origin = t("hab.state", raw=reading.raw) if reading.raw else ""
+    elif slot.kind == "fault":
+        text = str(reading.value) or t("hab.nofault")
+        origin = t("hab.state", raw=reading.raw) if reading.raw and reading.value else ""
     else:
         text, origin = str(reading.raw), ""
     return {"level": "ok", "text": text, "from": origin}
@@ -883,6 +1033,18 @@ def parse_options(form: dict, prefix: str, slot: cat.Slot) -> tuple[dict, str]:
         text = " ".join(str(form.get(prefix + "text") or "").split())[: connectors.MAX_WARNING_TEXT]
         if text:
             opts["text"] = text
+    if slot.kind == "fault" and str(form.get(prefix + "invert") or "") in ("1", "on", "true"):
+        opts["invert"] = True  # for a yes / no whose "on" means that everything is fine
+    if slot.kind == "state":
+        words: dict[str, list[str]] = {}
+        for name in connectors.CHARGE_STATES:  # the words of this wallbox for each state; the usual ones are understood without them
+            listed = [w.strip() for w in re.split(r"[,;\n]", str(form.get(prefix + "w_" + name) or "")) if w.strip()]
+            if len(listed) > MAX_YES or any(len(w) > 40 for w in listed):
+                return {}, "hab.err_words"
+            if listed:
+                words[name] = listed
+        if words:
+            opts["words"] = words
     if slot.key == "position" and str(form.get(prefix + "track") or "") in ("1", "on", "true"):
         opts["track"] = True  # the drives of this tracker become trips (see _record_track)
     return opts, ""
@@ -1025,6 +1187,9 @@ def _typed_options(form: dict, prefix: str, slot: cat.Slot) -> dict:
         opts["invert"] = True
     if str(form.get(prefix + "track") or "") in ("1", "on", "true"):
         opts["track"] = True
+    words = {n: v for n in connectors.CHARGE_STATES if (v := str(form.get(prefix + "w_" + n) or "").strip())}
+    if words:
+        opts["words"] = words
     return opts
 
 
@@ -1071,6 +1236,9 @@ def page_model(
                 "units": UNIT_CHOICES.get(slot.unit, ()),
                 "taken": owner["name"] if owner and owner["pk"] != addon["id"] else "",
                 "flag": slot.kind in ("bool", "closure", "warning"),
+                "state": slot.kind == "state",
+                "states": connectors.CHARGE_STATES if slot.kind == "state" else (),
+                "fault": slot.kind == "fault",
                 "number": slot.kind in ("number", "tyre", "coord"),
                 "list": slot.kind in cat.LIST_KINDS,
                 "names": cat.CLOSURE_NAMES.get(slot.key, ()),
@@ -1118,7 +1286,15 @@ def page_model(
 
 
 def _empty_row() -> dict:
-    return {"entity": "", "name": "", "opts": {}, "yes": "", "friendly": "", "status": {"level": "idle", "text": "", "from": ""}}
+    return {
+        "entity": "",
+        "name": "",
+        "opts": {},
+        "words": {},
+        "yes": "",
+        "friendly": "",
+        "status": {"level": "idle", "text": "", "from": ""},
+    }
 
 
 def _row(slot: cat.Slot, name: str, binding: dict | None, states: dict[str, dict] | None, t, live: bool = True) -> dict:
@@ -1126,10 +1302,12 @@ def _row(slot: cat.Slot, name: str, binding: dict | None, states: dict[str, dict
     entity = binding["entity"] if binding else ""
     state = (states or {}).get(entity) or {}
     yes = opts.get("yes", "")
+    words = opts.get("words") if isinstance(opts.get("words"), dict) else {}
     return {
         "entity": entity,
         "name": name,
         "opts": opts,
+        "words": {n: (", ".join(w) if isinstance(w, list) else str(w)) for n, w in words.items()},
         "yes": ", ".join(yes) if isinstance(yes, list) else str(yes),
         "friendly": str((state.get("attributes") or {}).get("friendly_name") or ""),
         "status": describe(slot, read(slot, entity, opts, states, name), t) if entity and live else _empty_row()["status"],

@@ -14,7 +14,7 @@ Es arbeitet im **Home-Assistant-Add-on** (die App spricht über den Supervisor m
 ## Einrichten
 
 1. *Fahrzeug → Weiteres → Plugins → Hinzufügen* und **Home Assistant** aus deiner Quelle nehmen (oder das Beispiel [`examples/home-assistant/plugin.json`](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/home-assistant/plugin.json) hochladen).
-2. Die Einstellungen öffnen. Die Seite listet die Schnittstellen in Gruppen: *Fahrzeug*, *Kraftstoff und Reichweite*, *Batterie und Laden*, *Türen, Fenster und Schloss*, *Position*, *Reifen*, *Temperaturen und Klima*, *Service und Warnungen*.
+2. Die Einstellungen öffnen. Die Seite listet die Schnittstellen in Gruppen: *Fahrzeug*, *Kraftstoff und Reichweite*, *Batterie und Laden*, *Wallbox*, *Türen, Fenster und Schloss*, *Position*, *Reifen*, *Temperaturen und Klima*, *Service und Warnungen*.
 3. In das Feld einer Schnittstelle klicken: Es öffnet sich eine Liste **wahrscheinlicher Entitäten**. Zum Eingrenzen tippen, eine anklicken.
 4. Die Zeile unter dem Feld sagt, **was die Entität jetzt liefert** (`64 %`, `7,4 kW aus 7400 W`, `Verriegelt`). Speichern.
 
@@ -56,6 +56,24 @@ Wo die Entität es nicht in Worten sagt, die Car Assistant kennt, helfen die Opt
 ### Optionen einer Zeile
 
 Selten nötig, eingeklappt, bis du eine Entität gewählt hast: **Attribut** (dieses Attribut der Entität statt ihres Zustands lesen - die Temperatur einer Klima-Entität, den Kurs eines Trackers), **Einheit**, **Faktor** und **Versatz** (`Wert × Faktor + Versatz`, zuletzt angewendet), **Zustände, die Ja bedeuten**, **Ja über**, **Umkehren** und bei einer Warnung der **Angezeigte Text**.
+
+### Eine Wallbox
+
+Die Gruppe **Wallbox** bringt, was eine Wallbox außer ihrer Leistung weiß. Alles darin ist freiwillig - binde, was dein Home Assistant hat:
+
+| Schnittstelle | Eine Entität aus ... | Wofür |
+|---|---|---|
+| *Zustand der Wallbox* | ein Statussensor oder ein Helfer, der das Wort hält (`sensor`, `select`, `input_select`, `text`, `input_text`) | ein Wort für das, was die Wallbox tut: **Kein Auto, Angesteckt, Wartet, Lädt, Fertig, Störung** |
+| *Energie dieser Ladung*, *Zähler der Wallbox* | `sensor`, `number`, `input_number` (Wh, kWh, MWh) | die genaue Energie: eine fertige Ladung kann damit gebucht werden |
+| *Dauer dieser Ladung*, *Spannung*, *Strom*, *Genutzte Phasen*, *Temperatur der Wallbox* | `sensor`, `number`, `input_number` | die Zahlen der Wallbox-Karte |
+| *Eingestellter Maximalstrom* | `sensor`, `number`, `input_number`, `select`, `input_select` | das Limit an der Wallbox (6, 10, 16 A ...) |
+| *Modus*, *Störung* | `sensor`, `select`, `input_select`, `text`, `input_text`; eine Störung auch `binary_sensor`, `switch`, `input_boolean` | der Modus im eigenen Wort der Wallbox; was los ist (ein Text - `none` heißt nichts - oder ein Ja / Nein der Klasse *Problem*) |
+
+**Die Wörter.** Die üblichen Wörter gängiger Wallboxen werden ohne jede Einrichtung verstanden: OCPP (`Available`, `Preparing`, `Charging`, `SuspendedEV`, `SuspendedEVSE`, `Finishing`, `Faulted`), go-e (`Idle`, `Charging`, `WaitCar`, `Complete`, `Error`), Easee (`disconnected`, `awaiting_start`, `charging`, `completed`, `error`), die Zustände A bis F der IEC 61851 und einfache Wörter (`plugged in`, `paused`, `charge complete`, `fault` ...), einige davon deutsch. Groß- und Kleinschreibung, Leerzeichen, Striche und Punkte spielen keine Rolle. Ein unbekanntes Wort steht an der Zeile (*„Zapfen“ ist kein bekanntes Wort einer Wallbox - nenne es in den Optionen*); unter **Optionen** nennst du die Wörter DEINER Wallbox für jeden Zustand, durch Komma getrennt - sie gelten zuerst, auch vor einem üblichen Wort.
+
+**Ein Wort, drei Schnittstellen.** *Zustand der Wallbox* macht auch *Lädt* und *Angesteckt* des Autos (eine Störung sagt nichts über das Kabel) - es sei denn, du bindest diese beiden an eigene Entitäten. Das Plugin nimmt dem Auto dann beide Schnittstellen, wie jede Schnittstelle, die es füllt.
+
+Helfer und Vorlagen sind Entitäten wie alle anderen: ein `input_select` für den Modus, ein `input_number` für das Limit, ein Vorlagen-Sensor oder ein `utility_meter` für die Energie. Car Assistant liest, was Home Assistant als Zustand nennt (oder das Attribut, das du wählst); es wertet selbst nichts aus. Ein Sensor, der *nicht verfügbar* oder *unbekannt* ist, lässt den letzten Wert stehen.
 
 ## Sonderfälle: Home Assistant das Denken überlassen
 
@@ -125,7 +143,7 @@ Ein Paket, das dies anbietet, ist eine `plugin.json` ohne Dienst und ohne Connec
 |---|---|
 | `type` | `home_assistant` (bisher der einzige) |
 | `slots` | optional: nur diese Schnittstellen werden angeboten, nach Schlüssel - zum Beispiel `["charging", "plugged", "charge_power_kw"]` für ein *Wallbox*-Paket |
-| `groups` | optional: nur diese Gruppen (`vehicle`, `fuel`, `battery`, `access`, `position`, `tyres`, `climate`, `service`); `slots` gewinnt, wenn beides steht |
+| `groups` | optional: nur diese Gruppen (`vehicle`, `fuel`, `battery`, `wallbox`, `access`, `position`, `tyres`, `climate`, `service`); `slots` gewinnt, wenn beides steht |
 | `every` | optional: der Standard von *Mindestens nachsehen alle*, 10 bis 3600 Sekunden (Standard 30) |
 | Einstellung `every` | optional: Deklariert das Paket eine Einstellung mit dem Schlüssel `every`, zeigt die Seite sie, und die Wahl der Person zählt |
 

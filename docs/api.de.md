@@ -48,6 +48,13 @@ Alle Felder sind optional – sende, was du weißt. Unbekannte Felder werden abg
 | `oil_change_due_days` / `oil_change_due_km` | Zahl | Tage / km bis zum Ölwechsel; negativ = überfällig | Home: Fahrzeugdaten, Fahrzeugmeldungen |
 | `plugged` | Wahrheitswert | `true` = Ladekabel steckt | Home: Fahrzeugdaten |
 | `charge_limit_pct` / `charge_minutes_left` | Zahl | 0 … 100 / 0 … 5000 | Home: Fahrzeugdaten |
+| `charge_state` | Text | eines von `unplugged`, `plugged`, `waiting`, `charging`, `finished`, `fault`: was eine Wallbox tut, in einem Wortschatz | Laden: Wallbox-Karte |
+| `charge_session_kwh` / `charge_session_minutes` | Zahl | 0 … 5000 kWh / 0 … 100000 min: die Energie und die Dauer der Ladung, die läuft oder zuletzt lief, wie die Wallbox sie zählt | Laden: Wallbox-Karte, genaue kWh einer gebuchten Ladung |
+| `charge_voltage_v` / `charge_current_a` / `charge_phases` | Zahl | 0 … 1000 V / 0 … 1000 A (der Strom, der fließt) / 0 … 3 genutzte Phasen | Laden: Wallbox-Karte |
+| `charge_current_limit_a` | Zahl | 0 … 1000 A: das an der Wallbox eingestellte Limit | Laden: Wallbox-Karte |
+| `charge_total_kwh` | Zahl | 0 … 1 000 000 000 kWh: der Zähler der Wallbox über ihr ganzes Leben (er steigt nur) | Laden: Wallbox-Karte |
+| `charge_temp_c` | Zahl | -60 … 200 (°C): die Temperatur der Wallbox | Laden: Wallbox-Karte |
+| `charge_mode` / `charge_fault` | Text | bis 40 / 120 Zeichen: der Modus der Wallbox, in ihrem eigenen Wort / was los ist, in ihren eigenen Worten (ein leerer Text = nichts ist los) | Laden: Wallbox-Karte |
 | `parking_brake` | Wahrheitswert | `true` = angezogen | Home: Fahrzeugdaten (wenn angezogen) |
 | `lights` | Objekt `Name → Wahrheitswert/null` | `true` = an; Namen `low_beam`, `high_beam`, `hazard`, `parking` (andere wie geschrieben) | Home: Fahrzeugdaten |
 | `adblue_level_pct` / `adblue_range_km` | Zahl | 0 … 100 / 0 … 50000 (Harnstofflösung eines Diesels) | Home: Fahrzeugdaten |

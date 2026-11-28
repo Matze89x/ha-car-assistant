@@ -17,7 +17,7 @@ class Slot:
     key: str  # what the form and the bindings call it: the field of the Plugin API, or "tyre_fl", "position", ...
     field: str  # the field of the Plugin API it fills
     group: str
-    kind: str  # number | bool | text | position | coord | tyre | closure | warning
+    kind: str  # number | bool | text | position | coord | tyre | closure | warning | state | label | fault
     unit: str = ""  # the unit a number is stored in (km, %, kW, bar, °C, ...)
     domains: tuple[str, ...] = ()  # the kinds of entities of Home Assistant that fit
     classes: tuple[str, ...] = ()  # device classes (and units) that point to this slot: those entities are suggested first
@@ -30,6 +30,7 @@ GROUPS = (
     ("vehicle", "car-side"),
     ("fuel", "gas-station"),
     ("battery", "battery"),
+    ("wallbox", "plug"),
     ("access", "lock"),
     ("position", "map-marker-radius"),
     ("tyres", "car-tire-alert"),
@@ -39,6 +40,8 @@ GROUPS = (
 
 NUM = ("sensor", "number", "input_number")
 FLAG = ("binary_sensor", "switch", "input_boolean", "sensor")
+CHOICE = ("select", "input_select")  # a helper that holds one of several words (a wallbox keeps its mode and its limit in one)
+WORD = ("sensor", *CHOICE, "text", "input_text")  # an entity that says a word: a status, a mode
 
 SLOTS: tuple[Slot, ...] = (
     # --- the car itself
@@ -63,6 +66,18 @@ SLOTS: tuple[Slot, ...] = (
     Slot("charging", "charging", "battery", "bool", "", FLAG, ("battery_charging", "charging"), "charging"),
     Slot("plugged", "plugged", "battery", "bool", "", FLAG, ("plug", "connectivity", "cable"), "plugged"),
     Slot("battery_12v_v", "battery_12v_v", "battery", "number", "V", NUM, ("voltage",)),
+    # --- the wallbox: what it knows beyond the power (a state word, the energy of the session, volts, amperes, its own counter)
+    Slot("charge_state", "charge_state", "wallbox", "state", "", WORD, ("enum",)),
+    Slot("charge_session_kwh", "charge_session_kwh", "wallbox", "number", "kWh", NUM, ("energy",)),
+    Slot("charge_session_minutes", "charge_session_minutes", "wallbox", "number", "min", NUM, ("duration",)),
+    Slot("charge_voltage_v", "charge_voltage_v", "wallbox", "number", "V", NUM, ("voltage",)),
+    Slot("charge_current_a", "charge_current_a", "wallbox", "number", "A", NUM, ("current",)),
+    Slot("charge_phases", "charge_phases", "wallbox", "number", "", (*NUM, *CHOICE), ()),
+    Slot("charge_current_limit_a", "charge_current_limit_a", "wallbox", "number", "A", (*NUM, *CHOICE), ("current",)),
+    Slot("charge_total_kwh", "charge_total_kwh", "wallbox", "number", "kWh", NUM, ("energy",)),
+    Slot("charge_temp_c", "charge_temp_c", "wallbox", "number", "°C", NUM, ("temperature",)),
+    Slot("charge_mode", "charge_mode", "wallbox", "label", "", WORD, ()),
+    Slot("charge_fault", "charge_fault", "wallbox", "fault", "", (*WORD, "binary_sensor", "switch", "input_boolean"), ("problem",)),
     # --- doors, windows, lock
     Slot("locked", "locked", "access", "bool", "", ("lock", *FLAG), ("lock",), "locked"),
     Slot("parking_brake", "parking_brake", "access", "bool", "", FLAG, ("parking_brake",), "on"),

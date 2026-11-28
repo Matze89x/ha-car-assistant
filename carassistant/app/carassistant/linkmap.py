@@ -33,6 +33,9 @@ AREA_OF_KEY = {
     "tyre_pressure_bar": "tires",
     "fuel_level_pct": "energy", "fuel_amount": "energy", "range_km": "energy", "consumption_l_100km": "energy", "charging": "energy",
     "plugged": "energy", "battery_pct": "energy", "charge_power_kw": "energy", "charge_limit_pct": "energy", "charge_minutes_left": "energy",
+    "charge_state": "energy", "charge_session_kwh": "energy", "charge_session_minutes": "energy", "charge_voltage_v": "energy",
+    "charge_current_a": "energy", "charge_phases": "energy", "charge_current_limit_a": "energy", "charge_total_kwh": "energy",
+    "charge_temp_c": "energy", "charge_mode": "energy", "charge_fault": "energy",
     "service_due_days": "service", "service_due_km": "service", "oil_change_due_days": "service", "oil_change_due_km": "service",
     "oil_level_pct": "service", "oil_warning": "service", "adblue_level_pct": "service", "adblue_range_km": "service",
 }  # fmt: skip

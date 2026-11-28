@@ -48,6 +48,13 @@ All fields are optional – send what you know. Unknown fields are rejected (`42
 | `oil_change_due_days` / `oil_change_due_km` | number | days / km until the oil change; negative = overdue | Home: car data, vehicle messages |
 | `plugged` | boolean | `true` = charging cable connected | Home: car data |
 | `charge_limit_pct` / `charge_minutes_left` | number | 0 … 100 / 0 … 5000 | Home: car data |
+| `charge_state` | text | one of `unplugged`, `plugged`, `waiting`, `charging`, `finished`, `fault`: what a wallbox does, in one vocabulary | Charging: wallbox card |
+| `charge_session_kwh` / `charge_session_minutes` | number | 0 … 5000 kWh / 0 … 100000 min: the energy and the duration of the charge that runs or ran last, as the wallbox counts them | Charging: wallbox card, exact kWh of a booked charge |
+| `charge_voltage_v` / `charge_current_a` / `charge_phases` | number | 0 … 1000 V / 0 … 1000 A (the current that flows) / 0 … 3 phases in use | Charging: wallbox card |
+| `charge_current_limit_a` | number | 0 … 1000 A: the limit that is set on the wallbox | Charging: wallbox card |
+| `charge_total_kwh` | number | 0 … 1 000 000 000 kWh: the counter of the wallbox over its whole life (it only grows) | Charging: wallbox card |
+| `charge_temp_c` | number | -60 … 200 (°C): the temperature of the wallbox | Charging: wallbox card |
+| `charge_mode` / `charge_fault` | text | up to 40 / 120 characters: the mode the wallbox is in, in its own word / what is wrong, in its own words (an empty text = nothing is wrong) | Charging: wallbox card |
 | `parking_brake` | boolean | `true` = applied | Home: car data (when applied) |
 | `lights` | object `name → boolean/null` | `true` = on; names `low_beam`, `high_beam`, `hazard`, `parking` (others as written) | Home: car data |
 | `adblue_level_pct` / `adblue_range_km` | number | 0 … 100 / 0 … 50000 (exhaust fluid of a diesel) | Home: car data |

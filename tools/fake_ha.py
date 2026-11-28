@@ -339,6 +339,130 @@ class FakeHA:
         return Handler
 
 
+class Wallbox:
+    """A made-up wallbox in a made-up Home Assistant: every kind of entity a wallbox integration and a person's own helpers bring (sensors, binary sensors,
+    switch, number, select, button, the helpers input_boolean / input_number / input_select, a counter, a template sensor for the surplus of the roof), and a
+    small story to play: ``plug_in()``, ``wait()``, ``charge(minutes=10)``, ``finish()``, ``unplug()``, ``fault()``. The words of the status are those of OCPP.
+
+        wb = Wallbox(fake)            # the entities exist now, no car is plugged in
+        wb.plug_in(); wb.charge(minutes=30)
+
+    ``prefix`` names the entities (``sensor.<prefix>_status``); ``wb.e`` is the dictionary of their ids."""
+
+    PHASES = 3
+    VOLTS = 230
+
+    def __init__(self, fake: FakeHA, prefix: str = "wallbox", area: str = "garage"):
+        self.fake = fake
+        self.kw = 0.0
+        self.session = 0.0  # kWh of the charge that runs or ran last
+        self.total = 4210.4  # the counter of the wallbox over its whole life
+        self.amps = 16  # the limit that is set
+        self.minutes = 0.0
+        self.sessions = 0
+        self.mode = "Solar"
+        self.e = {
+            "status": f"sensor.{prefix}_status",
+            "cable": f"binary_sensor.{prefix}_cable",
+            "charging": f"binary_sensor.{prefix}_charging",
+            "power": f"sensor.{prefix}_power",
+            "current": f"sensor.{prefix}_current",
+            "voltage": f"sensor.{prefix}_voltage",
+            "session": f"sensor.{prefix}_energy_session",
+            "session_min": f"sensor.{prefix}_session_duration",
+            "total": f"sensor.{prefix}_energy_total",
+            "temperature": f"sensor.{prefix}_temperature",
+            "phases": f"select.{prefix}_phases",
+            "limit": f"number.{prefix}_max_current",
+            "allowed": f"switch.{prefix}_charging_allowed",
+            "mode": f"input_select.{prefix}_mode",
+            "surplus_on": f"input_boolean.{prefix}_use_surplus",
+            "price": f"input_number.{prefix}_home_price",
+            "surplus": f"sensor.{prefix}_roof_surplus",
+            "fault": f"sensor.{prefix}_fault",
+            "problem": f"binary_sensor.{prefix}_problem",
+            "start": f"button.{prefix}_start",
+            "stop": f"button.{prefix}_stop",
+            "ack": f"button.{prefix}_acknowledge",
+            "count": f"counter.{prefix}_charges",
+        }
+        fake.areas = [*fake.areas, {"area_id": area, "name": area.title()}]
+        fake.devices = [*fake.devices, {"id": f"dev_{prefix}", "name": "Wallbox", "name_by_user": None, "area_id": area, "manufacturer": "Example", "model": "Box 11"}]
+        fake.entities = [*fake.entities, *({"entity_id": e, "device_id": f"dev_{prefix}", "area_id": None, "platform": "example"} for e in self.e.values())]
+        self.unplug()
+
+    # ---- the story
+
+    def _publish(self, status: str, fault: str = "none") -> None:
+        e, set_ = self.e, self.fake.set
+        plugged = status != "Available"
+        charging = status == "Charging"
+        amps = round(self.kw * 1000 / (self.PHASES * self.VOLTS), 1) if charging else 0.0
+        set_(e["status"], status, friendly_name="Wallbox status", device_class="enum", options=["Available", "Preparing", "Charging", "SuspendedEV", "SuspendedEVSE", "Finishing", "Faulted"])
+        set_(e["cable"], "on" if plugged else "off", None, "plug", friendly_name="Wallbox cable")
+        set_(e["charging"], "on" if charging else "off", None, "battery_charging", friendly_name="Wallbox charging")
+        set_(e["power"], str(round(self.kw * 1000)), "W", "power", friendly_name="Wallbox power", state_class="measurement")
+        set_(e["current"], str(amps), "A", "current", friendly_name="Wallbox current")
+        set_(e["voltage"], str(self.VOLTS if plugged else 0), "V", "voltage", friendly_name="Wallbox voltage")
+        set_(e["session"], f"{self.session:.2f}", "kWh", "energy", friendly_name="Wallbox energy of this charge", state_class="total")
+        set_(e["session_min"], str(round(self.minutes)), "min", "duration", friendly_name="Wallbox duration of this charge")
+        set_(e["total"], f"{self.total:.2f}", "kWh", "energy", friendly_name="Wallbox energy total", state_class="total_increasing")
+        set_(e["temperature"], str(round(24 + self.kw * 1.4, 1)), "°C", "temperature", friendly_name="Wallbox temperature")
+        set_(e["phases"], str(self.PHASES), friendly_name="Wallbox phases", options=["1", "3"])
+        set_(e["limit"], str(self.amps), "A", friendly_name="Wallbox max current", min=6, max=16, step=1, mode="slider")
+        set_(e["allowed"], "on", friendly_name="Wallbox charging allowed")
+        set_(e["mode"], self.mode, friendly_name="Wallbox mode", options=["Solar", "Fast", "Plan"])
+        set_(e["surplus_on"], "on", friendly_name="Wallbox use surplus")
+        set_(e["price"], "0.30", "€/kWh", friendly_name="Home price", min=0, max=2, step=0.001, mode="box")
+        set_(e["surplus"], str(2300 if status in ("SuspendedEVSE", "Preparing") else 0), "W", "power", friendly_name="Roof surplus")
+        set_(e["fault"], fault, friendly_name="Wallbox fault")
+        set_(e["problem"], "on" if fault != "none" else "off", None, "problem", friendly_name="Wallbox problem")
+        for name in ("start", "stop", "ack"):
+            set_(e[name], "unknown", friendly_name=f"Wallbox {name}")
+        set_(e["count"], str(self.sessions), friendly_name="Wallbox charges", initial=0, step=1)
+
+    def unplug(self) -> None:
+        self.kw = 0.0
+        self._publish("Available")
+
+    def plug_in(self) -> None:
+        """A car is plugged in: a new charge begins (the energy of the session starts at 0)."""
+        self.kw, self.session, self.minutes = 0.0, 0.0, 0.0
+        self._publish("Preparing")
+
+    def wait(self) -> None:
+        """Plugged in, but the wallbox holds back (not enough sun for the mode *Solar*)."""
+        self.kw = 0.0
+        self._publish("SuspendedEVSE")
+
+    def charge(self, kw: float = 7.4, minutes: float = 0.0) -> None:
+        """Charge with ``kw`` for ``minutes`` more: the energy of the session and the counter of the wallbox grow."""
+        if self.e["status"] and self.fake.states[self.e["status"]]["state"] != "Charging":
+            self.sessions += 1
+        added = kw * minutes / 60
+        self.kw, self.session, self.total, self.minutes = kw, self.session + added, self.total + added, self.minutes + minutes
+        self._publish("Charging")
+
+    def finish(self) -> None:
+        self.kw = 0.0
+        self._publish("Finishing")
+
+    def fault(self, text: str = "E-12 residual current") -> None:
+        self.kw = 0.0
+        self._publish("Faulted", text)
+
+    def play(self, step_seconds: float = 4.0, stop: threading.Event | None = None) -> None:
+        """The whole story again and again, one step every ``step_seconds`` (for a browser that watches): plug in, wait for the sun, charge in ten
+        minute steps, finish, unplug."""
+        stop = stop or threading.Event()
+        story = [self.plug_in, self.wait, *([lambda: self.charge(7.4, 10)] * 12), self.finish, self.unplug]
+        while not stop.is_set():
+            for step in story:
+                if stop.wait(step_seconds):
+                    return
+                step()
+
+
 def demo(fake: FakeHA) -> None:
     """A car, a wallbox and some more, as a Home Assistant at home might hold them."""
     fake.areas = [{"area_id": "garage", "name": "Garage"}, {"area_id": "driveway", "name": "Driveway"}]
@@ -373,11 +497,16 @@ def demo(fake: FakeHA) -> None:
 
 
 if __name__ == "__main__":
-    fake = FakeHA(token="test-token", port=int(sys.argv[1]) if len(sys.argv) > 1 else 8123)
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    fake = FakeHA(token="test-token", port=int(args[0]) if args else 8123)
     demo(fake)
+    box = Wallbox(fake, prefix="garage")  # a second wallbox with every kind of entity (the demo above has three simple ones)
     fake.start()
     print(f"Fake Home Assistant on {fake.api}  (token: test-token)")
     print(f"  CARASSISTANT_HA_API={fake.api} SUPERVISOR_TOKEN=test-token")
+    if "--play" in sys.argv:  # the wallbox "garage" lives: plug in, wait for the sun, charge, finish, unplug - again and again
+        print("  the wallbox 'garage' plays its story (a step every 4 s)")
+        threading.Thread(target=box.play, daemon=True).start()
     try:
         while True:
             time.sleep(3600)

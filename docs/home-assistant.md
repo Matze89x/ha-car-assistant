@@ -14,7 +14,7 @@ It works in the **Home Assistant add-on** (the app talks to Home Assistant throu
 ## Set up
 
 1. *Car → More → Plugins → Add* and take **Home Assistant** from your source (or upload the example [`examples/home-assistant/plugin.json`](https://github.com/Matze89x/ha-car-assistant/blob/main/docs/examples/home-assistant/plugin.json)).
-2. Open its settings. The page lists the interfaces in groups - *Vehicle*, *Fuel and range*, *Battery and charging*, *Doors, windows and lock*, *Position*, *Tyres*, *Temperatures and climate*, *Service and warnings*.
+2. Open its settings. The page lists the interfaces in groups - *Vehicle*, *Fuel and range*, *Battery and charging*, *Wallbox*, *Doors, windows and lock*, *Position*, *Tyres*, *Temperatures and climate*, *Service and warnings*.
 3. Click into the field of an interface: a list of **likely entities** opens. Type to narrow it down, click one.
 4. The line under the field says **what it delivers right now** (`64 %`, `7.4 kW from 7400 W`, `Locked`). Save.
 
@@ -56,6 +56,24 @@ Where the entity does not say it in words Car Assistant knows, the options of th
 ### Options of a row
 
 Rarely needed, folded away until you have chosen an entity: **Attribute** (read this attribute of the entity instead of its state - the temperature of a climate entity, the course of a tracker), **Unit**, **Factor** and **Offset** (`value × factor + offset`, applied last), **States that mean yes**, **Yes above**, **Turn round**, and for a warning the **Text shown**.
+
+### A wallbox
+
+The group **Wallbox** brings what a wallbox knows beyond its power. Everything in it is optional - bind what your Home Assistant has:
+
+| Interface | An entity of ... | What it is for |
+|---|---|---|
+| *State of the wallbox* | a status sensor, or a helper that holds the word (`sensor`, `select`, `input_select`, `text`, `input_text`) | one word for what the wallbox does: **No car, Plugged in, Waiting, Charging, Finished, Fault** |
+| *Energy of this charge*, *Counter of the wallbox* | `sensor`, `number`, `input_number` (Wh, kWh, MWh) | the exact energy: a finished charge can be booked with it |
+| *Duration of this charge*, *Voltage*, *Current*, *Phases in use*, *Temperature of the wallbox* | `sensor`, `number`, `input_number` | the figures of the wallbox card |
+| *Current limit that is set* | `sensor`, `number`, `input_number`, `select`, `input_select` | the limit on the wallbox (6, 10, 16 A ...) |
+| *Mode*, *Fault* | `sensor`, `select`, `input_select`, `text`, `input_text`; a fault also `binary_sensor`, `switch`, `input_boolean` | the mode in the wallbox's own word; what is wrong (a text - `none` means nothing - or a yes / no of the class *problem*) |
+
+**The words.** The usual words of common wallboxes are understood without any setup: OCPP (`Available`, `Preparing`, `Charging`, `SuspendedEV`, `SuspendedEVSE`, `Finishing`, `Faulted`), go-e (`Idle`, `Charging`, `WaitCar`, `Complete`, `Error`), Easee (`disconnected`, `awaiting_start`, `charging`, `completed`, `error`), the states A to F of IEC 61851 and plain words (`plugged in`, `paused`, `charge complete`, `fault` ...), a few of them German. Upper and lower case, blanks, dashes and dots do not matter. A word that is not known is shown on the row (*"Zapfen" is not a known word of a wallbox - name it in the options*); under **Options** you name the words of YOUR wallbox for each state, separated by commas - they come first, even over a usual word.
+
+**One word, three interfaces.** *State of the wallbox* also makes *Charging* and *Plugged in* of the car (a fault says nothing about the cable) - unless you bind those two to entities of your own. The plugin takes both interfaces for the car then, like every interface it fills.
+
+Helpers and templates are entities like any other: an `input_select` for the mode, an `input_number` for the limit, a template sensor or a `utility_meter` for the energy. Car Assistant reads what Home Assistant says is the state (or the attribute you choose); it evaluates nothing itself. A sensor that is *unavailable* or *unknown* leaves the last value in place.
 
 ## Special cases: let Home Assistant do the thinking
 
@@ -125,7 +143,7 @@ A package that offers this is a `plugin.json` without a service and without a co
 |---|---|
 | `type` | `home_assistant` (the only one so far) |
 | `slots` | optional: only these interfaces are offered, by key - for example `["charging", "plugged", "charge_power_kw"]` for a *wallbox* package |
-| `groups` | optional: only these groups (`vehicle`, `fuel`, `battery`, `access`, `position`, `tyres`, `climate`, `service`); `slots` wins when both are given |
+| `groups` | optional: only these groups (`vehicle`, `fuel`, `battery`, `wallbox`, `access`, `position`, `tyres`, `climate`, `service`); `slots` wins when both are given |
 | `every` | optional: the default of *Look at least every*, 10 to 3600 seconds (default 30) |
 | setting `every` | optional: when the package declares a setting with the key `every`, the page shows it and the person's choice counts |
 
